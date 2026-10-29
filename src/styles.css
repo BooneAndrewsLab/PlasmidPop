@@ -7571,3 +7571,36 @@ button {
     flex-basis: 100%;
   }
 }
+
+/* Phone landing: the prose folds away behind a summary so Recent files and
+   Browse all files are on the first screen, and the two start buttons fit
+   side by side. */
+.empty__more > summary {
+  cursor: pointer;
+  color: var(--ink-2);
+}
+
+.empty__more[open] > summary {
+  margin-bottom: 8px;
+}
+
+@media (max-width: 600px) {
+  .empty__card {
+    padding: 16px;
+  }
+
+  .empty__start {
+    padding: 12px;
+  }
+
+  .empty__start-buttons {
+    gap: 8px;
+  }
+
+  .empty__start-button {
+    flex: 1 1 auto;
+    padding: 10px 12px;
+    font-size: 15px;
+    text-align: center;
+  }
+}

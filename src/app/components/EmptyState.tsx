@@ -12,11 +12,13 @@ import { EXAMPLES } from '../examples';
 import { openGuide } from '../help/openGuide';
 import { openExample, openPastedText } from '../openFile';
 import { editorStore } from '../state/editorStore';
+import { PHONE_QUERY } from '../state/layout';
 import { persistence } from '../state/persistence';
 import { useEditorState } from '../state/useEditorStore';
 import { BrowseFilesDialog } from './BrowseFilesDialog';
 import { StoragePanel } from './StoragePanel';
 import { StoredList } from './StoredRow';
+import { useMediaQuery } from './useMediaQuery';
 
 const REPOSITORY_URL = 'https://github.com/BooneAndrewsLab/PlasmidPop';
 
@@ -31,6 +33,9 @@ function isTextField(target: EventTarget | null): boolean {
 
 export function EmptyState() {
   const example = EXAMPLES[0];
+  const phone = useMediaQuery(PHONE_QUERY);
+  // A touch screen has nothing to drag a file from, so the lead names no drop.
+  const touch = useMediaQuery('(pointer: coarse)');
   const [recent, setRecent] = useState<DocumentSummary[] | null>(null);
   // When the listing was read, which the notice about documents going soon is judged by.
   const [listedAt, setListedAt] = useState(() => Date.now());
@@ -148,7 +153,9 @@ export function EmptyState() {
     <div className="empty">
       <div className="empty__card">
         <p className="empty__lead">
-          Drop a GenBank, FASTA or SnapGene file anywhere on this page to open it.
+          {touch
+            ? 'Open a GenBank, FASTA or SnapGene file.'
+            : 'Drop a GenBank, FASTA or SnapGene file anywhere on this page to open it.'}
         </p>
         <div className="empty__start">
           <p className="empty__start-text">New here? Learn by doing, or read how it all works.</p>
@@ -173,68 +180,138 @@ export function EmptyState() {
             </button>
           </div>
         </div>
-        <p className="empty__hint">
-          Or paste a sequence, GenBank or FASTA record here (Ctrl+V), or{' '}
-          <button
-            type="button"
-            className="link"
-            onClick={() => {
-              editorStore.requestNewDocument();
-            }}
-          >
-            start a new sequence
-          </button>{' '}
-          and type it in, or{' '}
-          <button
-            type="button"
-            className="link"
-            onClick={() => {
-              editorStore.requestNcbi();
-            }}
-          >
-            open a record from NCBI
-          </button>{' '}
-          by its accession number.
-        </p>
-        <p className="empty__hint">
-          Everything stays in your browser: documents are kept here as you work and never uploaded,
-          and no file on your disk is written to. Opening from NCBI sends NCBI the accession numbers
-          you type, and nothing else. Download the ones you want as files. Your browser may ask
-          whether PlasmidPop can keep its data; saying yes protects your documents when disk space
-          runs low.
-          {example !== undefined && (
-            <>
-              {' '}
-              Or{' '}
+        {phone ? (
+          <details className="empty__more">
+            <summary>Other ways in, and your data</summary>
+            <p className="empty__hint">
+              Or paste a sequence, GenBank or FASTA record here (Ctrl+V), or{' '}
               <button
                 type="button"
                 className="link"
                 onClick={() => {
-                  openExample(example);
+                  editorStore.requestNewDocument();
                 }}
               >
-                open {example.label}
+                start a new sequence
               </button>{' '}
-              to look around.
-            </>
-          )}
-        </p>
-        <p className="empty__hint empty__licence">
-          Free and open source under the{' '}
-          <a
-            className="link"
-            href={`${REPOSITORY_URL}/blob/main/LICENSE`}
-            target="_blank"
-            rel="noreferrer noopener"
-          >
-            MIT licence
-          </a>
-          ; the{' '}
-          <a className="link" href={REPOSITORY_URL} target="_blank" rel="noreferrer noopener">
-            source is on GitHub
-          </a>
-          .
-        </p>
+              and type it in, or{' '}
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  editorStore.requestNcbi();
+                }}
+              >
+                open a record from NCBI
+              </button>{' '}
+              by its accession number.
+            </p>
+            <p className="empty__hint">
+              Everything stays in your browser: documents are kept here as you work and never
+              uploaded, and no file on your disk is written to. Opening from NCBI sends NCBI the
+              accession numbers you type, and nothing else. Download the ones you want as files.
+              Your browser may ask whether PlasmidPop can keep its data; saying yes protects your
+              documents when disk space runs low.
+              {example !== undefined && (
+                <>
+                  {' '}
+                  Or{' '}
+                  <button
+                    type="button"
+                    className="link"
+                    onClick={() => {
+                      openExample(example);
+                    }}
+                  >
+                    open {example.label}
+                  </button>{' '}
+                  to look around.
+                </>
+              )}
+            </p>
+            <p className="empty__hint empty__licence">
+              Free and open source under the{' '}
+              <a
+                className="link"
+                href={`${REPOSITORY_URL}/blob/main/LICENSE`}
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                MIT licence
+              </a>
+              ; the{' '}
+              <a className="link" href={REPOSITORY_URL} target="_blank" rel="noreferrer noopener">
+                source is on GitHub
+              </a>
+              .
+            </p>
+          </details>
+        ) : (
+          <>
+            <p className="empty__hint">
+              Or paste a sequence, GenBank or FASTA record here (Ctrl+V), or{' '}
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  editorStore.requestNewDocument();
+                }}
+              >
+                start a new sequence
+              </button>{' '}
+              and type it in, or{' '}
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  editorStore.requestNcbi();
+                }}
+              >
+                open a record from NCBI
+              </button>{' '}
+              by its accession number.
+            </p>
+            <p className="empty__hint">
+              Everything stays in your browser: documents are kept here as you work and never
+              uploaded, and no file on your disk is written to. Opening from NCBI sends NCBI the
+              accession numbers you type, and nothing else. Download the ones you want as files.
+              Your browser may ask whether PlasmidPop can keep its data; saying yes protects your
+              documents when disk space runs low.
+              {example !== undefined && (
+                <>
+                  {' '}
+                  Or{' '}
+                  <button
+                    type="button"
+                    className="link"
+                    onClick={() => {
+                      openExample(example);
+                    }}
+                  >
+                    open {example.label}
+                  </button>{' '}
+                  to look around.
+                </>
+              )}
+            </p>
+            <p className="empty__hint empty__licence">
+              Free and open source under the{' '}
+              <a
+                className="link"
+                href={`${REPOSITORY_URL}/blob/main/LICENSE`}
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                MIT licence
+              </a>
+              ; the{' '}
+              <a className="link" href={REPOSITORY_URL} target="_blank" rel="noreferrer noopener">
+                source is on GitHub
+              </a>
+              .
+            </p>
+          </>
+        )}
       </div>
       {expiring !== null && (
         <p className="recent__notice" role="status">

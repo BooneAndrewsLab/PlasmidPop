@@ -149,3 +149,48 @@ describe('EmptyState, Recent files and Unkept (item 110)', () => {
     expect(screen.queryByRole('status')).toBeNull();
   });
 });
+
+describe('EmptyState on a touch phone', () => {
+  const real = Object.getOwnPropertyDescriptor(window, 'matchMedia');
+  afterEach(() => {
+    if (real === undefined) Reflect.deleteProperty(window, 'matchMedia');
+    else Object.defineProperty(window, 'matchMedia', real);
+  });
+  const answer = (matching: readonly string[]): void => {
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: (query: string): MediaQueryList =>
+        ({
+          matches: matching.includes(query),
+          media: query,
+          addEventListener: () => undefined,
+          removeEventListener: () => undefined,
+        }) as unknown as MediaQueryList,
+    });
+  };
+  const renderEmpty = async (): Promise<void> => {
+    const listed = Promise.resolve([]);
+    vi.spyOn(persistence, 'listStored').mockReturnValue(listed);
+    vi.spyOn(persistence, 'pruneScratch').mockResolvedValue(0);
+    render(<EmptyState />);
+    await act(() => listed);
+  };
+
+  it('asks to open a file rather than to drop one, and folds the prose away', async () => {
+    answer(['(pointer: coarse)', '(max-width: 600px)']);
+    await renderEmpty();
+    expect(screen.getByText('Open a GenBank, FASTA or SnapGene file.')).toBeInTheDocument();
+    expect(screen.queryByText(/^Drop a GenBank/)).toBeNull();
+    const more = screen.getByText('Other ways in, and your data').closest('details');
+    expect(more).not.toBeNull();
+    expect(more).toContainElement(screen.getByRole('link', { name: 'MIT licence' }));
+  });
+
+  it('keeps the drop wording and the open prose on a mouse', async () => {
+    answer([]);
+    await renderEmpty();
+    expect(screen.getByText(/^Drop a GenBank/)).toBeInTheDocument();
+    expect(screen.queryByText('Other ways in, and your data')).toBeNull();
+  });
+});
