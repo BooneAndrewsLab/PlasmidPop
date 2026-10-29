@@ -96,10 +96,10 @@ describe('helpers', () => {
 
   it('keeps indented blocks inside a list item and the written numbering', () => {
     const blocks = parseMarkdown(
-      '1. one\n\n   | A | B |\n   | --- | --- |\n   | x | y |\n\n   _Why: because._\n\n2. two\n\n5. five\n',
+      '1. one\n\n   | A | B |\n   | --- | --- |\n   | x | y |\n\n   _Why: because._\n\n2. two\n\nBetween.\n\n5. five\n',
     );
-    expect(blocks).toHaveLength(2);
-    const [first, second] = blocks;
+    expect(blocks.map((b) => b.kind)).toEqual(['list', 'paragraph', 'list']);
+    const [first, , second] = blocks;
     expect(first?.kind === 'list' && first.items).toHaveLength(2);
     expect(first?.kind === 'list' && first.details?.[0]?.map((b) => b.kind)).toEqual([
       'table',
@@ -161,5 +161,12 @@ describe('helpers', () => {
     ]);
     const list = parseMarkdown('1. step\n\n   > [!NOTE]\n   > you see it\n\n2. next\n')[0];
     expect(list?.kind === 'list' && list.details?.[0]?.map((b) => b.kind)).toEqual(['quote']);
+  });
+
+  it('keeps one list across blank lines between its items', () => {
+    const blocks = parseMarkdown('1. a\n\n2. b\n\n3. c\n');
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]?.kind === 'list' && blocks[0].items).toHaveLength(3);
+    expect(parseMarkdown('- a\n\n- b\n')).toHaveLength(1);
   });
 });

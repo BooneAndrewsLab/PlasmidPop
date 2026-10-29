@@ -1,5 +1,10 @@
 # Before you start
 
+- **You will end with:** the sample files open in tabs, the enzyme ticks cleared, and a picture of what the Bench is.
+- **Time:** about 5 minutes.
+- **Files:** [the synthetic sample files](sample-files.md).
+- **Before this:** nothing.
+
 What every tutorial assumes. Nothing to install: PlasmidPop runs in the browser,
 and the files stay on your device. If digesting a plasmid or amplifying a gene
 with primers is new to you, do [Digest and PCR basics](digest-pcr.md) next: it
@@ -12,8 +17,10 @@ sequences, no catalogue or database records. Download the ones a tutorial names.
 Either drag them onto the PlasmidPop window, or use **File ▸ Open** and select
 several at once. Each opens in a tab of its own; **File ▸ Show files** (the
 **Files** tab) lists them. Open only what an exercise names, in the order it
-names, and close the rest, because the Golden Gate panel puts every open tab in
-the tube.
+names, and close the rest.
+
+> [!WARNING]
+> The Golden Gate panel puts every open tab in the tube, so close the tabs an exercise does not name.
 
 ## What the Bench is
 

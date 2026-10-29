@@ -1,163 +1,153 @@
-# Golden Gate in PlasmidPop: start here
+# Golden Gate in PlasmidPop: one gene into an expression vector
 
-A first run, about eight steps: put one gene into an expression vector in one
-reaction. Read [Before you start](before-you-start.md) first if the Bench or the
-sample files are new to you. Every file is a **synthetic example** (invented
-sequence): [pGG-Expression.gb](files/pGG-Expression.gb) and
-[GG-gene.gb](files/GG-gene.gb) are plain downloads. Every number below is checked by
-`src/core/cloning/goldenGateTutorial.test.ts`, which runs these same files
-through the functions the app uses, so the page cannot drift from the app
-without the build failing.
+- **You will end with:** a 3,239 bp circular plasmid with `synthGene` between the promoter and the terminator (path A), or a 2,870 bp one with the insulin gene (path B).
+- **Time:** about 20 minutes.
+- **Files:** [pGG-Expression.gb](files/pGG-Expression.gb), [GG-gene.gb](files/GG-gene.gb) (path A only).
+- **Before this:** [Before you start](before-you-start.md) if the Bench or the sample files are new to you.
 
-### Four words
+Before you click anything, close every tab you do not need: the Golden Gate simulation takes the other open tabs into the tube. Then choose one path. They are independent.
 
-- **Type IIS enzyme** (BsaI here): cuts a short distance _beside_ its
-  recognition site, so the site is thrown away with the cut-off end.
-- **Overhang**: the 4 single-stranded bases a cut leaves. Two ends join only
-  when their overhangs match, so overhangs decide what goes where.
-- **Dropout**: the stretch of the vector that the cut removes, with its two
-  BsaI sites. The gene takes its place.
-- **Part**: a piece with an overhang at each end, ready to go into a slot. Here
-  the gene is the part, and its primers add the sites and overhangs.
+## Path A: a synthetic ORF
 
-## The vector, and what the app does
+`GG-gene.gb` is a plain 702 bp open reading frame, `synthGene`, ATG to stop, with no BsaI site and no cloning ends.
 
-`pGG-Expression.gb` is a circular 2,857 bp vector that already has a promoter
-and a terminator. Between them sit two BsaI sites around a `lacZ-dropout`.
-Cut with BsaI, the vector's backbone ends in `AATG` (after the promoter) and
-`GCTT` (before the terminator), which is the pair a MoClo plant CDS part uses.
-Your gene needs `AATG` before it and `GCTT` after it. PlasmidPop designs the
-two PCR primers that put them there, then simulates the reaction. You never
-type a sequence.
+1. Choose **File ▸ Open** and select `pGG-Expression.gb` and `GG-gene.gb` (or drag both onto the window).
 
-Before you start, close every tab you do not need: the Golden Gate
-simulation takes the other open tabs into the tube.
+   > [!WARNING]
+   > If instead you see extra tabs, close them: the simulation would take them into the tube.
 
-## Tutorial 1: one gene into an expression vector
+2. Click the **pGG-Expression** tab so it is in front.
 
-Choose one path. They are independent.
+3. Choose **Primers ▸ Design**.
+4. Under **Mode**, click **Clone an insert into this plasmid**.
 
-### Path A: a synthetic ORF
+5. In step 3 of the panel, next to **Ends**, click **Golden Gate part**.
 
-`GG-gene.gb` is a plain 702 bp open reading frame, `synthGene`, ATG to stop,
-with no BsaI site and no cloning ends.
+   > [!NOTE]
+   > You see `pGG-Expression is the destination · 2,857 bp`, and **Enzyme** stays **BsaI**.
 
-1. **File ▸ Open**, select `pGG-Expression.gb` and `GG-gene.gb` (or drag both
-   onto the window). Click the **pGG-Expression** tab so it is in front.
-   _Why: the primer workspace designs against the document in front, the
-   destination._
-2. Open the primer workspace: **Primers ▸ Design**. Under **Mode**, click
-   **Clone an insert into this plasmid**.
-   _Why: this is the mode that designs primers for an insert from another tab._
-3. In step 3, **Ends**, click **Golden Gate part**. Step 1 now reads
-   `pGG-Expression is the destination · 2,857 bp`, its backbone is 2,536 bp and
-   asks for `AATG…GCTT`. **Enzyme** stays **BsaI**, and the note beside it reads
-   `GGTCTC then 1 base and a 4-base 5′ overhang`.
-   _Why: the vector's own cut ends say which overhangs the gene needs._
-4. In step 2, **What to insert**, open **Feature in another tab…** and choose
-   `synthGene (CDS)`. The line below reads `synthGene in GG-gene`, 702 bp.
-   _Why: the CDS is the part of the file to amplify._
-5. Back in step 3, open **Overhangs** and choose
-   **From pGG-Expression: AATG…GCTT**. Both overhang fields fill in. Leave
-   **Include the start codon** ticked and **tick Include the stop codon**.
-   _Why: nothing is fused after this gene (the terminator follows), so the stop
-   codon stays; it is off by default because tags usually follow in frame._
-6. Read the note under the fields: the part is **707 bp**, `AATG` (its last 3
-   bases are the part's own start codon, so the primer anneals from the base
-   after it) … `GCTT`, and the **PCR product is 733 bp**. Click **Design
-   primers**.
-   _Why: this is the design as it would be made, before any oligo exists._
-7. The workspace goes to **Results**: **BsaI part AATG…GCTT**, `PCR 733 bp ·
-part 707 bp · product 3,239 bp`, the two oligos with padding, site, spacer and
-   overhang told apart from the annealing part, and **No warnings**. Click
-   **Simulate**.
-   _Why: it runs the PCR on the GG-gene tab, then the BsaI Golden Gate into the
-   vector, and opens the result._
-8. A new tab opens, `pGG-Expression-synthGene`. Open its **Enzymes** tab and its
-   **Features** tab and tick through the checklist.
-   _Why: the product is a scratch document; **File ▸ Save** if you want to keep
-   it._
+6. In step 2 of the panel, **What to insert**, open **Feature in another tab…** and choose `synthGene (CDS)`.
 
-**Did it work?**
+   > [!NOTE]
+   > You see `synthGene in GG-gene`, 702 bp.
 
-- [ ] Product **3,239 bp**, **circular**.
-- [ ] Features: `KanR`, `ori`, `synthetic promoter`, `synthGene`,
-      `synthetic terminator`, and **no** `lacZ-dropout`.
-- [ ] **BsaI** is ticked in the Enzymes tab (the reaction's enzyme).
-- [ ] BsaI has **0 sites** in the product (the vector had 2): nothing is marked,
-      because the cut threw the sites away.
-- [ ] `synthGene` runs from the promoter's `AATG` to its own stop, then
-      `GCTT`, then the terminator: one open reading frame of 233 residues.
+7. Back in step 3, open **Overhangs** and choose **From pGG-Expression: AATG…GCTT**.
 
-### Path B: a gene from NCBI (human insulin, NM_000207)
+   > [!NOTE]
+   > You see both overhang fields filled in.
 
-The record is third-party data, so you fetch it; nothing in this folder
-contains it. It needs a network connection, and only the accession you type
-leaves the browser.
+   > [!TIP]
+   > The vector's own cut ends say which overhangs the gene needs.
 
-1. **File ▸ Open**, select `pGG-Expression.gb` only. Close any other tab.
-   _Why: it is the destination, and it stays in front._
-2. **Primers ▸ Design**, **Mode: Clone an insert into this plasmid**.
-3. In step 3, **Ends**, click **Golden Gate part**. **Enzyme** stays **BsaI**.
-4. In step 2, **What to insert**, click **Gene from NCBI…**, type `NM_000207`
-   and click **Add**. (This is the same search as **File ▸ Open from NCBI…**,
-   with **Add** where that one says Open.) The record opens as a tab of its own
-   and the workspace stays on the vector. The insert line reads
-   `insulin preproprotein` in the new tab, **333 bp**.
-   _Why: the CDS becomes the insert; a gene off NCBI has no BsaI site and no
-   cloning ends, so the primers add them._
-5. In step 3 open **Overhangs** and choose **From pGG-Expression: AATG…GCTT**.
-   Leave **Include the start codon** ticked and **tick Include the stop
-   codon**.
-6. The note reads: the part is **338 bp**, **PCR product 364 bp**. Click
-   **Design primers**. Results shows one amber caution about the annealing
-   parts (the gene's ends are GC-rich: `GC content above 65%`); that is
-   expected here, and **Simulate** still works. Click **Simulate**.
-7. A new tab opens, `pGG-Expression-insulin preproprotein`. Check it.
+8. Leave **Include the start codon** ticked and tick **Include the stop codon**.
 
-**Did it work?**
+   > [!TIP]
+   > Nothing is fused after this gene (the terminator follows), so the stop codon stays. It is off by default because tags usually follow in frame.
 
-- [ ] Product **2,870 bp**, **circular**.
-- [ ] Features: `KanR`, `ori`, `synthetic promoter`, `INS` with the insulin
-      chain features, `synthetic terminator`, and **no** `lacZ-dropout`.
-- [ ] **BsaI** is ticked in the Enzymes tab, with **0 sites** in the product.
-- [ ] Translating from the insulin start codon reads
-      `MALWMRLLPLLALLALWGPDPAAAFVNQHLCGSHLVEALYLVCGERGFFYTPKTRREAEDLQVGQVELGGGPGAGSLQPLALEGSLQKRGIVEQCCTSICSLYQLENYCN*`:
-      preproinsulin, one frame, one stop, then `GCTT`.
+9. Click **Design primers**.
 
-**Two things on the map that look odd and are right.** The base just before
-the start codon is a capital `A` that is not in the NCBI record: the overhang
-is `AATG`, and its `ATG` is the gene's own start codon, so the primer adds only
-the first `A`. That is why the promoter runs straight into the start codon.
-After the stop codon come the four overhang bases `GCTT`, then the
-terminator, so there is a four-base gap there and none on the promoter side.
-The `INS` gene feature, the first `exon` and the forward primer feature start
-on that `A`, because the part's edge cuts them off; the CDS and the peptides
-start on the `ATG`.
+   > [!NOTE]
+   > You see the part is **707 bp** and the **PCR product is 733 bp**.
 
-(The oligos depend on the padding setting and on the annealing lengths the
-designer picks, so they are not written out. What does not depend on them is
-the part and the product length.)
+10. Click **Simulate**.
 
-## Tutorial 2 (optional): several parts in one tube
+    > [!NOTE]
+    > You see `PCR 733 bp · part 707 bp · product 3,239 bp` and **No warnings**.
 
-Real constructs are often built from a promoter, a coding part, a tag and a
-terminator at once. [Four parts and the warnings](golden-gate-parts.md) opens
-four part files and a destination in a scrambled tab order, and shows that the
-overhangs, not the tab order, decide the assembly: **3,118 bp**, with a check
-digest. It also has an NCBI version, where the gene replaces one of the parts.
+11. Look at the tab that opened, `pGG-Expression-synthGene`.
 
-## Tutorial 3 (optional): what a bad design looks like
+    > [!NOTE]
+    > You see a **3,239 bp** **circular** product with `synthGene` and no `lacZ-dropout`.
 
-[Seeing the warnings](golden-gate-parts.md#seeing-the-warnings) shows three
-broken designs: a BsaI site inside a part, two parts that offer the same
-overhang, and two overhangs one base apart. Each one tells you what is wrong,
-in the panel's own words, before you order anything.
+    > [!WARNING]
+    > If not, close any extra tab (the simulation takes other open tabs that BsaI cuts into the tube) and click **Simulate** again.
 
-## Background
+12. Open its **Enzymes** tab and look at **BsaI**.
 
-[Golden Gate](../guide/12-cloning.md#golden-gate) on the Bench, and
-[Golden Gate ends](../guide/10-primers.md#golden-gate-ends-primers-that-make-the-insert-a-part)
-in the primer workspace.
+    > [!NOTE]
+    > You see **BsaI** ticked with **0 sites** (the vector had 2): the cut threw them away.
+
+The product is a scratch document; use **File ▸ Save** if you want to keep it.
+
+**Done when:**
+
+- [ ] The product is **3,239 bp** and **circular**.
+- [ ] `synthGene` sits between the promoter and the terminator, and there is no `lacZ-dropout`.
+
+## Path B: a gene from NCBI (human insulin, NM_000207)
+
+The record is third-party data, so you fetch it; nothing in this folder contains it. It needs a network connection, and only the accession you type leaves the browser.
+
+1. Choose **File ▸ Open** and select `pGG-Expression.gb` only.
+
+   > [!NOTE]
+   > You see one tab, **pGG-Expression**.
+
+   > [!WARNING]
+   > If instead you see other tabs, close them: the vector is the destination and stays in front, and the simulation takes other tabs into the tube.
+
+2. Choose **Primers ▸ Design**.
+3. Click **Mode: Clone an insert into this plasmid**.
+4. In step 3 of the panel, next to **Ends**, click **Golden Gate part**.
+
+5. In step 2 of the panel, **What to insert**, click **Gene from NCBI…**.
+6. Type `NM_000207` and click **Add**. (This is the same search as **File ▸ Open from NCBI…**, with **Add** where that one says Open.)
+
+   > [!NOTE]
+   > You see `insulin preproprotein` in the new tab, **333 bp**.
+
+7. In step 3, open **Overhangs** and choose **From pGG-Expression: AATG…GCTT**.
+8. Leave **Include the start codon** ticked and tick **Include the stop codon**.
+
+   > [!NOTE]
+   > You see the part is **338 bp** and the **PCR product is 364 bp**.
+
+9. Click **Design primers**.
+
+   > [!NOTE]
+   > You see one amber caution: `GC content above 65%`.
+
+   > [!TIP]
+   > The amber GC caution is expected here (the gene's ends are GC-rich), and **Simulate** still works.
+
+10. Click **Simulate**.
+
+    > [!NOTE]
+    > You see a new tab, `pGG-Expression-insulin preproprotein`, a **2,870 bp** **circular** product.
+
+    > [!WARNING]
+    > If not, close any extra tab (the simulation takes other open tabs that BsaI cuts into the tube) and click **Simulate** again.
+
+11. Open the **Enzymes** tab of the new tab.
+
+    > [!NOTE]
+    > You see **BsaI** ticked, with **0 sites** in the product.
+
+**Done when:**
+
+- [ ] The product is **2,870 bp** and **circular**.
+- [ ] The features are `KanR`, `ori`, `synthetic promoter`, `INS` with the insulin chain features and `synthetic terminator`, and there is no `lacZ-dropout`.
+
+> [!TIP]
+> **Two things on the map look odd and are right.** The base just before the start codon is a capital `A` that is not in the NCBI record: the overhang is `AATG`, and its `ATG` is the gene's own start codon, so the primer adds only the first `A`. That is why the promoter runs straight into the start codon. After the stop codon come the four overhang bases `GCTT`, then the terminator, so there is a four-base gap there and none on the promoter side. The `INS` gene feature, the first `exon` and the forward primer feature start on that `A`, because the part's edge cuts them off; the CDS and the peptides start on the `ATG`.
+
+The oligos depend on the padding setting and on the annealing lengths the designer picks, so they are not written out. What does not depend on them is the part and the product length.
+
+## Next
+
+[Four parts and the warnings](golden-gate-parts.md) puts four parts in one tube in a scrambled tab order (**3,118 bp**, with a check digest, and an NCBI version), and [Exercise 2, seeing the warnings](golden-gate-parts.md#exercise-2-of-3-seeing-the-warnings) shows three broken designs: a BsaI site inside a part, two parts that offer the same overhang, and two overhangs one base apart.
+
+## How it works
+
+- **Type IIS enzyme** (BsaI here): cuts a short distance _beside_ its recognition site, so the site is thrown away with the cut-off end.
+- **Overhang**: the 4 single-stranded bases a cut leaves. Two ends join only when their overhangs match, so overhangs decide what goes where.
+- **Dropout**: the stretch of the vector that the cut removes, with its two BsaI sites. The gene takes its place.
+- **Part**: a piece with an overhang at each end, ready to go into a slot. Here the gene is the part, and its primers add the sites and overhangs.
+
+`pGG-Expression.gb` is a circular 2,857 bp vector that already has a promoter and a terminator. Between them sit two BsaI sites around a `lacZ-dropout`. Cut with BsaI, the vector's backbone ends in `AATG` (after the promoter) and `GCTT` (before the terminator), which is the pair a MoClo plant CDS part uses. Your gene needs `AATG` before it and `GCTT` after it. PlasmidPop designs the two PCR primers that put them there, then simulates the reaction. You never type a sequence.
+
+Every file is a **synthetic example** (invented sequence), and every number above is checked by `src/core/cloning/goldenGateTutorial.test.ts`, which runs these same files through the functions the app uses.
+
+Background: [Golden Gate](../guide/12-cloning.md#golden-gate) on the Bench, and [Golden Gate ends](../guide/10-primers.md#golden-gate-ends-primers-that-make-the-insert-a-part) in the primer workspace.
 
 Back to the [tutorials index](README.md).

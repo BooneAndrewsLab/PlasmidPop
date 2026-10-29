@@ -1,158 +1,26 @@
 # PlasmidPop cloning tutorials
 
-Hands-on, step-by-step exercises for cloning in PlasmidPop. Pick the method you
-want to learn; each tutorial is one page with numbered steps, the numbers to
-expect, and sample files you can download. Every file is a **synthetic
-example**, and every number is checked by a test that runs the same files
-through the functions the app uses, so the pages cannot drift from the app.
-They are also published as plain web pages, readable without JavaScript, at
-`/tutorials/` on the PlasmidPop site.
+Hands-on, step-by-step exercises for cloning in PlasmidPop. Each tutorial is one page with numbered steps, the numbers to expect, and sample files you can download ([all files](sample-files.md)). Every file is a **synthetic example**, and every number is checked by a test that runs the same files through the functions the app uses, so the pages cannot drift from the app. They are also published as plain web pages, readable without JavaScript, at `/tutorials/` on the PlasmidPop site.
 
-New to the Bench or to the sample files? Start with
-[Before you start](before-you-start.md) (five minutes), and
-[Digest and PCR basics](digest-pcr.md) if the Cloning tab's Digest and PCR are new.
+New to the Bench or to the sample files? Read [Before you start](before-you-start.md) first (five minutes).
 
-## Pick a method
+Suggested order: [Digest and PCR basics](digest-pcr.md), then [Ligation](ligation.md), then [Golden Gate](golden-gate.md) before [Modular cloning](modular.md), and [Gibson](gibson.md) before [In-Fusion](in-fusion.md) and [Overlap-extension PCR](overlap-pcr.md); [Gateway](gateway.md) and [Site-directed mutagenesis](mutagenesis.md) stand alone.
 
-- [Digest and PCR basics](#digest-and-pcr-basics): the two operations every
-  other tutorial builds on: cut a plasmid and read the fragments, copy a gene
-  with a primer pair that adds restriction sites.
-- [Ligation](#ligation): cut with restriction enzymes and join the pieces.
-- [Golden Gate](#golden-gate): one reaction, enzyme sites that cut themselves
-  out, overhangs that decide the order.
-- [Modular cloning](#modular-cloning): Golden Gate with a standard's part
-  positions (MoClo).
-- [Gibson, In-Fusion and NEBuilder](#gibson-in-fusion-and-nebuilder): no enzyme
-  site at all, pieces that end in each other.
-- [Overlap-extension PCR](#overlap-extension-pcr): fuse fragments from different
-  templates with primer tails and nothing else.
-- [Gateway](#gateway): recombination at att sites, no cutting and no joining:
-  an insert into a donor vector, then into a destination vector.
-
-- [Site-directed mutagenesis](#site-directed-mutagenesis): change one plasmid on
-  purpose: one amino acid, a tag, a deletion, a silent site.
-
-### Digest and PCR basics
-
-Start here if you have not used the Cloning tab. Nothing is joined: you cut and
-copy, and put the pieces on the shelf for the methods below.
-
-- **[Digest and PCR basics: cut a plasmid, copy a gene](digest-pcr.md)**: tick
-  enzymes and read the fragment table and the gel, see sticky and blunt ends
-  and blunt one, shelve a fragment; then amplify a gene with a primer pair, add
-  EcoRI and BamHI sites with 5′ tails, shelve and cut the product, and read what
-  the panel says when the primers cannot work. Beginner, about 30 minutes.
-  Files: [pLig-Vector.gb](files/pLig-Vector.gb),
-  [SDM-Template.gb](files/SDM-Template.gb).
-
-### Ligation
-
-Restriction cloning: the oldest and plainest method, and the one to start with.
-
-- **[Ligation: vector and insert](ligation.md)**: cut a vector and an insert
-  with EcoRI and BamHI, ligate them, see why mismatched ends fail and why a
-  single-enzyme cut needs dephosphorylation; then do it with insulin from NCBI.
-  Beginner, about 30 minutes. Files: [pLig-Vector.gb](files/pLig-Vector.gb),
-  [Insert-EcoRI-BamHI.gb](files/Insert-EcoRI-BamHI.gb),
-  [Insert-PstI-BamHI.gb](files/Insert-PstI-BamHI.gb),
-  [Insert-EcoRI-EcoRI.gb](files/Insert-EcoRI-EcoRI.gb).
-
-### Golden Gate
-
-BsaI cuts its own site out of every part and leaves a four-base overhang, so
-cutting and joining happen in one tube. Do the first tutorial before the second.
-
-- **[One gene into one vector](golden-gate.md)**: put a gene into a BsaI
-  expression vector in about eight steps, with a synthetic ORF and again with
-  insulin from NCBI. Beginner, about 20 minutes. Files:
-  [pGG-Expression.gb](files/pGG-Expression.gb), [GG-gene.gb](files/GG-gene.gb).
-- **[Four parts and the warnings](golden-gate-parts.md)**: promoter, coding
-  part, tag and terminator in one tube, in a scrambled tab order, then three
-  broken designs and what the panel says about them. Intermediate, about 30
-  minutes. Files: [pGG-Destination.gb](files/pGG-Destination.gb),
-  [GG-prom.gb](files/GG-prom.gb), [GG-cds.gb](files/GG-cds.gb),
-  [GG-tag.gb](files/GG-tag.gb), [GG-term.gb](files/GG-term.gb) and the
-  `GG-broken-*` and `GG-warn-*` files.
-
-### Modular cloning
-
-Golden Gate with a standard: every part is cut for its own position, so any
-promoter fits in front of any coding part. Do Golden Gate first.
-
-- **[MoClo plant standard](modular.md)**: promoter, coding part and terminator
-  go into a level-1 destination in one reaction; one part at the wrong position
-  shows what the panel says; then two promoters by two coding parts make four
-  constructs from one plan. Intermediate, about 25 minutes. Files:
-  [MC-L1-Destination.gb](files/MC-L1-Destination.gb),
-  [MC-L0-Promoter-A.gb](files/MC-L0-Promoter-A.gb),
-  [MC-L0-Promoter-B.gb](files/MC-L0-Promoter-B.gb),
-  [MC-L0-CDS-A.gb](files/MC-L0-CDS-A.gb),
-  [MC-L0-CDS-B.gb](files/MC-L0-CDS-B.gb),
-  [MC-L0-Terminator.gb](files/MC-L0-Terminator.gb),
-  [MC-wrong-position.gb](files/MC-wrong-position.gb).
-
-### Gibson, In-Fusion and NEBuilder
-
-No restriction site and no scar: each piece ends in the bases the next one
-starts with, and an exonuclease, a polymerase and a ligase join them. Do the
-Gibson tutorial before the In-Fusion one.
-
-- **[Gibson: a vector and two inserts](gibson.md)**: a linearised vector and
-  two inserts joined by 26 to 30 bp overlaps in a scrambled tab order, the
-  panel's overlap and Tm report, the 2,379 bp circle, then one mismatched
-  overlap and what the panel says about it. Intermediate, about 20 minutes.
-  Files: [GB-Vector.gb](files/GB-Vector.gb),
-  [GB-Insert1.gb](files/GB-Insert1.gb), [GB-Insert2.gb](files/GB-Insert2.gb),
-  [GB-bad-Insert2.gb](files/GB-bad-Insert2.gb).
-- **[In-Fusion and NEBuilder: one gene into a vector](in-fusion.md)**: cut a
-  vector with EcoRV, let the app design the insert primers with homology tails,
-  and read the circle they make, with a synthetic ORF and again with insulin
-  from NCBI. Intermediate, about 20 minutes. Files:
-  [pIF-Vector.gb](files/pIF-Vector.gb), [IF-gene.gb](files/IF-gene.gb).
-
-### Overlap-extension PCR
-
-No enzyme at all: each fragment is amplified with a tail that is its
-neighbour's end, and the products anneal at the overlap and extend into one
-molecule. Do Gibson first if you want the comparison.
-
-- **[Overlap-extension PCR: a promoter, a gene and a tag](overlap-pcr.md)**:
-  fuse three fragments from three templates, read the six primers the panel
-  designs, the overlaps and the 769 bp fusion, try the overlap Tm, then one tag
-  that is a base off the frame and the warning the panel gives. Intermediate,
-  about 20 minutes. Files: [OE-Promoter.gb](files/OE-Promoter.gb),
-  [OE-Gene.gb](files/OE-Gene.gb), [OE-Tag.gb](files/OE-Tag.gb),
-  [OE-bad-Tag.gb](files/OE-bad-Tag.gb).
-
-### Gateway
-
-Recombination instead of cutting and joining: partner att sites swap the DNA
-between them, so every reaction makes a clone and a byproduct.
-
-- **[Gateway: a BP reaction, then an LR reaction](gateway.md)**: an attB-flanked
-  insert into a donor vector for the 1,412 bp entry clone, the entry clone into
-  a destination vector for the 1,551 bp expression clone and its byproduct, the
-  marker swap, then att sites that do not pair and what the panel says. The att
-  sites are invented. Intermediate, about 25 minutes. Files:
-  [GW-Insert.gb](files/GW-Insert.gb), [GW-pDONR.gb](files/GW-pDONR.gb),
-  [GW-pDEST.gb](files/GW-pDEST.gb), [GW-bad-pDEST.gb](files/GW-bad-pDEST.gb).
-
-### Site-directed mutagenesis
-
-Not a joining at all: two primers carry the change, and the whole plasmid is
-copied with them. The panel designs the pair and opens the mutant.
-
-- **[Site-directed mutagenesis: a point mutation, a tag, a deletion and a new
-  site](mutagenesis.md)**: change one amino acid with the panel's codon list,
-  read the back-to-back and overlapping primers and their Tm, add a His tag and
-  delete a residue, make a silent EcoRV site and check it by digest, then a
-  change in an AT-rich stretch where the primers cannot reach 60 °C. Beginner,
-  about 25 minutes. File: [SDM-Template.gb](files/SDM-Template.gb).
+| Method                     | Level        | Minutes | You end with                                                                             | Page                                                                  |
+| -------------------------- | ------------ | ------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Digest and PCR basics      | Beginner     | 30      | fragments read from a digest, and a PCR product with EcoRI and BamHI sites cut           | [Digest and PCR basics](digest-pcr.md)                                |
+| Ligation                   | Beginner     | 30      | a vector and an insert joined with EcoRI and BamHI, then the same with insulin from NCBI | [Ligation: vector and insert](ligation.md)                            |
+| Golden Gate                | Beginner     | 20      | one gene in a BsaI expression vector, a synthetic ORF and insulin from NCBI              | [One gene into one vector](golden-gate.md)                            |
+| Golden Gate, several parts | Intermediate | 30      | promoter, coding part, tag and terminator in one tube, then three broken designs         | [Four parts and the warnings](golden-gate-parts.md)                   |
+| Modular cloning (MoClo)    | Intermediate | 25      | a level-1 construct from three parts, then four constructs from one plan                 | [MoClo plant standard](modular.md)                                    |
+| Gibson                     | Intermediate | 20      | a 2,379 bp circle from a vector and two inserts                                          | [Gibson: a vector and two inserts](gibson.md)                         |
+| In-Fusion and NEBuilder    | Intermediate | 20      | one gene in an EcoRV-cut vector, with designed primer tails                              | [In-Fusion and NEBuilder: one gene into a vector](in-fusion.md)       |
+| Overlap-extension PCR      | Intermediate | 20      | a 769 bp fusion of a promoter, a gene and a tag                                          | [Overlap-extension PCR: a promoter, a gene and a tag](overlap-pcr.md) |
+| Gateway                    | Intermediate | 25      | a 1,412 bp entry clone, then a 1,551 bp expression clone                                 | [Gateway: a BP reaction, then an LR reaction](gateway.md)             |
+| Site-directed mutagenesis  | Beginner     | 25      | a point mutation, a tag, a deletion and a silent EcoRV site                              | [Site-directed mutagenesis](mutagenesis.md)                           |
 
 ## Reference
 
-- [Before you start](before-you-start.md): opening the files, enzyme ticks,
-  what the Bench is, and what to do if a number does not match.
+- [Before you start](before-you-start.md): opening the files, enzyme ticks, what the Bench is, and what to do if a number does not match.
 - [Sample files](sample-files.md): every file, what it is, and a plain download.
-- The [user guide](../guide/README.md), and
-  [Simulated cloning](../guide/12-cloning.md) in particular.
+- The [user guide](../guide/README.md), and [Simulated cloning](../guide/12-cloning.md) in particular.

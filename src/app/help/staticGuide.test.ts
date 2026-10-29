@@ -334,6 +334,12 @@ describe('static guide pages, exactly (item 91)', () => {
 describe('the page description (#231)', () => {
   const blocks = (md: string) => parseMarkdown(md);
 
+  it('is the "You will end with" line of a tutorial when it has one', () => {
+    const text =
+      '# T\n\n- **You will end with:** a 3 kb **circle**.\n- **Time:** soon.\n\nIntro paragraph.\n';
+    expect(describeBlocks(blocks(text), 'fb')).toBe('a 3 kb circle.');
+  });
+
   it('is the first paragraph, even after other blocks, as plain text', () => {
     expect(describeBlocks(blocks('# Title\n\n- item\n\nSome **plain** text \n'), 'fb')).not.toBe(
       'fb',

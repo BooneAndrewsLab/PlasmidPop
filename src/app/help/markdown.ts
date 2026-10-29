@@ -159,7 +159,13 @@ export function parseMarkdown(markdown: string): Block[] {
           // A blank line followed by indented text: more blocks of this item.
           let next = i;
           while (next < lines.length && (lines[next] ?? '').trim() === '') next++;
-          if (!/^\s+\S/.test(lines[next] ?? '')) break;
+          const after = lines[next] ?? '';
+          // The next item of the same list, after a blank line, continues it.
+          if ((ordered ? NUMBERED : BULLET).test(after)) {
+            i = next;
+            continue;
+          }
+          if (!/^\s+\S/.test(after)) break;
           const body: string[] = [];
           while (
             next < lines.length &&

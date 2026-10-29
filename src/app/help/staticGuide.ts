@@ -166,10 +166,22 @@ export function block(b: Block, ctx: LinkContext): string {
   }
 }
 
+const GOAL_LABEL = 'You will end with:';
+
 /** The first paragraph as plain text, cut at a word to fit a search snippet. */
 export function describe(blocks: readonly Block[], fallback: string): string {
   const first = blocks.find((b) => b.kind === 'paragraph');
-  const text = first?.kind === 'paragraph' ? plainText(first.children).trim() : fallback;
+  // A tutorial opens with "You will end with: ..." in a list: that is its summary.
+  const goal = blocks
+    .flatMap((b) => (b.kind === 'list' ? b.items : []))
+    .map(plainText)
+    .find((t) => t.startsWith(GOAL_LABEL));
+  const text =
+    goal !== undefined
+      ? goal.slice(GOAL_LABEL.length).trim()
+      : first?.kind === 'paragraph'
+        ? plainText(first.children).trim()
+        : fallback;
   if (text.length <= 160) return text;
   const cut = text.slice(0, 157);
   return `${cut.slice(0, cut.lastIndexOf(' '))}…`;

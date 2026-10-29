@@ -68,6 +68,23 @@ checkbox (uncontrolled, so a reader ticks steps off) and `_x_` as italics at
 a word boundary (`snake_case` is left alone). Both renderers, the app's and
 the static one, handle the new nodes.
 
+## Page conventions (the UX pass)
+
+A review of the first tutorials (a design pass by a second model, then a
+test walk-through) set the shape every page follows: a four-line header
+(**You will end with**, **Time**, **Files**, **Before this**) and then the
+first click; one action per step; what should appear in a `> [!NOTE]` box
+under the step ("You see ..."); a `> [!WARNING]` box ("If instead ...")
+where the screen is likely to differ; and the reason for a choice in a
+`> [!TIP]` box, which the renderers fold under "Why" (GitHub shows it as a
+tip). TIP boxes are for real choices only, at most three per exercise, never
+on a navigation step. There is no end-of-page "Did it work?" list: a `[ ]`
+checkpoint sits after each irreversible moment, and the page ends with a
+two-item **Done when**. Glossaries and background go in a closing
+`## How it works`. A static page's description is its "You will end with"
+line. Every "If instead" box must be backed by the page it replaced, the
+page's test or the app's source: a guessed remedy is worse than none.
+
 ## Not done
 
 An "Open in PlasmidPop" link per sample file, through the share-link fragment
