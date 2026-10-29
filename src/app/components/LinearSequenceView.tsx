@@ -303,8 +303,8 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
   // lanes, the bars and the hit tests all work from the grouped list, while
   // the translations below are the document's own CDS features.
   const grouped = useMemo(
-    () => groupFeatures(drawable, doc.length, expandedFeatureGroups),
-    [drawable, doc.length, expandedFeatureGroups],
+    () => groupFeatures(drawable, doc.length, expandedFeatureGroups, selectedFeatureId),
+    [drawable, doc.length, expandedFeatureGroups, selectedFeatureId],
   );
   const shownSet = useMemo(() => FeatureSet.from(grouped.features), [grouped]);
   const lanes = useMemo(

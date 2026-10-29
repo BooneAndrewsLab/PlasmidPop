@@ -998,7 +998,7 @@ describe('grouped features in the figures (#308)', () => {
   it('draws one bar per group in the sequence figure, and the open transcripts when asked', () => {
     const texts = svgLabels(exportLinearSvg(doc, { basesPerRow: 240 })).map((l) => l.text);
     expect(texts).toContain('x ×3');
-    expect(texts).toContain('G · 2 transcripts ▸');
+    expect(texts).toContain('G · 2 transcripts');
     expect(texts).not.toContain('x');
     expect(texts).not.toContain('v1');
     const open = svgLabels(

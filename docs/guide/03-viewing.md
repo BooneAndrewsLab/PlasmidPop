@@ -139,7 +139,7 @@ position of its first base. Below each row:
 - **features** as coloured bars with their names, stacked into lanes when
   they overlap. Features of one type on exactly the same bases are drawn
   as one bar with a count (`sig_peptide ×4`), and a gene's mRNA variants
-  as one row (`INS · 4 transcripts ▸`); see
+  as one row (`INS · 4 transcripts`, with an arrow once selected); see
   [Grouped features](05-features.md#grouped-features);
 - **cut sites** of the enzymes ticked in the Enzymes tab, as marks with the
   enzyme name, unless **Cut sites** is off in the toolbar (see

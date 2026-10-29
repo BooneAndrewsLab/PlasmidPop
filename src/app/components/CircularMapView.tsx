@@ -203,8 +203,9 @@ export function CircularMapView({ doc }: Props) {
         drawableFeatures(doc.features.all(), hiddenFeatureTypes),
         doc.length,
         expandedFeatureGroups,
+        selectedFeatureId,
       ),
-    [doc, hiddenFeatureTypes, expandedFeatureGroups],
+    [doc, hiddenFeatureTypes, expandedFeatureGroups, selectedFeatureId],
   );
   const liveFeatures = grouped.features;
   const liveSet = useMemo(() => FeatureSet.from(liveFeatures), [liveFeatures]);

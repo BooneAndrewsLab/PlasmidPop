@@ -141,13 +141,16 @@ function transcriptsStandIn(
   members: readonly Feature[],
   seqLength: number,
   expanded: boolean,
+  selected: boolean,
 ): Feature {
   const first = members[0];
   if (first === undefined) throw new Error('A group needs a member');
   return {
     id,
     type: first.type,
-    name: `${gene} · ${String(members.length)} transcripts ${expanded ? '▾' : '▸'}`,
+    // The arrow says a second click opens the row, so it shows once a first
+    // click has selected it: before that a click on it would seem to do nothing.
+    name: `${gene} · ${String(members.length)} transcripts${expanded ? ' ▾' : selected ? ' ▸' : ''}`,
     strand: first.strand,
     segments: unionSegments(members, seqLength),
     qualifiers: first.qualifiers,
@@ -157,7 +160,7 @@ function transcriptsStandIn(
 /**
  * Groups `features` (already filtered by `drawableFeatures`) for drawing.
  * `expanded` holds the ids of the transcript groups shown with their
- * members. A gene with one mRNA is no group, and a feature that is the only
+ * members; `selectedId` is the selected feature, whose group shows its arrow. A gene with one mRNA is no group, and a feature that is the only
  * one of its kind at its place is drawn as itself; every group has at least
  * two members.
  */
@@ -165,6 +168,7 @@ export function groupFeatures(
   features: readonly Feature[],
   seqLength: number,
   expanded: ReadonlySet<string> = NO_GROUPS,
+  selectedId: string | null = null,
 ): GroupedFeatures {
   // A gene's transcripts first: those collapse to a row per gene whatever
   // their locations, so copies are only looked for among what is left.
@@ -188,7 +192,14 @@ export function groupFeatures(
       id,
       kind: 'transcripts',
       members,
-      standIn: transcriptsStandIn(id, gene, members, seqLength, expanded.has(id)),
+      standIn: transcriptsStandIn(
+        id,
+        gene,
+        members,
+        seqLength,
+        expanded.has(id),
+        members.some((m) => m.id === selectedId),
+      ),
       expanded: expanded.has(id),
     };
     groups.set(id, group);

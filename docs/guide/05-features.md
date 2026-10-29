@@ -61,8 +61,9 @@ twenty lanes of the same few bars. The views draw them grouped instead:
   differ; hovering the bar lists each feature with the qualifiers that
   tell it from the others.
 - A gene's **mRNA variants** (by `/gene`) are one row showing the union
-  of their exons, labelled `INS · 4 transcripts ▸`. A gene with a single
-  transcript keeps its own row.
+  of their exons, labelled `INS · 4 transcripts`; once you select it an arrow `▸`
+  shows that clicking again opens it. A gene with a single transcript
+  keeps its own row.
 
 Clicking a grouped bar selects the first of its features. Its row in this
 list is highlighted with the usual **Rename**, **Edit** and **Remove**, and

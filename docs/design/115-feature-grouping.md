@@ -29,7 +29,9 @@ by stand-in id and of each member's group.
 - **Transcripts**: a gene's mRNAs, by `/gene` as `translationScope` groups
   CDSs (not `/locus_tag`, which RefSeq lacks, and not shared-exon
   analysis), draw as one row: the union of their exons as a join, labelled
-  `INS · 4 transcripts ▸`. A gene with one mRNA is no group — the INS-IGF2
+  `INS · 4 transcripts` (the `▸` appears once the row is selected, because
+  the first click selects and only the second opens, and an arrow that
+  seems to invite a click which does nothing reads as a bug). A gene with one mRNA is no group — the INS-IGF2
   readthrough keeps its row. The row opens in place (`▾`): it stays where
   it is and a row per transcript stacks over it, the copies among them
   collapsed again. The union through a circular sequence's origin is one

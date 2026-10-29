@@ -249,9 +249,21 @@ describe('groupFeatures', () => {
       f('m3', 'mRNA', [[70, 90]], { name: 'other', qualifiers: [q('gene', 'H')] }),
     ];
 
+    it('shows the open arrow only once the row is selected or open', () => {
+      const name = (selected: string | null, open: ReadonlySet<string> = new Set()) =>
+        groupFeatures(mrnas(), 100, open, selected).features[0]?.name;
+      expect(name(null)).toBe('G · 2 transcripts');
+      expect(name('other')).toBe('G · 2 transcripts');
+      expect(name('m1')).toBe('G · 2 transcripts ▸');
+      expect(name('m2')).toBe('G · 2 transcripts ▸');
+      const id = groupFeatures(mrnas(), 100).features[0]?.id ?? '';
+      expect(name(null, new Set([id]))).toBe('G · 2 transcripts ▾');
+      expect(name('m1', new Set([id]))).toBe('G · 2 transcripts ▾');
+    });
+
     it('draws a gene with several mRNAs as one row, the union of their exons', () => {
       const grouped = groupFeatures(mrnas(), 100);
-      expect(grouped.features.map((x) => x.name)).toEqual(['G · 2 transcripts ▸', 'other']);
+      expect(grouped.features.map((x) => x.name)).toEqual(['G · 2 transcripts', 'other']);
       const row = grouped.features[0];
       expect(row?.type).toBe('mRNA');
       expect(row?.segments).toEqual([
@@ -360,7 +372,7 @@ describe('groupFeatures', () => {
         'INS-IGF2',
         'INS-IGF2 readthrough, transcript variant 2',
         'INS',
-        'INS · 4 transcripts ▸',
+        'INS · 4 transcripts',
         '',
         '',
         'insulin, isoform 2 precursor',
