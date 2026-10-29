@@ -879,43 +879,76 @@ export class PersistenceService {
     await closing?.done;
   }
 
-  /** The documents of the removal whose Undo is open, and the timer that carries it out. */
-  private held: { ids: readonly string[]; timer: ReturnType<typeof setTimeout> } | null = null;
+  /**
+   * The removals whose Undo is open (#322), by the key of their toast: the
+   * documents of each and the timer that carries it out.
+   */
+  private held = new Map<
+    number,
+    { ids: readonly string[]; timer: ReturnType<typeof setTimeout> }
+  >();
+  private nextRemovalKey = 1;
 
   /**
    * Removes stored documents with an Undo (item 111). The tabs close at
    * once, the documents leave the listing, and `REMOVAL_HOLD_MS` later the
    * rows and their histories are deleted; nothing is deleted before then,
-   * so Undo is only forgetting the mark. A removal still held when the next
-   * one comes is carried out first: there is one Undo, for the latest.
+   * so Undo is only forgetting the mark. Removals made one after another
+   * are held side by side (#322), each with its own toast, Undo and time;
+   * the documents of one call are one Undo. Gives the removal's key (what
+   * `undoRemoval` takes), null for no documents.
    */
-  async removeStoredWithUndo(ids: readonly string[], message: string): Promise<void> {
-    if (ids.length === 0) return;
-    await this.commitHeld();
+  async removeStoredWithUndo(ids: readonly string[], message: string): Promise<number | null> {
+    if (ids.length === 0) return null;
+    // A document an earlier removal still holds (opened again, then removed
+    // again) now belongs to this one: the earlier timer must not take it.
+    const taken = new Set(ids);
+    for (const [key, held] of this.held) {
+      const left = held.ids.filter((id) => !taken.has(id));
+      if (left.length === held.ids.length) continue;
+      if (left.length > 0) {
+        this.held.set(key, { ...held, ids: left });
+        continue;
+      }
+      clearTimeout(held.timer);
+      this.held.delete(key);
+      editorStore.dismissRemovalNotice(key);
+    }
     for (const id of ids) await this.detach(id);
     this.repo.hideForRemoval(ids, Date.now() + REMOVAL_HOLD_MS);
-    this.held = { ids, timer: setTimeout(() => void this.commitHeld(), REMOVAL_HOLD_MS) };
-    editorStore.noteRemoval(message);
+    const key = this.nextRemovalKey++;
+    this.held.set(key, {
+      ids,
+      timer: setTimeout(() => void this.commitHeld(key), REMOVAL_HOLD_MS),
+    });
+    editorStore.noteRemoval(key, message);
+    return key;
   }
 
-  /** Takes back the removal that is held; false when none is (its time ran out). */
-  undoRemoval(): boolean {
-    const held = this.held;
-    if (held === null) return false;
+  /**
+   * Takes back one held removal, the latest when no key is given; false when
+   * it is not held (its time ran out, or it was undone). The others are not
+   * touched.
+   */
+  undoRemoval(key?: number): boolean {
+    const which = key ?? [...this.held.keys()].at(-1);
+    if (which === undefined) return false;
+    const held = this.held.get(which);
+    if (held === undefined) return false;
     clearTimeout(held.timer);
-    this.held = null;
+    this.held.delete(which);
     this.repo.restoreRemoved(held.ids);
-    editorStore.dismissRemovalNotice();
+    editorStore.dismissRemovalNotice(which);
     return true;
   }
 
-  /** Carries out the removal that is held, now. */
-  private async commitHeld(): Promise<void> {
-    const held = this.held;
-    if (held === null) return;
+  /** Carries out one held removal, now. */
+  private async commitHeld(key: number): Promise<void> {
+    const held = this.held.get(key);
+    if (held === undefined) return;
     clearTimeout(held.timer);
-    this.held = null;
-    editorStore.dismissRemovalNotice();
+    this.held.delete(key);
+    editorStore.dismissRemovalNotice(key);
     await this.carryOut(held.ids);
   }
 
@@ -935,11 +968,12 @@ export class PersistenceService {
    * Carries out removals a closed page left marked (item 111), run when the
    * app starts: one whose time ran out is deleted now, one still within its
    * hold is deleted when it is due. There is no Undo for them: the toast
-   * went with the page. A document that is not marked is never touched.
+   * went with the page. Every mark is settled by its own due time, however
+   * many there are (#322). A document that is not marked is never touched.
    */
   async settleRemovals(now: number = Date.now()): Promise<void> {
     const marks = this.repo.pendingRemovals();
-    const held = new Set(this.held?.ids ?? []);
+    const held = new Set([...this.held.values()].flatMap((h) => h.ids));
     const due = [...marks].filter(([id, until]) => until <= now && !held.has(id));
     await this.carryOut(due.map(([id]) => id));
     for (const [id, until] of marks) {

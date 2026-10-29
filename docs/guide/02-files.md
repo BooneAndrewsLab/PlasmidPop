@@ -708,8 +708,12 @@ neither history is lost.)
   until then, and it is not listed meanwhile. If you close the page in that
   time, the removal still happens (the next time PlasmidPop starts, or when its
   ten seconds are up), and a document you did not remove is never touched.
-  Removing something else first makes the earlier removal final, so Undo is
-  always for the latest one.
+  Remove several things in a row and each removal gets its own message, with
+  its own **Undo** and its own ten seconds: undoing one leaves the others
+  waiting. A **Remove selected** of many documents is one removal with one
+  Undo. The newest three messages are shown; an older one is put away early,
+  and its removal becomes final when its ten seconds are up. **×** puts a
+  message away without undoing.
 - **File ▸ Show files** goes back to this list while keeping every tab
   open.
 

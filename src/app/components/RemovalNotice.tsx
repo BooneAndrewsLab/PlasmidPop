@@ -3,35 +3,41 @@ import { persistence } from '../state/persistence';
 import { useEditorState } from '../state/useEditorStore';
 
 /**
- * The toast that follows a Remove from the stored documents (item 111):
- * what went, and Undo until the hold runs out. It belongs to the app, not
- * to the Files page, so it stays when the page is left.
+ * The toasts that follow a Remove from the stored documents (item 111):
+ * what went, and Undo until the hold runs out. One per removal, stacked
+ * with the newest at the bottom (#322), each with its own Undo and time.
+ * They belong to the app, not to the Files page, so they stay when the
+ * page is left.
  */
 export function RemovalNotice() {
-  const { removalNotice } = useEditorState();
-  if (removalNotice === null) return null;
+  const { removalNotices } = useEditorState();
+  if (removalNotices.length === 0) return null;
   return (
-    <div className="undo-toast" role="status">
-      <span className="undo-toast__text">{removalNotice}</span>
-      <button
-        type="button"
-        className="undo-toast__button"
-        onClick={() => {
-          persistence.undoRemoval();
-        }}
-      >
-        Undo
-      </button>
-      <button
-        type="button"
-        className="undo-toast__button"
-        aria-label="Dismiss"
-        onClick={() => {
-          editorStore.dismissRemovalNotice();
-        }}
-      >
-        ×
-      </button>
+    <div className="undo-toasts">
+      {removalNotices.map(({ key, message }) => (
+        <div key={key} className="undo-toast" role="status">
+          <span className="undo-toast__text">{message}</span>
+          <button
+            type="button"
+            className="undo-toast__button"
+            onClick={() => {
+              persistence.undoRemoval(key);
+            }}
+          >
+            Undo
+          </button>
+          <button
+            type="button"
+            className="undo-toast__button"
+            aria-label="Dismiss"
+            onClick={() => {
+              editorStore.dismissRemovalNotice(key);
+            }}
+          >
+            ×
+          </button>
+        </div>
+      ))}
     </div>
   );
 }

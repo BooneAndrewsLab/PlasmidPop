@@ -113,7 +113,7 @@ describe('EmptyState, Recent files and Unkept (item 110)', () => {
 
   it('keeps one row, keeps all, and removes one', async () => {
     const keep = vi.spyOn(persistence, 'keepStored').mockResolvedValue();
-    const remove = vi.spyOn(persistence, 'removeStoredWithUndo').mockResolvedValue();
+    const remove = vi.spyOn(persistence, 'removeStoredWithUndo').mockResolvedValue(1);
     await renderListing([row('pA', 'scratch'), row('pB', 'scratch')]);
     const unkept = screen.getByText('Unkept (2)').closest('details') as HTMLElement;
     const item = within(unkept).getByText('pA').closest('li') as HTMLElement;

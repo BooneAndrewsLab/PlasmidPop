@@ -71,12 +71,32 @@ Chosen design: **mark, hold, then delete**, not soft delete in the rows.
   back, and there is no Undo after a reload, because the toast went with the
   page. A due time rather than "delete everything marked" so that a second
   browser tab starting does not cut the first one's Undo short.
-- One Undo, for the latest removal: starting another carries out a removal
-  that is still held. A document that is open in a tab when its hold ends
-  (the user opened it from elsewhere) is spared and only loses its mark.
-- The toast is `RemovalNotice`, rendered by `App`, driven by
-  `editorStore.removalNotice` like the backup notice, in a new
-  `.undo-toast` (there was no toast in the app; the notices under the toolbar
-  are inline banners). `EmptyState` re-lists when it comes or goes.
+- One Undo per removal (#322; at first there was one Undo, for the latest,
+  and starting another removal carried out the one still held, which lost
+  the first Undo to a quick second Remove). `persistence.held` is a map from
+  a removal key to its ids and timer; `removeStoredWithUndo` returns the key,
+  `undoRemoval(key)` restores only that removal's ids and clears only its
+  timer, and each timer carries out only its own ids. One call is one unit:
+  **Remove selected** of N documents is one Undo. A document an earlier hold
+  still has (reopened, then removed again) moves to the new removal, so the
+  earlier timer cannot delete it under the new Undo; a hold left empty by
+  that is dropped with its toast. A document that is open in a tab when its
+  hold ends (the user opened it from elsewhere) is spared and only loses its
+  mark.
+- The persisted side needed no change: the localStorage mark was always a
+  map of id to due time, so several pending removals were already
+  representable, and what an older build wrote reads the same.
+  `settleRemovals` settles each mark by its own due time, skipping ids a
+  live hold owns.
+- The toasts are `RemovalNotice`, rendered by `App`, driven by
+  `editorStore.removalNotices` (key and message, oldest first) like the
+  backup notice. Each `.undo-toast` is its own `role="status"`, stacked in a
+  fixed `.undo-toasts` column at the bottom centre, newest at the bottom
+  (there was no toast in the app; the notices under the toolbar are inline
+  banners). At most `REMOVAL_NOTICE_LIMIT` (3) are up: a fourth puts the
+  oldest away as if dismissed, its removal still held until its time, so
+  the stack cannot cover the page however fast one removes. Dismiss (×)
+  takes down one toast without undoing. `EmptyState` re-lists whenever the
+  list changes.
 - Scratch pruning and a restore from a backup are not held: pruning is not a
   user action, and a restore never deletes.

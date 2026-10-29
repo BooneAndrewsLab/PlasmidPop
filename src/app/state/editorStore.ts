@@ -560,6 +560,15 @@ export interface DocumentState {
 }
 
 /** State of the app as a whole, the same whichever document is in front. */
+/** One held removal's Undo toast (item 111): `key` is what `persistence.undoRemoval` takes. */
+export interface RemovalNoticeEntry {
+  readonly key: number;
+  readonly message: string;
+}
+
+/** How many Undo toasts stack at most (#322); older ones go, their removals still held. */
+export const REMOVAL_NOTICE_LIMIT = 3;
+
 export interface SharedState {
   readonly error: string | null;
   /**
@@ -798,10 +807,11 @@ export interface SharedState {
   /** The report of a backup or a restore (#203), shown under the toolbar until dismissed. */
   readonly backupNotice: string | null;
   /**
-   * What was just removed from the stored documents and can still be taken
-   * back (item 111), for the Undo toast; null when nothing waits.
+   * The removals from the stored documents that can still be taken back
+   * (item 111), one Undo toast each, oldest first (#322); at most
+   * `REMOVAL_NOTICE_LIMIT`, empty when nothing waits.
    */
-  readonly removalNotice: string | null;
+  readonly removalNotices: readonly RemovalNoticeEntry[];
   /**
    * What each panel is pointing at in the views, one entry per panel
    * (#32); see `DocumentPreview`. The views draw `EditorState.preview`, the
@@ -1057,7 +1067,7 @@ const SHARED_INITIAL: SharedState = {
   importSummary: null,
   storageNotice: false,
   backupNotice: null,
-  removalNotice: null,
+  removalNotices: [],
   previews: [],
   previewActivated: null,
   comparison: null,
@@ -1700,13 +1710,21 @@ export class EditorStore {
     if (this.state.backupNotice !== null) this.setShared({ backupNotice: null });
   }
 
-  /** Puts up the Undo toast for a removal that is being held (item 111). */
-  noteRemoval(message: string): void {
-    this.setShared({ removalNotice: message });
+  /**
+   * Puts up an Undo toast for a removal that is being held (item 111),
+   * beside those already up (#322). Past `REMOVAL_NOTICE_LIMIT` the oldest
+   * toast goes, as if dismissed: its removal still waits out its time.
+   */
+  noteRemoval(key: number, message: string): void {
+    const notices = [...this.state.removalNotices.filter((r) => r.key !== key), { key, message }];
+    this.setShared({ removalNotices: notices.slice(-REMOVAL_NOTICE_LIMIT) });
   }
 
-  dismissRemovalNotice(): void {
-    if (this.state.removalNotice !== null) this.setShared({ removalNotice: null });
+  /** Takes down one removal's toast, or every one when no key is given. */
+  dismissRemovalNotice(key?: number): void {
+    const notices = this.state.removalNotices;
+    const left = key === undefined ? [] : notices.filter((r) => r.key !== key);
+    if (left.length !== notices.length) this.setShared({ removalNotices: left });
   }
 
   /** Puts up the review of what this working copy changed, before a download writes it. */

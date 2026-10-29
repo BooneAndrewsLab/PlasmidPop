@@ -158,7 +158,7 @@ describe('the Browse all files panel (item 111)', () => {
   });
 
   it('removes the ticked documents together, with an Undo', async () => {
-    const remove = vi.spyOn(persistence, 'removeStoredWithUndo').mockResolvedValue();
+    const remove = vi.spyOn(persistence, 'removeStoredWithUndo').mockResolvedValue(1);
     const dialog = await browse(rows);
     const removeButton = within(dialog).getByRole('button', { name: 'Remove selected' });
     expect(removeButton).toBeDisabled();
@@ -171,7 +171,7 @@ describe('the Browse all files panel (item 111)', () => {
   });
 
   it('selects all that are shown, and only those', async () => {
-    const remove = vi.spyOn(persistence, 'removeStoredWithUndo').mockResolvedValue();
+    const remove = vi.spyOn(persistence, 'removeStoredWithUndo').mockResolvedValue(1);
     const dialog = await browse(rows);
     fireEvent.change(within(dialog).getByRole('searchbox'), { target: { value: 'p' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Select all shown' }));
@@ -226,7 +226,7 @@ describe('scratch products of one parent are one row (item 111)', () => {
 
   it('keeps and removes a whole group', async () => {
     const keep = vi.spyOn(persistence, 'keepStored').mockResolvedValue();
-    const remove = vi.spyOn(persistence, 'removeStoredWithUndo').mockResolvedValue();
+    const remove = vi.spyOn(persistence, 'removeStoredWithUndo').mockResolvedValue(1);
     await show([made('p1', 'A'), made('p2', 'A')]);
     const group = screen.getByText('2 products of A').closest('details') as HTMLElement;
     fireEvent.click(within(group).getByRole('button', { name: 'Keep all' }));
@@ -236,7 +236,7 @@ describe('scratch products of one parent are one row (item 111)', () => {
   });
 
   it('groups in the browse panel too, ticks a group at once, and opens it when searching', async () => {
-    const remove = vi.spyOn(persistence, 'removeStoredWithUndo').mockResolvedValue();
+    const remove = vi.spyOn(persistence, 'removeStoredWithUndo').mockResolvedValue(1);
     const rows = [
       made('p1', 'A', { name: 'ligation 1' }),
       made('p2', 'A', { name: 'ligation 2' }),
@@ -261,18 +261,37 @@ describe('the Undo toast (item 111)', () => {
     render(<RemovalNotice />);
     expect(screen.queryByRole('status')).toBeNull();
     act(() => {
-      editorStore.noteRemoval('Removed "pUC19".');
+      editorStore.noteRemoval(7, 'Removed "pUC19".');
     });
     expect(screen.getByRole('status')).toHaveTextContent('Removed "pUC19".');
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(undo).toHaveBeenCalled();
+    expect(undo).toHaveBeenCalledWith(7);
+  });
+
+  it('stacks one toast per removal, each with its own Undo and Dismiss (#322)', () => {
+    const undo = vi.spyOn(persistence, 'undoRemoval').mockReturnValue(true);
+    render(<RemovalNotice />);
+    act(() => {
+      editorStore.noteRemoval(1, 'Removed "pUC19".');
+      editorStore.noteRemoval(2, 'Removed 3 documents.');
+    });
+    const toasts = screen.getAllByRole('status');
+    expect(toasts.map((t) => t.textContent)).toEqual([
+      expect.stringContaining('Removed "pUC19".'),
+      expect.stringContaining('Removed 3 documents.'),
+    ]);
+    const [first, second] = toasts as [HTMLElement, HTMLElement];
+    fireEvent.click(within(first).getByRole('button', { name: 'Undo' }));
+    expect(undo).toHaveBeenCalledWith(1);
+    fireEvent.click(within(second).getByRole('button', { name: 'Dismiss' }));
+    expect(editorStore.getState().removalNotices.map((r) => r.key)).toEqual([1]);
   });
 
   it('can be dismissed without undoing', () => {
     const undo = vi.spyOn(persistence, 'undoRemoval');
     render(<RemovalNotice />);
     act(() => {
-      editorStore.noteRemoval('Removed 3 documents.');
+      editorStore.noteRemoval(1, 'Removed 3 documents.');
     });
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
     expect(screen.queryByRole('status')).toBeNull();
@@ -287,7 +306,7 @@ describe('the Undo toast (item 111)', () => {
     await act(() => Promise.resolve());
     const before = list.mock.calls.length;
     await act(async () => {
-      editorStore.noteRemoval('Removed.');
+      editorStore.noteRemoval(1, 'Removed.');
       await Promise.resolve();
     });
     await act(async () => {

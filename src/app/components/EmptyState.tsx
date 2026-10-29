@@ -36,7 +36,7 @@ export function EmptyState() {
   const [listedAt, setListedAt] = useState(() => Date.now());
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [browsing, setBrowsing] = useState(false);
-  const { documents, removalNotice } = useEditorState();
+  const { documents, removalNotices } = useEditorState();
   const openIds = new Set(documents.map((d) => d.documentId));
 
   // A listing that resolves after unmount is dropped: setting state then
@@ -69,14 +69,14 @@ export function EmptyState() {
     };
   }, []);
 
-  // The listing follows the Undo toast: documents are hidden while it is up
-  // and listed again when Undo brings them back or the hold ends.
-  const noticed = useRef(removalNotice);
+  // The listing follows the Undo toasts: documents are hidden while theirs is
+  // up and listed again when Undo brings them back or the hold ends.
+  const noticed = useRef(removalNotices);
   useEffect(() => {
-    if (noticed.current === removalNotice) return;
-    noticed.current = removalNotice;
+    if (noticed.current === removalNotices) return;
+    noticed.current = removalNotices;
     refresh();
-  }, [removalNotice]);
+  }, [removalNotices]);
 
   // Ctrl+V with nothing open: a record or bare bases pasted anywhere becomes a document.
   useEffect(() => {
