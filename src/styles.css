@@ -3009,15 +3009,27 @@ button {
 }
 
 .ncbi-open__gene {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
   gap: 8px 12px;
-  align-items: center;
+}
+
+/* A field in the gene grid: its name above, the control the full width of
+   its column, so the gene box and the organism select are one width. */
+.ncbi-open__gene > .ncbi-open__field {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ncbi-open__gene .panel__select {
+  width: 100%;
+  min-width: 0;
 }
 
 .ncbi-open__combo {
   position: relative;
-  flex: 1 1 220px;
 }
 
 .ncbi-open__combo > .panel__search {
@@ -3078,13 +3090,44 @@ button {
   white-space: nowrap;
 }
 
-.ncbi-open__flank > span {
+.ncbi-open__flank > span:first-child {
   flex: none;
 }
 
-.ncbi-open__flank > .panel__search {
-  width: 6em;
+/* An input with its unit inside the box, as in JustFig: the unit is part of
+   the field, the box takes the focus ring, and the text keeps clear of it. */
+.unit-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 7.5em;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.unit-input:focus-within {
+  border-color: var(--accent);
+  outline: 1px solid var(--accent);
+}
+
+.unit-input__field {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: right;
+}
+
+.unit-input__unit {
   flex: none;
+  color: var(--ink-3);
 }
 
 /* Export figure (#240, items 89 and 94): a preview beside a settings list of

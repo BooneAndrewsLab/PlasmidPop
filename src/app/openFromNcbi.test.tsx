@@ -473,7 +473,7 @@ describe('Open from NCBI, a gene by name (#299)', () => {
       target: { value: '4932' },
     });
     fireEvent.change(gene, { target: { value: 'HBT1' } });
-    fireEvent.click(screen.getByRole('button', { name: '1 kb' }));
+    fireEvent.click(screen.getByRole('button', { name: '1 kb each side' }));
     flank(/Upstream/, '200');
     flank(/Downstream/, '200');
     fireEvent.click(screen.getByRole('checkbox', { name: /Reverse-complement/ }));

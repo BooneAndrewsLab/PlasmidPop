@@ -603,35 +603,43 @@ export function NcbiSearch({
         <div className="ncbi-open__flanks">
           <label className="panel__field ncbi-open__flank">
             <span>Upstream</span>
-            <input
-              className="panel__search"
-              type="text"
-              inputMode="numeric"
-              value={upstream}
-              disabled={busy}
-              placeholder="0"
-              onChange={(e) => {
-                setUpstream(e.target.value);
-                setError(null);
-              }}
-            />
-            <span>bp</span>
+            <span className="unit-input">
+              <input
+                className="unit-input__field"
+                type="text"
+                inputMode="numeric"
+                value={upstream}
+                disabled={busy}
+                placeholder="0"
+                onChange={(e) => {
+                  setUpstream(e.target.value);
+                  setError(null);
+                }}
+              />
+              <span className="unit-input__unit" aria-hidden="true">
+                bp
+              </span>
+            </span>
           </label>
           <label className="panel__field ncbi-open__flank">
             <span>Downstream</span>
-            <input
-              className="panel__search"
-              type="text"
-              inputMode="numeric"
-              value={downstream}
-              disabled={busy}
-              placeholder="0"
-              onChange={(e) => {
-                setDownstream(e.target.value);
-                setError(null);
-              }}
-            />
-            <span>bp</span>
+            <span className="unit-input">
+              <input
+                className="unit-input__field"
+                type="text"
+                inputMode="numeric"
+                value={downstream}
+                disabled={busy}
+                placeholder="0"
+                onChange={(e) => {
+                  setDownstream(e.target.value);
+                  setError(null);
+                }}
+              />
+              <span className="unit-input__unit" aria-hidden="true">
+                bp
+              </span>
+            </span>
           </label>
           <button
             type="button"
@@ -644,7 +652,7 @@ export function NcbiSearch({
               setError(null);
             }}
           >
-            1 kb
+            1 kb each side
           </button>
           <label className="toggle">
             <input

@@ -243,7 +243,7 @@ describe('NcbiSearch, gene lookup (#299)', () => {
     expect(screen.queryByRole('listbox')).toBeNull();
     expect(gene).toHaveValue('TP53BP1');
 
-    fireEvent.click(screen.getByRole('button', { name: '1 kb' }));
+    fireEvent.click(screen.getByRole('button', { name: '1 kb each side' }));
     expect(screen.getByLabelText(/Upstream/)).toHaveValue('1000');
     fireEvent.change(screen.getByLabelText(/Downstream/), { target: { value: '250' } });
     fireEvent.click(screen.getByRole('button', { name: 'Open' }));
