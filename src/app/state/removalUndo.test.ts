@@ -4,7 +4,7 @@ import 'fake-indexeddb/auto';
 import { SeqDocument } from '@/core';
 import { DocumentRepository, PlasmidPopDb, REMOVAL_HOLD_MS } from '@/storage';
 
-import { editorStore, REMOVAL_NOTICE_LIMIT } from './editorStore';
+import { editorStore, foldRemovalNotices, REMOVAL_NOTICE_LIMIT } from './editorStore';
 import { PersistenceService } from './persistence';
 
 const doc = (name: string) => SeqDocument.create({ name, sequence: 'ACGTACGTACGT' });
@@ -149,20 +149,126 @@ describe('Remove with Undo (item 111)', () => {
     expect((await service.listStored()).map((d) => d.id).sort()).toEqual(['a', 'b', 'c']);
   });
 
-  it('shows only the newest few toasts; an older one still waits out its time (#322)', async () => {
-    const ids = Array.from({ length: REMOVAL_NOTICE_LIMIT + 2 }, (_, i) => `d${i}`);
+  it('folds the older removals into one row past the limit; none loses its Undo (#322)', async () => {
+    for (const count of [REMOVAL_NOTICE_LIMIT + 1, REMOVAL_NOTICE_LIMIT + 3]) {
+      editorStore.dismissRemovalNotice();
+      const ids = Array.from({ length: count }, (_, i) => `d${count}-${i}`);
+      const { repo, service } = await setup(ids);
+      const keys: (number | null)[] = [];
+      for (const id of ids) keys.push(await service.removeStoredWithUndo([id], `Removed ${id}.`));
+      const notices = editorStore.getState().removalNotices;
+      expect(notices.map((r) => r.key)).toEqual(keys);
+      const { shown, folded } = foldRemovalNotices(notices);
+      expect(shown.map((r) => r.key)).toEqual(keys.slice(-REMOVAL_NOTICE_LIMIT));
+      expect(folded.map((r) => r.key)).toEqual(keys.slice(0, count - REMOVAL_NOTICE_LIMIT));
+      expect(repo.pendingRemovals().size).toBe(count);
+      const spy = vi.spyOn(repo, 'commitRemoved');
+      await vi.advanceTimersByTimeAsync(REMOVAL_HOLD_MS);
+      await settled(spy);
+    }
+  });
+
+  it('Undo all restores exactly the folded removals; the shown ones stay held (#322)', async () => {
+    const ids = ['a', 'b', 'c', 'd', 'e', 'f'];
     const { db, repo, service } = await setup(ids);
     for (const id of ids) await service.removeStoredWithUndo([id], `Removed ${id}.`);
-    expect(editorStore.getState().removalNotices.map((r) => r.message)).toEqual(
-      ids.slice(-REMOVAL_NOTICE_LIMIT).map((id) => `Removed ${id}.`),
-    );
-    expect(repo.pendingRemovals().size).toBe(ids.length);
-    expect(await db.documents.get('d0')).toBeDefined();
+    const { folded } = foldRemovalNotices(editorStore.getState().removalNotices);
+    for (const { key } of folded) expect(service.undoRemoval(key)).toBe(true);
+    expect((await service.listStored()).map((d) => d.id).sort()).toEqual(['a', 'b', 'c']);
+    expect([...repo.pendingRemovals().keys()].sort()).toEqual(['d', 'e', 'f']);
+    const after = foldRemovalNotices(editorStore.getState().removalNotices);
+    expect(after.folded).toEqual([]);
+    expect(after.shown.map((r) => r.message)).toEqual(['Removed d.', 'Removed e.', 'Removed f.']);
     const spy = vi.spyOn(repo, 'commitRemoved');
     await vi.advanceTimersByTimeAsync(REMOVAL_HOLD_MS);
     await settled(spy);
-    expect(repo.pendingRemovals().size).toBe(0);
-    expect(await db.documents.get('d0')).toBeUndefined();
+    expect(await db.documents.get('a')).toBeDefined();
+    expect(await db.documents.get('f')).toBeUndefined();
+  });
+
+  it('a folded removal whose time ends is final and leaves the count (#322)', async () => {
+    const ids = ['a', 'b', 'c', 'd', 'e'];
+    const { db, repo, service } = await setup(ids);
+    await service.removeStoredWithUndo(['a'], 'Removed a.');
+    await vi.advanceTimersByTimeAsync(REMOVAL_HOLD_MS / 2);
+    for (const id of ids.slice(1)) await service.removeStoredWithUndo([id], `Removed ${id}.`);
+    expect(foldRemovalNotices(editorStore.getState().removalNotices).folded).toHaveLength(2);
+    const spy = vi.spyOn(repo, 'commitRemoved');
+    await vi.advanceTimersByTimeAsync(REMOVAL_HOLD_MS / 2);
+    await settled(spy);
+    expect(spy).toHaveBeenCalledWith(['a']);
+    expect(await db.documents.get('a')).toBeUndefined();
+    const { shown, folded } = foldRemovalNotices(editorStore.getState().removalNotices);
+    expect(folded.map((r) => r.message)).toEqual(['Removed b.']);
+    expect(shown.map((r) => r.message)).toEqual(['Removed c.', 'Removed d.', 'Removed e.']);
+    expect(service.undoRemoval(folded[0]?.key)).toBe(true);
+    expect(await db.documents.get('b')).toBeDefined();
+  });
+
+  it('promotes a folded removal back to a toast when a shown one goes, newest first (#322)', async () => {
+    const ids = ['a', 'b', 'c', 'd', 'e'];
+    const { service } = await setup(ids);
+    const keys: (number | null)[] = [];
+    for (const id of ids) keys.push(await service.removeStoredWithUndo([id], `Removed ${id}.`));
+    expect(service.undoRemoval(keys[3] ?? -1)).toBe(true);
+    let fold = foldRemovalNotices(editorStore.getState().removalNotices);
+    expect(fold.shown.map((r) => r.message)).toEqual(['Removed b.', 'Removed c.', 'Removed e.']);
+    expect(fold.folded.map((r) => r.message)).toEqual(['Removed a.']);
+    // A user dismissal takes the toast down (its removal still held) and is
+    // never counted in the row; the folded one moves up.
+    editorStore.dismissRemovalNotice(keys[4] ?? -1);
+    fold = foldRemovalNotices(editorStore.getState().removalNotices);
+    expect(fold.shown.map((r) => r.message)).toEqual(['Removed a.', 'Removed b.', 'Removed c.']);
+    expect(fold.folded).toEqual([]);
+  });
+
+  it('never takes the Undo of a pending removal the user did not dismiss (#322)', async () => {
+    // A seeded walk of removes, undos, dismissals and ticks, checked after every step.
+    let seed = 322;
+    const random = () => {
+      seed = (seed * 1103515245 + 12345) % 2 ** 31;
+      return seed / 2 ** 31;
+    };
+    const ids = Array.from({ length: 40 }, (_, i) => `w${i}`);
+    const { repo, service } = await setup(ids);
+    const spy = vi.spyOn(repo, 'commitRemoved');
+    // The model: each removal's key, the time it ends, and whether it is over.
+    const model = new Map<number, { ends: number; over: boolean; dismissed: boolean }>();
+    let now = 0;
+    let next = 0;
+    for (let step = 0; step < 200; step++) {
+      const r = random();
+      const live = [...model].filter(([, m]) => !m.over);
+      if (r < 0.4 && next < ids.length) {
+        const key = await service.removeStoredWithUndo([ids[next++] ?? ''], `Removed ${next}.`);
+        if (key !== null)
+          model.set(key, { ends: now + REMOVAL_HOLD_MS, over: false, dismissed: false });
+      } else if (r < 0.55 && live.length > 0) {
+        const [key, m] = live[Math.floor(random() * live.length)] ?? [];
+        if (key !== undefined && m !== undefined) {
+          expect(service.undoRemoval(key)).toBe(true);
+          m.over = true;
+        }
+      } else if (r < 0.65 && live.length > 0) {
+        const [key, m] = live[Math.floor(random() * live.length)] ?? [];
+        if (key !== undefined && m !== undefined) {
+          editorStore.dismissRemovalNotice(key);
+          m.dismissed = true;
+        }
+      } else {
+        const by = Math.floor(random() * 4000);
+        now += by;
+        await vi.advanceTimersByTimeAsync(by);
+        await settled(spy);
+        for (const m of model.values()) if (m.ends <= now) m.over = true;
+      }
+      const { shown, folded } = foldRemovalNotices(editorStore.getState().removalNotices);
+      expect(shown.length).toBeLessThanOrEqual(REMOVAL_NOTICE_LIMIT);
+      if (folded.length > 0) expect(shown).toHaveLength(REMOVAL_NOTICE_LIMIT);
+      const offered = [...folded, ...shown].map((n) => n.key);
+      const owed = [...model].filter(([, m]) => !m.over && !m.dismissed).map(([key]) => key);
+      expect(offered).toEqual(owed);
+    }
   });
 
   it('a later removal of a document an earlier one holds takes it over (#322)', async () => {

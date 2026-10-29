@@ -7439,7 +7439,7 @@ button {
   stroke-linecap: round;
   stroke-dasharray: 100;
   stroke-dashoffset: 0;
-  animation: undo-toast-drain var(--undo-hold) linear forwards;
+  animation: undo-toast-drain var(--undo-hold) linear var(--undo-gone, 0ms) forwards;
 }
 
 @keyframes undo-toast-drain {
@@ -7457,6 +7457,16 @@ button {
 .undo-toast__text {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+/* The older removals folded into one row above the toasts (#322). */
+.undo-toast--fold {
+  padding-block: 6px;
+  background: var(--surface-2);
+}
+
+.undo-toast--fold .undo-toast__text {
+  color: var(--ink-2);
 }
 
 .undo-toast__button {

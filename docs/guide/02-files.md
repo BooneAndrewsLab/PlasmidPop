@@ -711,9 +711,12 @@ neither history is lost.)
   Remove several things in a row and each removal gets its own message, with
   its own **Undo** and its own ten seconds: undoing one leaves the others
   waiting. A **Remove selected** of many documents is one removal with one
-  Undo. The newest three messages are shown; an older one is put away early,
-  and its removal becomes final when its ten seconds are up. **×** puts a
-  message away without undoing.
+  Undo. The newest three messages are shown in full; older removals that are
+  still waiting are gathered into one line above them, such as "+2 earlier
+  removals", whose **Undo all** takes back every one of them (each still
+  ends at its own time, and leaves the line when it does). **×** puts a
+  message away without undoing; its removal becomes final when its ten
+  seconds are up.
 - **File ▸ Show files** goes back to this list while keeping every tab
   open.
 

@@ -303,6 +303,73 @@ describe('the Undo toast (item 111)', () => {
     }
   });
 
+  it('folds the older removals past three into one row with Undo all (#322)', () => {
+    const undo = vi.spyOn(persistence, 'undoRemoval').mockReturnValue(true);
+    render(<RemovalNotice />);
+    act(() => {
+      for (let key = 1; key <= 6; key++) editorStore.noteRemoval(key, `Removed ${key}.`);
+    });
+    const rows = screen.getAllByRole('status');
+    expect(rows).toHaveLength(4);
+    const [fold, ...toasts] = rows as [HTMLElement, ...HTMLElement[]];
+    expect(fold).toHaveTextContent('+3 earlier removals');
+    expect(toasts.map((t) => t.textContent)).toEqual([
+      expect.stringContaining('Removed 4.'),
+      expect.stringContaining('Removed 5.'),
+      expect.stringContaining('Removed 6.'),
+    ]);
+    expect(within(fold).queryByRole('button', { name: 'Dismiss' })).toBeNull();
+    fireEvent.click(within(fold).getByRole('button', { name: 'Undo all' }));
+    expect(undo.mock.calls).toEqual([[1], [2], [3]]);
+  });
+
+  it('says one earlier removal in the singular, and the row goes at none (#322)', () => {
+    const undo = vi.spyOn(persistence, 'undoRemoval').mockReturnValue(true);
+    render(<RemovalNotice />);
+    act(() => {
+      for (let key = 1; key <= 4; key++) editorStore.noteRemoval(key, `Removed ${key}.`);
+    });
+    const [fold] = screen.getAllByRole('status') as [HTMLElement, ...HTMLElement[]];
+    expect(fold).toHaveTextContent('+1 earlier removal');
+    expect(fold).not.toHaveTextContent('removals');
+    fireEvent.click(within(fold).getByRole('button', { name: 'Undo' }));
+    expect(undo).toHaveBeenCalledWith(1);
+    // Its time ends (or the Undo goes through): the row goes, three toasts stay.
+    act(() => {
+      editorStore.dismissRemovalNotice(1);
+    });
+    expect(screen.getAllByRole('status')).toHaveLength(3);
+    expect(screen.queryByText(/earlier removal/)).toBeNull();
+  });
+
+  it('brings a folded removal back as a toast whose ring keeps its own time (#322)', () => {
+    render(<RemovalNotice />);
+    const start = Date.now();
+    act(() => {
+      editorStore.noteRemoval(1, 'Removed 1.', start - 4000);
+      for (let key = 2; key <= 4; key++) editorStore.noteRemoval(key, `Removed ${key}.`);
+    });
+    // The row's ring follows the folded removal due soonest.
+    const foldRing = screen
+      .getAllByRole('status')[0]
+      ?.querySelector<SVGElement>('svg.undo-toast__ring');
+    expect(parseFloat(foldRing?.style.getPropertyValue('--undo-gone') ?? '')).toBeLessThanOrEqual(
+      -4000,
+    );
+    act(() => {
+      editorStore.dismissRemovalNotice(4);
+    });
+    const toasts = screen.getAllByRole('status');
+    expect(toasts).toHaveLength(3);
+    const [back] = toasts as [HTMLElement, ...HTMLElement[]];
+    expect(back).toHaveTextContent('Removed 1.');
+    const ring = back.querySelector<SVGElement>('svg.undo-toast__ring');
+    expect(parseFloat(ring?.style.getPropertyValue('--undo-gone') ?? '')).toBeLessThanOrEqual(
+      -4000,
+    );
+    expect(ring?.style.getPropertyValue('--undo-hold')).toBe(`${REMOVAL_HOLD_MS}ms`);
+  });
+
   it('can be dismissed without undoing', () => {
     const undo = vi.spyOn(persistence, 'undoRemoval');
     render(<RemovalNotice />);

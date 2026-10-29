@@ -578,14 +578,35 @@ export interface DocumentState {
 }
 
 /** State of the app as a whole, the same whichever document is in front. */
-/** One held removal's Undo toast (item 111): `key` is what `persistence.undoRemoval` takes. */
+/**
+ * One held removal's Undo (item 111): `key` is what `persistence.undoRemoval`
+ * takes, `at` when the removal was made (epoch ms), so its ring shows the
+ * time it has left wherever it is drawn.
+ */
 export interface RemovalNoticeEntry {
   readonly key: number;
   readonly message: string;
+  readonly at: number;
 }
 
-/** How many Undo toasts stack at most (#322); older ones go, their removals still held. */
+/**
+ * How many Undo toasts are drawn in full (#322); older pending removals fold
+ * into one row with an Undo for all of them, so none loses its Undo.
+ */
 export const REMOVAL_NOTICE_LIMIT = 3;
+
+/**
+ * Splits the pending removals (oldest first) into the newest
+ * `REMOVAL_NOTICE_LIMIT`, drawn as toasts, and the older ones, folded into
+ * one row (#322). Pure: as removals end the older ones move back up.
+ */
+export function foldRemovalNotices(notices: readonly RemovalNoticeEntry[]): {
+  shown: readonly RemovalNoticeEntry[];
+  folded: readonly RemovalNoticeEntry[];
+} {
+  const cut = Math.max(0, notices.length - REMOVAL_NOTICE_LIMIT);
+  return { shown: notices.slice(cut), folded: notices.slice(0, cut) };
+}
 
 export interface SharedState {
   readonly error: string | null;
@@ -828,8 +849,9 @@ export interface SharedState {
   readonly backupNotice: string | null;
   /**
    * The removals from the stored documents that can still be taken back
-   * (item 111), one Undo toast each, oldest first (#322); at most
-   * `REMOVAL_NOTICE_LIMIT`, empty when nothing waits.
+   * (item 111), one Undo each, oldest first (#322); every one still held
+   * that the user did not dismiss, however many (`foldRemovalNotices`
+   * decides which are drawn in full), empty when nothing waits.
    */
   readonly removalNotices: readonly RemovalNoticeEntry[];
   /**
@@ -1736,12 +1758,15 @@ export class EditorStore {
 
   /**
    * Puts up an Undo toast for a removal that is being held (item 111),
-   * beside those already up (#322). Past `REMOVAL_NOTICE_LIMIT` the oldest
-   * toast goes, as if dismissed: its removal still waits out its time.
+   * beside those already up (#322). None is put away here: past
+   * `REMOVAL_NOTICE_LIMIT` the older ones fold into one row, each Undo kept.
    */
-  noteRemoval(key: number, message: string): void {
-    const notices = [...this.state.removalNotices.filter((r) => r.key !== key), { key, message }];
-    this.setShared({ removalNotices: notices.slice(-REMOVAL_NOTICE_LIMIT) });
+  noteRemoval(key: number, message: string, at: number = Date.now()): void {
+    const notices = [
+      ...this.state.removalNotices.filter((r) => r.key !== key),
+      { key, message, at },
+    ];
+    this.setShared({ removalNotices: notices });
   }
 
   /** Takes down one removal's toast, or every one when no key is given. */

@@ -87,7 +87,13 @@ Chosen design: **mark, hold, then delete**, not soft delete in the rows.
   SVG circle emptied by a CSS `stroke-dashoffset` animation whose duration is
   `REMOVAL_HOLD_MS` passed as `--undo-hold`, so ring and deadline share one
   constant and nothing runs per frame; keyed toasts keep their animation when
-  others come and go, and reduced motion shows the ring full.
+  others come and go, and reduced motion shows the ring full. Each notice
+  carries `at`, when its removal was made; the time already gone is read
+  once when a ring is drawn and passed as a negative animation delay
+  (`--undo-gone`), so a toast drawn again on its way out of the fold shows
+  the time it has left rather than ten fresh seconds. The fold row has one
+  ring, keyed by the folded removal due soonest, which follows the next one
+  when that ends.
 - The persisted side needed no change: the localStorage mark was always a
   map of id to due time, so several pending removals were already
   representable, and what an older build wrote reads the same.
@@ -98,10 +104,21 @@ Chosen design: **mark, hold, then delete**, not soft delete in the rows.
   backup notice. Each `.undo-toast` is its own `role="status"`, stacked in a
   fixed `.undo-toasts` column at the bottom centre, newest at the bottom
   (there was no toast in the app; the notices under the toolbar are inline
-  banners). At most `REMOVAL_NOTICE_LIMIT` (3) are up: a fourth puts the
-  oldest away as if dismissed, its removal still held until its time, so
-  the stack cannot cover the page however fast one removes. Dismiss (×)
-  takes down one toast without undoing. `EmptyState` re-lists whenever the
-  list changes.
+  banners). `removalNotices` holds every removal still held that the user
+  did not dismiss; `foldRemovalNotices` draws the newest
+  `REMOVAL_NOTICE_LIMIT` (3) as toasts and folds the older ones into one
+  row above them, "+N earlier removals · Undo all" ("+1 earlier removal ·
+  Undo"), also `role="status"`, whose button calls `undoRemoval` for each
+  folded key, independently. So the stack cannot cover the page however
+  fast one removes, and yet no removal loses its Undo while it is held. At
+  first (#322) a fourth toast put the oldest away as if dismissed while its
+  removal kept waiting: an Undo gone with the timer still running. Folded
+  removals' timers are untouched; one whose time ends leaves the count, the
+  row goes at none, and as toasts go (an Undo, a time ending, a dismissal)
+  folded removals move back up as toasts, newest first. Dismiss (×) is
+  only on a toast: it takes that toast down without undoing, and the
+  removal, still held, is not counted in the row either, because putting
+  it away was the user's choice. `EmptyState` re-lists whenever the list
+  changes.
 - Scratch pruning and a restore from a backup are not held: pruning is not a
   user action, and a restore never deletes.

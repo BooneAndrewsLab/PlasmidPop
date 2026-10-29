@@ -915,13 +915,14 @@ export class PersistenceService {
       editorStore.dismissRemovalNotice(key);
     }
     for (const id of ids) await this.detach(id);
-    this.repo.hideForRemoval(ids, Date.now() + REMOVAL_HOLD_MS);
+    const at = Date.now();
+    this.repo.hideForRemoval(ids, at + REMOVAL_HOLD_MS);
     const key = this.nextRemovalKey++;
     this.held.set(key, {
       ids,
       timer: setTimeout(() => void this.commitHeld(key), REMOVAL_HOLD_MS),
     });
-    editorStore.noteRemoval(key, message);
+    editorStore.noteRemoval(key, message, at);
     return key;
   }
 
