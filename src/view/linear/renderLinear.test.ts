@@ -1,4 +1,11 @@
-import { CdsTranslations, SeqDocument, createFeature, diffDocuments, rangeSegment } from '@/core';
+import {
+  CdsTranslations,
+  SeqDocument,
+  createFeature,
+  diffDocuments,
+  rangeSegment,
+  reverseComplement,
+} from '@/core';
 
 import { SvgContext } from '../svg/svgContext';
 import { type OverlaySpan, NO_OVERLAY, overlayLanes, overlaysPerRow } from '../overlay';
@@ -49,6 +56,18 @@ function texts(svg: string): { text: string; x: number; y: number }[] {
     x: Number(m[1]),
     y: Number(m[2]),
   }));
+}
+
+/**
+ * Letters drawn in a translucent colour, which is how the stub of a split
+ * codon carries a faint copy of its residue (#318), with their position.
+ */
+function ghostLetters(svg: string): { text: string; x: number; y: number }[] {
+  return [
+    ...svg.matchAll(
+      /<text x="([\d.-]+)" y="([\d.-]+)"[^>]*fill="rgba\([^"]*"[^>]*>([^<]*)<\/text>/g,
+    ),
+  ].map((m) => ({ text: m[3] ?? '', x: Number(m[1]), y: Number(m[2]) }));
 }
 
 function render(
@@ -128,8 +147,15 @@ describe('renderLinearView translations', () => {
       sequence: 'CCCATGAAATAACCCCCCCC',
       features: [createFeature({ type: 'CDS', name: 'orf', segments: [rangeSegment(3, 12)] })],
     });
-    const drawn = texts(render(doc)).filter((t) => /^[A-Z*]$/.test(t.text));
+    const svg = render(doc);
+    const ghosts = ghostLetters(svg);
+    const drawn = texts(svg).filter(
+      (t) => /^[A-Z*]$/.test(t.text) && !ghosts.some((g) => g.x === t.x && g.y === t.y),
+    );
     expect(drawn.map((t) => t.text)).toEqual(['M', 'K', '*']);
+    // The base of the stop codon that stays in row 0 carries its faint copy.
+    expect(ghosts.map((g) => g.text)).toEqual(['*']);
+    expect(ghosts[0]?.x).toBe(100 + 10 * 9.5);
     const stop = drawn[2];
     // Positions 10 and 11 are columns 0..1 of row 1: centre 1.0 columns in.
     expect(stop?.x).toBe(100 + 10 * 1);
@@ -589,5 +615,205 @@ describe('renderLinearView residue numbers', () => {
     expect(numbers(draw(doc, 'off'))).toEqual([]);
     const noBand = { ...numbered, translationHeight: 20, residueNumberHeight: 0 };
     expect(numbers(draw(doc, 'tens', noBand))).toEqual([]);
+  });
+});
+
+describe('renderLinearView split and unfinished codons (#318)', () => {
+  /** x of every dotted vertical edge: the paths stroked in the caret colour with the open-edge dash. */
+  function openEdges(svg: string): number[] {
+    const xs: number[] = [];
+    for (const m of svg.matchAll(
+      /<path d="([^"]*)" fill="none" stroke="#0000ff"[^>]*stroke-dasharray="1\.5 2"\/>/g,
+    )) {
+      for (const move of (m[1] ?? '').matchAll(/M([\d.-]+) [\d.-]+/g)) xs.push(Number(move[1]));
+    }
+    return xs;
+  }
+  /** The outline paths of unfinished codons, whole: dashed in the muted ink. */
+  function outlines(svg: string): string[] {
+    return [
+      ...svg.matchAll(
+        /<path d="([^"]*)" fill="none" stroke="#888888"[^>]*stroke-dasharray="3 2"\/>/g,
+      ),
+    ].map((m) => m[1] ?? '');
+  }
+  /** Hatching paths: translucent strokes with no dash. */
+  function hatches(svg: string): string[] {
+    return [
+      ...svg.matchAll(/<path d="([^"]*)" fill="none" stroke="rgba\([^"]*" stroke-width="1"\/>/g),
+    ].map((m) => m[1] ?? '');
+  }
+  /** Solid tint boxes of the translation lines, by x and width. */
+  function tints(svg: string): { x: number; w: number }[] {
+    return [
+      ...svg.matchAll(
+        /<rect x="([\d.-]+)" y="[\d.-]+" width="([\d.-]+)" height="[\d.-]+" fill="rgba\(/g,
+      ),
+    ].map((m) => ({ x: Number(m[1]), w: Number(m[2]) }));
+  }
+  const cds = (init: Pick<Parameters<typeof createFeature>[0], 'segments' | 'strand'>) =>
+    createFeature({ type: 'CDS', name: 'orf', ...init });
+
+  // 10 bases a row, 10 px a base, the sequence starting at x = 100.
+  //  row 0  ATGAAAGCCC   row 1  CCCTGAAACC
+  // join(1..7,14..19): ATG AAA G|TG AAA: codon 3 is G (7) + TG (14-15) = GTG.
+  const joined = SeqDocument.create({
+    sequence: 'ATGAAAGCCCCCCTGAAACC',
+    features: [cds({ segments: [rangeSegment(0, 7), rangeSegment(13, 19)] })],
+  });
+
+  it('draws the leading stub of a split codon with a faint letter and an open right edge, and its continuation open on the left', () => {
+    const svg = render(joined);
+    // The stub is the G at column 6: its faint V sits over it, its dotted edge on its right side.
+    expect(ghostLetters(svg)).toEqual([expect.objectContaining({ text: 'V', x: 100 + 10 * 6.5 })]);
+    // The continuation TG at columns 3 and 4 of row 1 holds the middle base: a solid V, open on the left.
+    const solid = texts(svg).filter((t) => t.text === 'V' && t.x === 100 + 10 * 4);
+    expect(solid).toHaveLength(1);
+    expect(openEdges(svg)).toEqual([100 + 10 * 7 - 1, 100 + 10 * 3 + 1]);
+    // Both pieces are tinted like any codon.
+    expect(tints(svg).filter((t) => t.x === 100 + 10 * 6 && t.w === 10)).toHaveLength(1);
+  });
+
+  it('mirrors the edges for a reverse-strand feature', () => {
+    // The same codon on the other strand: exon 1 (reading first) is at the higher coordinates.
+    const sequence = reverseComplement('TGAAAC') + 'CCCCCC' + reverseComplement('ATGAAAG');
+    const doc = SeqDocument.create({
+      sequence,
+      features: [cds({ strand: 'reverse', segments: [rangeSegment(0, 6), rangeSegment(12, 19)] })],
+    });
+    const svg = render(doc);
+    // Exon 2 holds the continuation at bases 4-5 (columns 4 and 5): open on its right.
+    // The stub is the base at 12 (row 1, column 2): open on its left.
+    expect(openEdges(svg)).toEqual([100 + 10 * 6 - 1, 100 + 10 * 2 + 1]);
+    expect(ghostLetters(svg)).toHaveLength(1);
+    expect(ghostLetters(svg)[0]?.x).toBe(100 + 10 * 2.5);
+  });
+
+  it('opens a codon cut by a row break at the edges of the rows', () => {
+    // ATG AAA TAA with the stop codon on 9, 10, 11 (as in the lettering test above).
+    const doc = SeqDocument.create({
+      sequence: 'CCCATGAAATAACCCCCCCC',
+      features: [cds({ segments: [rangeSegment(3, 12)] })],
+    });
+    const svg = render(doc);
+    expect(openEdges(svg)).toEqual([100 + 10 * 10 - 1, 100 + 1]);
+    expect(ghostLetters(svg).map((g) => g.text)).toEqual(['*']);
+  });
+
+  it('opens a codon across the origin of a circular record at the edges of the first and last rows', () => {
+    // Length 20, rows of 10: the CDS 19, 0, 1 | 2 3 4 starts at base 19 and wraps.
+    const doc = SeqDocument.create({
+      sequence: 'GGATGAAACCCCCCCCCCCT',
+      topology: 'circular',
+      features: [cds({ segments: [rangeSegment(19, 26)] })],
+    });
+    const svg = render(doc);
+    // Row 0 holds the codon's last two bases (and the middle one): open on the left. Row 1 holds the
+    // first base, with the faint letter: open on the right.
+    expect(openEdges(svg)).toEqual([100 + 1, 100 + 10 * 10 - 1]);
+    expect(ghostLetters(svg)).toHaveLength(1);
+  });
+
+  it('draws an ordinary codon with neither a faint letter nor an open edge', () => {
+    const doc = SeqDocument.create({
+      sequence: 'CATGAAAGGGTGACCCCCCC',
+      features: [cds({ segments: [rangeSegment(1, 13)] })],
+    });
+    const svg = render(doc);
+    expect(openEdges(svg)).toEqual([]);
+    expect(outlines(svg)).toEqual([]);
+    expect(ghostLetters(svg)).toEqual([]);
+    const whole = SeqDocument.create({
+      sequence: 'CATGAAAGGGTGACCCCCCC',
+      features: [cds({ segments: [rangeSegment(1, 10)] })],
+    });
+    expect(ghostLetters(render(whole))).toEqual([]);
+  });
+
+  it('hatches the last base of a CDS that ends open under a dashed outline, with no letter and no tint', () => {
+    // ATG AAA G, 1..>7: the G never finishes.
+    const doc = SeqDocument.create({
+      sequence: 'ATGAAAGCCCCCCC',
+      features: [cds({ segments: [rangeSegment(0, 7, { partialEnd: true })] })],
+    });
+    const svg = render(doc);
+    // The outline starts at the G's left edge, column 6, inset by half a pixel.
+    expect(outlines(svg)).toHaveLength(1);
+    expect(outlines(svg)[0]).toMatch(/^M160\.5 /);
+    expect(hatches(svg)).toHaveLength(1);
+    expect(openEdges(svg)).toEqual([]);
+    expect(ghostLetters(svg)).toEqual([]);
+    expect(
+      texts(svg)
+        .filter((t) => /^[A-Z*]$/.test(t.text))
+        .map((t) => t.text),
+    ).toEqual(['M', 'K']);
+    // No solid tint over the G.
+    expect(tints(svg).filter((t) => t.x === 100 + 10 * 6)).toEqual([]);
+  });
+
+  it('hatches two bases that fix no residue, and keeps the letter of two that do', () => {
+    const open = { partialEnd: true };
+    // TA: tyrosine or a stop, so unread.
+    const ta = SeqDocument.create({
+      sequence: 'ATGAAATACCCCCC',
+      features: [cds({ segments: [rangeSegment(0, 8, open)] })],
+    });
+    const svgTa = render(ta);
+    expect(outlines(svgTa)).toHaveLength(1);
+    expect(
+      texts(svgTa)
+        .filter((t) => /^[A-Z*]$/.test(t.text))
+        .map((t) => t.text),
+    ).toEqual(['M', 'K']);
+    // GT: valine whatever the third base, so read, and drawn unfinished with its letter.
+    const gt = SeqDocument.create({
+      sequence: 'ATGAAAGTCCCCCC',
+      features: [cds({ segments: [rangeSegment(0, 8, open)] })],
+    });
+    const svgGt = render(gt);
+    expect(outlines(svgGt)).toHaveLength(1);
+    expect(hatches(svgGt)).toHaveLength(1);
+    expect(
+      texts(svgGt)
+        .filter((t) => /^[A-Z*]$/.test(t.text))
+        .map((t) => t.text),
+    ).toEqual(['M', 'K', 'V']);
+    expect(ghostLetters(svgGt)).toEqual([]);
+  });
+
+  it('hatches the unfinished base of a reverse-strand CDS at its left end', () => {
+    // complement(<3..9): reading the bottom strand from 9 down: ATG AAA then G at position 2.
+    const doc = SeqDocument.create({
+      sequence: `CC${reverseComplement('ATGAAAG')}CCCCC`,
+      features: [
+        cds({ strand: 'reverse', segments: [rangeSegment(2, 9, { partialStart: true })] }),
+      ],
+    });
+    const svg = render(doc);
+    expect(hatches(svg)).toHaveLength(1);
+    expect(outlines(svg)[0]).toMatch(/^M120\.5 /);
+    expect(
+      texts(svg)
+        .filter((t) => /^[A-Z*]$/.test(t.text))
+        .map((t) => t.text),
+    ).toEqual(['M', 'K']);
+  });
+
+  it('draws nothing of an unfinished end that the CDS closes', () => {
+    const doc = SeqDocument.create({
+      sequence: 'ATGAAAGCCCCCCC',
+      features: [cds({ segments: [rangeSegment(0, 7)] })],
+    });
+    expect(outlines(render(doc))).toEqual([]);
+    expect(hatches(render(doc))).toEqual([]);
+  });
+
+  it('uses the theme colours, so a dark theme carries over', () => {
+    const dark = { ...theme, ink: '#ffffff', caret: '#5bb5d5', inkMuted: '#9aa8b4' };
+    const svg = render(joined, true, null, { theme: dark });
+    expect(svg).toContain('stroke="#5bb5d5"');
+    expect(ghostLetters(svg)[0]).toBeDefined();
+    expect(svg).toMatch(/fill="rgba\(255, 255, 255, 0\.35\)"/);
   });
 });

@@ -1,5 +1,6 @@
 import {
   type BaseStyle,
+  type CodonRun,
   type CdsTranslation,
   type CdsTranslations,
   type CutSite,
@@ -8,6 +9,7 @@ import {
   type FeatureSet,
   type Range,
   type SeqDocument,
+  codonRuns,
   complement,
   isRnaDocument,
   toRnaLetters,
@@ -535,25 +537,15 @@ interface Run {
   readonly end: number;
 }
 
-/** Contiguous runs of the ascending positions in `positions` that fall inside `[start, end)`. */
-function runsInRow(positions: readonly number[], start: number, end: number): Run[] {
-  const inRow = positions.filter((p) => p >= start && p < end).sort((a, b) => a - b);
-  const runs: Run[] = [];
-  for (const p of inRow) {
-    const last = runs[runs.length - 1];
-    if (last?.end === p) runs[runs.length - 1] = { start: last.start, end: p + 1 };
-    else runs.push({ start: p, end: p + 1 });
-  }
-  return runs;
-}
-
 /**
  * One line of amino acids per coding feature in the row: each codon is a
  * lightly tinted box over its bases (alternating shades so codon boundaries
  * read even where letters are omitted) with the one-letter code centred on
  * it. A codon split by a join or a row break is shaded wherever its bases
- * are and lettered once, over the piece holding its middle base. Residue
- * numbers go in the band above the boxes.
+ * are and lettered over the piece holding its middle base; each other piece
+ * carries a faint copy of the letter and a dotted edge on the side the codon
+ * goes on (#318). A codon that never finishes is hatched instead, with no
+ * tint. Residue numbers go in the band above the boxes.
  */
 function drawTranslations(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
   const { doc, layout, theme, translations, translationLanes } = p;
@@ -572,23 +564,128 @@ function drawTranslations(ctx: DrawingContext, p: RenderParams, row: RowLayout):
     ctx.font = p.monoFont;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    const { strand } = translation;
+    const partial = translation.leftover.length > 0 ? [translation.leftover] : [];
     for (const codon of translation.codons) {
-      const runs = runsInRow(codon.positions, row.start, row.end);
-      if (runs.length === 0) continue;
-      const middle = codon.positions[1];
-      for (const run of runs) {
+      const [a, b, c] = codon.positions;
+      if (!inRow(a, row) && !inRow(b, row) && !(c !== undefined && inRow(c, row))) continue;
+      const incomplete = codon.positions.length < 3;
+      const letterColor = codon.aminoAcid === '*' ? theme.cutSite : theme.ink;
+      for (const run of codonRuns(codon.positions, strand, row.start, row.end)) {
         const x0 = layout.xOf(row, run.start);
         const x1 = layout.xOf(row, run.end);
-        ctx.fillStyle = fills[codon.index % 2] ?? color;
-        ctx.fillRect(x0, top, x1 - x0, height);
-        if (middle >= run.start && middle < run.end) {
-          ctx.fillStyle = codon.aminoAcid === '*' ? theme.cutSite : theme.ink;
-          ctx.fillText(codon.aminoAcid, (x0 + x1) / 2, top + height / 2 + 0.5);
+        if (incomplete) {
+          drawUnfinished(ctx, p, x0, x1, top, height, fills[1] ?? color);
+        } else {
+          ctx.fillStyle = fills[codon.index % 2] ?? color;
+          ctx.fillRect(x0, top, x1 - x0, height);
         }
+        // A stub of a codon that goes on elsewhere carries a faint copy of its letter.
+        const open = run.openLeft || run.openRight;
+        if (run.holdsMiddle) ctx.fillStyle = letterColor;
+        else if (open && !incomplete) ctx.fillStyle = withAlpha(letterColor, GHOST_LETTER_ALPHA);
+        else continue;
+        ctx.fillText(codon.aminoAcid, (x0 + x1) / 2, top + height / 2 + 0.5);
+        if (open && !incomplete) drawOpenEdges(ctx, p, run, x0, x1, top, height);
+      }
+    }
+    // The last bases of a CDS that ends open, which never make a codon: no letter.
+    for (const bases of partial) {
+      for (const run of codonRuns(bases, strand, row.start, row.end)) {
+        const x0 = layout.xOf(row, run.start);
+        drawUnfinished(ctx, p, x0, layout.xOf(row, run.end), top, height, fills[1] ?? color);
       }
     }
     if (band > 0) drawResidueNumbers(ctx, p, row, translation, lineTop + band - 2);
   }
+}
+
+/** How faint the copy of a letter on the stub of a split codon is drawn. */
+const GHOST_LETTER_ALPHA = 0.35;
+
+/** Dash of the dotted edge on the open side of a split codon's piece. */
+const OPEN_EDGE_DASH = [1.5, 2];
+
+/** Dash of the outline round a codon that never finishes. */
+const UNFINISHED_DASH = [3, 2];
+
+/** Space between the hatching lines of a codon that never finishes. */
+const HATCH_GAP = 4;
+
+function inRow(position: number | undefined, row: RowLayout): boolean {
+  return position !== undefined && position >= row.start && position < row.end;
+}
+
+/**
+ * The piece of a split codon `run` stands for, open where the codon goes on:
+ * a dotted line down the edge facing the rest of it (#318). The edge is the
+ * right one for the leading piece of a forward-strand codon, the left one
+ * for its continuation, and the other way round on the reverse strand; a row
+ * break opens the codon the same way, at the edge of the row.
+ */
+function drawOpenEdges(
+  ctx: DrawingContext,
+  p: RenderParams,
+  run: CodonRun,
+  x0: number,
+  x1: number,
+  top: number,
+  height: number,
+): void {
+  ctx.strokeStyle = p.theme.caret;
+  ctx.lineWidth = 2;
+  ctx.setLineDash(OPEN_EDGE_DASH);
+  ctx.beginPath();
+  if (run.openLeft) {
+    ctx.moveTo(x0 + 1, top);
+    ctx.lineTo(x0 + 1, top + height);
+  }
+  if (run.openRight) {
+    ctx.moveTo(x1 - 1, top);
+    ctx.lineTo(x1 - 1, top + height);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+/**
+ * A codon that never finishes (#318): hatched under a dashed outline, with no
+ * solid tint, so it cannot be taken for the stub of a split codon, which is
+ * tinted and has an open edge.
+ */
+function drawUnfinished(
+  ctx: DrawingContext,
+  p: RenderParams,
+  x0: number,
+  x1: number,
+  top: number,
+  height: number,
+  hatch: string,
+): void {
+  const width = x1 - x0;
+  ctx.strokeStyle = hatch;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  // Rising diagonals, each cut off at the box's sides.
+  for (let t = -height; t < width; t += HATCH_GAP) {
+    const from = Math.max(0, -t);
+    const to = Math.min(height, width - t);
+    if (from >= to) continue;
+    ctx.moveTo(x0 + t + from, top + height - from);
+    ctx.lineTo(x0 + t + to, top + height - to);
+  }
+  ctx.stroke();
+  ctx.strokeStyle = p.theme.inkMuted;
+  ctx.setLineDash(UNFINISHED_DASH);
+  ctx.beginPath();
+  ctx.moveTo(x0 + 0.5, top + 0.5);
+  ctx.lineTo(x1 - 0.5, top + 0.5);
+  ctx.lineTo(x1 - 0.5, top + height - 0.5);
+  ctx.lineTo(x0 + 0.5, top + height - 0.5);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.setLineDash([]);
 }
 
 /**
@@ -651,7 +748,7 @@ function drawResidueNumbers(
 }
 
 /**
- * The stretch of `positions` in `row` that holds `at`: what `runsInRow` would
+ * The stretch of `positions` in `row` that holds `at`: what `codonRuns` would
  * give for it, without building the list, since it is asked once per number.
  */
 function runAround(positions: readonly number[], at: number, row: RowLayout): Run {
