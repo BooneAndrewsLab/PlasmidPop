@@ -278,4 +278,44 @@ describe('grouped features (#308)', () => {
       editorStore.closeDocument();
     });
   });
+
+  it('removes the other copies, or every feature of the type, as one edit Undo takes back (#316)', () => {
+    act(() => {
+      editorStore.openDocument(twins);
+      editorStore.selectFeature('c1');
+    });
+    const view = render(<FeatureList doc={twins} />);
+    const rerender = (): void => {
+      view.rerender(<FeatureList doc={editorStore.document ?? twins} />);
+    };
+    // `misc_feature` has one feature here, so there is no Remove all for f1.
+    expect(screen.getByRole('button', { name: 'Remove all 2 CDS' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove the other copy' }));
+    rerender();
+    expect(editorStore.document?.features.all().map((f) => f.id)).toEqual(['c1', 'f1']);
+    expect(editorStore.getState().history?.undoLabel).toBe('Remove 1 other copy of p');
+    act(() => {
+      editorStore.undo();
+    });
+    rerender();
+    act(() => {
+      editorStore.selectFeature('c2');
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Remove all 2 CDS' }));
+    rerender();
+    expect(editorStore.document?.features.all().map((f) => f.id)).toEqual(['f1']);
+    expect(editorStore.getState().history?.undoLabel).toBe('Remove 2 CDS features');
+    act(() => {
+      editorStore.undo();
+    });
+    expect(editorStore.document?.features.all().map((f) => f.id)).toEqual(['c1', 'c2', 'f1']);
+    act(() => {
+      editorStore.selectFeature('f1');
+    });
+    rerender();
+    expect(screen.queryByRole('button', { name: /^Remove all/ })).toBeNull();
+    act(() => {
+      editorStore.closeDocument();
+    });
+  });
 });

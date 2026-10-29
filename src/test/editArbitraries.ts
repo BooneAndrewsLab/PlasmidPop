@@ -489,6 +489,7 @@ export class RefModel {
       case 'addFeatures':
       case 'updateFeature':
       case 'removeFeature':
+      case 'removeFeatures':
         return none;
     }
   }

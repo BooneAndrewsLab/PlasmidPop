@@ -13,6 +13,7 @@ import { featureColor } from '@/view/featureColors';
 import { type FeatureGroup, describeGroupMembers, groupFeatures } from '@/view/featureGroups';
 import { drawableFeatures, hiddenTypeCount, hiddenTypesNote } from '@/view/visibleFeatures';
 
+import { removeOtherMembersOp, removeTypeOp } from '../featureRemoval';
 import { editorStore } from '../state/editorStore';
 import { useTranslationProblems } from '../state/translationProblems';
 import { useEditorState } from '../state/useEditorStore';
@@ -147,13 +148,17 @@ function GroupNotice({
   doc,
   feature,
   group,
+  reader,
 }: {
   readonly doc: SeqDocument;
   readonly feature: Feature;
   readonly group: FeatureGroup;
+  readonly reader: boolean;
 }) {
   const lines = describeGroupMembers(group, doc.length, doc.topology);
   const n = group.members.length;
+  // Keeping this one and dropping the rest of the group is one edit (#316).
+  const others = reader ? null : removeOtherMembersOp(group, feature.id);
   return (
     <div className="feature-item__notice feature-item__group" role="note">
       <p>
@@ -180,6 +185,22 @@ function GroupNotice({
           </li>
         ))}
       </ul>
+      {others !== null && (
+        <div className="feature-item__actions">
+          <button
+            type="button"
+            className="button button--quiet button--small"
+            data-tip={`Keep this one and remove the others from the document; Undo puts them back${group.kind === 'transcripts' ? '. Their CDSs and peptides stay.' : ''}`}
+            onClick={() => {
+              editorStore.apply(others);
+            }}
+          >
+            {n === 2
+              ? `Remove the other ${group.kind === 'transcripts' ? 'transcript' : 'copy'}`
+              : `Remove the other ${String(n - 1)} ${group.kind === 'transcripts' ? 'transcripts' : 'copies'}`}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -197,6 +218,12 @@ export function FeatureList({ doc, reader = false }: Props) {
   } = useEditorState();
   const features = doc.features.all();
   const hiddenTypes = hiddenTypeCount(features, hiddenFeatureTypes);
+  // How many features each type has, for Remove all (#316).
+  const typeCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const f of doc.features) counts.set(f.type, (counts.get(f.type) ?? 0) + 1);
+    return counts;
+  }, [doc]);
   // Which features the views draw as one (item 115), for the notice under a selected member.
   const groupOf = useMemo(
     () =>
@@ -336,7 +363,7 @@ export function FeatureList({ doc, reader = false }: Props) {
                   <TranslationNotice doc={doc} feature={f} problems={translation.get(f.id) ?? []} />
                 )}
                 {selected && editingFeatureId !== f.id && group !== undefined && (
-                  <GroupNotice doc={doc} feature={f} group={group} />
+                  <GroupNotice doc={doc} feature={f} group={group} reader={reader} />
                 )}
                 {!reader && selected && renaming !== f.id && editingFeatureId !== f.id && (
                   <div className="feature-item__actions">
@@ -367,6 +394,19 @@ export function FeatureList({ doc, reader = false }: Props) {
                     >
                       Remove
                     </button>
+                    {(typeCounts.get(f.type) ?? 0) > 1 && (
+                      <button
+                        type="button"
+                        className="button button--quiet button--small"
+                        data-tip={`Remove every ${f.type} feature from the document, hidden ones too; Undo puts them back`}
+                        onClick={() => {
+                          const op = removeTypeOp(doc, f.type);
+                          if (op !== null) editorStore.apply(op);
+                        }}
+                      >
+                        Remove all {(typeCounts.get(f.type) ?? 0).toLocaleString()} {f.type}
+                      </button>
+                    )}
                   </div>
                 )}
               </li>

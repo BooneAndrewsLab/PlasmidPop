@@ -286,6 +286,7 @@ const ANNOTATION_OPS: ReadonlySet<EditOp['type']> = new Set([
   'addFeatures',
   'updateFeature',
   'removeFeature',
+  'removeFeatures',
 ]);
 
 /** Ops whose effect on positions `mapPositionThrough` knows how to follow. */

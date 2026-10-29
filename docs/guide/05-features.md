@@ -16,7 +16,11 @@ of a circular sequence.
 
 - **Click** a row to select the feature. Both views scroll to it and
   highlight its bases.
-- The selected row gets **Rename**, **Edit** and **Remove** buttons.
+- The selected row gets **Rename**, **Edit** and **Remove** buttons, and
+  **Remove all N _type_** (`Remove all 14 mRNA`) when the document has more
+  than one feature of that type: it removes every one of them, those of a
+  type hidden in the views included. One **Undo** puts them all back in
+  their places (see [Removing features in bulk](#removing-features-in-bulk)).
   **Double-click** a row to rename it in place.
 - A ⚠ after a CDS's name means its bases no longer give the protein its
   `/translation` states — usually because of an edit inside it. Select it
@@ -77,6 +81,26 @@ open, and figures exported from it draw them open too.
 Only the drawing is grouped. This list, the editor, undo, the GenBank and
 SnapGene files and the clipboard all have every feature; hidden types (above)
 are left out first, so a hidden feature is never counted in a bar.
+
+### Removing features in bulk
+
+Hiding and grouping leave the document as NCBI sent it. To make it hold one
+transcript variant, or no exons at all, remove the others; this is an edit,
+so the file you save no longer matches the NCBI record, and **Undo** takes
+it back in one step.
+
+- **Remove all N _type_**, under the selected feature, removes every
+  feature of its type.
+- Under a member of a grouped bar or row, the note listing the group has
+  **Remove the other transcripts** (for a gene's mRNA variants: keeps the
+  selected one, removes the gene's other mRNAs) or **Remove the other
+  copies** (for features on the same bases: keeps the selected one).
+
+Removing the other transcripts removes only those mRNAs. Their CDSs and
+peptides stay, as nothing in the record says which CDS belongs to which
+mRNA; select one of the CDSs, drawn as one bar with a count, and remove its
+other copies the same way. The History tab and the Undo button's tip
+name what went: `Remove 3 other INS transcripts`.
 
 ## Where a name comes from
 

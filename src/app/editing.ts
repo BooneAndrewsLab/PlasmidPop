@@ -262,6 +262,7 @@ export function selectionAfterOp(
     case 'addFeatures':
     case 'updateFeature':
     case 'removeFeature':
+    case 'removeFeatures':
       return selection;
   }
 }

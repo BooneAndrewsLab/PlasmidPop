@@ -482,6 +482,9 @@ describe('feature CRUD', () => {
 
     expect(withF.removeFeature('f').features.size).toBe(0);
     expect(withF.removeFeature('nope')).toBe(withF);
+    expect(withF.removeFeatures(['f']).features.size).toBe(0);
+    expect(withF.removeFeatures(['nope'])).toBe(withF);
+    expect(withF.removeFeatures([])).toBe(withF);
   });
 
   it('adds several features at once, all or none', () => {
@@ -494,6 +497,11 @@ describe('feature CRUD', () => {
     expect(() => doc.addFeatures([g, g])).toThrow(/Duplicate/);
     expect(describeEditOp({ type: 'addFeatures', features: [f, g] })).toBe('Add 2 features');
     expect(describeEditOp({ type: 'addFeatures', features: [f] })).toBe('Add 1 feature');
+    expect(describeEditOp({ type: 'removeFeatures', ids: ['f', 'g'] })).toBe('Remove 2 features');
+    expect(describeEditOp({ type: 'removeFeatures', ids: ['f'] })).toBe('Remove 1 feature');
+    expect(
+      describeEditOp({ type: 'removeFeatures', ids: ['f'], label: 'Remove 1 CDS feature' }),
+    ).toBe('Remove 1 CDS feature');
     expect(doc.rename('pUC19').name).toBe('pUC19');
     expect(doc.rename('Untitled')).toBe(doc);
   });
@@ -582,6 +590,7 @@ describe('apply / EditOp', () => {
         doc.updateFeature('f', { name: 'n' }),
       ],
       [{ type: 'removeFeature', id: 'f' }, doc.removeFeature('f')],
+      [{ type: 'removeFeatures', ids: ['f', 'nope'] }, doc.removeFeatures(['f'])],
     ];
     for (const [op, expected] of cases) {
       const actual = doc.apply(op);

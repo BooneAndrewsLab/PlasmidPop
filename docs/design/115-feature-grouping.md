@@ -83,6 +83,8 @@ lane whatever was drawn there.
   picks the same longest CDS whether or not four are drawn as one). Edit
   outlines are per feature id, so a changed member inside a group bar is
   not outlined there; it is in the list.
+- **Removing the other members** of a group in one edit is item 117 (#316),
+  from the same notice.
 
 ## Decided
 

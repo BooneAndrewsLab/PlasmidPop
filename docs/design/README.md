@@ -336,3 +336,5 @@ the Bench, item 49). The rest stand.
 129.  [Grouped features in the views](115-feature-grouping.md)
 
 130.  [React act(...) warnings in the tests](116-act-warnings.md)
+
+131.  [Removing features by type or by variant](117-remove-features-in-bulk.md)

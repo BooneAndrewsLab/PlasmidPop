@@ -304,6 +304,8 @@ export class SeqDocument {
         return this.updateFeature(op.id, op.patch);
       case 'removeFeature':
         return this.removeFeature(op.id);
+      case 'removeFeatures':
+        return this.removeFeatures(op.ids);
     }
   }
 
@@ -620,6 +622,16 @@ export class SeqDocument {
   removeFeature(id: FeatureId): SeqDocument {
     if (!this.features.has(id)) return this;
     return this.with({ features: this.features.remove(id) });
+  }
+
+  /**
+   * Every one of `ids` the document has taken out, the rest left as they
+   * were, in their order and with their coordinates; none found is no change.
+   */
+  removeFeatures(ids: Iterable<FeatureId>): SeqDocument {
+    const gone = new Set(ids);
+    const features = this.features.map((f) => (gone.has(f.id) ? null : f));
+    return features === this.features ? this : this.with({ features });
   }
 
   /**

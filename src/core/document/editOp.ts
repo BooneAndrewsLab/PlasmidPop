@@ -46,7 +46,18 @@ export type EditOp =
   /** Several features at once, one step to undo: what Detect features adds (item 59). */
   | { readonly type: 'addFeatures'; readonly features: readonly Feature[] }
   | { readonly type: 'updateFeature'; readonly id: FeatureId; readonly patch: FeaturePatch }
-  | { readonly type: 'removeFeature'; readonly id: FeatureId };
+  | { readonly type: 'removeFeature'; readonly id: FeatureId }
+  /**
+   * Several features at once, one step to undo: every feature of a type, or
+   * the other members of a group the views draw as one (#316, item 117).
+   * Ids the document lacks are skipped; `label` is the History label, which
+   * says what went (`Remove 14 mRNA features`), defaulting to a count.
+   */
+  | {
+      readonly type: 'removeFeatures';
+      readonly ids: readonly FeatureId[];
+      readonly label?: string;
+    };
 
 export type FeaturePatch = Partial<Omit<Feature, 'id'>>;
 
@@ -117,6 +128,10 @@ export function describeEditOp(op: EditOp): string {
       return 'Edit feature';
     case 'removeFeature':
       return 'Remove feature';
+    case 'removeFeatures':
+      return (
+        op.label ?? (op.ids.length === 1 ? 'Remove 1 feature' : `Remove ${op.ids.length} features`)
+      );
   }
 }
 

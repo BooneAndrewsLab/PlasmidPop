@@ -102,6 +102,7 @@ const EDIT_OPS: Readonly<Record<EditOp['type'], true>> = {
   addFeatures: true,
   updateFeature: true,
   removeFeature: true,
+  removeFeatures: true,
 };
 
 /**

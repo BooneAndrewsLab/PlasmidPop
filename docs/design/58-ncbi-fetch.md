@@ -252,6 +252,8 @@ complement(7687000..7689000)`: NCBI's own record of what was fetched,
   the opened content would no longer match the record its ACCESSION line
   names, and a file written from it would not be that record. The views
   group the variants instead (item 115), and the document stays whole.
+  Reducing it to one variant afterwards is an edit the user chooses, and
+  undoes, in the Features tab (#316, item 117).
 - Perhaps name the tab by the accession when the LOCUS name is an opaque
   one (`SYNPUC19CV`), if users find it confusing.
 - The primer workspace (item 107) hosts the same component with
