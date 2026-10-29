@@ -116,10 +116,10 @@ describe('modular.md as the panel shows it', () => {
       'listitem',
     );
     expect(rows.map((r) => r.textContent)).toEqual([
-      'pMC-L1-Destination + MC-L0-PromA + MC-L0-CdsA + MC-L0-Term1,702 bp circleAssemble',
-      'pMC-L1-Destination + MC-L0-PromA + MC-L0-CdsB + MC-L0-Term1,762 bp circleAssemble',
-      'pMC-L1-Destination + MC-L0-PromB + MC-L0-CdsA + MC-L0-Term1,722 bp circleAssemble',
-      'pMC-L1-Destination + MC-L0-PromB + MC-L0-CdsB + MC-L0-Term1,782 bp circleAssemble',
+      'pMC-L1-Destination + MC-L0-PromA + MC-L0-CdsA + MC-L0-Term1,702 bp circleAssembleCheck primers…',
+      'pMC-L1-Destination + MC-L0-PromA + MC-L0-CdsB + MC-L0-Term1,762 bp circleAssembleCheck primers…',
+      'pMC-L1-Destination + MC-L0-PromB + MC-L0-CdsA + MC-L0-Term1,722 bp circleAssembleCheck primers…',
+      'pMC-L1-Destination + MC-L0-PromB + MC-L0-CdsB + MC-L0-Term1,782 bp circleAssembleCheck primers…',
     ]);
     const before = editorStore.getState().documents.length;
     act(() => {
