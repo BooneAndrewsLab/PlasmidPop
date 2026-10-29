@@ -5,11 +5,11 @@
 - **Files:** [pLig-Vector.gb](files/pLig-Vector.gb), [Insert-EcoRI-BamHI.gb](files/Insert-EcoRI-BamHI.gb), [Insert-PstI-BamHI.gb](files/Insert-PstI-BamHI.gb), [Insert-EcoRI-EcoRI.gb](files/Insert-EcoRI-EcoRI.gb). The insulin gene (`NM_000207`) is third party data: you fetch it in the app, nothing here contains it.
 - **Before this:** [Digest and PCR basics](digest-pcr.md) (and [Before you start](before-you-start.md) if the Bench or the sample files are new to you).
 
-Four short exercises on the [Bench](../guide/12-cloning.md#the-bench): the directional case that works, the mismatch that cannot, the single-enzyme case that needs dephosphorylation, and a real gene from NCBI.
+The shelf keeps its parts from one exercise to the next, so each exercise says what to remove first. Four short exercises on the [Bench](../guide/12-cloning.md#the-bench): the directional case that works, the mismatch that cannot, the single-enzyme case that needs dephosphorylation, and a real gene from NCBI.
 
 ## Exercise 1 of 4: directional cloning with EcoRI + BamHI
 
-1. Open `pLig-Vector.gb` and `Insert-EcoRI-BamHI.gb`.
+1. Open the **Bench** and press **Clear shelf**, then open `pLig-Vector.gb` and `Insert-EcoRI-BamHI.gb`.
 2. In the vector's tab open the **Enzymes** tab and click **Hide all**. (A file you open opens with every single cutter ticked, and the digest follows the ticks and nothing else.)
 
 3. Tick **EcoRI** and **BamHI**.
@@ -67,7 +67,7 @@ Optional, a miniprep check: **Check by digest** is on the Bench, under the produ
 ## Exercise 2 of 4: negative control, ends that do not match
 
 1. Close the `Insert-EcoRI-BamHI` tab. (The shelf is separate from the tabs, so this changes nothing there; it just keeps the tab bar tidy.) Open `Insert-PstI-BamHI.gb`.
-2. In its **Enzymes** tab tick **PstI** and **BamHI** only.
+2. In its **Enzymes** tab click **Hide all**, then tick **PstI** and **BamHI**.
 3. **Add** the **797 bp** piece (`PstI 3′ TGCA` to `BamHI 5′ GATC`).
 4. On the Bench, remove the earlier insert with its **✕**.
 
@@ -91,7 +91,7 @@ Optional, a miniprep check: **Check by digest** is on the Bench, under the produ
    > No orientation works, which is the point: incompatible ends are never rescued by flipping.
 
 7. The fix, as a designer would: put the vector's PstI end to use. Remove the backbone from the shelf with **✕**.
-8. On the vector, re-tick **PstI** and **BamHI**.
+8. On the vector, untick **EcoRI** and tick **PstI** (**BamHI** stays ticked).
 
    > [!NOTE]
    > You see fragments **2,656** and **8 bp**.
@@ -109,7 +109,7 @@ The vector's two ends and the insert's two ends must be the same pair: with EcoR
 
 A vector cut with a single enzyme has two identical ends and can close on itself, which is the usual empty-vector background. A phosphatase takes the 5′ phosphates off, so it cannot.
 
-1. Open `Insert-EcoRI-EcoRI.gb` (and the vector). On both, tick **EcoRI** only.
+1. On the Bench remove the Exercise 2 parts with **✕** (or press **Clear shelf**). Open `Insert-EcoRI-EcoRI.gb` (and the vector). On both, tick **EcoRI** only.
 
    > [!NOTE]
    > You see for the vector one fragment, **2,664 bp**, `EcoRI 5′ AATT` at both ends; for the insert the **801 bp** piece, EcoRI at both ends.
@@ -178,12 +178,13 @@ Accession **`NM_000207`** (`NM_000207.3`, human insulin, mRNA, 465 bp; its CDS i
 
 7. Click **Simulate**. It runs PCR on the record, the EcoRI + BamHI digests and the ligation into the vector's backbone, and opens the product as a new document.
 
-   - [ ] The product is **2,979 bp, circular**, with one EcoRI site just before the `ATG` and one BamHI site just after the stop codon.
+   - [ ] The product is **2,979 bp, circular**.
 
 8. Open the product's **Enzymes** tab.
 
    > [!NOTE]
    > You see **EcoRI** and **BamHI** ticked, the two enzymes the primers use, one site each. PstI does not cut this product at all.
+   - [ ] One EcoRI site is just before the `ATG` and one BamHI site just after the stop codon.
 
    The product carries the vector's features and the record's annotation (`INS`, `insulin preproprotein`, `sig_peptide`, `proinsulin`, `insulin B chain`, `C-peptide` and the exons), plus the two primers as features, named after the record's feature (`insulin_preproprotein-F-EcoRI`); the primer names above are labels for this page.
 

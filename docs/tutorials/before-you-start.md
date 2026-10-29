@@ -36,9 +36,11 @@ reference.
 
 **Hide all** in the Enzymes tab clears the ticks. A file you open yourself opens
 with every enzyme that cuts once ticked, so clear them and tick only what the
-exercise says; the **Filter** box finds an enzyme by name. A product the app
-makes (Assemble, Simulate) opens with only the enzymes the reaction used
-ticked, and the exercises say which.
+exercise says; the **Filter** box finds an enzyme by name. A product from a
+ligation, a restriction-cloning Simulate or a Golden Gate or Modular assembly
+opens with only the reaction's enzymes ticked (a mutant keeps its template's
+ticks); a Gibson, In-Fusion, Overlap PCR or Gateway product has none to seed
+and opens with the default ticks, every single cutter. The exercises say which.
 
 ## Scratch documents
 

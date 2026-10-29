@@ -135,9 +135,7 @@ Before you click anything, close every tab you do not need: the panel lets you c
    > [!TIP]
    > The panel checks, at each junction, the frame of each gene on either side, and says where they disagree. The fusion would be made, and then the tag would be read in the wrong frame.
 
-5. Optional: click **Open product**.
-
-6. Open its **ORFs** tab.
+5. Optional: click **Open product**, then open its **ORFs** tab.
 
    > [!NOTE]
    > You see nothing of 75 codons or more.
@@ -145,7 +143,7 @@ Before you click anything, close every tab you do not need: the panel lets you c
    > [!TIP]
    > The reading that starts at the gene's ATG does not meet a stop where the tag should end it: the stop is now out of frame, and the molecule runs out first. In the lab you would have found a protein with no tag.
 
-7. Back in the panel, set **From** of fragment 3 back to `OE-Tag`.
+6. Back in the panel, set **From** of fragment 3 back to `OE-Tag`.
 
    > [!NOTE]
    > You see the warning gone.

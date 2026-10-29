@@ -110,7 +110,7 @@ The layout of a Golden Gate primer, which the workspace follows:
 
 `5′ - padding - BsaI site - 1 spacer base - 4-nt overhang - gene-specific 3′ end - 3′`
 
-1. Choose **File ▸ Open** and select `pGG-Destination.gb`, `GG-prom.gb`, `GG-tag.gb` and `GG-term.gb`, and close the Ligation exercise's files.
+1. Choose **File ▸ Open** and select `pGG-Destination.gb`, `GG-prom.gb`, `GG-tag.gb` and `GG-term.gb`, and close every other tab, including `GG-cds` and the `GG-warn` files left from Exercise 2.
 
 2. Click the **pGG-Destination** tab so it is in front: it is the destination, and the workspace designs against the document in front.
 
@@ -153,12 +153,7 @@ The layout of a Golden Gate primer, which the workspace follows:
 
     The note under the overhang fields described the part as `AATG` (its last 3 bases are the part's own start codon, so the primer anneals from the base after it) … `TTCG`. Both oligos show their padding, site, spacer and overhang told apart from the annealing part. The tube line on the Design page names the destination, the promoter, the tag and the terminator; the INS record has no BsaI site, so it is not in it.
 
-11. Optional check by digest: put the same five documents on the Bench's **Golden Gate** and read the check digest there before **Assemble**, against the destination (2,647 bp).
-
-    > [!NOTE]
-    > You see `AseI: 2,313 + 535 bp | empty 2,647 bp` and `EcoNI: 2,220 + 628 bp | empty 2,647 bp` as the first rows.
-
-12. Back in the primer workspace, click **Simulate**.
+11. Back in the primer workspace, click **Simulate**.
 
     > [!NOTE]
     > You see the product open as `pGG-Destination-insulin preproprotein`, **2,848 bp**, circular.
@@ -169,7 +164,7 @@ The layout of a Golden Gate primer, which the workspace follows:
     > [!WARNING]
     > If not, check that the destination was in front when you chose **Primers ▸ Design** (the workspace designs against the document in front) and that **Include the stop codon** is unticked.
 
-13. Optional: translate from the INS start codon (the sidebar's **Translate** tab). The result is `MALWMRLLPLLALLALWGPDPAAAFVNQHLCGSHLVEALYLVCGERGFFYTPKTRREAEDLQVGQVELGGGPGAGSLQPLALEGSLQKRGIVEQCCTSICSLYQLENYCNFGGSGGHHHH*`: preproinsulin, then the linker and His tag from the tag part, one frame, one stop.
+12. Optional: translate from the INS start codon (the sidebar's **Translate** tab). The result is `MALWMRLLPLLALLALWGPDPAAAFVNQHLCGSHLVEALYLVCGERGFFYTPKTRREAEDLQVGQVELGGGPGAGSLQPLALEGSLQKRGIVEQCCTSICSLYQLENYCNFGGSGGHHHH*`: preproinsulin, then the linker and His tag from the tag part, one frame, one stop.
 
 The PCR runs on the INS tab and the Golden Gate on the five parts. The product and the primers are named after that CDS feature, so the tab is `pGG-Destination-insulin preproprotein` and **Save both** keeps `insulin_preproprotein-F-BsaI` and `-R-BsaI`.
 

@@ -11,8 +11,8 @@
 2. Close every other tab.
 3. Open the **Enzymes** tab and click **Hide all**.
 
-   > [!WARNING]
-   > If instead many enzymes are still ticked, click **Hide all** again before going on. A file you open opens with every single cutter ticked, and the digest follows the ticks and nothing else.
+   > [!NOTE]
+   > A file you open opens with every single cutter ticked, and the digest follows the ticks and nothing else.
 
 4. Type `EcoRI` in **Filter** and tick it.
 
@@ -188,7 +188,7 @@
 - [ ] The shelf holds **2 parts, 2,668 bp** after Exercise 1 (834 and 1,834), and **2 parts, 636 bp** after Exercise 2 (323 and then the 313 bp EcoRI–BamHI piece).
 - [ ] The plain pair gave **303 bp** (`139–441`), the tailed pair **323 bp** with **20 bp of tail**.
 
-Next: [Ligation](ligation.md) takes the pieces you shelved here and joins them on the Bench. Back to the [tutorials index](README.md). The guide's [Digest](../guide/12-cloning.md#digest), [Sticky ends on a document](../guide/12-cloning.md#sticky-ends-on-a-document), [PCR](../guide/12-cloning.md#pcr) and [The shelf](../guide/12-cloning.md#the-shelf) are the reference for what you did here.
+Next: [Ligation](ligation.md) joins pieces on the Bench. Back to the [tutorials index](README.md). The guide's [Digest](../guide/12-cloning.md#digest), [Sticky ends on a document](../guide/12-cloning.md#sticky-ends-on-a-document), [PCR](../guide/12-cloning.md#pcr) and [The shelf](../guide/12-cloning.md#the-shelf) are the reference for what you did here.
 
 ## How it works
 

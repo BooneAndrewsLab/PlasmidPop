@@ -336,7 +336,7 @@ Next: back to the [tutorials index](README.md).
 
 This is a **synthetic example** (invented sequence). PlasmidPop designs the primers and shows the plasmid they make; it does not simulate the PCR, the KLD or the DpnI step. There is no NCBI gene path in this tutorial: a gene you fetch from NCBI is mutated the same way, step for step.
 
-`SDM-Template` is 1,241 bp, circular: `synthetic promoter` (1–120), `synthORF` (139–441, 100 codons and a stop), `synthetic terminator`, `AT-rich spacer` (552–641), `AmpR` and `ori` stand-ins. `synthORF` starts `MARGRLWNISRNPK` (residue 14 is a lysine, AAG at 177–179) and ends `…LLVEV`, then the stop. Residue 41 is an isoleucine, `GATATT` (bases 256–261) is a hair from an EcoRV site, and a BamHI site sits at 534–539, after the terminator. The spacer is 90 bases of only A and T, which is what the last exercise is about. There is no EcoRV site anywhere in the template.
+`SDM-Template` is 1,241 bp, circular: `synthetic promoter` (1–120), `synthORF` (139–441, 100 codons and a stop), `synthetic terminator`, `AT-rich spacer` (552–641), `AmpR` and `ori` stand-ins. `synthORF` starts `MARGRLWNISRNPK` (residue 14 is a lysine, AAG at 178–180) and ends `…LLVEV`, then the stop. Residue 41 is an isoleucine, `GATATT` (bases 256–261) is a hair from an EcoRV site, and a BamHI site sits at 534–539, after the terminator. The spacer is 90 bases of only A and T, which is what the last exercise is about. There is no EcoRV site anywhere in the template.
 
 Seven words:
 
