@@ -84,7 +84,7 @@ export function kmerDistances(codes: readonly Uint8Array[], radix: number, k: nu
   const size = radix ** k;
   const windows: number[] = [];
   const counts = codes.map((seq) => {
-    const c = new Uint16Array(size);
+    const c = new Uint32Array(size);
     let valid = 0;
     for (let i = 0; i + k <= seq.length; i++) {
       let h = 0;
@@ -96,7 +96,7 @@ export function kmerDistances(codes: readonly Uint8Array[], radix: number, k: nu
         h = h * radix + code;
       }
       if (ok) {
-        c[h] = Math.min(65535, (c[h] ?? 0) + 1);
+        c[h] = (c[h] ?? 0) + 1;
         valid++;
       }
     }

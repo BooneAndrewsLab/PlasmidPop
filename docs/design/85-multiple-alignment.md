@@ -29,6 +29,16 @@ the other strand is not reverse-complemented), anything over 50 sequences
 (refused), anything whose single join exceeds 150 M cells (an
 `AlignmentTooLargeError`, as in pairwise).
 
+**Two corrections to the k-mer distance (#331, #332).** Words holding an
+ambiguity code were skipped when counting but the denominator was every
+window, so identical sequences with an N had a non-zero distance
+(`ACGTACGTNN` against itself gave 0.25); the denominator is now the valid
+windows of the shorter sequence (at least 1). The counters were a `Uint16Array`
+clamped at 65 535, so a 100 kb homopolymer against itself at k=6 gave 0.3446;
+they are `Uint32Array` now and cannot saturate. Identical sequences are 0
+and the matrix is symmetric. Two sequences with no valid window at all still
+come out at 1.
+
 **Not the existing large view.** The large alignment view (`alignmentStack`,
 `AlignmentStackView`) is built around one reference with samples each
 aligned to it alone (reads, tracks, review state, a document behind the

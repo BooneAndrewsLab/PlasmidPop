@@ -160,6 +160,17 @@ describe('guide tree', () => {
     }
   });
 
+  it('measures zero between identical sequences with more than 65535 of one k-mer', () => {
+    const homopolymer = new Uint8Array(100_000);
+    const d = kmerDistances([homopolymer, homopolymer.slice()], 4, 6);
+    expect(d[0]?.[1]).toBe(0);
+    // A repeat-rich mix, with a short sequence of the same repeat, stays symmetric.
+    const repeat = Uint8Array.from({ length: 150_000 }, (_, i) => (i % 3 === 0 ? 1 : 0));
+    const e = kmerDistances([repeat, repeat.slice(), homopolymer.slice(0, 500)], 4, 6);
+    expect(e[0]?.[1]).toBe(0);
+    for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) expect(e[a]?.[b]).toBe(e[b]?.[a]);
+  });
+
   it('keeps the k-mer distance symmetric with ambiguity codes', () => {
     const enc = (s: string): Uint8Array =>
       Uint8Array.from(s.split('').map((c) => (c === 'N' ? 4 : 'ACGT'.indexOf(c))));
