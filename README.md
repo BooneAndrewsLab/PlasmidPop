@@ -47,6 +47,13 @@ no account, no upload and no server round-trip. Works offline once loaded.
   translation, primer design and checking, a collection of **My primers**
   searched against any document, pairwise alignment (global and local), and
   protein properties for a protein document.
+- **Align and assemble**: a progressive **multiple sequence alignment** of 3
+  to about 50 nucleotide or protein sequences, with a consensus row and
+  conservation shading, exported as aligned FASTA or Clustal. **Sanger
+  sequencing reads**, one or a plate, aligned against the expected construct
+  with their qualities and traces, or **assembled into a contig** with no
+  reference: a quality-weighted consensus with disagreements flagged,
+  saved as a document.
 - **Clone in silico** on the **Bench**: digest (complete or partial) with
   chosen enzymes, collect fragments from several documents on a shelf, and
   ligate, assemble by Golden Gate, Gibson, In-Fusion or NEBuilder, or
@@ -141,7 +148,9 @@ src/
     analysis/   Genetic codes, ORFs, enzymes and cut sites, gels, codon usage
     annotate/   Detect features: the bundled part library and the matcher
     primers/    Nearest-neighbour and NEB Q5 Tm, primer QC, design, binding sites
-    alignment/  Gotoh affine-gap pairwise alignment (global/local)
+    alignment/  Gotoh affine-gap pairwise alignment (global/local), quality-aware
+                read alignment, progressive multiple sequence alignment
+    assembly/   Sanger read assembly: overlap layout, quality-weighted consensus
     lineage/    "Made from": how a product was made, as a tree
     checksum/   SEGUID v2 checksums of a document
   view/         Canvas rendering (pure; no React)

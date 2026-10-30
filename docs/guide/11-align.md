@@ -1,4 +1,4 @@
-# Pairwise alignment
+# Alignment and assembly
 
 The **Align** tab aligns another sequence to the open document, for example
 a Sanger read against the plasmid, or a synthesised fragment against its
@@ -651,7 +651,8 @@ once the ORFs panel has found them. With no document behind the reference
 An insertion in one sample opens gap columns in the document row and in
 every other sample, so the rows stay in register. This is each sample
 aligned to the document alone, laid side by side; it is not a multiple
-sequence alignment, and two samples are not aligned to each other. The
+sequence alignment, and two samples are not aligned to each other (for
+that, see [Aligning several sequences together](#aligning-several-sequences-together)). The
 A read's bases below the confident quality sit on a grey block, faded, so a
 difference there is easy to discount. A read opened from an AB1 file has its
 chromatogram drawn under its row, each base's peak under its letter and the
