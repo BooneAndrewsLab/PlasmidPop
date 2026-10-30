@@ -70,6 +70,7 @@ export function AssemblyResult({
               <option key={i} value={i}>
                 Contig {i + 1}: {c.consensus.length.toLocaleString()} bp, {c.reads.length}{' '}
                 {c.reads.length === 1 ? 'read' : 'reads'}
+                {c.warnings.length > 0 ? ', repeat warning' : ''}
               </option>
             ))}
           </select>
@@ -82,6 +83,19 @@ export function AssemblyResult({
           ? ''
           : '. The reads had no qualities, so each base counts as Q20 and the call qualities are only a model.'}
       </p>
+      {contig.warnings.length > 0 && (
+        <>
+          <p className="panel__note panel__note--warn">
+            A repeat may have fooled the assembly: reads cannot say which copy of a repeat they came
+            from, so the layout here may be wrong.
+          </p>
+          <ul className="panel__warnings" aria-label="Contig warnings">
+            {contig.warnings.map((w, i) => (
+              <li key={i}>{w.message}</li>
+            ))}
+          </ul>
+        </>
+      )}
       <svg
         className="assembly__layout"
         viewBox={`0 0 ${LAYOUT_WIDTH} ${height}`}
@@ -102,6 +116,18 @@ export function AssemblyResult({
             <title>{`${r.name}${r.strand === 'reverse' ? ', reversed' : ''}: ${r.start + 1}–${r.end}`}</title>
           </rect>
         ))}
+        {contig.warnings.map((w, i) => (
+          <rect
+            key={`w${i}`}
+            className="assembly__warned"
+            x={x(w.start)}
+            y={0}
+            width={Math.max(2, x(w.end) - x(w.start))}
+            height={height}
+          >
+            <title>{w.message}</title>
+          </rect>
+        ))}
         {contig.disagreements.map((d) => (
           <rect
             key={d.position}
@@ -115,7 +141,8 @@ export function AssemblyResult({
       </svg>
       <p className="panel__note panel__note--quiet">
         Bars are the reads along the consensus; paler ones were turned over. Red marks are
-        disagreements.
+        disagreements
+        {contig.warnings.length > 0 ? '; the shaded stretches are repeat warnings' : ''}.
       </p>
       {contig.disagreements.length === 0 ? (
         <p className="panel__note">The reads agree wherever they overlap.</p>
