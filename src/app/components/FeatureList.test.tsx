@@ -385,6 +385,35 @@ describe('grouped features (#308)', () => {
     });
   });
 
+  it('makes a pick permanent from the picked notice, in one undo step (#328)', () => {
+    const ins = SeqDocument.create({
+      sequence: 'A'.repeat(INS_LENGTH),
+      features: insShapedRecord(),
+    });
+    act(() => {
+      editorStore.setTranscriptPicks(new Map());
+      editorStore.openDocument(ins);
+      editorStore.selectFeature('m-1');
+      editorStore.pickTranscript('INS', 'NM_000207.3');
+    });
+    const view = render(<FeatureList doc={ins} />);
+    const button = screen.getByRole('button', { name: 'Remove the other 3 transcripts' });
+    expect(button).toHaveClass('feature-item__remove');
+    fireEvent.click(button);
+    expect(editorStore.getState().history?.undoLabel).toBe('Remove 3 other INS transcripts');
+    expect(editorStore.getState().history?.undoDepth).toBe(1);
+    expect(editorStore.document?.features.size).toBe(33);
+    expect(view.container.querySelectorAll('li.feature-item')).toHaveLength(33);
+    act(() => {
+      editorStore.undo();
+    });
+    expect(editorStore.document?.features.size).toBe(36);
+    act(() => {
+      editorStore.closeDocument();
+      editorStore.restoreLastTranscriptPicks([]);
+    });
+  });
+
   it('shows one transcript of a gene, its rows alone, and brings the rest back (item 119)', () => {
     const ins = SeqDocument.create({
       sequence: 'A'.repeat(INS_LENGTH),

@@ -21,7 +21,7 @@ import {
 } from '@/view/transcriptPick';
 import { drawableFeatures, hiddenTypeCount, hiddenTypesNote } from '@/view/visibleFeatures';
 
-import { removeOtherMembersOp, removeTypeOp } from '../featureRemoval';
+import { removeOtherTranscriptsOp, removeOtherMembersOp, removeTypeOp } from '../featureRemoval';
 import { editorStore } from '../state/editorStore';
 import { useTranslationProblems } from '../state/translationProblems';
 import { useEditorState } from '../state/useEditorStore';
@@ -166,7 +166,7 @@ function GroupNotice({
   const lines = describeGroupMembers(group, doc.length, doc.topology);
   const n = group.members.length;
   // Keeping this one and dropping the rest of the group is one edit (#316).
-  const others = reader ? null : removeOtherMembersOp(group, feature.id);
+  const others = reader ? null : removeOtherMembersOp(group, feature.id, doc);
   // Showing this one alone is a view setting, not an edit (item 119).
   const gene = group.kind === 'transcripts' ? firstQualifier(feature, 'gene')?.trim() : undefined;
   return (
@@ -216,7 +216,7 @@ function GroupNotice({
             <button
               type="button"
               className="button button--quiet button--small feature-item__bulk feature-item__remove"
-              data-tip={`Keep this one and remove the others from the document; Undo puts them back${group.kind === 'transcripts' ? '. Their CDSs and peptides stay.' : ''}`}
+              data-tip={`Keep this one and remove the others from the document${group.kind === 'transcripts' ? ', with the CDSs and peptides only they can carry (what Show only this transcript leaves out)' : ''}; Undo puts them back`}
               onClick={() => {
                 editorStore.apply(others);
               }}
@@ -237,8 +237,22 @@ function GroupNotice({
  * with it, and the way back. The gene's other transcripts are not in this
  * list while picked, so the group notice above cannot list them.
  */
-function PickedNotice({ gene, plan }: { readonly gene: string; readonly plan: TranscriptPlan }) {
+function PickedNotice({
+  doc,
+  feature,
+  gene,
+  plan,
+  reader,
+}: {
+  readonly doc: SeqDocument;
+  readonly feature: Feature;
+  readonly gene: string;
+  readonly plan: TranscriptPlan;
+  readonly reader: boolean;
+}) {
   const n = plan.variants.get(gene)?.length ?? 0;
+  // Making the pick permanent is one edit (#328), the same set the pick hides.
+  const remove = reader ? null : removeOtherTranscriptsOp(doc, gene, transcriptKey(feature));
   return (
     <div className="feature-item__notice feature-item__group" role="note">
       <p>
@@ -247,7 +261,7 @@ function PickedNotice({ gene, plan }: { readonly gene: string; readonly plan: Tr
         {n === 2 ? 'it carries' : 'they carry'}, {n === 2 ? 'is' : 'are'} left out of the views and
         this list. Nothing is removed.
       </p>
-      <div className="feature-item__actions">
+      <div className="feature-item__actions feature-item__actions--wrap">
         <button
           type="button"
           className="button button--quiet button--small"
@@ -258,6 +272,23 @@ function PickedNotice({ gene, plan }: { readonly gene: string; readonly plan: Tr
         >
           Show all {String(n)} {gene} transcripts
         </button>
+        {remove !== null && (
+          <>
+            <span className="feature-item__divider" aria-hidden="true" />
+            <button
+              type="button"
+              className="button button--quiet button--small feature-item__bulk feature-item__remove"
+              data-tip="Remove what this pick leaves out from the document, the other transcripts with the CDSs and peptides only they can carry; Undo puts them back"
+              onClick={() => {
+                editorStore.apply(remove);
+              }}
+            >
+              {n === 2
+                ? 'Remove the other transcript'
+                : `Remove the other ${String(n - 1)} transcripts`}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -456,7 +487,13 @@ export function FeatureList({ doc, reader = false }: Props) {
                   <GroupNotice doc={doc} feature={f} group={group} reader={reader} />
                 )}
                 {selected && editingFeatureId !== f.id && pickedGene !== undefined && (
-                  <PickedNotice gene={pickedGene} plan={plan} />
+                  <PickedNotice
+                    doc={doc}
+                    feature={f}
+                    gene={pickedGene}
+                    plan={plan}
+                    reader={reader}
+                  />
                 )}
                 {!reader && selected && renaming !== f.id && editingFeatureId !== f.id && (
                   <div className="feature-item__actions feature-item__actions--wrap">

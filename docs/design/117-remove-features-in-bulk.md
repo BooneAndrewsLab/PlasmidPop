@@ -77,3 +77,17 @@ type)` and `removeOtherMembersOp(group, keepId)`, pure and null when there
   writers need nothing new (a test round-trips the result through GenBank).
 - Not a menu entry: both act on the selected feature, and its row is where
   the counts can be shown before the click.
+
+## Follow-up (#328): the removal takes what the picker hides
+
+Item 119 decided the link by coordinates, so **Remove the other
+transcripts** now takes the same set as the pick: `removeOtherTranscriptsOp`
+(`featureRemoval.ts`) runs `planTranscripts` for the kept mRNA and removes
+what it hides, the other mRNAs, the CDSs the kept one cannot carry and the
+peptides no remaining CDS can carry, in one `removeFeatures`, with the same
+fail-visible rules (ambiguous or unlinked features stay). The label names the
+counts: `Remove 3 other INS transcripts, 2 CDSs and 5 peptides`, parts with
+none left out. "Not the CDS and peptides" above is the #316 behaviour this
+replaces; the copies removal is unchanged. A test holds the result equal to
+the picker's list on the INS-shaped record, a reverse-strand gene and a
+circular wrap.

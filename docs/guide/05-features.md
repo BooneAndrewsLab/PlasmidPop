@@ -107,7 +107,9 @@ transcripts** in the menu clears every gene. The picks belong to the
 document, are not an edit (nothing to undo, nothing unsaved), are never
 written to a file, and the last ones are where the next document starts — a
 gene or an accession the document lacks is ignored. Exported figures draw
-what the screen draws.
+what the screen draws. To keep the pick for good, use **Remove the other
+transcripts** under the shown transcript
+(see [Removing features in bulk](#removing-features-in-bulk)).
 
 What stays is whatever the record cannot tell apart. Nothing in an NCBI
 record says which CDS belongs to which mRNA, so the pick keeps every CDS the
@@ -130,18 +132,29 @@ it back in one step.
   are neither counted nor removed.
 - Under a member of a grouped bar or row, the note listing the group has
   **Remove the other transcripts** (for a gene's mRNA variants: keeps the
-  selected one, removes the gene's other mRNAs) or **Remove the other
-  copies** (for features on the same bases: keeps the selected one).
+  selected one, removes the gene's other mRNAs and what only they can
+  carry, below) or **Remove the other copies** (for features on the same
+  bases: keeps the selected one).
+- Under a transcript shown alone (above), the note that says what the pick
+  leaves out has **Remove the other transcripts** too, so a pick can be made
+  permanent in one step.
 
 The buttons that remove are in red, apart from **Show only this
 transcript**, which changes only what the views draw.
 
-Removing the other transcripts removes only those mRNAs. Their CDSs and
-peptides stay, as nothing in the record says which CDS belongs to which
-mRNA; select one of the CDSs, drawn as one bar with a count, and remove its
-other copies the same way. The History tab and the Undo button's tip
-name what went: `Remove 3 other INS transcripts`. While a transcript is
-picked (above) its gene's others are not listed here, so show all first.
+Removing the other transcripts removes exactly what picking the transcript
+would leave out of the views: the gene's other mRNAs, the CDSs the kept mRNA
+cannot carry, and the signal, transit or mature peptides, propeptides and
+proprotein that no remaining CDS can carry. What stays is what stays under a
+pick: nothing in an NCBI record says which CDS belongs to which mRNA, so a
+CDS the kept transcript could carry stays (the four INS CDSs, all of them),
+as does anything the record gives no way to place — a CDS or peptide with no
+`/gene`, one that fits none of the gene's transcripts. The History tab and
+the Undo button's tip name what went, and it is one step:
+`Remove 3 other INS transcripts, 2 CDSs and 5 peptides`. The **Remove the
+other copies** button removes only the copies. While a transcript is picked
+its gene's others are not listed here, so the removal is offered under the
+picked transcript.
 
 ## Where a name comes from
 

@@ -1,9 +1,16 @@
 import { type Feature, SeqDocument, createFeature, rangeSegment, siteSegment } from '@/core';
 import { parseGenBank, writeGenBank } from '@/io';
+import { INS_LENGTH, insShapedRecord } from '@/test/insShapedRecord';
 import { groupFeatures } from '@/view/featureGroups';
+import { planTranscripts, showTranscripts } from '@/view/transcriptPick';
 
 import { EditorStore } from './state/editorStore';
-import { featuresOfType, removeOtherMembersOp, removeTypeOp } from './featureRemoval';
+import {
+  featuresOfType,
+  removeOtherMembersOp,
+  removeOtherTranscriptsOp,
+  removeTypeOp,
+} from './featureRemoval';
 
 // An INS-shaped record (#308, item 115), circular so one mRNA can run over
 // the origin: three variants of INS (one wrapped, one joined), a fourth
@@ -109,16 +116,16 @@ describe('removeOtherMembersOp (#316)', () => {
     const group = grouped.groupOf.get('m2');
     expect(group?.kind).toBe('transcripts');
     if (group === undefined) throw new Error('no group');
-    const op = removeOtherMembersOp(group, 'm2');
+    const op = removeOtherMembersOp(group, 'm2', doc);
+    // The CDSs and peptides the kept (wrapped) variant cannot carry go too
+    // (#328): what the picker hides. The other gene's mRNA stays.
     expect(op).toEqual({
       type: 'removeFeatures',
-      ids: ['m1', 'm3'],
-      label: 'Remove 2 other INS transcripts',
+      ids: ['m1', 'cds1', 'sig1', 'cds2', 'sig2', 'm3'],
+      label: 'Remove 2 other INS transcripts, 2 CDSs and 2 peptides',
     });
     const after = apply(doc, op);
-    // The other gene's mRNA, the CDSs and their peptides stay: nothing in a
-    // record links an mRNA to them (#315). The kept one still wraps.
-    expect(ids(after)).toEqual(['src', 'gene', 'cds1', 'sig1', 'm2', 'cds2', 'sig2', 'm4', 'site']);
+    expect(ids(after)).toEqual(['src', 'gene', 'm2', 'm4', 'site']);
     expect(after.features.get('m2')?.segments).toEqual([rangeSegment(380, 430)]);
   });
 
@@ -126,7 +133,7 @@ describe('removeOtherMembersOp (#316)', () => {
     const group = grouped.groupOf.get('cds2');
     expect(group?.kind).toBe('copies');
     if (group === undefined) throw new Error('no group');
-    const op = removeOtherMembersOp(group, 'cds2');
+    const op = removeOtherMembersOp(group, 'cds2', doc);
     expect(op).toEqual({
       type: 'removeFeatures',
       ids: ['cds1'],
@@ -142,7 +149,137 @@ describe('removeOtherMembersOp (#316)', () => {
   it('is null for a feature outside the group', () => {
     const group = grouped.groupOf.get('m1');
     if (group === undefined) throw new Error('no group');
-    expect(removeOtherMembersOp(group, 'm4')).toBeNull();
+    expect(removeOtherMembersOp(group, 'm4', doc)).toBeNull();
+  });
+});
+
+describe('removeOtherTranscriptsOp is what the picker shows (#328)', () => {
+  const shown = (d: SeqDocument, gene: string, key: string): string[] =>
+    showTranscripts(
+      d.features.all(),
+      planTranscripts(d.features.all(), new Map([[gene, key]]), d.length),
+    ).map((f) => f.id);
+
+  it('keeps nothing the picker hid and hides nothing it showed, on the INS record', () => {
+    const ins = SeqDocument.create({
+      sequence: 'A'.repeat(INS_LENGTH),
+      features: insShapedRecord(),
+    });
+    for (const key of ['NM_000207.3', 'NM_001185098.2', 'NM_001185097.2', 'NM_001291897.2']) {
+      const op = removeOtherTranscriptsOp(ins, 'INS', key);
+      expect(op?.label).toBe('Remove 3 other INS transcripts');
+      expect(ids(apply(ins, op))).toEqual(shown(ins, 'INS', key));
+    }
+  });
+
+  it('takes the CDSs and peptides a variant cannot carry, in one undo step', () => {
+    const op = removeOtherTranscriptsOp(doc, 'INS', 'NM_2');
+    expect(op?.label).toBe('Remove 2 other INS transcripts, 2 CDSs and 2 peptides');
+    expect(ids(apply(doc, op))).toEqual(shown(doc, 'INS', 'NM_2'));
+    const store = new EditorStore();
+    store.openDocument(doc);
+    if (op === null) throw new Error('no op');
+    store.apply(op);
+    expect(store.getState().history?.undoDepth).toBe(1);
+    expect(store.getState().history?.undoLabel).toBe(op.label);
+    store.undo();
+    expect(store.document?.features.all()).toEqual(doc.features.all());
+  });
+
+  const isoforms = (strand: 'forward' | 'reverse'): Feature[] => {
+    const g = [q('gene', 'G')];
+    const o = { strand, qualifiers: g };
+    const m = (id: string, segs: [number, number][], tx: string) =>
+      createFeature({
+        id,
+        type: 'mRNA',
+        strand,
+        segments: segs.map(([s, e]) => rangeSegment(s, e)),
+        qualifiers: [...g, q('transcript_id', tx)],
+      });
+    const c = (id: string, type: string, segs: [number, number][]) =>
+      createFeature({ id, type, ...o, segments: segs.map(([s, e]) => rangeSegment(s, e)) });
+    return [
+      m(
+        'mA',
+        [
+          [0, 100],
+          [200, 300],
+          [400, 500],
+        ],
+        'NM_A',
+      ),
+      m(
+        'mB',
+        [
+          [0, 100],
+          [400, 500],
+        ],
+        'NM_B',
+      ),
+      c('ca', 'CDS', [
+        [50, 100],
+        [200, 300],
+        [400, 450],
+      ]),
+      c('pa', 'mat_peptide', [[210, 290]]),
+      c('cb', 'CDS', [
+        [50, 100],
+        [400, 450],
+      ]),
+      c('sig', 'sig_peptide', [[50, 80]]),
+    ];
+  };
+
+  it('works on the reverse strand', () => {
+    const rev = SeqDocument.create({ sequence: 'A'.repeat(500), features: isoforms('reverse') });
+    const op = removeOtherTranscriptsOp(rev, 'G', 'NM_B');
+    expect(op?.label).toBe('Remove 1 other G transcript, 1 CDS and 1 peptide');
+    expect(ids(apply(rev, op))).toEqual(['mB', 'cb', 'sig']);
+    expect(ids(apply(rev, op))).toEqual(shown(rev, 'G', 'NM_B'));
+  });
+
+  it('works through the origin of a circular sequence', () => {
+    const g = [q('gene', 'W')];
+    const seg = (a: number, b: number) => rangeSegment(a, b);
+    const wrapped = SeqDocument.create({
+      sequence: 'A'.repeat(1000),
+      topology: 'circular',
+      features: [
+        createFeature({
+          id: 'wA',
+          type: 'mRNA',
+          segments: [seg(900, 1050), seg(100, 200)],
+          qualifiers: [...g, q('transcript_id', 'NM_WA')],
+        }),
+        createFeature({
+          id: 'wB',
+          type: 'mRNA',
+          segments: [seg(900, 1050), seg(300, 400)],
+          qualifiers: [...g, q('transcript_id', 'NM_WB')],
+        }),
+        createFeature({
+          id: 'ca',
+          type: 'CDS',
+          segments: [seg(950, 1050), seg(100, 150)],
+          qualifiers: g,
+        }),
+        createFeature({ id: 'pa', type: 'sig_peptide', segments: [seg(960, 1000)], qualifiers: g }),
+      ],
+    });
+    const op = removeOtherTranscriptsOp(wrapped, 'W', 'NM_WB');
+    expect(op?.label).toBe('Remove 1 other W transcript, 1 CDS and 1 peptide');
+    expect(ids(apply(wrapped, op))).toEqual(['wB']);
+    // The other way round the CDS and its peptide stay.
+    const keepA = removeOtherTranscriptsOp(wrapped, 'W', 'NM_WA');
+    expect(ids(apply(wrapped, keepA))).toEqual(['wA', 'ca', 'pa']);
+  });
+
+  it('is null for a gene or accession the document lacks, and leaves ambiguous features', () => {
+    expect(removeOtherTranscriptsOp(doc, 'INS', 'NM_nope')).toBeNull();
+    expect(removeOtherTranscriptsOp(doc, 'NOPE', 'NM_1')).toBeNull();
+    // IGF2 has one mRNA: nothing to remove.
+    expect(removeOtherTranscriptsOp(doc, 'IGF2', 'NM_4')).toBeNull();
   });
 });
 

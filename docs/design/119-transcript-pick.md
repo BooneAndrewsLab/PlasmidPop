@@ -125,10 +125,8 @@ fixture, moved there so both tests share it.
   to clear, and the banner names what is out and brings it back in one
   click. It is also why a picked gene's group notice cannot list the other
   transcripts: they are not rows. **Remove the other transcripts** (item 117)
-  is offered on the group notice, which a pick replaces with its own; show
-  all first, then remove. Item 117's removal still takes only the mRNAs: the
-  plan here says which CDSs _cannot_ be the kept variant's, which would let
-  it take those too, as a follow-up.
+  is on the group notice, which a pick replaces with its own, so the
+  picked-transcript notice carries it too (#328).
 - **Exports** follow item 109: the SVG figures draw what the screen draws
   (`transcriptPicks` in both export options, from the view's state); the
   GenBank and SnapGene writers, the clipboard, the share link and the
@@ -142,3 +140,13 @@ fixture, moved there so both tests share it.
   from the document, so the plan cannot place them; item 109's type filter
   applies to them as before.
 - Choosing a variant at fetch time stays ruled out (item 58).
+
+## Making a pick permanent (#328)
+
+The picked-transcript notice offers **Remove the other transcripts**, so a
+pick becomes an edit in one step instead of show all, select, remove. The
+removal (item 117) takes exactly `planTranscripts`' hidden set for that pick:
+the other mRNAs, the CDSs the kept one cannot carry and the peptides no
+remaining CDS can carry; what the plan cannot place stays. One undo step,
+and the document then equals what the picker showed. The pick itself stays
+(a pick naming the sole remaining variant hides nothing).
