@@ -338,6 +338,17 @@ export function CloneCheckPage({ doc, state, layout }: Props) {
             </>
           )}
         </p>
+        {context?.vector != null && (
+          <>
+            <span className="ws__target-label">Vector</span>
+            <p className="ws__target-value">
+              {context.vector.name} ·{' '}
+              {context.vector.chosen
+                ? 'chosen under Against on the Bench'
+                : 'the longest part in the tube'}
+            </p>
+          </>
+        )}
         <span className="ws__target-label">Empty vector</span>
         {context !== null ? (
           <p className={`ws__target-value${empty === null ? ' ws__target-value--none' : ''}`}>

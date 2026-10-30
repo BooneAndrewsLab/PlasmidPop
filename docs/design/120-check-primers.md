@@ -131,9 +131,15 @@ clone until it is ligated, and the ligation registers. A product opened
 from storage, or edited since it was made, has no context (the registry is
 by checksum, for the session): the page then takes the selection as the
 insert and any open circular tab as the empty vector, which is also how it
-works on a plasmid made elsewhere. The Bench's **Against** picker is not
-consulted: the clone check takes the longest part as the vector, as Check
-by digest does by default.
+works on a plasmid made elsewhere. The Bench's **Against** picker is
+consulted by the Ligation panel (#329): the button hands the picker's
+choice to the panel, which uses that part as the vector, and so as the
+source of the empty vector, and falls back to the longest part only when
+none was chosen (Gibson, Golden Gate and Gateway still take the longest;
+their picker is not wired in). The context carries the vector's name and
+whether it was chosen, and the page's Vector line says which. Before the
+fix the geometry and the empty lane described the longest part even when
+the digest above was checked against another.
 
 **The protocol** (item 78) lists the page's design when the document has
 one: the best pair across each junction and the best flanking one

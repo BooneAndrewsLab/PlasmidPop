@@ -291,7 +291,8 @@ columns:
   document and lands on the primer workspace's
   [Clone check](10-primers.md#checking-a-clone-by-colony-pcr) page, which
   then knows the insert, the empty vector (the same one the digest is
-  checked against) and whether the insert could have gone in the other
+  checked against; on a Ligation, the part you chose under **Against**, and
+  the page names the vector it used) and whether the insert could have gone in the other
   way round: open for a ligation whose ends let it, fixed by the overhangs,
   the homology arms or the att sites otherwise. Modular lists **Check
   primers…** beside each product's **Assemble**, Overlap PCR and the

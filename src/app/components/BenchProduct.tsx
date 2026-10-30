@@ -116,7 +116,7 @@ function ProductView({
 }: {
   readonly product: SeqDocument;
   readonly parts: readonly Ingredient[];
-  readonly onCheckPrimers?: (() => void) | undefined;
+  readonly onCheckPrimers?: ((vectorId: string) => void) | undefined;
 }) {
   const gel = useGelOptions();
   const [vectorId, setVectorId] = useState('');
@@ -183,7 +183,9 @@ function ProductView({
             type="button"
             className="button button--small"
             data-tip="Assemble the product and design primers that give a band only with the insert, and a size with and without it"
-            onClick={onCheckPrimers}
+            onClick={() => {
+              onCheckPrimers(vectorId);
+            }}
           >
             Design check primers…
           </button>
@@ -291,7 +293,7 @@ export function BenchProduct({
   /** What went into the tube, to pick the empty vector from (#78). */
   readonly parts?: readonly Ingredient[];
   /** Assembles the product and opens the clone check on it (item 120); absent, no such button. */
-  readonly onCheckPrimers?: (() => void) | undefined;
+  readonly onCheckPrimers?: ((vectorId: string) => void) | undefined;
 }) {
   const slot = useContext(BenchProductSlot);
   if (slot === null) return null;

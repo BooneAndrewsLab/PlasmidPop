@@ -300,8 +300,10 @@ and under a [Golden Gate part](#golden-gate-ends-primers-that-make-the-insert-a-
 Gateway), **Check primers…** beside a Modular product, an In-Fusion or
 NEBuilder design and an Overlap PCR fusion, and the Primers tab of such a
 product offers **Check a clone · … product ›**. The page
-then names the product, the **insert** (and the junctions inside it for a
-build of several parts), the **empty vector** — the vector as it went in,
+then names the product, the **vector** (the one chosen under **Against**
+on the Bench's Ligation, otherwise the longest part), the **insert** (and
+the junctions inside it for a build of several parts), the **empty vector**
+— that vector as it went in,
 or the cut vector closed on itself; when it cannot close, or is a PCR
 product with no phosphates to close with, the page says so and checks the
 pairs on the product alone — and whether the **orientation** is fixed by

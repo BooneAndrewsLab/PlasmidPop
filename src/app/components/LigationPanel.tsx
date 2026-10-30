@@ -105,7 +105,7 @@ export function LigationPanel() {
   };
 
   /** Assembles and opens the product; with `check`, on the clone-check page with its context (item 120). */
-  const assemble = (check = false): void => {
+  const assemble = (check = false, vectorId = ''): void => {
     try {
       analytics.track('cloning', 'ligate');
       // With the parts it was joined from, in order and orientation (#67).
@@ -122,7 +122,9 @@ export function LigationPanel() {
       const storage = { scratch: true, shownEnzymes: ligationSeed(parts) };
       if (check) {
         const inTube = ingredients.filter((i) => !excluded.has(i.id));
-        const vector = longestPart(inTube);
+        // The vector the Bench's Against picker names, else the longest part (#329).
+        const picked = inTube.find((i) => i.id === vectorId);
+        const vector = picked ?? longestPart(inTube);
         const at = vector === undefined ? -1 : inTube.indexOf(vector);
         const context =
           vector === undefined
@@ -133,6 +135,8 @@ export function LigationPanel() {
                 inTube.filter((i) => i !== vector),
                 'Ligation',
                 ligationOrientation(parts, at, circular),
+                [],
+                picked !== undefined,
               );
         openCloneCheck(product, context, storage, 'ligation');
       } else {
@@ -152,8 +156,8 @@ export function LigationPanel() {
         parts={ingredients.filter((i) => !excluded.has(i.id))}
         onCheckPrimers={
           canAssemble
-            ? () => {
-                assemble(true);
+            ? (vectorId) => {
+                assemble(true, vectorId);
               }
             : undefined
         }

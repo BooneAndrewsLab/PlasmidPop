@@ -45,6 +45,12 @@ export interface CloneCheckContext {
   readonly orientationNote: string;
   /** The primers the method designed for the insert, to reuse one of. */
   readonly primers: readonly PcrPrimer[];
+  /**
+   * The part taken as the vector, and whether the Bench's Against picker
+   * chose it (#329) rather than the longest part being assumed; null for a
+   * reaction with no vector.
+   */
+  readonly vector: { readonly name: string; readonly chosen: boolean } | null;
 }
 
 const contexts = new Map<string, CloneCheckContext>();
@@ -94,8 +100,9 @@ const NO_EMPTY = {
  * any method that keeps the vector's backbone: the insert is what the
  * product does not share with the vector, the empty vector is the vector
  * as it went in or closed on itself (`emptyVector`, as Check by digest
- * has it), and the other parts give the junctions between them. Null when
- * the vector is nowhere on the product.
+ * has it), and the other parts give the junctions between them. `chosen`
+ * says the vector was picked by the user, not assumed to be the longest
+ * part. Null when the vector is nowhere on the product.
  */
 export function cloneCheckFromParts(
   product: SeqDocument,
@@ -104,6 +111,7 @@ export function cloneCheckFromParts(
   method: string,
   orientation: { readonly open: boolean; readonly note: string },
   primers: readonly PcrPrimer[] = [],
+  chosen = false,
 ): CloneCheckContext | null {
   const geometry = locateInsert(
     product,
@@ -125,6 +133,7 @@ export function cloneCheckFromParts(
     orientation: orientation.open ? 'open' : 'fixed',
     orientationNote: orientation.note,
     primers,
+    vector: { name: vector.document.name, chosen },
   };
 }
 
@@ -226,6 +235,7 @@ export function fusionContext(
     orientation: 'fixed',
     orientationNote: 'The overlaps direct each fragment, so the joins can only be this way round.',
     primers,
+    vector: null,
   };
 }
 
