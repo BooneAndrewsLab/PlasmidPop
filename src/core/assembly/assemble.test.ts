@@ -1031,6 +1031,68 @@ describe('placing a read by an alignment', () => {
 });
 
 /**
+ * Overlaps whose differences the qualities explain (#349): two reads that
+ * overlap by 60 bases and differ at every seventh of them (8 of 60, 87 %
+ * identity) are one sequence when the bases that differ are poor in the read,
+ * and two when they are good ones, as the copies of a diverged repeat are.
+ */
+describe('an overlap that differs where the reads are poor', () => {
+  const first = read('a', 0, 200);
+  const overlapFrom = 140;
+  const tail = (q: (at: number) => number, changes: number, step = 7): AssemblyRead => {
+    const s = GENOME.slice(overlapFrom, 340).split('');
+    for (let k = 0; k < changes; k++) {
+      const at = 3 + k * step;
+      s[at] = s[at] === 'A' ? 'C' : 'A';
+    }
+    return {
+      name: 'b',
+      sequence: s.join(''),
+      qualities: s.map((_, at) => q(at)),
+    };
+  };
+  const join = (b: AssemblyRead) => assembleReads([first, b], { align, trimCutoff: null });
+
+  it(
+    'joins when the bases that differ are poor, and calls them from the good read',
+    async () => {
+      const out = await join(tail((at) => (at < 60 ? 10 : 40), 8));
+      expect(out.contigs).toHaveLength(1);
+      expect(out.contigs[0]?.consensus).toBe(GENOME.slice(0, 340));
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'does not join when the same bases are good ones in both reads',
+    async () => {
+      expect((await join(tail(() => 40, 8))).contigs).toHaveLength(2);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'does not join below 80 % identity, however poor the bases',
+    async () => {
+      // 15 of 60 differ (75 %), every one at Q3: all expected, still not one sequence.
+      const out = await join(tail((at) => (at < 60 ? 3 : 40), 15, 4));
+      expect(out.contigs).toHaveLength(2);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'does not join when more differ than the poor bases explain',
+    async () => {
+      // 8 of 60 differ, but only the first 20 bases are poor (expected about 2).
+      const out = await join(tail((at) => (at < 20 ? 10 : 40), 8));
+      expect(out.contigs).toHaveLength(2);
+    },
+    TIMEOUT,
+  );
+});
+
+/**
  * Repeats (#347, #348): a 200 bp direct repeat R between unique stretches,
  * U1 R U2 R U3, with reads cut from it as exact copies.
  */

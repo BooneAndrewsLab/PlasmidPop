@@ -221,17 +221,19 @@ class Layout {
     return { votes, call: votes.map((v) => callColumn(v.map((x) => x.vote))) };
   }
 
-  /** The consensus string and the layout column of each of its bases. */
-  consensus(): { text: string; column: number[] } {
+  /** The consensus string, the layout column of each of its bases and the quality each is called at. */
+  consensus(): { text: string; column: number[]; quals: number[] } {
     const { call } = this.calls();
     let text = '';
     const column: number[] = [];
+    const quals: number[] = [];
     call.forEach((c, i) => {
       if (c.symbol === '') return;
       text += c.symbol;
       column.push(i);
+      quals.push(c.quality);
     });
-    return { text, column };
+    return { text, column, quals };
   }
 
   /** Inserts `count` columns before `at`; a row has a gap there if it covers both sides. */
@@ -387,6 +389,12 @@ const CORNER = 300;
 
 type PairAlignment = StrandedAlignment['alignment'];
 
+/** The consensus a read is placed on: its bases and the quality each is called at. */
+interface Consensus {
+  readonly text: string;
+  readonly quals: readonly number[];
+}
+
 /**
  * The stretch of an alignment that holds identity `minIdentity` or better
  * with the most bases matched (a column that is not a match costs what the
@@ -439,14 +447,71 @@ function core(a: PairAlignment, minIdentity: number): PairAlignment | null {
   };
 }
 
+/** Chance a base of Phred quality `q` is wrong. */
+const errorOf = (q: number | undefined): number =>
+  Math.min(0.75, 10 ** (-Math.min(60, Math.max(1, q ?? ASSUMED_QUALITY)) / 10));
+
+/**
+ * The lowest identity an overlap may have when the qualities of its bases
+ * account for the columns that do not match (#349). Unrelated sequence
+ * matches at about 25 to 60 %, so this leaves it far out of reach.
+ */
+const QUALITY_FLOOR = 0.8;
+
+/**
+ * Whether the columns of `a` that are not a match are about as many as the
+ * qualities of the bases in them lead to expect (#349): each column is wrong
+ * with the chance of either base being wrong (a gap column, the chance of the
+ * base that is there), and the count allowed is that sum plus two standard
+ * deviations and one. Two reads whose overlap is all poor ends can fall under
+ * 90 % identity on errors they say they have; a pair of good reads that
+ * differ as much cannot. `consFrom` and `readFrom` are where the alignment's
+ * first columns sit in `consQ` and `readQ`.
+ */
+function explainedByQuality(
+  a: PairAlignment,
+  consQ: readonly number[],
+  consFrom: number,
+  readQ: readonly number[],
+  readFrom: number,
+  slack: number,
+  floor = QUALITY_FLOOR,
+): boolean {
+  if (a.identity < floor) return false;
+  let i = consFrom;
+  let j = readFrom;
+  let expected = 0;
+  let miss = 0;
+  for (let c = 0; c < a.columns; c++) {
+    const x = a.alignedA.charCodeAt(c) === 45;
+    const y = a.alignedB.charCodeAt(c) === 45;
+    if (x) {
+      expected += errorOf(readQ[j]);
+      miss++;
+    } else if (y) {
+      expected += errorOf(consQ[i]);
+      miss++;
+    } else {
+      expected += errorOf(consQ[i]) + errorOf(readQ[j]);
+      const mark = a.matchLine.charAt(c);
+      if (mark !== '|' && mark !== ':') miss++;
+    }
+    if (!x) i++;
+    if (!y) j++;
+  }
+  return miss <= expected + slack * Math.sqrt(expected) + 1;
+}
+
 /**
  * The best place a stretch `[from, to)` of the read, as given, fits the part
  * `[lo, hi)` of the consensus: its local alignment with the overlap and
  * identity asked for, in the coordinates of the whole consensus and of the
- * whole read turned the way the alignment found it, or null.
+ * whole read turned the way the alignment found it, or null. The identity
+ * asked for is `minIdentity`, or less where the qualities of the bases that
+ * differ explain it (#349).
  */
 async function placeStretch(
-  cons: string,
+  cons: Consensus,
   [lo, hi]: readonly [number, number],
   read: Prepared,
   [from, to]: readonly [number, number],
@@ -454,35 +519,43 @@ async function placeStretch(
   minOverlap: number,
   minIdentity: number,
 ): Promise<(Candidate & { readonly used: readonly [number, number] }) | null> {
-  const piece = lo === 0 && hi === cons.length ? cons : cons.slice(lo, hi);
+  const piece = lo === 0 && hi === cons.text.length ? cons.text : cons.text.slice(lo, hi);
   const best = await align(
     piece,
     from === 0 && to === read.bases.length ? read.bases : read.bases.slice(from, to),
     PLACEMENT_ALIGN,
   );
-  // A local alignment can run on past a repeat into unrelated sequence while
-  // that still adds score; what is left of it above the identity asked is
-  // the overlap.
-  const a =
-    best.alignment.identity < minIdentity ? core(best.alignment, minIdentity) : best.alignment;
-  if (a === null || a.endA - a.startA < minOverlap || a.identity < minIdentity) return null;
   const n = read.bases.length;
+  const o = orient(read, best.strand);
   // Bases of the whole read, turned as aligned, before the stretch.
   const shift = best.strand === 'forward' ? from : n - to;
-  const alignment = {
+  const place = (a: PairAlignment): PairAlignment => ({
     ...a,
     startA: a.startA + lo,
     endA: a.endA + lo,
     startB: a.startB + shift,
     endB: a.endB + shift,
-  };
-  const o = orient(read, best.strand);
+  });
+  const passes = (a: PairAlignment): boolean =>
+    a.endA - a.startA >= minOverlap &&
+    (a.identity >= minIdentity ||
+      explainedByQuality(a, cons.quals, a.startA, o.quals, a.startB, 3));
+  let alignment = place(best.alignment);
+  if (alignment.identity < minIdentity && !passes(alignment)) {
+    // A local alignment can run on past a repeat into unrelated sequence while
+    // that still adds score; what is left of it above the identity asked is
+    // the overlap.
+    const core0 = core(best.alignment, minIdentity);
+    if (core0 === null) return null;
+    alignment = place(core0);
+  }
+  if (!passes(alignment)) return null;
   return {
     alignment,
     o,
     valid:
       planEnd(alignment.startA, alignment.startB).ok &&
-      planEnd(cons.length - alignment.endA, o.bases.length - alignment.endB).ok,
+      planEnd(cons.text.length - alignment.endA, o.bases.length - alignment.endB).ok,
     used:
       best.strand === 'forward'
         ? [alignment.startB, alignment.endB]
@@ -501,7 +574,7 @@ async function placeStretch(
  * reaches an end of the consensus or the read lies inside it.
  */
 async function findPlacements(
-  cons: string,
+  cons: Consensus,
   read: Prepared,
   align: AssemblyAlign,
   minOverlap: number,
@@ -510,7 +583,7 @@ async function findPlacements(
   const n = read.bases.length;
   const whole = await placeStretch(
     cons,
-    [0, cons.length],
+    [0, cons.text.length],
     read,
     [0, n],
     align,
@@ -521,8 +594,8 @@ async function findPlacements(
   if (whole.valid) return [whole];
   const out: Candidate[] = [whole];
   const ends: [number, number][] = [
-    [0, Math.min(CORNER, cons.length)],
-    [Math.max(0, cons.length - CORNER), cons.length],
+    [0, Math.min(CORNER, cons.text.length)],
+    [Math.max(0, cons.text.length - CORNER), cons.text.length],
   ];
   const reads: [number, number][] = [
     [0, Math.min(CORNER, n)],
@@ -544,7 +617,7 @@ async function findPlacements(
  * consensus has twice does.
  */
 async function fitsElsewhere(
-  cons: string,
+  cons: Consensus,
   read: Prepared,
   chosen: Candidate,
   align: AssemblyAlign,
@@ -554,7 +627,7 @@ async function fitsElsewhere(
   const { startA, endA } = chosen.alignment;
   for (const span of [
     [0, startA],
-    [endA, cons.length],
+    [endA, cons.text.length],
   ] as const) {
     if (span[1] - span[0] < minOverlap) continue;
     const other = await placeStretch(
@@ -676,7 +749,7 @@ export async function assembleReads(
         signal?.throwIfAborted();
         const read = pool[i];
         if (read === undefined || unrelated.has(read)) continue;
-        const found = await findPlacements(cons.text, read, align, minOverlap, minIdentity);
+        const found = await findPlacements(cons, read, align, minOverlap, minIdentity);
         if (found.length === 0) unrelated.add(read);
         const pick = found
           .filter((c) => c.valid)
@@ -694,14 +767,7 @@ export async function assembleReads(
       let chosen = picks[0];
       let ambiguous = true;
       for (const p of picks) {
-        const elsewhere = await fitsElsewhere(
-          cons.text,
-          p.read,
-          p.pick,
-          align,
-          minOverlap,
-          minIdentity,
-        );
+        const elsewhere = await fitsElsewhere(cons, p.read, p.pick, align, minOverlap, minIdentity);
         if (!elsewhere) {
           chosen = p;
           ambiguous = false;
