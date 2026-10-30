@@ -5,12 +5,12 @@
  * PCR primers at standard conditions.
  */
 
-interface NN {
+export interface NN {
   readonly dH: number; // kcal/mol
   readonly dS: number; // cal/(K·mol)
 }
 
-const NN_PARAMS: Readonly<Record<string, NN>> = {
+export const NN_PARAMS: Readonly<Record<string, NN>> = {
   AA: { dH: -7.9, dS: -22.2 },
   TT: { dH: -7.9, dS: -22.2 },
   AT: { dH: -7.2, dS: -20.4 },
