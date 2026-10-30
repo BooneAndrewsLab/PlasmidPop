@@ -146,6 +146,26 @@ describe('guide tree', () => {
     expect(d[0]?.[1]).toBe(0);
     expect(d[0]?.[2]).toBe(1);
   });
+
+  it('measures zero between identical sequences that hold ambiguity codes', () => {
+    // ACGT are 0-3 and anything else is 4, an ambiguity code.
+    const enc = (s: string): Uint8Array =>
+      Uint8Array.from(
+        s.split('').map((c) => (c === 'N' || 'RY'.includes(c) ? 4 : 'ACGT'.indexOf(c))),
+      );
+    for (const s of ['ACGTACGTNN', 'NNNNACGTNNNN', 'ACNGTACGTRCAAAYGT']) {
+      const d = kmerDistances([enc(s), enc(s)], 4, 3);
+      expect(d[0]?.[1]).toBe(0);
+      expect(d[1]?.[0]).toBe(0);
+    }
+  });
+
+  it('keeps the k-mer distance symmetric with ambiguity codes', () => {
+    const enc = (s: string): Uint8Array =>
+      Uint8Array.from(s.split('').map((c) => (c === 'N' ? 4 : 'ACGT'.indexOf(c))));
+    const d = kmerDistances([enc('ACGTNACGTTGCA'), enc('ACGTACNTGCAGG'), enc('NNNNNN')], 4, 3);
+    for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) expect(d[a]?.[b]).toBe(d[b]?.[a]);
+  });
 });
 
 describe('what is read off an alignment', () => {

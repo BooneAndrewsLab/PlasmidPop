@@ -78,12 +78,14 @@ export function kmerLength(alphabet: 'nucleotide' | 'protein', shortest: number)
 
 /**
  * 1 − (k-mers shared, counted with multiplicity) / (k-mers of the shorter
- * sequence); 0 for identical sequences, 1 for sequences with none in common.
+ * sequence), where only k-mers free of ambiguity codes count, on both sides; 0 for identical sequences, 1 for sequences with none in common.
  */
 export function kmerDistances(codes: readonly Uint8Array[], radix: number, k: number): number[][] {
   const size = radix ** k;
+  const windows: number[] = [];
   const counts = codes.map((seq) => {
     const c = new Uint16Array(size);
+    let valid = 0;
     for (let i = 0; i + k <= seq.length; i++) {
       let h = 0;
       let ok = true;
@@ -93,8 +95,12 @@ export function kmerDistances(codes: readonly Uint8Array[], radix: number, k: nu
         if (code >= radix) ok = false;
         h = h * radix + code;
       }
-      if (ok) c[h] = Math.min(65535, (c[h] ?? 0) + 1);
+      if (ok) {
+        c[h] = Math.min(65535, (c[h] ?? 0) + 1);
+        valid++;
+      }
     }
+    windows.push(valid);
     return c;
   });
   const n = codes.length;
@@ -103,8 +109,8 @@ export function kmerDistances(codes: readonly Uint8Array[], radix: number, k: nu
     for (let b = a + 1; b < n; b++) {
       const ca = counts[a];
       const cb = counts[b];
-      const la = Math.max(1, (codes[a]?.length ?? 0) - k + 1);
-      const lb = Math.max(1, (codes[b]?.length ?? 0) - k + 1);
+      const la = Math.max(1, windows[a] ?? 0);
+      const lb = Math.max(1, windows[b] ?? 0);
       let shared = 0;
       if (ca !== undefined && cb !== undefined) {
         for (let h = 0; h < size; h++) shared += Math.min(ca[h] ?? 0, cb[h] ?? 0);
