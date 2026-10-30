@@ -114,8 +114,8 @@ describe('hairpin and dimer checks against primer3-py', () => {
   // flags beyond the dG is "ours only" here, and is expected.
   it('self-dimer with the 3′ rule: the extra flags are the rule, not the dG', () => {
     const m = matrix(homodimerWith3);
-    expect(m.agreement).toBeGreaterThanOrEqual(0.89); // measured 90.3 %
-    expect(m.oursOnly).toBeLessThanOrEqual(23);
+    expect(m.agreement).toBeGreaterThanOrEqual(0.9); // measured 90.7 %
+    expect(m.oursOnly).toBeLessThanOrEqual(22);
     expect(m.primer3Only).toBeLessThanOrEqual(6);
   });
 
