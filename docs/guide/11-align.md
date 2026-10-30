@@ -154,6 +154,19 @@ Assembly is greedy and meant for a few to a few dozen Sanger reads of one
 region. It does not resolve repeats, and a read is placed at the first
 contig it fits.
 
+Measured against reads simulated from a known construct (design note 123),
+assembly gave a consensus at least 99.5% identical to the truth where two or
+more reads overlap in clean, noisy and deep layouts, with every read in the
+right order and orientation. **The simulated reads are less realistic than
+real chromatograms**, so treat this as a floor. A repeat can make it join
+reads across the repeat without any warning, or leave two contigs where one
+was possible, and reads that overlap only briefly in poor-quality ends may
+not join. **The consensus qualities are a model, not calibrated
+measurements:** on simulated reads whose errors follow their qualities, a
+reported Q10 to Q29 base was wrong somewhat less often than stated, and
+where only one read covers a base the quality is just that read's. Check
+a consensus you rely on against the traces.
+
 ## Verifying a plate of clones
 
 A whole-plasmid sequencing run returns one consensus a clone, often a plate
