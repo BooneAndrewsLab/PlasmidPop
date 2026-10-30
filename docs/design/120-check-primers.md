@@ -203,3 +203,54 @@ the flank band arithmetic), reusing the reaction's primer, the rail's
 count, and without a context (the selection and a chosen tab).
 `BenchProduct.test.tsx`: the button is there only where the panel can
 assemble. `analysisClient.test.ts`: the request inline.
+
+## Keeping the context with the document (#327): open, not built
+
+Stopped before building, 2026-10-30. The context cannot ride in the
+GenBank comment the way 'Made from' and base styles do, because the app
+has one `writeGenBank` and uses it for storage, the autosave worker, the
+urgent flush, downloads, the file handle write and share links
+(`persistence.ts`, `save.worker.ts`, `documentRepository.save`, `saveFile.ts`,
+`io/share/link.ts`); a comment is therefore in every file the user
+downloads or sends. Two of the context's fields are also not small:
+`empty` is a whole vector molecule and `primers` are oligo sequences.
+
+What is cheap to keep: `geometry` (insert range and junction positions),
+`orientation` and its note, `vector.{name,chosen}`, `method`, `emptyNote`
+(a few integers and strings). What is not: `empty`, which is the vector
+as it went in, recomputable only from a stored copy of the vector.
+
+Options:
+
+1. **GenBank comment `PlasmidPop-clone-check: 1`** (the precedent). Geometry,
+   orientation, vector name, and the empty vector by checksum (found in
+   storage as lineage nodes are, item 111). Smallest code; it travels in
+   downloads and share links, which then carry the clone-check state (a
+   vector's name and junction positions) and recipients' copies would try
+   to honour it. It could be dropped from downloads only with a
+   `writeGenBank` option threaded through five writers and the worker
+   protocol. Stale detection is free: store the product's checksum in the
+   block, and a mismatch on read drops it.
+2. **A sidecar field on the IndexedDB row** (`StoredDocument.cloneCheck`,
+   not indexed, so no Dexie version bump), beside `read`. Never leaves the
+   browser: downloads and links are built from `writeGenBank` and cannot
+   see it. Costs: the autosave worker path, the pending-stash flush and
+   the backup export each have to carry or deliberately skip it, and
+   `editorStore.openDocument` has to re-register it on load. Stale
+   detection: the row holds the checksum it was made for; `recallCloneCheck`
+   already keys by checksum, so a loaded row simply registers under its
+   stored checksum and an edit changes the checksum and finds nothing.
+   This is the option I would build.
+3. **Recompute on open, store nothing.** Persist only the lineage (already
+   stored) and rebuild the context from the parents in storage with
+   `cloneCheckFromParts` when the tab opens. Nothing new is written and it
+   self-invalidates, but it works only for products whose parts are still
+   stored, and cannot know a chosen vector or the Gibson/Golden Gate
+   junction reasoning without redoing each method.
+
+Either 2 or 3 also needs the page to say when it fell back: a line under
+Insert such as "No cloning context is kept for this document, so the
+selection is the insert", shown whenever `recallCloneCheck` is null.
+Tests wanted: a product saved then reloaded through `documentRepository`
+finds its context; an edit inside the insert finds none (the checksum
+changes), and that the downloaded GenBank text has no such line.
