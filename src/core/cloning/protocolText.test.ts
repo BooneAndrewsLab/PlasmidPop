@@ -424,10 +424,14 @@ describe('protocol text of colony PCR checks (item 120)', () => {
     expect(md).toContain(
       '| Flank | Check flank fwd 7: GGGGCCCCAAAATTTTGGGGC | Check flank rev 7: CCAATTGGCCAATTGGCCAAT | 1,430 bp | 629 bp | 1,430 bp + 2,100 bp |',
     );
+    expect(md).toContain('| Spans | Forward | Reverse | Clone | Empty vector | Insert reversed |');
     expect(md).toContain('boil it in water');
     const html = protocolToHtml(withChecks);
     expect(html).toContain('<h2>Colony PCR check</h2>');
     expect(html).toContain('<td>no band</td>');
+    for (const h of ['Spans', 'Forward', 'Reverse', 'Clone', 'Empty vector', 'Insert reversed']) {
+      expect(html).toContain(`<th>${h}</th>`);
+    }
     expect(protocolToMarkdown(base)).not.toContain('Colony PCR');
   });
 });

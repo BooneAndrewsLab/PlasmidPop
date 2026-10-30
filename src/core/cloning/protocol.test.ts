@@ -597,6 +597,28 @@ describe('buildProtocol oligos', () => {
     expect(p.oligos[0]?.sequence).toBe(FWD);
     expect(p.oligos[0]?.length).toBe(FWD.length);
   });
+
+  it('adds the colony PCR check to an oligo the reactions use, once however many pairs share it', () => {
+    const doc = product({
+      op: 'ligation',
+      parents: [pcrFor('A'), pcrFor('B')],
+      circular: true,
+      flipped: [false, false],
+    });
+    const pair = (spans: string) => ({
+      spans,
+      forward: { name: 'as F', sequence: FWD },
+      reverse: { name: 'as R', sequence: REV },
+      clone: [500],
+      empty: [],
+      flipped: null,
+    });
+    const p = must(buildProtocol(doc, { colonyPcr: [pair('Left'), pair('Right')] }));
+    expect(p.oligos.map((o) => [o.name, o.usedFor])).toEqual([
+      ['F1', ['A', 'B', 'colony PCR check']],
+      ['R1', ['A', 'B', 'colony PCR check']],
+    ]);
+  });
 });
 
 describe('buildProtocol colony PCR checks (item 120)', () => {

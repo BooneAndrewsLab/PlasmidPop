@@ -526,3 +526,32 @@ main machine was busy updating at the time, so the two are not a fair
 comparison. The use is a second, quiet machine, so a pass runs beside other
 work without the contention above. Copy `reports/mutation/stryker-incremental.json` over
 first to keep the reuse.
+
+## At 1.20
+
+The first full pass after the #320 changes (`npm run mutate`, 20,052 killed,
+351 timeouts, 976 survivors, 94.96 %; 273 min, with another analysis using the
+workstation's CPU for most of it, so the 163 timeouts of its re-tested mutants
+are partly contention). 21 survivors were on lines changed since v1.19.0, in
+three files, and were applied by hand: the check-primer pairs of `protocol.ts`
+and `protocolText.ts` (#311) and the binding scan of `primerDesign.ts`.
+`protocol.test.ts` now has a reaction primer reused by two check pairs (its
+`usedFor` gains the check once) and `protocolText.test.ts` asserts the table's
+header cells in Markdown and HTML.
+
+Equivalents left as survivors:
+
+- **Scan speed-ups in `findBindingSites` (10):** the code array, the plain-base
+  array, the order of the 3′ anchor first, and the `charCode === code &&
+plain` shortcut (`() => undefined`, `''`, `true`/`false`, `!==`). Each only
+  changes how soon a position is refused, not whether: a mismatch still goes
+  through `pairsWithCode`, and every mismatch is counted whatever the order.
+  Applied one at a time, no test in `src/core/primers/` fails.
+- **`prior !== undefined` read as `true` (1):** `findIndex` returned a valid
+  index, so the entry exists; the check only narrows the type.
+
+`vitest` 5.0.1 leaves its root temp folder in `os.tmpdir()` after every run
+(and a killed run's project folders). The test and mutate scripts now run
+through `scripts/with-tmp.mjs`, which gives each run its own
+`node_modules/.vitest-tmp/<pid>` as `TMPDIR`, removes it at exit and prunes
+those of dead processes at the next start.

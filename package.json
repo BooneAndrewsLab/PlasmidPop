@@ -17,9 +17,9 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test": "node scripts/with-tmp.mjs vitest run",
+    "test:watch": "node scripts/with-tmp.mjs vitest",
+    "test:coverage": "node scripts/with-tmp.mjs vitest run --coverage",
     "oracle:generate": "scripts/oracle/run.sh generate",
     "oracle:writer": "scripts/oracle/run.sh writer",
     "oracle:snapgene-writer": "scripts/oracle/run.sh snapgene-writer",
@@ -27,8 +27,8 @@
     "oracle:abif": "scripts/oracle/run.sh abif-local",
     "oracle:msa": "python3 scripts/oracle/msa.py",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
-    "mutate": "node scripts/patch-stryker-vitest.mjs && PLASMIDPOP_MUTATION=1 stryker run",
-    "mutate:changed": "node scripts/mutate-changed.mjs",
+    "mutate": "node scripts/patch-stryker-vitest.mjs && PLASMIDPOP_MUTATION=1 node scripts/with-tmp.mjs stryker run",
+    "mutate:changed": "node scripts/with-tmp.mjs node scripts/mutate-changed.mjs",
     "bench": "npm run build && node scripts/bench/open-scan.ts"
   },
   "dependencies": {
