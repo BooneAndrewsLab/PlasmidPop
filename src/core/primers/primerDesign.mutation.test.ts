@@ -204,12 +204,12 @@ function primerPenalty(r: PrimerReport, c: PrimerCriteria): number {
   const idealLength = Math.min(c.maxLength, Math.max(c.minLength, 21));
   return (
     Math.abs(r.tm - (c.minTm + c.maxTm) / 2) +
-    Math.abs(r.gc - (c.minGc + c.maxGc) / 2) * 10 +
-    (r.gcClamp ? 0 : 1.5) +
-    -r.selfDimerDg * 0.25 +
+    Math.abs(r.gc - (c.minGc + c.maxGc) / 2) * 1 +
+    (r.gcClamp ? 0 : 0.3) +
+    -r.selfDimerDg * 0.025 +
     -r.hairpinDg * 0.5 +
-    r.threePrimeSelf * 0.3 +
-    Math.abs(r.length - idealLength) * 0.1
+    r.threePrimeSelf * 0.03 +
+    Math.abs(r.length - idealLength) * 1
   );
 }
 
@@ -305,7 +305,7 @@ function allPairs(
       );
       if (crossDimer > c.maxThreePrime) continue;
       if (dimerEnergy(f.report.sequence, r.report.sequence) <= c.dimerDg) continue;
-      const penalty = f.penalty + r.penalty + tmDifference + crossDimer * 0.3;
+      const penalty = f.penalty + r.penalty + tmDifference * 0.25 + crossDimer * 0.03;
       const key = `${f.site.start}-${r.site.end}`;
       const pair = { penalty, productLength, tmDifference, crossDimer };
       const kept = out.get(key);
@@ -520,20 +520,20 @@ describe('designPrimers on the fixed template', () => {
     expect(pairs).toHaveLength(3);
     expect(pairs.map((p) => [p.forwardSite, p.reverseSite, p.productLength, p.crossDimer])).toEqual(
       [
-        [{ start: 169, end: 194 }, { start: 351, end: 375 }, 206, 2],
-        [{ start: 169, end: 194 }, { start: 351, end: 373 }, 204, 2],
-        [{ start: 164, end: 189 }, { start: 442, end: 466 }, 302, 1],
+        [{ start: 58, end: 79 }, { start: 403, end: 424 }, 366, 3],
+        [{ start: 111, end: 132 }, { start: 403, end: 424 }, 313, 3],
+        [{ start: 59, end: 80 }, { start: 403, end: 424 }, 365, 3],
       ],
     );
     expect(pairs.map((p) => p.penalty)).toEqual([
-      expect.closeTo(4.396641800409364, 9),
-      expect.closeTo(4.469748806438231, 9),
-      expect.closeTo(4.4811224212682195, 9),
+      expect.closeTo(0.8669751311508589, 9),
+      expect.closeTo(1.065959183216269, 9),
+      expect.closeTo(1.1672373954642365, 9),
     ]);
     expect(pairs.map((p) => p.tmDifference)).toEqual([
-      expect.closeTo(0.09071922425829371, 9),
-      expect.closeTo(0.10554245653798944, 9),
-      expect.closeTo(0.032833562476241696, 9),
+      expect.closeTo(0.13030274664151875, 9),
+      expect.closeTo(0.26450888829384667, 9),
+      expect.closeTo(0.13051255809222084, 9),
     ]);
   });
 

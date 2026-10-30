@@ -203,6 +203,50 @@ function basesAt(text: string, r: Range, seqLength: number): string {
 }
 
 /**
+ * What each measure costs a primer in the ranking (item 125, #346). The first
+ * two are Primer3's own default penalty, which is all it ranks by with its
+ * default weights: 1 per °C from the optimum Tm and 1 per base from the
+ * optimum size (Primer3's `PRIMER_WT_TM_GT/LT` and `PRIMER_WT_SIZE_GT/LT`;
+ * the optimum is the middle of the Tm range and 21 nt, as in the oracle).
+ * The rest are ours and now only break ties between primers Primer3 would
+ * rate alike: GC away from the middle of its range (per unit of fraction),
+ * a missing clamp, kcal/mol of hairpin and self-dimer ΔG, bases of 3′
+ * self-pairing. Primer3's weights for the product size and its own
+ * dimer terms are 0 by default, so no product-size term is added.
+ */
+export const PENALTY_WEIGHTS = {
+  tm: 1,
+  length: 1,
+  gc: 1,
+  noClamp: 0.3,
+  hairpinDg: 0.5,
+  selfDimerDg: 0.025,
+  threePrimeSelf: 0.03,
+} as const;
+
+/**
+ * What a pair adds to its two primers' penalties: the Tm difference (Primer3
+ * weighs it 0 by default but bounds it; a little keeps matched pairs ahead)
+ * and the 3′ cross-dimer length.
+ */
+export const PAIR_WEIGHTS = { tmDifference: 0.25, crossDimer: 0.03 } as const;
+
+/** A pair's penalty from its primers' and its own measures. */
+export function pairPenalty(
+  forward: number,
+  reverse: number,
+  tmDifference: number,
+  crossDimer: number,
+): number {
+  return (
+    forward +
+    reverse +
+    tmDifference * PAIR_WEIGHTS.tmDifference +
+    crossDimer * PAIR_WEIGHTS.crossDimer
+  );
+}
+
+/**
  * Null when the candidate breaks a criterion, else how far it is from ideal.
  * Exported for the clone-check designer (item 120), which enumerates its
  * own candidates around a junction and judges them by this same rule.
@@ -219,16 +263,14 @@ export function candidatePenalty(report: PrimerReport, c: PrimerCriteria): numbe
   const idealTm = (c.minTm + c.maxTm) / 2;
   const idealGc = (c.minGc + c.maxGc) / 2;
   const idealLength = Math.min(c.maxLength, Math.max(c.minLength, 21));
-  let penalty = Math.abs(report.tm - idealTm);
-  penalty += Math.abs(report.gc - idealGc) * 10;
-  if (!report.gcClamp) penalty += 1.5;
-  // Half a point per kcal/mol of hairpin and a quarter per kcal/mol of
-  // self-dimer: a primer at its limit costs what a 4 bp stem (-2) or a
-  // 6 bp self-complementary stretch (-6) did under the stem heuristics.
-  penalty += -report.selfDimerDg * 0.25;
-  penalty += -report.hairpinDg * 0.5;
-  penalty += report.threePrimeSelf * 0.3;
-  penalty += Math.abs(report.length - idealLength) * 0.1;
+  const w = PENALTY_WEIGHTS;
+  let penalty = Math.abs(report.tm - idealTm) * w.tm;
+  penalty += Math.abs(report.length - idealLength) * w.length;
+  penalty += Math.abs(report.gc - idealGc) * w.gc;
+  if (!report.gcClamp) penalty += w.noClamp;
+  penalty += -report.selfDimerDg * w.selfDimerDg;
+  penalty += -report.hairpinDg * w.hairpinDg;
+  penalty += report.threePrimeSelf * w.threePrimeSelf;
   return penalty;
 }
 
@@ -327,8 +369,9 @@ function shortlist(
  * criteria — including, with `requireSpecific`, annealing nowhere else on
  * the template — and a pair must also match in Tm, give a product in the
  * size range and not pair at a 3′ end with its partner. Pairs are ranked by a penalty combining Tm distance from the
- * middle of the range, GC balance, clamp, self-complementarity, hairpins and
- * Tm mismatch.
+ * middle of the range and a size near 21 nt (Primer3's own ranking, item 125),
+ * with GC balance, clamp, self-complementarity, hairpins and Tm mismatch as
+ * smaller terms.
  */
 export function designPrimers(
   sequence: string,
@@ -414,7 +457,7 @@ export function designPrimers(
         tmDifference,
         crossDimer,
         crossDimerDg,
-        penalty: f.penalty + r.penalty + tmDifference + crossDimer * 0.3,
+        penalty: pairPenalty(f.penalty, r.penalty, tmDifference, crossDimer),
       });
     }
   }
@@ -504,7 +547,7 @@ export function designAnchoredPrimers(
       if (crossDimer > c.maxThreePrime) continue;
       const crossDimerDg = dimerEnergy(f.report.sequence, r.report.sequence);
       if (crossDimerDg <= c.dimerDg) continue;
-      const penalty = f.penalty + r.penalty + tmDifference + crossDimer * 0.3;
+      const penalty = pairPenalty(f.penalty, r.penalty, tmDifference, crossDimer);
       if (best === null || penalty < best.penalty) {
         best = {
           forward: f.report,

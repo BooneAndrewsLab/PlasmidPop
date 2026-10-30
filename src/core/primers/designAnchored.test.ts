@@ -72,19 +72,20 @@ describe('designAnchoredPrimers', () => {
 function penaltyOf(r: PrimerReport, c: PrimerCriteria): number | null {
   if (Number.isNaN(r.tm) || r.tm < c.minTm || r.tm > c.maxTm) return null;
   if (r.gc < c.minGc || r.gc > c.maxGc) return null;
-  if (r.homopolymer > c.maxHomopolymer || r.hairpinDg <= c.hairpinDg || r.hairpinTm > c.hairpinTm) return null;
+  if (r.homopolymer > c.maxHomopolymer || r.hairpinDg <= c.hairpinDg || r.hairpinTm > c.hairpinTm)
+    return null;
   if (r.selfDimerDg <= c.dimerDg) return null;
   if (r.threePrimeSelf > c.maxThreePrime) return null;
   if (c.requireGcClamp && !r.gcClamp) return null;
   const idealLength = Math.min(c.maxLength, Math.max(c.minLength, 21));
   return (
     Math.abs(r.tm - (c.minTm + c.maxTm) / 2) +
-    Math.abs(r.gc - (c.minGc + c.maxGc) / 2) * 10 +
-    (r.gcClamp ? 0 : 1.5) +
-    -r.selfDimerDg * 0.25 +
+    Math.abs(r.gc - (c.minGc + c.maxGc) / 2) * 1 +
+    (r.gcClamp ? 0 : 0.3) +
+    -r.selfDimerDg * 0.025 +
     -r.hairpinDg * 0.5 +
-    r.threePrimeSelf * 0.3 +
-    Math.abs(r.length - idealLength) * 0.1
+    r.threePrimeSelf * 0.03 +
+    Math.abs(r.length - idealLength) * 1
   );
 }
 
@@ -130,7 +131,7 @@ describe('designAnchoredPrimers against the slow way', () => {
             const dimer = dimerOf(a, b);
             if (diff > c.maxTmDifference || dimer > c.maxThreePrime) continue;
             if (dimerEnergy(a.sequence, b.sequence) <= c.dimerDg) continue;
-            const penalty = pa + pb + diff + dimer * 0.3;
+            const penalty = pa + pb + diff * 0.25 + dimer * 0.03;
             if (want === null || penalty < want.penalty) want = { f: a, r: b, penalty };
           }
         }

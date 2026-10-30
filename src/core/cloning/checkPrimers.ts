@@ -7,6 +7,8 @@ import {
   type PrimerReport,
   analyzePrimer,
   candidatePenalty,
+  PAIR_WEIGHTS,
+  pairPenalty,
   dimerEnergy,
   cleanPrimer,
   findAnnealingSites,
@@ -512,7 +514,7 @@ function pairUp(
         reverse: r,
         productLength,
         tmDifference,
-        penalty: f.penalty + r.penalty + tmDifference,
+        penalty: pairPenalty(f.penalty, r.penalty, tmDifference, 0),
       });
     }
   }
@@ -537,7 +539,12 @@ function pairUp(
     if (fixed !== 'forward' && !specificity.specific(p.forward, 'forward')) continue;
     if (fixed !== 'reverse' && !specificity.specific(p.reverse, 'reverse')) continue;
     seen.add(key);
-    const full: Paired = { ...p, crossDimer, crossDimerDg, penalty: p.penalty + crossDimer * 0.3 };
+    const full: Paired = {
+      ...p,
+      crossDimer,
+      crossDimerDg,
+      penalty: p.penalty + crossDimer * PAIR_WEIGHTS.crossDimer,
+    };
     const at = out.findIndex((q) => q.penalty > full.penalty);
     out.splice(at === -1 ? out.length : at, 0, full);
     if (out.length > maxPairs) out.pop();

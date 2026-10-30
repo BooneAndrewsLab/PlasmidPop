@@ -421,7 +421,8 @@ describe('designCheckPrimers: a directional ligation (EcoRI + BamHI)', () => {
   it('each designed primer anneals nowhere else on the product, and meets the designer’s rules', () => {
     for (const p of design.pairs) {
       for (const report of [p.forward, p.reverse]) {
-        expect(report.warnings).toEqual([]);
+        // A GC clamp is a preference the ranking now weighs lightly (item 125), not a rule.
+        expect(report.warnings.filter((w) => !w.startsWith('No GC clamp'))).toEqual([]);
         expect(report.tm).toBeGreaterThanOrEqual(55);
         expect(report.tm).toBeLessThanOrEqual(65);
       }
