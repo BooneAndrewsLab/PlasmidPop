@@ -125,7 +125,108 @@ allowance in the same commit.
 | #349  | Reads whose overlap is thin and noisy on both sides fail the 90 % over 25 bases test     | 2 of 8                                       |
 | #350  | The consensus lacks a base in a homopolymer that two reads cover (suspected gap quality) | 1 of 8 below 99.5 %; 1 to 2 bases in most    |
 
-No algorithm, threshold or heuristic was changed. The repeat ambiguity is
+That is the state when the oracle was built; the fixes for #347 and #348 are
+in "Result of the repeat fixes" below, which supersedes the allowances and
+counts above for those two rows. No algorithm, threshold or heuristic was
+changed in the first part. The repeat ambiguity is
 stated in item 76 ("no repeat resolution"); what these show is the outcome:
 the assembler does not stop at a repeat, it either joins across it
 without a flag (#347) or fails to join through it (#348).
+
+## Result of the repeat fixes (#347, #348)
+
+Maintainer decision 2026-10-30: fix both in 1.21.0. Code:
+`src/core/assembly/assemble.ts`. The thresholds (90 % identity over 25
+bases, Q17 trim, the 0.8 consensus call) were not touched.
+
+### What changed
+
+- **Best overlap first, not first that fits.** Each round aligns every read
+  not yet placed to the consensus and the read with the best-scoring valid
+  overlap joins. Before, reads were tried longest first and the first that
+  fit went in, so a read starting in the second copy of a repeat could take
+  a join through the first copy (a 300-base overlap that is all repeat)
+  before the reads whose overlap with the contig is in unique sequence had
+  grown it. Once the contig reaches the second copy the same read finds its
+  own place. (#347, dense spanning reads: the misjoin in 1 of 8.)
+- **The overlap a copy shadows is tried (#348).** A read that spans a repeat
+  aligns best to a copy of it inside the contig, which is no overlap, and the
+  shorter true overlap was never looked at. If the best local alignment is
+  not an overlap, each end of the read (300 bases) is also aligned to each
+  end of the consensus (300 bases): an end is too short for a copy deeper in
+  to shadow what is at its edge. Placement alignments use a gap that costs 4
+  to extend instead of 0.5, because with the default a local alignment ran on
+  past a repeat through unrelated sequence at 57 to 67 % identity and hid a
+  short true overlap beside it; where the best alignment is below the
+  identity floor, its stretch above 90 % is used.
+- **A read that fits at two places waits.** After the best valid placement of
+  each read is found, one whose whole-read alignment also fits what is left of
+  the consensus either side (it lies in a sequence the contig has twice, so it
+  could be in either copy) goes in only after one that fits one place; if all
+  fit two, the best goes in and the contig gets an `ambiguous-join` warning
+  naming the read.
+- **A pile-up is a `possible-repeat-collapse` warning.** A stretch of 100 or
+  more bases at depth 3 or more, reaching 4, with a mean depth of 3 times the
+  contig's median, in a contig of four or more reads. Reads from the two
+  copies of a repeat laid on one give exactly this; it cannot be told from
+  deliberate extra reads over one region (four or more on one stretch where
+  the rest has one), which is the false-alarm class. It was measured on all
+  ten scenarios: no warning anywhere but the collapsed one (the reads-inside-
+  a-copy scenario, 8 of 8).
+- **Speed.** A read that fits nothing in the contig is not aligned again
+  until a read that joins overlaps it (a rough test: it is aligned to that
+  read). 32 reads of a 5 kb region plus 8 unrelated: 7.7 s before, 13.7 s now
+  (the repeat search and the per-round re-ranking cost about 1.8 times).
+  The oracle suite takes about 50 s where it took 20.
+
+Warnings are on each `Contig` (`warnings`: kind, stretch, message, read), and
+the contig view shows them (guide, "Assembling reads into a contig").
+
+### Numbers, before and after (8 replicates each)
+
+| Scenario                                   | Contigs before         | Contigs after          | Depth-2 identity, mean (min) before | after             | Warnings after                   |
+| ------------------------------------------ | ---------------------- | ---------------------- | ----------------------------------- | ----------------- | -------------------------------- |
+| Repeat, dense spanning reads (200 bp step) | 1 in 7, 2 in 1         | 1 in 8                 | 95.18 % (61.5 %)                    | 99.99 % (99.94 %) | 0                                |
+| Repeat, sparse spanning reads              | 2 in 8                 | 1 in 8                 | 99.97 % (99.73 %)                   | 99.97 % (99.75 %) | 0                                |
+| Repeat, reads inside a copy plus flanks    | 1 in 8, collapsed in 8 | 1 in 8, collapsed in 8 | 99.96 % (99.71 %)                   | 99.96 % (99.71 %) | 8 of 8: possible-repeat-collapse |
+
+The other seven scenarios: contig counts as before except two that moved
+by chance of the placement search (noisy thin overlaps: 2 contigs in 1 of 8
+where it was 2; homopolymer-rich: 1 contig in 8 and every replicate at
+99.5 % or better where one was 99.42 %), identities within 0.05 points of
+before (tiling clean 100 / 99.99 %, noisy 99.92 %, deep 100 %, walking
+primers 100 %), no warnings, order and orientation right everywhere. #349
+stays open (thin noisy overlaps, 1 of 8 now); #350 does not reproduce in
+these seeds but its cause (a gap's quality) was not changed, so it stays
+open.
+
+Everything the sparse and dense scenarios said was wrong is gone: 8 of 8
+one contig of about 2.1 kb at 99.7 % or better, no collapse. Calibration is
+as before (Q0-9: 272 wrong against 297 expected; Q10-19: 154 against 197;
+Q20-29: 16 against 22; Q30-49: 6 against 6.2).
+
+### What cannot be fixed, and why
+
+Reads from inside one copy of a repeat plus a flank each (the reads-inside
+scenario): the contig is 1050 bp where the construct is 2100, in 8 of 8, and
+stays so. The four reads are `[unique, first copy]`, `[second copy, unique]`
+and two reads wholly inside a copy. Their overlaps are every one of them a
+true overlap of the sequence as written: nothing in them distinguishes the
+copies, so the right layout is not recoverable from the reads, only
+detectable as suspect. The contig now says so in all 8 (a stretch of 190 to
+270 bases at depth 3 to 4 where the rest of the contig has 1). Read pairs
+or a longer read are what would resolve it; the assembler cannot. #347 stays
+open for this and the oracle gates it: a collapse must carry the warning,
+and the known allowance stays at 8 of 8.
+
+### Tests that changed because of the fix
+
+- `assemble.test.ts` "asks the aligner for a fast local alignment, and tries
+  reads again after a join" pinned the exact order of aligner calls, which
+  is the first-fit loop itself; it now checks that every read is tried, that
+  a read that fits nothing is not re-aligned to the grown consensus, and the
+  alignment options (the new gap cost).
+- `sangerAssembly.test.ts`: the known-deviation allowances for the dense (1)
+  and sparse (8) repeat scenarios and for the homopolymer one (1) are gone;
+  the thin-overlap one is 1 (was 2). Every collapse must carry the warning;
+  every other scenario must have no warning (also the local real-quality one).

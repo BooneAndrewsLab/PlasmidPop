@@ -28,7 +28,10 @@ insert not known yet, or one consensus from overlapping reads.
   bases extend the contig. Passes repeat until none places a read, then the
   rest seed contigs of their own. A read is placed at the first contig it
   fits, not the best: simple, and enough for a few to a few dozen reads of one
-  region.
+  region. (Changed in 1.21.0, #347/#348, item 123: within a contig the read
+  with the best overlap joins first, not the first that fits, the overlaps a
+  repeat copy shadows are tried, and a repeat's ambiguity is a warning on the
+  contig. See "Result of the repeat fixes" there.)
 - **The layout is a multiple alignment** kept as a row of cells per read
   (a base, `-` inside its stretch, a space outside) so each column is called
   from all the reads and a read's insertion becomes a column of its own, in
@@ -54,5 +57,5 @@ assemble` and `align / assemble-save` (item 38).
 **Left out, on purpose:** the traces under the layout (the layout shows reads
 as bars, not bases, and no trace view of a read that is not the document);
 bases only a minority of reads have, in columns the consensus drops, are not
-shown in the stack; no repeat resolution or paired ends; no quality-weighted
+shown in the stack; no repeat resolution (a possible repeat is warned of, item 123) or paired ends; no quality-weighted
 choice among several contigs a read fits. Each is an issue if users ask.

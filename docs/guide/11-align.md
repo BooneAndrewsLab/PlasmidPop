@@ -129,7 +129,8 @@ document; the document is not used at all.
 Each read is first trimmed by its qualities (**Trim poor ends**, in the
 Reads group, as for an alignment). The longest read starts a contig, and
 every other read is joined to it if it overlaps an end, or lies inside it,
-by at least 25 bases at 90% identity or better. A read may be on either
+by at least 25 bases at 90% identity or better; of the reads that fit, the one
+with the best overlap goes first. A read may be on either
 strand: those turned over to fit are paler in the layout. Reads that join
 nothing start contigs of their own, listed in the **Contig** picker, biggest
 first. A read with nothing left after trimming is counted as **left out**.
@@ -151,17 +152,44 @@ it against the intended construct, open that tab's Align tab and drop or
 paste the construct there.
 
 Assembly is greedy and meant for a few to a few dozen Sanger reads of one
-region. It does not resolve repeats, and a read is placed at the first
-contig it fits.
+region. A read that spans a repeat is joined to the neighbour it really
+overlaps even when a copy of the repeat inside the contig fits it better.
+
+**Repeat warnings.** Reads cannot say which copy of a repeat they came from
+unless they reach out of it into unique sequence on both sides, so a repeat
+can fool the assembly, and when the data suggest it the contig says so, in
+amber above its layout, in the **Contig** picker ("repeat warning"), and as a
+shaded stretch in the layout. There are two:
+
+- **Fits more than one place** (_ambiguous join_): the read lies in
+  a sequence the contig has twice, so it could belong to either copy. It is
+  put at one, after the reads that fit only one place, and the warning names
+  it.
+- **Possible repeat collapse**: a stretch of 100 or more bases is covered at
+  least three times deeper than the contig's median (and at 4 reads or more),
+  as it is when reads from the two copies of a repeat are laid on one copy.
+  The contig may then lack the sequence between the copies, and its length is
+  the thing to check against what you expect. Extra reads you sequenced over one
+  region on purpose look the same, so read it as "check", not "wrong".
+
+A repeat longer than the reads cannot be resolved by assembly: separate
+reads, or reads long enough to reach unique sequence on both sides, are
+what do. A contig without a warning can still be wrong, but no repeat was
+seen.
 
 Measured against reads simulated from a known construct (design note 123),
 assembly gave a consensus at least 99.5% identical to the truth where two or
 more reads overlap in clean, noisy and deep layouts, with every read in the
 right order and orientation. **The simulated reads are less realistic than
-real chromatograms**, so treat this as a floor. A repeat can make it join
-reads across the repeat without any warning, or leave two contigs where one
-was possible, and reads that overlap only briefly in poor-quality ends may
-not join. **The consensus qualities are a model, not calibrated
+real chromatograms**, so treat this as a floor. With a 400 bp direct repeat in
+a 2.1 kb construct and reads of 650 to 850 bases, the correct single contig
+came out in 8 of 8 simulated replicates both with reads placed every 200 bp
+and with four reads that each span a copy. When all the reads that touch a
+repeat lie inside it (a read from the start and one from the far end, plus two
+reads wholly in a copy) the contig joins the copies and is about 1,050 bp where the construct is
+2,100: that came out in all 8 replicates, each with the possible-collapse warning. Reads that
+overlap only briefly in poor-quality ends may not join (1 of 8 simulated
+replicates with 400 bp spacing gave two contigs). **The consensus qualities are a model, not calibrated
 measurements:** on simulated reads whose errors follow their qualities, a
 reported Q10 to Q29 base was wrong somewhat less often than stated, and
 where only one read covers a base the quality is just that read's. Check
