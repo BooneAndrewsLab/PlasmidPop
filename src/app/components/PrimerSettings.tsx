@@ -311,6 +311,11 @@ export function PrimerSettings({ criteria: c, cloning }: Props) {
           ΔG &gt; {field('hairpinDg', 'Weakest hairpin free energy refused, kcal/mol', 0.5)}{' '}
           kcal/mol
         </span>
+        <span className="panel__form-label">Hairpin Tm</span>
+        <span className="panel__form-range">
+          ≤ {field('hairpinTm', 'Highest hairpin melting temperature allowed, °C')} °C (Primer3
+          refuses above 47)
+        </span>
         <span className="panel__form-label">Dimer</span>
         <span className="panel__form-range">
           ΔG &gt; {field('dimerDg', 'Weakest dimer free energy refused, kcal/mol', 0.5)} kcal/mol,

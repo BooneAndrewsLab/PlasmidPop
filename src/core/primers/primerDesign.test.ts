@@ -135,9 +135,25 @@ describe('designPrimers with criteria', () => {
     }
   });
 
+  it('refuses a hairpin that melts above the limit, as Primer3 does (#345)', () => {
+    const open = designPrimers(seq, 'linear', target, { hairpinTm: 150, maxPairs: 50 });
+    const limited = designPrimers(seq, 'linear', target, { hairpinTm: 30, maxPairs: 50 });
+    expect(open.some((p) => p.forward.hairpinTm > 30 || p.reverse.hairpinTm > 30)).toBe(true);
+    expect(limited.length).toBeGreaterThan(0);
+    for (const p of limited) {
+      expect(p.forward.hairpinTm).toBeLessThanOrEqual(30);
+      expect(p.reverse.hairpinTm).toBeLessThanOrEqual(30);
+    }
+    // By default, Primer3's 47 C.
+    for (const p of designPrimers(seq, 'linear', target)) {
+      expect(Math.max(p.forward.hairpinTm, p.reverse.hairpinTm)).toBeLessThanOrEqual(47);
+    }
+  });
+
   it('refuses hairpins, dimers and missing clamps when told to', () => {
     const loose = designPrimers(seq, 'linear', target, {
       hairpinDg: -100,
+      hairpinTm: 150,
       dimerDg: -100,
       maxThreePrime: 60,
       maxPairs: 50,
@@ -293,5 +309,22 @@ describe('findPrimerBindingSites', () => {
       false,
     );
     expect(findPrimerBindingSites(seq, 'linear', '')).toEqual([]);
+  });
+});
+
+describe('analyzePrimer hairpin melting temperature (#345)', () => {
+  it('warns of a hairpin that melts above the limit and reports the Tm', () => {
+    // Primer3 calc_hairpin: Tm 84.7 C.
+    const primer = 'GTGCAAGCGGCCGCCGCTACAAGCGGCCGCA';
+    const r = analyzePrimer(primer);
+    expect(r.hairpinTm).toBeGreaterThan(70);
+    expect(r.warnings.some((w) => /^Hairpin melts at \d+ °C, above 47 °C$/.test(w))).toBe(true);
+    const lenient = analyzePrimer(primer, { ...DEFAULT_PRIMER_CRITERIA, hairpinTm: 150 });
+    expect(lenient.warnings.some((w) => w.startsWith('Hairpin melts'))).toBe(false);
+  });
+
+  it('is 0 for a primer with no hairpin', () => {
+    expect(analyzePrimer('ACGTTGCAACGTTGCAACGT').hairpinTm).toBeGreaterThanOrEqual(0);
+    expect(analyzePrimer('AAAAAAAAAAAAAAAAAAAA').hairpinTm).toBe(0);
   });
 });

@@ -115,16 +115,16 @@ describe('selected primer pairs against primer3-py', () => {
     }
   });
 
-  it("Primer3's own verdict: accepted share holds the measured floor", () => {
+  it("Primer3's own verdict: at least 95 % of our pairs are accepted outright", () => {
     const accepted = all.filter(({ o }) => o.primer3.passes).length;
-    // The aim was 95 %; it is not met. Measured 181 of 200 = 90.5 % (88.5 %
-    // before the ΔG hairpin check, item 123).
-    expect(accepted / all.length).toBeGreaterThanOrEqual(0.9);
-    // What is left of #345: every refusal is a hairpin Primer3 finds too
-    // stable by its own criterion, the Tm of the structure (at most 47 C),
-    // which is not the ΔG ours uses.
+    // Measured 191 of 200 = 95.5 % (181 before the hairpin-Tm criterion, item
+    // 125; 177 before the ΔG hairpin check, item 124).
+    expect(accepted / all.length).toBeGreaterThanOrEqual(0.95);
+    // What is left of #345: a hairpin Primer3 finds too stable by its own
+    // criterion, the Tm of the structure (at most 47 C), that our estimate
+    // misses (tri- and tetraloop and wobble stabilisation we do not model).
     const refused = all.filter(({ o }) => !o.primer3.passes);
-    expect(refused.length).toBeLessThanOrEqual(19);
+    expect(refused.length).toBeLessThanOrEqual(9);
     for (const { o } of refused) {
       const e = o.primer3.explain;
       const reasons = [e?.left, e?.right, e?.pair].join(' ');

@@ -32,6 +32,13 @@ export interface PrimerCriteria {
    */
   readonly hairpinDg: number;
   /**
+   * Hairpin melting temperature, °C (`hairpinTm`): a primer whose best hairpin
+   * melts above this is refused. Primer3's `PRIMER_MAX_HAIRPIN_TH`, same
+   * default, so a pair is not selected that Primer3 would turn down for a
+   * hairpin too stable at the annealing step (#345).
+   */
+  readonly hairpinTm: number;
+  /**
    * Dimer free energy, kcal/mol (`dimerEnergy`): a primer that pairs with
    * itself, or a pair that pairs with each other, at or below this is refused.
    */
@@ -70,6 +77,8 @@ export interface PrimerRegion {
  */
 export const DEFAULT_HAIRPIN_DG = -2;
 export const DEFAULT_DIMER_DG = -6;
+/** Primer3's `PRIMER_MAX_HAIRPIN_TH`, °C. */
+export const DEFAULT_HAIRPIN_TM = 47;
 
 export const DEFAULT_PRIMER_CRITERIA: PrimerCriteria = {
   minLength: 18,
@@ -83,6 +92,7 @@ export const DEFAULT_PRIMER_CRITERIA: PrimerCriteria = {
   reverseRegion: { near: 0, far: 200 },
   maxHomopolymer: 4,
   hairpinDg: DEFAULT_HAIRPIN_DG,
+  hairpinTm: DEFAULT_HAIRPIN_TM,
   dimerDg: DEFAULT_DIMER_DG,
   maxThreePrime: 4,
   requireGcClamp: false,
@@ -151,6 +161,7 @@ export function normalizePrimerCriteria(input: unknown): PrimerCriteria {
     reverseRegion: region(r['reverseRegion'], d.reverseRegion),
     maxHomopolymer: num(r['maxHomopolymer'], d.maxHomopolymer, 1, lenHi),
     hairpinDg: num(r['hairpinDg'], d.hairpinDg, -50, 0, false),
+    hairpinTm: num(r['hairpinTm'], d.hairpinTm, 0, 150, false),
     dimerDg: num(r['dimerDg'], d.dimerDg, -100, 0, false),
     maxThreePrime: num(r['maxThreePrime'], d.maxThreePrime, 0, lenHi),
     requireGcClamp:

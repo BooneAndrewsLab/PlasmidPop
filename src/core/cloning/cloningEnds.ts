@@ -860,6 +860,7 @@ export function emptyPrimer(name: string, enzyme: string): CloningPrimer {
       homopolymer: 0,
       selfDimerDg: 0,
       hairpinDg: 0,
+      hairpinTm: 0,
       threePrimeSelf: 0,
       gcClamp: false,
       degenerate: 0,

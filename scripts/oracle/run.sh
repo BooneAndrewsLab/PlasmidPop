@@ -39,9 +39,10 @@ case "${1:-}" in
     "$venv/bin/python" "$root/scripts/oracle/generate.py"
     ;;
   primer-pairs)
-    rm -f "$root/src/test/oracle/primerPairsOurs.json"
-    (cd "$root/scripts/oracle" && "$venv/bin/python" primerpairs.py)
-    (cd "$root" && ORACLE_EXPORT_PAIRS=1 npx vitest run src/test/oracle/primerPairs.test.ts)
+    # The export reads the templates from the committed primerPairs.json (they
+    # are seeded, so unchanged) and only runs the export test: the gate tests
+    # in the same file compare against the data about to be replaced.
+    (cd "$root" && ORACLE_EXPORT_PAIRS=1 npx vitest run src/test/oracle/primerPairs.test.ts -t 'exports our pairs')
     (cd "$root/scripts/oracle" && "$venv/bin/python" primerpairs.py)
     ;;
   writer)

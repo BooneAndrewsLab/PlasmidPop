@@ -70,6 +70,7 @@ describe('Protocol dialog (#215)', () => {
       homopolymer: 2,
       selfDimerDg: 0,
       hairpinDg: 0,
+      hairpinTm: 0,
       threePrimeSelf: 1,
       gcClamp: true,
       degenerate: 0,

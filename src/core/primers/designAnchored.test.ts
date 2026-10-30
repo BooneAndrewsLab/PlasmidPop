@@ -72,7 +72,7 @@ describe('designAnchoredPrimers', () => {
 function penaltyOf(r: PrimerReport, c: PrimerCriteria): number | null {
   if (Number.isNaN(r.tm) || r.tm < c.minTm || r.tm > c.maxTm) return null;
   if (r.gc < c.minGc || r.gc > c.maxGc) return null;
-  if (r.homopolymer > c.maxHomopolymer || r.hairpinDg <= c.hairpinDg) return null;
+  if (r.homopolymer > c.maxHomopolymer || r.hairpinDg <= c.hairpinDg || r.hairpinTm > c.hairpinTm) return null;
   if (r.selfDimerDg <= c.dimerDg) return null;
   if (r.threePrimeSelf > c.maxThreePrime) return null;
   if (c.requireGcClamp && !r.gcClamp) return null;

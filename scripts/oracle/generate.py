@@ -54,6 +54,7 @@ import editing
 import fastq
 import gateway
 import hairpindimer
+import hairpintm
 import pcr
 import primerpairs
 import thermo
@@ -504,6 +505,7 @@ def main():
     abif()
     write('thermo.json', thermo.generate())
     write('hairpinDimer.json', hairpindimer.generate())
+    write('hairpinTm.json', hairpintm.generate())
     write('pcr.json', pcr.generate())
     write('primerPairs.json', primerpairs.generate())
     write('assembly.json', assembly.generate())

@@ -44,6 +44,7 @@ function loose(): PrimerCriteria {
     maxTmDifference: 100,
     maxHomopolymer: 100,
     hairpinDg: -100,
+    hairpinTm: 150,
     dimerDg: -100,
     maxThreePrime: 100,
     requireGcClamp: false,
@@ -221,6 +222,7 @@ function meets(r: PrimerReport, c: PrimerCriteria): boolean {
     r.gc <= c.maxGc &&
     r.homopolymer <= c.maxHomopolymer &&
     r.hairpinDg > c.hairpinDg &&
+    r.hairpinTm <= c.hairpinTm &&
     r.selfDimerDg > c.dimerDg &&
     r.threePrimeSelf <= c.maxThreePrime &&
     (!c.requireGcClamp || r.gcClamp)
@@ -377,6 +379,7 @@ describe('designPrimers against every pair its rules allow', () => {
         gcWidth: fc.constantFrom(0.2, 0.3, 0.4, 0.6, 1),
         maxHomopolymer: fc.oneof(fc.integer({ min: 3, max: 8 }), fc.constant(100)),
         hairpinDg: fc.constantFrom(-0.5, -1, -2, -3, -100),
+        hairpinTm: fc.constantFrom(30, 40, 47, 150),
         dimerDg: fc.constantFrom(-2, -4, -6, -100),
         maxThreePrime: fc.oneof(fc.integer({ min: 2, max: 25 }), fc.constant(100)),
         requireGcClamp: fc.boolean(),
@@ -406,6 +409,7 @@ describe('designPrimers against every pair its rules allow', () => {
           reverseRegion: { near: s.rNear, far: s.rNear + minLength + s.rWidth },
           maxHomopolymer: s.maxHomopolymer,
           hairpinDg: s.hairpinDg,
+          hairpinTm: s.hairpinTm,
           dimerDg: s.dimerDg,
           maxThreePrime: s.maxThreePrime,
           requireGcClamp: s.requireGcClamp,
@@ -549,6 +553,7 @@ describe('designPrimers on the fixed template', () => {
       maxGc: Math.max(f.gc, r.gc),
       maxHomopolymer: Math.max(f.homopolymer, r.homopolymer),
       hairpinDg: Math.min(f.hairpinDg, r.hairpinDg) - 0.001,
+      hairpinTm: Math.max(f.hairpinTm, r.hairpinTm),
       dimerDg: Math.min(f.selfDimerDg, r.selfDimerDg, best.crossDimerDg) - 0.001,
       maxThreePrime: Math.max(f.threePrimeSelf, r.threePrimeSelf, best.crossDimer),
       maxTmDifference: best.tmDifference,

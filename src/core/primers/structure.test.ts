@@ -1,5 +1,6 @@
 import oracle from '../../test/oracle/hairpinDimer.json';
-import { dimerEnergy, hairpinEnergy, selfDimerEnergy } from './structure';
+import tmOracle from '../../test/oracle/hairpinTm.json';
+import { dimerEnergy, hairpinEnergy, hairpinTm, selfDimerEnergy } from './structure';
 
 /**
  * The ΔG model against Primer3's `calc_hairpin`, `calc_homodimer` and
@@ -59,6 +60,47 @@ describe('hairpinEnergy', () => {
     // Measured: mean 0.26, max 2.26 kcal/mol over 300 primers.
     expect(e.mean).toBeLessThan(0.35);
     expect(e.max).toBeLessThan(2.6);
+  });
+});
+
+describe('hairpinTm (#345)', () => {
+  const sample = tmOracle.rows as readonly { seq: string; dg: number; tm: number }[];
+  /** Primer3's limit, PRIMER_MAX_HAIRPIN_TH. */
+  const LIMIT = 47;
+
+  it('is zero where there is no hairpin and never exceeds the cap', () => {
+    expect(hairpinTm('AAAAAAAAAAAAAAAAAAAA')).toBe(0);
+    expect(hairpinTm('ACGT')).toBe(0);
+    expect(hairpinTm('GTGCAAGCGGCCGCCGCTACAAGCGGCCGCA')).toBeGreaterThan(70);
+  });
+
+  it('rises with the stability of the stem', () => {
+    // Primer3: 84.7 C for the long G/C stem, 38 C for the weak A/T one.
+    expect(hairpinTm('GTGCAAGCGGCCGCCGCTACAAGCGGCCGCA')).toBeGreaterThan(
+      hairpinTm('TTTTAATTAGCTTAATT'),
+    );
+  });
+
+  it('flags the designer-like primers Primer3 refuses (47 C) with the measured agreement', () => {
+    // 800 primers inside the designer's Tm and GC limits (hairpinTm.json,
+    // primer3-py 2.2.0). The enthalpy terms were fitted on the even rows
+    // and the 300 of hairpinDimer.json, the offset on all 800, so this is
+    // the fit's own sample, not an independent one. Measured: 135 flagged
+    // by both, 84 by us only, 29 by Primer3 only, 552 by neither.
+    let both = 0;
+    let ours = 0;
+    let theirs = 0;
+    for (const r of sample) {
+      const a = hairpinTm(r.seq) > LIMIT;
+      const b = r.dg < 0 && r.tm > LIMIT;
+      if (a && b) both++;
+      else if (a) ours++;
+      else if (b) theirs++;
+    }
+    // Recall: the share of what Primer3 refuses that we refuse too.
+    expect(both / (both + theirs)).toBeGreaterThanOrEqual(0.8); // measured 82 %
+    // The price of the offset: refusals Primer3 would not make.
+    expect(ours / sample.length).toBeLessThanOrEqual(0.12); // measured 10.5 %
   });
 });
 

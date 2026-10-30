@@ -53,6 +53,34 @@ export interface StructureParams {
   /** One overhanging base at a helix end. */
   readonly danglingGc: number;
   readonly danglingAt: number;
+  /**
+   * Enthalpies, kcal/mol, of the non-stack terms, which `hairpinTm` needs
+   * beside the free energy (stacks use the ΔH of `NN_PARAMS`). Fitted to
+   * Primer3's hairpin Tm (item 125); each term lumps what `thal` splits by
+   * size and base.
+   */
+  readonly enthalpy: HairpinEnthalpy;
+  /**
+   * Added to the melting temperature of a hairpin that exists at 37 °C,
+   * °C. Our free energy finds a hairpin Primer3 scores as more stable
+   * (tri- and tetraloop bonuses, wobble pairs) in about one case in twelve,
+   * and Tm is steep in ΔG, so the unshifted Tm lets those through; the
+   * offset trades a few needless refusals for fewer missed ones (item 125).
+   */
+  readonly hairpinTmOffset: number;
+}
+
+export interface HairpinEnthalpy {
+  /** Hairpin loop of three or more bases, and the terminal mismatch closing a loop of four or more. */
+  readonly hairpinLoop: number;
+  readonly hairpinMismatch: number;
+  /** Bulge, and interior loop (mismatches included). */
+  readonly bulge: number;
+  readonly interior: number;
+  /** Terminal mismatch and dangling base at a helix end; A·T closing. */
+  readonly endMismatch: number;
+  readonly dangling: number;
+  readonly atClose: number;
 }
 
 export const STRUCTURE_PARAMS: StructureParams = {
@@ -73,6 +101,16 @@ export const STRUCTURE_PARAMS: StructureParams = {
   endMismatchAt: -0.6,
   danglingGc: -0.7,
   danglingAt: -0.3,
+  hairpinTmOffset: 6,
+  enthalpy: {
+    hairpinLoop: -4.5,
+    hairpinMismatch: -0.75,
+    bulge: 21.5,
+    interior: -9.5,
+    endMismatch: -2.5,
+    dangling: 2.5,
+    atClose: 8.25,
+  },
 };
 
 const BODY_TEMPERATURE = 310.15;
@@ -89,10 +127,10 @@ const INF = 1e9;
  * when full, since a session's working set is far smaller.
  */
 const MEMO_LIMIT = 50_000;
-const HAIRPINS = new Map<string, number>();
+const HAIRPINS = new Map<string, readonly [number, number]>();
 const DIMERS = new Map<string, number>();
 
-function remembered(memo: Map<string, number>, key: string, compute: () => number): number {
+function remembered<T>(memo: Map<string, T>, key: string, compute: () => T): T {
   const seen = memo.get(key);
   if (seen !== undefined) return seen;
   const value = compute();
@@ -119,6 +157,17 @@ const STACK = ((): Float64Array => {
     for (let b = 0; b < 4; b++) {
       const nn = NN_PARAMS[BASES.charAt(a) + BASES.charAt(b)];
       if (nn !== undefined) t[a * 4 + b] = nn.dH - (BODY_TEMPERATURE * nn.dS) / 1000;
+    }
+  }
+  return t;
+})();
+
+/** ΔH of a stack, kcal/mol, indexed like `STACK`. */
+const STACK_H = ((): Float64Array => {
+  const t = new Float64Array(16);
+  for (let a = 0; a < 4; a++) {
+    for (let b = 0; b < 4; b++) {
+      t[a * 4 + b] = NN_PARAMS[BASES.charAt(a) + BASES.charAt(b)]?.dH ?? 0;
     }
   }
   return t;
@@ -167,6 +216,28 @@ function endEnergy(p: StructureParams, a: number, over1: number, over2: number):
   if (over1 < 4 && over2 < 4) e += gc ? p.endMismatchGc : p.endMismatchAt;
   else if (over1 < 4 || over2 < 4) e += gc ? p.danglingGc : p.danglingAt;
   return e;
+}
+
+/** `endEnergy`'s ΔH. */
+function endEnthalpy(h: HairpinEnthalpy, a: number, over1: number, over2: number): number {
+  let e = isGc(a) ? 0 : h.atClose;
+  if (over1 < 4 && over2 < 4) e += h.endMismatch;
+  else if (over1 < 4 || over2 < 4) e += h.dangling;
+  return e;
+}
+
+/** `loopEnergy`'s ΔH for a bulge or interior loop (a stack is `STACK_H`). */
+function loopEnthalpy(
+  h: HairpinEnthalpy,
+  a1: number,
+  a2: number,
+  up: number,
+  down: number,
+): number {
+  if (up === 0 || down === 0) {
+    return h.bulge + (up + down === 1 ? (STACK_H[a1 * 4 + a2] ?? 0) : 0);
+  }
+  return h.interior;
 }
 
 /**
@@ -221,24 +292,62 @@ export function hairpinEnergy(
   p: StructureParams = STRUCTURE_PARAMS,
   maxLoop = MAX_LOOP,
 ): number {
+  return hairpinFold(sequence, p, maxLoop)[0];
+}
+
+/**
+ * Melting temperature, °C, of the hairpin `hairpinEnergy` finds: ΔH over ΔS,
+ * with ΔS taken from ΔH and the ΔG at 37 °C. This is the measure Primer3's
+ * `PRIMER_MAX_HAIRPIN_TH` limits (47 °C by default). 0 when there is no
+ * hairpin, which is the case when it would not be stable at 37 °C. Item 125.
+ */
+export function hairpinTm(
+  sequence: string,
+  p: StructureParams = STRUCTURE_PARAMS,
+  maxLoop = MAX_LOOP,
+): number {
+  const [g, h] = hairpinFold(sequence, p, maxLoop);
+  if (g >= 0) return 0;
+  // A hairpin that is more stable at 37 °C than its enthalpy allows has no
+  // melting point to speak of; call it unmeltable rather than negative.
+  if (h >= g) return MAX_TM;
+  return Math.min(MAX_TM, (h * BODY_TEMPERATURE) / (h - g) - 273.15 + p.hairpinTmOffset);
+}
+
+const MAX_TM = 150;
+
+function hairpinFold(
+  sequence: string,
+  p: StructureParams,
+  maxLoop: number,
+): readonly [number, number] {
   if (p !== STRUCTURE_PARAMS || maxLoop !== MAX_LOOP) return foldHairpin(sequence, p, maxLoop);
   return remembered(HAIRPINS, sequence, () => foldHairpin(sequence, p, maxLoop));
 }
 
-function foldHairpin(sequence: string, p: StructureParams, maxLoop: number): number {
+function foldHairpin(
+  sequence: string,
+  p: StructureParams,
+  maxLoop: number,
+): readonly [number, number] {
+  const h = p.enthalpy;
   const x = codes(sequence);
   const n = x.length;
-  if (n < 6) return 0;
+  if (n < 6) return [0, 0];
   const width = n + 1;
   // v[i * width + j]: best ΔG of a helix whose outermost pair is (i, j).
   const v = new Float64Array(width * width).fill(INF);
+  // vh: the same helix's ΔH, riding along with the structure of lowest ΔG.
+  const vh = new Float64Array(width * width);
   let best = 0;
+  let bestH = 0;
   for (let len = 5; len <= n; len++) {
     for (let i = 0; i + len - 1 < n; i++) {
       const j = i + len - 1;
       const xi = x[i] ?? 4;
       if (!pairs(xi, x[j] ?? 4)) continue;
       const loop = j - i - 1;
+      let eh = h.hairpinLoop + (loop === 3 ? (isGc(xi) ? 0 : h.atClose) : h.hairpinMismatch);
       let e =
         hairpinLoopEnergy(p, loop) +
         (loop === 3
@@ -271,18 +380,28 @@ function foldHairpin(sequence: string, p: StructureParams, maxLoop: number): num
                   x[a - 1] ?? 4,
                   x[b + 1] ?? 4,
                 ));
-          if (c < e) e = c;
+          if (c < e) {
+            e = c;
+            eh =
+              (vh[a * width + b] ?? 0) +
+              (up === 0 && down === 0
+                ? (STACK_H[xi * 4 + xa] ?? 0)
+                : loopEnthalpy(h, xi, xa, up, down));
+          }
         }
       }
       v[i * width + j] = e;
-      const total =
-        e +
-        p.hairpinInit +
-        endEnergy(p, xi, i > 0 ? (x[i - 1] ?? 4) : 4, j + 1 < n ? (x[j + 1] ?? 4) : 4);
-      if (total < best) best = total;
+      vh[i * width + j] = eh;
+      const over1 = i > 0 ? (x[i - 1] ?? 4) : 4;
+      const over2 = j + 1 < n ? (x[j + 1] ?? 4) : 4;
+      const total = e + p.hairpinInit + endEnergy(p, xi, over1, over2);
+      if (total < best) {
+        best = total;
+        bestH = eh + endEnthalpy(h, xi, over1, over2);
+      }
     }
   }
-  return best;
+  return [best, bestH];
 }
 
 /**

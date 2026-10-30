@@ -1,0 +1,4813 @@
+{
+ "biopython": "1.85",
+ "conditions": {
+  "dntpMM": 0,
+  "magnesiumMM": 0,
+  "oligoNM": 500,
+  "sodiumMM": 50,
+  "tempC": 37
+ },
+ "primer3": "2.2.0",
+ "rows": [
+  {
+   "dg": -0.339,
+   "dh": -22.2,
+   "seq": "TACCACCTTTGTGATGAAGTCCCAA",
+   "tm": 41.81
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CTGTCGAGTATTGATGTTTTAGCGATC",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.109,
+   "dh": -33.9,
+   "seq": "ATAGCTGTGGCCTTTATCCATAGAGTT",
+   "tm": 38.0
+  },
+  {
+   "dg": -0.497,
+   "dh": -23.4,
+   "seq": "ACTTACCGGTCTAGAAAAGGCC",
+   "tm": 43.73
+  },
+  {
+   "dg": -0.296,
+   "dh": -18.0,
+   "seq": "AGCTGTCCTAATTTCCGTATGGA",
+   "tm": 42.18
+  },
+  {
+   "dg": 0.622,
+   "dh": -25.7,
+   "seq": "TGGATCCAACATATAGCTTTGTTACCT",
+   "tm": 29.68
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CTTTGTTACCTCGAGCCGTTTC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.119,
+   "dh": -16.5,
+   "seq": "CGCGAGCAGTGCTAGATAAA",
+   "tm": 34.77
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AACCTTTGCACTCGAGAGGAA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.276,
+   "dh": -21.2,
+   "seq": "CAAGCGAACAACCACTAAAGCT",
+   "tm": 33.02
+  },
+  {
+   "dg": -0.801,
+   "dh": -22.6,
+   "seq": "TTCAGGACTGCGGGCACAGCT",
+   "tm": 48.4
+  },
+  {
+   "dg": -0.319,
+   "dh": -18.6,
+   "seq": "GCCGTCAAGCGAACAACCACTAAAGC",
+   "tm": 42.41
+  },
+  {
+   "dg": 0.342,
+   "dh": -29.4,
+   "seq": "CCCTCAAGCCTCTGTTACATCAGGAT",
+   "tm": 33.44
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCCTTCTTCTCGCTTGTACCTATCC",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.922,
+   "dh": -25.5,
+   "seq": "CTCTGTTACATCAGGATTGCATCCAA",
+   "tm": 48.64
+  },
+  {
+   "dg": -1.719,
+   "dh": -31.8,
+   "seq": "ATTCTTCGGTGCGGTGGTATCCCACA",
+   "tm": 54.73
+  },
+  {
+   "dg": -2.42,
+   "dh": -54.7,
+   "seq": "GCAGGCTTCAGTCGGATTTCAGCCTG",
+   "tm": 51.35
+  },
+  {
+   "dg": -0.829,
+   "dh": -23.0,
+   "seq": "AGGGACGCAATTGCATTTGCACTAAAT",
+   "tm": 48.6
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GCCGGTGCGAAATGGTACT",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.178,
+   "dh": -18.2,
+   "seq": "GTACTAGACCGGGAGGCGTCACA",
+   "tm": 58.47
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GCCATTAGTAACAATCCCGCGAG",
+   "tm": 0.0
+  },
+  {
+   "dg": -2.93,
+   "dh": -41.1,
+   "seq": "ACGGACCAAGGTTAGTCCGCAG",
+   "tm": 60.81
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CGATGCGTCCCCCAGTTT",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.733,
+   "dh": -36.4,
+   "seq": "TTGCGGTTTTCAGTCGCTCCTGAAGG",
+   "tm": 43.37
+  },
+  {
+   "dg": 0.007,
+   "dh": -18.1,
+   "seq": "TAACCACTGTAACCGCCTGGAAATC",
+   "tm": 36.87
+  },
+  {
+   "dg": -0.209,
+   "dh": -36.0,
+   "seq": "CCAAGAGAGTACGCTACTACTCAGG",
+   "tm": 38.81
+  },
+  {
+   "dg": -0.371,
+   "dh": -29.4,
+   "seq": "TGGTGTCAGTATGGTGACCAC",
+   "tm": 40.96
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GTGACCACCAAGAGAGTACGCTA",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.321,
+   "dh": -29.2,
+   "seq": "TGGTGACCACCAAGAGAGTAC",
+   "tm": 51.7
+  },
+  {
+   "dg": 0.382,
+   "dh": -25.3,
+   "seq": "GTTGTAGACCACTCCTCAGTCG",
+   "tm": 32.39
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TCTTCGACCAATAATATCTACGGGC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TTGAGGGTTGTTGCAGTGTG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.173,
+   "dh": -22.4,
+   "seq": "TACTATCCGCCCGGTTACAGT",
+   "tm": 34.62
+  },
+  {
+   "dg": -0.211,
+   "dh": -27.3,
+   "seq": "CCAAGCCACCGTGAGATCTACG",
+   "tm": 39.41
+  },
+  {
+   "dg": 0.173,
+   "dh": -22.4,
+   "seq": "ACTATCCGCCCGGTTACAGTTTGAGG",
+   "tm": 34.62
+  },
+  {
+   "dg": -0.494,
+   "dh": -30.0,
+   "seq": "CCGCGGCACATAACTCGCTTATCCC",
+   "tm": 42.19
+  },
+  {
+   "dg": 0.103,
+   "dh": -16.1,
+   "seq": "CCGGGACCTGCCGCTTCTAAGAAG",
+   "tm": 35.03
+  },
+  {
+   "dg": -0.453,
+   "dh": -19.2,
+   "seq": "ACGACCTCCCCGGTTAAGATGT",
+   "tm": 44.49
+  },
+  {
+   "dg": -0.328,
+   "dh": -19.8,
+   "seq": "AAACACGTCGACGCATGTGGTGG",
+   "tm": 42.22
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCCTTTTGCCGCCGGATTC",
+   "tm": 0.0
+  },
+  {
+   "dg": -3.435,
+   "dh": -49.4,
+   "seq": "GGTTCTGGGCTTCAACGGCCAGAG",
+   "tm": 60.18
+  },
+  {
+   "dg": 0.322,
+   "dh": -16.7,
+   "seq": "CCTGCGGGATAGAATTGACCTAT",
+   "tm": 31.14
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGCAGCTTAATTAGTTTCTCGTTGGAT",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.518,
+   "dh": -27.9,
+   "seq": "AGTACACGTCCCCTCCATGAGGCG",
+   "tm": 42.86
+  },
+  {
+   "dg": -0.443,
+   "dh": -21.9,
+   "seq": "TATATGACTTTTGCGGCAGCTTAAT",
+   "tm": 43.4
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GATCCGAACTCTCAGTATAGCCGC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGGCAAGAATCTCTCCGGCAA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TTCTGAAGTCCGGGCAAGAA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACTTTCTCGTAACTGTGCCCG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.099,
+   "dh": -17.5,
+   "seq": "ACGTAGACTGAAGAAGTTCCAAAGA",
+   "tm": 35.25
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CAAAGACGACCTACAACTACGGGGC",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.483,
+   "dh": -35.0,
+   "seq": "TACTACATCTTAACGGGTCGTGAAG",
+   "tm": 41.34
+  },
+  {
+   "dg": -2.434,
+   "dh": -36.1,
+   "seq": "GTTTTCGCTCACGGAGCACGTGGTA",
+   "tm": 59.42
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CTTTGAGAGAAGTGATAGAGGAAACC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.509,
+   "dh": -23.2,
+   "seq": "TACTTGGAGGCATCACGTCGTACC",
+   "tm": 30.34
+  },
+  {
+   "dg": 0.061,
+   "dh": -24.3,
+   "seq": "GTGGAAAAGGTCGCCGCCCTTG",
+   "tm": 36.22
+  },
+  {
+   "dg": -0.255,
+   "dh": -27.5,
+   "seq": "GTGAAACACACCCGTCCAAGA",
+   "tm": 39.9
+  },
+  {
+   "dg": 0.079,
+   "dh": -19.8,
+   "seq": "ACGTGCATTCGTCCTAATGAGACCAG",
+   "tm": 35.77
+  },
+  {
+   "dg": -0.854,
+   "dh": -30.5,
+   "seq": "GGTCCGAGACCAGCAAGAGG",
+   "tm": 45.93
+  },
+  {
+   "dg": -1.198,
+   "dh": -27.9,
+   "seq": "CGGATCGCGCTTCATCGCATAACCA",
+   "tm": 50.91
+  },
+  {
+   "dg": 0.647,
+   "dh": -23.9,
+   "seq": "CTCCTCACAGCCAGGTCCT",
+   "tm": 28.83
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CATCTGTGAATAAGGCTTGGACATG",
+   "tm": 0.0
+  },
+  {
+   "dg": -2.314,
+   "dh": -34.1,
+   "seq": "AAGTCCGTGCACGGATGTATCGTCC",
+   "tm": 59.57
+  },
+  {
+   "dg": 0.241,
+   "dh": -24.6,
+   "seq": "TCCATTCGCTTGGGCCTCTG",
+   "tm": 33.99
+  },
+  {
+   "dg": -3.32,
+   "dh": -40.1,
+   "seq": "TTAACGACTGCGTATCTACGCA",
+   "tm": 65.0
+  },
+  {
+   "dg": -0.236,
+   "dh": -20.7,
+   "seq": "TCTTCAACTCTTAACGACTACGAATG",
+   "tm": 40.57
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TTCTCAGAGTCGCTTCTTGGGGG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CTTTTAGTCTTCCTTGCGCCGCTTAAC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AGAAATCAGCCTCTCGTTCCTG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TCACCATCGCGCTTTGTGTAA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AAGTGCCCAGGAGATGAAATAACTAT",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.382,
+   "dh": -9.9,
+   "seq": "CGACCGCGAAGCGTTCATCACA",
+   "tm": 49.46
+  },
+  {
+   "dg": -3.524,
+   "dh": -35.9,
+   "seq": "CACGCACTGAAAGTGCCCAGGAGA",
+   "tm": 70.75
+  },
+  {
+   "dg": -0.587,
+   "dh": -24.7,
+   "seq": "GCGGGAGACACACGTTATCT",
+   "tm": 44.56
+  },
+  {
+   "dg": -0.593,
+   "dh": -15.6,
+   "seq": "GCACGCGTACGTCGTTAA",
+   "tm": 49.26
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCTACTGGGCCACACGATA",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.047,
+   "dh": -18.7,
+   "seq": "CACTGAGGAGGTACCCAATGATGTTA",
+   "tm": 37.78
+  },
+  {
+   "dg": -1.533,
+   "dh": -28.7,
+   "seq": "CACGTTATCTATGCCGGCGAAGGC",
+   "tm": 54.5
+  },
+  {
+   "dg": -0.516,
+   "dh": -24.3,
+   "seq": "GCGCTTGTCATTGGACGGGGCTA",
+   "tm": 43.73
+  },
+  {
+   "dg": 0.047,
+   "dh": -19.8,
+   "seq": "ACATTGACGGGGACACGGGG",
+   "tm": 36.26
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TGCCATGCTCTACTCGCCGTTTTA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GCAAGAGGGCGGCTGTTA",
+   "tm": 0.0
+  },
+  {
+   "dg": -2.062,
+   "dh": -31.2,
+   "seq": "CTCAGCTTCGGGAACTCCGACACTTA",
+   "tm": 58.95
+  },
+  {
+   "dg": 0.526,
+   "dh": -16.0,
+   "seq": "GGGATCCCCGCGTTACTATGATCTCCA",
+   "tm": 27.12
+  },
+  {
+   "dg": -0.175,
+   "dh": -25.9,
+   "seq": "CCAATCATTCCGAGTAAGGCTC",
+   "tm": 39.11
+  },
+  {
+   "dg": 0.179,
+   "dh": -31.7,
+   "seq": "TGATGGGGTTCCGCATGTGT",
+   "tm": 35.25
+  },
+  {
+   "dg": 0.204,
+   "dh": -18.4,
+   "seq": "GGATATCTGCTGAGCATTTGAACTT",
+   "tm": 33.59
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACCCCAGGCTAATTCGCTG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CTAGACCCGCGTGAGGAT",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.029,
+   "dh": -25.8,
+   "seq": "AGATGGCTGTGCTGAGGC",
+   "tm": 37.35
+  },
+  {
+   "dg": 0.073,
+   "dh": -21.9,
+   "seq": "ACCTATTGAAGCCTTCATAGCGGG",
+   "tm": 35.98
+  },
+  {
+   "dg": -0.481,
+   "dh": -33.9,
+   "seq": "GCTAGGTGTTATAAACCTATTGAAGCC",
+   "tm": 41.47
+  },
+  {
+   "dg": -1.96,
+   "dh": -48.6,
+   "seq": "TACACGAGTCATGTCAATAAACGTGT",
+   "tm": 50.04
+  },
+  {
+   "dg": -0.24,
+   "dh": -21.5,
+   "seq": "AACTCGAATAGTTTCAACCGGT",
+   "tm": 40.5
+  },
+  {
+   "dg": -3.478,
+   "dh": -53.1,
+   "seq": "AATCTCAAGAGGCCACTCTTGATTT",
+   "tm": 58.74
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TAGCGCATTCAGGTTACTTAGCCAAT",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.025,
+   "dh": -24.4,
+   "seq": "AGCCCAGTTAGACCCATTGTTGTGG",
+   "tm": 37.31
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGAGGCCTACGGTTTCCT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGCGGTAGGGAGGAGAGGTTGATGA",
+   "tm": 0.0
+  },
+  {
+   "dg": -3.209,
+   "dh": -46.1,
+   "seq": "GGTCGGGCTCGACCTCTGTTTCAAGT",
+   "tm": 60.21
+  },
+  {
+   "dg": -1.262,
+   "dh": -28.6,
+   "seq": "TTGCGCTAGATGTGCGATGTTG",
+   "tm": 51.32
+  },
+  {
+   "dg": -0.317,
+   "dh": -16.1,
+   "seq": "ACCAGCTTGGTCCCTGAGTTCCACTC",
+   "tm": 43.24
+  },
+  {
+   "dg": -1.204,
+   "dh": -20.8,
+   "seq": "GCTTAGTCATCCTACGAGCACCAGCT",
+   "tm": 56.06
+  },
+  {
+   "dg": -1.611,
+   "dh": -36.4,
+   "seq": "GTGCGATGTTGTGCACATGCT",
+   "tm": 51.37
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TGACACTAACGATGAGGAGGTTA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TCCTACTAGAACGATGCGCCC",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.564,
+   "dh": -27.5,
+   "seq": "AACTTGTTAGGAGGTGCCTATTGCCC",
+   "tm": 43.5
+  },
+  {
+   "dg": -0.056,
+   "dh": -17.5,
+   "seq": "TTCGCGATAGGCTTTTCGTCCACC",
+   "tm": 38.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GCCCTGTCCTACTAGAACGATGC",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.16,
+   "dh": -22.3,
+   "seq": "AGCGAGTATGAGGGCTCACTG",
+   "tm": 39.24
+  },
+  {
+   "dg": -1.151,
+   "dh": -26.3,
+   "seq": "TTCATTTTTGTCCCACACTGGGT",
+   "tm": 51.19
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TCAAAGGGCTATTCAGGAACATATCT",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.578,
+   "dh": -23.4,
+   "seq": "AATCGAAGCCGACCCTCCCG",
+   "tm": 44.85
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GCTGGTTACTGGTGGCAA",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.469,
+   "dh": -26.4,
+   "seq": "TAAGTCCCGGTTTCGGAGTTTCTTG",
+   "tm": 55.27
+  },
+  {
+   "dg": -2.234,
+   "dh": -40.9,
+   "seq": "CTGGCACTAAGCTGAAAGTGCAT",
+   "tm": 54.92
+  },
+  {
+   "dg": 0.575,
+   "dh": -20.3,
+   "seq": "CCCTGCACGACTAAGGATGTAGA",
+   "tm": 28.46
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCAAAACTGTGCGCCAAGATT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.576,
+   "dh": -19.3,
+   "seq": "CTCGATCAATGAGTCTCTGACCA",
+   "tm": 28.01
+  },
+  {
+   "dg": 0.182,
+   "dh": -16.3,
+   "seq": "GCACTGGGCCCCGAAACCAT",
+   "tm": 33.57
+  },
+  {
+   "dg": -1.878,
+   "dh": -19.8,
+   "seq": "GGCGGAGCCTCGTGTACTTG",
+   "tm": 69.5
+  },
+  {
+   "dg": -0.372,
+   "dh": -20.0,
+   "seq": "CTGCCACGTAACACGCTAA",
+   "tm": 42.88
+  },
+  {
+   "dg": 0.519,
+   "dh": -17.0,
+   "seq": "CTTGAGGCCGGACAGTTACGACTC",
+   "tm": 27.82
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AACATCCCCAAGTGGCAGG",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.754,
+   "dh": -27.1,
+   "seq": "CGGAAGTCGTCTGCCACGTAACA",
+   "tm": 45.88
+  },
+  {
+   "dg": -1.575,
+   "dh": -26.6,
+   "seq": "CCAGGTACGAGTACTCGTCGA",
+   "tm": 56.52
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TCACGATGAATGCACCTTACTCGCCTT",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.018,
+   "dh": -36.8,
+   "seq": "TGTACTCTGGCCAGAATACAATCA",
+   "tm": 37.15
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AAGCACCCACCCCTCCAAACAG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CGATGAATGCACCTTACTCGCCTT",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.54,
+   "dh": -39.4,
+   "seq": "TATGATGTACTCTGGCCAGAATACAA",
+   "tm": 41.31
+  },
+  {
+   "dg": -0.094,
+   "dh": -19.1,
+   "seq": "AAGTTCAAAGTCGCCAGCTGG",
+   "tm": 38.53
+  },
+  {
+   "dg": -1.654,
+   "dh": -25.5,
+   "seq": "GGCCGTGGGGCACTGGTAAGATAC",
+   "tm": 58.51
+  },
+  {
+   "dg": 0.324,
+   "dh": -31.0,
+   "seq": "CAGTTTTGGAAGTTCAAAGTCGCC",
+   "tm": 33.79
+  },
+  {
+   "dg": -1.654,
+   "dh": -25.5,
+   "seq": "AGGCCGTGGGGCACTGGTAAGATA",
+   "tm": 58.51
+  },
+  {
+   "dg": 0.189,
+   "dh": -24.0,
+   "seq": "ATGGACACCGGTTAACAGACC",
+   "tm": 34.57
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CTTAGACGGGTGCCACTCC",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.856,
+   "dh": -21.6,
+   "seq": "CCCTTACGATCGCGAACGACCT",
+   "tm": 49.79
+  },
+  {
+   "dg": -0.195,
+   "dh": -14.6,
+   "seq": "TGCCACAACGAGGGGATTTAT",
+   "tm": 41.2
+  },
+  {
+   "dg": 0.111,
+   "dh": -50.7,
+   "seq": "CTCCCGTACAACATGATGGACATATGT",
+   "tm": 36.32
+  },
+  {
+   "dg": -0.553,
+   "dh": -18.4,
+   "seq": "TACTGTGAGCACCGCGCGGA",
+   "tm": 46.61
+  },
+  {
+   "dg": -0.403,
+   "dh": -14.2,
+   "seq": "GGTGAGAGCATCTATATTTCAGGAAT",
+   "tm": 46.06
+  },
+  {
+   "dg": -0.059,
+   "dh": -24.9,
+   "seq": "AATTAATGGTGATGCAACCTTTCGGAG",
+   "tm": 37.73
+  },
+  {
+   "dg": 0.349,
+   "dh": -18.1,
+   "seq": "AATCTTCGGTGACACCTCGA",
+   "tm": 31.13
+  },
+  {
+   "dg": 0.321,
+   "dh": -26.8,
+   "seq": "GCCGAATTTTATCTGTGGGCTCT",
+   "tm": 33.33
+  },
+  {
+   "dg": -0.05,
+   "dh": -20.1,
+   "seq": "ACCTCGCGCGTAGGTCAACC",
+   "tm": 37.77
+  },
+  {
+   "dg": -1.654,
+   "dh": -25.5,
+   "seq": "AAGGGCATCGGCCGCTAGA",
+   "tm": 58.51
+  },
+  {
+   "dg": -0.895,
+   "dh": -30.0,
+   "seq": "TATGTATTTTCGGTCTGCATCCG",
+   "tm": 46.53
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TATACTCCTTACTCGTGTCGCTGGG",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.055,
+   "dh": -23.4,
+   "seq": "CCACGAGCGAATCGAGTCTA",
+   "tm": 51.65
+  },
+  {
+   "dg": -0.399,
+   "dh": -31.7,
+   "seq": "GGGCGTCCTGTTTACCTCGC",
+   "tm": 40.95
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TTTGAACCGACCGCCTAGT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.463,
+   "dh": -23.2,
+   "seq": "AGTTTTGAACCGACCGCCTAGTCTAAA",
+   "tm": 30.93
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GACAGTTTTGAACCGACCGCCTA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACAGTTTTGAACCGACCGCCT",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.171,
+   "dh": -34.4,
+   "seq": "CTGGTCGAACTATGAAGACCGATCA",
+   "tm": 47.93
+  },
+  {
+   "dg": -0.741,
+   "dh": -26.7,
+   "seq": "GGTGTCCACCTTGTTGGGCAAAAA",
+   "tm": 45.85
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GAAGCATTGATTCGATCTGGCG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.342,
+   "dh": -18.2,
+   "seq": "TCTGGCCACCCACACGAACCA",
+   "tm": 31.27
+  },
+  {
+   "dg": -1.966,
+   "dh": -29.1,
+   "seq": "ATGCACGAGAAGCGAATATCGCC",
+   "tm": 59.47
+  },
+  {
+   "dg": 0.299,
+   "dh": -27.3,
+   "seq": "GGATCTTCACACGTGTCAGGTGGC",
+   "tm": 33.64
+  },
+  {
+   "dg": -1.413,
+   "dh": -25.6,
+   "seq": "AGGGACCGCACTCGGAGAA",
+   "tm": 55.12
+  },
+  {
+   "dg": -0.259,
+   "dh": -16.4,
+   "seq": "ATCTGGGTACACCGATGGCCGT",
+   "tm": 41.98
+  },
+  {
+   "dg": -0.728,
+   "dh": -23.6,
+   "seq": "TGCATCGCTCGCCGAAACTCC",
+   "tm": 46.87
+  },
+  {
+   "dg": -0.042,
+   "dh": -16.4,
+   "seq": "ACCGTGATCAACCCGCCAAGAGCTA",
+   "tm": 37.8
+  },
+  {
+   "dg": -0.413,
+   "dh": -24.6,
+   "seq": "AGTATAATGGTAGGTACCCGCCG",
+   "tm": 42.3
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TCGTGTCGGTTGTAGCCAG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GACTCTGGAGCCCACACAG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AATGCCTAGACCACCATGAAC",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.188,
+   "dh": -23.7,
+   "seq": "TGTCGCTCTCGGAGAGGCTC",
+   "tm": 53.36
+  },
+  {
+   "dg": -0.849,
+   "dh": -20.9,
+   "seq": "AACACGGGACAAACTCACGTCTTAC",
+   "tm": 50.13
+  },
+  {
+   "dg": -0.781,
+   "dh": -30.6,
+   "seq": "GCGAATACACCGCTCAGA",
+   "tm": 45.12
+  },
+  {
+   "dg": -0.034,
+   "dh": -24.1,
+   "seq": "CGTCTGCCAGGATGATGGGTG",
+   "tm": 37.44
+  },
+  {
+   "dg": 0.282,
+   "dh": -8.8,
+   "seq": "TGGTACAAAGTATGATGGAAGTGTTGC",
+   "tm": 27.37
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACCAATATCTTGTCCGCTGTC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACACGCTTAGGACCCCATCAAAC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TTAGGACCCCATCAAACACCA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CTGCATCAACAATAGGGCTTATCTGC",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.228,
+   "dh": -20.6,
+   "seq": "CTCCATCAGGATATCCAGGGT",
+   "tm": 40.47
+  },
+  {
+   "dg": 0.704,
+   "dh": -28.4,
+   "seq": "CCTCCAACATGTTTCTGGGTGTTAG",
+   "tm": 29.5
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGGTCTATTTTTGTCTATACGCTCAC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CAGCTCTGTATAACCCGCCT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACACGAAGAAAGCTGTATACCCC",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.053,
+   "dh": -29.7,
+   "seq": "GCCGATTGCAAGGCACTG",
+   "tm": 48.4
+  },
+  {
+   "dg": 0.416,
+   "dh": -22.4,
+   "seq": "TTGTCTATACGCTCACATACAAGCCA",
+   "tm": 31.34
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGCCCAAAGACCGGAGTTACC",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.418,
+   "dh": -33.8,
+   "seq": "CATGCCTAAGCGTAGGGCAACTCC",
+   "tm": 50.58
+  },
+  {
+   "dg": -0.82,
+   "dh": -30.0,
+   "seq": "CTGGATCATGCCTAAGCGTAGG",
+   "tm": 45.71
+  },
+  {
+   "dg": -0.425,
+   "dh": -17.9,
+   "seq": "CTAAGCGTAGGGCAACTCCTTG",
+   "tm": 44.55
+  },
+  {
+   "dg": -0.535,
+   "dh": -26.8,
+   "seq": "AAACGCAGGACACTGTTTATTGCAACA",
+   "tm": 43.32
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGATCGATTGAAAGTATGTCTGCGCGA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.078,
+   "dh": -16.9,
+   "seq": "TTTGAGACGATGCTAGCCGCCAATCTC",
+   "tm": 35.57
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACTCCGAAAATCAGGCTGCA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.078,
+   "dh": -16.9,
+   "seq": "GACGATGCTAGCCGCCAATCT",
+   "tm": 35.57
+  },
+  {
+   "dg": 0.035,
+   "dh": -26.9,
+   "seq": "AGCCGCATATGTCATCCTACGGG",
+   "tm": 36.6
+  },
+  {
+   "dg": -0.654,
+   "dh": -25.4,
+   "seq": "CTTACGAACACTCTGGTGAGTTG",
+   "tm": 45.2
+  },
+  {
+   "dg": -0.042,
+   "dh": -16.4,
+   "seq": "GAGAGCTTATCGCCGTCC",
+   "tm": 37.8
+  },
+  {
+   "dg": 0.113,
+   "dh": -13.9,
+   "seq": "TGAGTTGTGCCGAGTGGA",
+   "tm": 34.49
+  },
+  {
+   "dg": 0.417,
+   "dh": -32.2,
+   "seq": "TCTACGCCTGAAAGAACGAGGG",
+   "tm": 33.04
+  },
+  {
+   "dg": -0.541,
+   "dh": -14.4,
+   "seq": "CCGAGTGGAACTGAACGTCAAC",
+   "tm": 49.11
+  },
+  {
+   "dg": -0.7,
+   "dh": -20.7,
+   "seq": "TCCGGCTACCGACCGTAT",
+   "tm": 47.86
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGGACCTCTGCTGGCTTTAGTCG",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.036,
+   "dh": -26.4,
+   "seq": "CCCCTTTACGTGTGCAGTTGACG",
+   "tm": 37.43
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AGTCTCGGTTCCTCAAATACACGA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AATCTGCTCTTAGGACATAGTACTCC",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.472,
+   "dh": -23.7,
+   "seq": "CCTACACCCTGGAAGCGTGTCAAGTGA",
+   "tm": 43.31
+  },
+  {
+   "dg": 0.26,
+   "dh": -22.5,
+   "seq": "ATTCACGGATACACGATTGTCAA",
+   "tm": 33.45
+  },
+  {
+   "dg": -0.056,
+   "dh": -17.5,
+   "seq": "CTAGGATTGATCGCGTGTGGCTTCTA",
+   "tm": 38.0
+  },
+  {
+   "dg": -0.951,
+   "dh": -20.3,
+   "seq": "CACTGTATATGAACCACGATGGT",
+   "tm": 52.25
+  },
+  {
+   "dg": -2.709,
+   "dh": -48.1,
+   "seq": "CAACTCGAGGATGACGAGTTAG",
+   "tm": 55.51
+  },
+  {
+   "dg": -1.402,
+   "dh": -20.8,
+   "seq": "TTCAAACCCCCTTAGGGAAGGC",
+   "tm": 59.41
+  },
+  {
+   "dg": -2.034,
+   "dh": -31.0,
+   "seq": "TGATCCACGCACCTCAGCG",
+   "tm": 58.78
+  },
+  {
+   "dg": 0.22,
+   "dh": -20.4,
+   "seq": "CTCCCTGCTGAGATGTTACTACAGACG",
+   "tm": 33.69
+  },
+  {
+   "dg": -0.101,
+   "dh": -27.7,
+   "seq": "CATCGTAATCTGGAATCAGGAAGTGGG",
+   "tm": 38.14
+  },
+  {
+   "dg": 0.676,
+   "dh": -27.5,
+   "seq": "CTTCGTTTCACAATCAAACAAGGGG",
+   "tm": 29.56
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AATACGGGTCGGTTTTCAGCCAT",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.007,
+   "dh": -44.6,
+   "seq": "GAAGACAGGAGACTTGTCGGTTTGA",
+   "tm": 37.05
+  },
+  {
+   "dg": 0.635,
+   "dh": -23.8,
+   "seq": "GTTAGATATGGGTGCGCTCGTACA",
+   "tm": 28.94
+  },
+  {
+   "dg": -0.366,
+   "dh": -25.3,
+   "seq": "TGCACTGCCATTATACTCGCGGC",
+   "tm": 41.56
+  },
+  {
+   "dg": -0.103,
+   "dh": -23.7,
+   "seq": "GCACGCGAGAACGGATAGCTTGAATT",
+   "tm": 38.35
+  },
+  {
+   "dg": -0.001,
+   "dh": -28.5,
+   "seq": "TAGAGCTCCTCTAGTGCGG",
+   "tm": 37.01
+  },
+  {
+   "dg": -1.02,
+   "dh": -30.3,
+   "seq": "GCTTTAATACCGCGTGAAGGGAGCGC",
+   "tm": 47.81
+  },
+  {
+   "dg": -0.453,
+   "dh": -21.2,
+   "seq": "AAGACAACGGCGCTACGTCAATCA",
+   "tm": 43.77
+  },
+  {
+   "dg": -1.785,
+   "dh": -28.1,
+   "seq": "GTAACTTACCGCCCGTCGGG",
+   "tm": 58.04
+  },
+  {
+   "dg": -1.496,
+   "dh": -20.1,
+   "seq": "CTGCTGAAAGCCGCCTGCATTTC",
+   "tm": 61.93
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ATTTCTGATCAACCGCCGTTCTGATG",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.306,
+   "dh": -20.2,
+   "seq": "CGTTACGATGTCCGGACCT",
+   "tm": 41.77
+  },
+  {
+   "dg": -0.294,
+   "dh": -33.2,
+   "seq": "TTGTAATGGTATTGGCGTACCTTAGAA",
+   "tm": 39.77
+  },
+  {
+   "dg": -0.067,
+   "dh": -23.7,
+   "seq": "GCTAAGCGCAAAATGGAGCTGACCT",
+   "tm": 37.88
+  },
+  {
+   "dg": -1.179,
+   "dh": -33.2,
+   "seq": "GGCGAGCATGCTATCCATG",
+   "tm": 48.42
+  },
+  {
+   "dg": -0.266,
+   "dh": -39.1,
+   "seq": "TCTTTTCACGCCGCTTTTGAAAA",
+   "tm": 39.13
+  },
+  {
+   "dg": 0.61,
+   "dh": -24.7,
+   "seq": "TATCCGCTTAATCCGATAGCTCCAT",
+   "tm": 29.53
+  },
+  {
+   "dg": -0.653,
+   "dh": -22.7,
+   "seq": "ACTGCCGCTCAATAGCATTCTATATGA",
+   "tm": 46.19
+  },
+  {
+   "dg": 0.12,
+   "dh": -17.2,
+   "seq": "AGCTCCATTTAGGCCGTCGAAACA",
+   "tm": 34.86
+  },
+  {
+   "dg": 0.12,
+   "dh": -17.2,
+   "seq": "CGATAGCTCCATTTAGGCCG",
+   "tm": 34.86
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GCCCTGTGGTGTTAGTCCTATCGAT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GCCCTGTGGTGTTAGTCCT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CATGGGGATAGCTCTGCAAAAGGTGGT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AGGCCAAGAGTTACGTGATAGGG",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.728,
+   "dh": -22.0,
+   "seq": "ACAAGTTCGCAGGAGTGCACGGAG",
+   "tm": 47.62
+  },
+  {
+   "dg": -0.425,
+   "dh": -21.2,
+   "seq": "GAACGTTTGGAATTCCACCTTCATTGG",
+   "tm": 43.34
+  },
+  {
+   "dg": -1.442,
+   "dh": -32.7,
+   "seq": "GGCGCCTTCGGCTGAAGTAA",
+   "tm": 51.3
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CTATGATTCTATATTGGCATCAGGGAG",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.425,
+   "dh": -21.2,
+   "seq": "GAACGTTTGGAATTCCACCTTCATT",
+   "tm": 43.34
+  },
+  {
+   "dg": -0.981,
+   "dh": -23.0,
+   "seq": "CTGGGCTTAAACCCGAGTTTACG",
+   "tm": 50.82
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GAAGTGGTATTAGACTGGGCTTAAACC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TTTGTATAGTACGTGGGCAAGCAT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.4,
+   "dh": -21.3,
+   "seq": "TCGGAGGGTATGATCCATGTCACT",
+   "tm": 31.29
+  },
+  {
+   "dg": 0.1,
+   "dh": -24.0,
+   "seq": "CCACTTCGGGTAACAAACGCCCC",
+   "tm": 35.71
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TGACGACACTTCCCAAGC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.318,
+   "dh": -23.9,
+   "seq": "TCTCAACTCATTGGTCGGCC",
+   "tm": 32.93
+  },
+  {
+   "dg": -1.195,
+   "dh": -31.9,
+   "seq": "TCGACTGTGACGCTACAGTTAGCCAGC",
+   "tm": 49.07
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCTCTTTCGACTGTGACGCTACA",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.815,
+   "dh": -35.9,
+   "seq": "CTTTCGACTGTGACGCTACAGT",
+   "tm": 53.52
+  },
+  {
+   "dg": 0.316,
+   "dh": -16.8,
+   "seq": "ACACATGACACCGCTGGCACTAAG",
+   "tm": 31.27
+  },
+  {
+   "dg": 0.148,
+   "dh": -25.4,
+   "seq": "TGCCCAAGGTGATAAGTAAAGGG",
+   "tm": 35.21
+  },
+  {
+   "dg": 0.14,
+   "dh": -21.1,
+   "seq": "CTATGGGGTCCCTGGATCTGCATG",
+   "tm": 34.96
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GACATTGACCCCTTCCTGC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TGTGGCAGACTAAGCTCCGCG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AGGTGATAAGTAAAGGGCGGCG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.522,
+   "dh": -25.7,
+   "seq": "GGGAGTTCTCAGCTCGGATAAAGGGC",
+   "tm": 30.83
+  },
+  {
+   "dg": 0.044,
+   "dh": -24.1,
+   "seq": "CAGTATCCAGTACTCGTAAGCACTTGG",
+   "tm": 36.43
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGGGGGCTGAAGTTGTCGACGAT",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.185,
+   "dh": -28.1,
+   "seq": "ATTTTTCAACTCTAAACGGCTGAGT",
+   "tm": 39.06
+  },
+  {
+   "dg": -1.6,
+   "dh": -20.7,
+   "seq": "GTGAAGGAAACCGGATACGCCA",
+   "tm": 62.98
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CACATGTAATTAGTCGCCCTTCTGCT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.929,
+   "dh": -24.4,
+   "seq": "TGACCGTGGTTGCTGAGGGTGAG",
+   "tm": 25.62
+  },
+  {
+   "dg": -0.535,
+   "dh": -15.2,
+   "seq": "GGGTACCTGATCCTGGAGGTG",
+   "tm": 48.32
+  },
+  {
+   "dg": -0.385,
+   "dh": -20.9,
+   "seq": "CTGGCATTTCGGCACATGTAATTAG",
+   "tm": 42.82
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TGAATACAAGCATAGTACCCGCCGATG",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.146,
+   "dh": -27.9,
+   "seq": "TCGAGGCAGTTGCTTCCTGAATTT",
+   "tm": 38.63
+  },
+  {
+   "dg": -0.699,
+   "dh": -23.8,
+   "seq": "TGTGCTGTGGCAGTCTGGT",
+   "tm": 46.38
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CGCATCAGACTTCATTCCTACC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GACGGCAAAACAGGGGAC",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.186,
+   "dh": -21.9,
+   "seq": "ACCGGCCCGGTTGTTATAAAG",
+   "tm": 54.76
+  },
+  {
+   "dg": -1.186,
+   "dh": -21.9,
+   "seq": "GTACCGGCCCGGTTGTTATAA",
+   "tm": 54.76
+  },
+  {
+   "dg": -0.197,
+   "dh": -33.1,
+   "seq": "ACTGTATAGTTAGCGCGGCGAAC",
+   "tm": 38.86
+  },
+  {
+   "dg": 0.196,
+   "dh": -13.6,
+   "seq": "TGTCTTCGCACCCGTGGT",
+   "tm": 32.59
+  },
+  {
+   "dg": 0.553,
+   "dh": -23.2,
+   "seq": "CTTCGCACGAATGTACTGGC",
+   "tm": 29.78
+  },
+  {
+   "dg": -0.348,
+   "dh": -26.7,
+   "seq": "ATGCCGTTTAGATCCGGGGTCGTAGT",
+   "tm": 41.1
+  },
+  {
+   "dg": 0.327,
+   "dh": -19.3,
+   "seq": "TAGATCCGGGGTCGTAGTCAC",
+   "tm": 31.83
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AGGACGCTTCTGGTACACG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.538,
+   "dh": -13.6,
+   "seq": "TTCGCACCCGTGGTCTTTTCCT",
+   "tm": 25.19
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GAGCGTGGGGAACTCAAGG",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.422,
+   "dh": -33.3,
+   "seq": "GCACTGGATAGGGGTGCGATGACAG",
+   "tm": 40.98
+  },
+  {
+   "dg": 0.02,
+   "dh": -52.7,
+   "seq": "AGCTGAGCTCGGGGTCTAGCCTTC",
+   "tm": 36.88
+  },
+  {
+   "dg": -0.079,
+   "dh": -22.3,
+   "seq": "GTGTCATTCAGGCACGCTGTA",
+   "tm": 38.1
+  },
+  {
+   "dg": 0.182,
+   "dh": -25.9,
+   "seq": "TGGCCTTGGCCACTGAAAAGTGTCA",
+   "tm": 34.84
+  },
+  {
+   "dg": -0.061,
+   "dh": -25.6,
+   "seq": "ACGGTCTTAAGAAGCGCTGC",
+   "tm": 37.74
+  },
+  {
+   "dg": -0.119,
+   "dh": -15.0,
+   "seq": "GAGTTCCGGCATCTTTCGTAAGTTT",
+   "tm": 39.48
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GTTTTCCACTGCTTGTCCGGGTGT",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.508,
+   "dh": -35.9,
+   "seq": "CCCAGCGAATTATCGTTGATGCCCAT",
+   "tm": 50.6
+  },
+  {
+   "dg": 0.403,
+   "dh": -27.7,
+   "seq": "AAAGAGTTCCGGCATCTTTCGTAA",
+   "tm": 32.56
+  },
+  {
+   "dg": 0.188,
+   "dh": -31.4,
+   "seq": "CCCCGGAGAGACAGACACAGTCACT",
+   "tm": 35.15
+  },
+  {
+   "dg": -0.846,
+   "dh": -16.1,
+   "seq": "GTTGCCGTGGGAACCTGCAG",
+   "tm": 54.2
+  },
+  {
+   "dg": -0.036,
+   "dh": -9.8,
+   "seq": "ACGCAGTGACGCTAAAGAGTTCC",
+   "tm": 38.13
+  },
+  {
+   "dg": -0.465,
+   "dh": -28.3,
+   "seq": "CAGGCAGGAGTCCATGCTGGTTTGAT",
+   "tm": 42.18
+  },
+  {
+   "dg": -0.465,
+   "dh": -28.3,
+   "seq": "GGCAGGAGTCCATGCTGGTT",
+   "tm": 42.18
+  },
+  {
+   "dg": -1.106,
+   "dh": -27.8,
+   "seq": "TACTAAGTTTACGGTATCCCTTCCGTC",
+   "tm": 49.85
+  },
+  {
+   "dg": -1.173,
+   "dh": -32.3,
+   "seq": "TACTAAGTTTACGGTATCCCTTCCG",
+   "tm": 48.68
+  },
+  {
+   "dg": -0.856,
+   "dh": -25.9,
+   "seq": "GTGTAGGCCCGACCTAAGC",
+   "tm": 47.6
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACGGACGTGGTTATGCATCTTCA",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.583,
+   "dh": -22.4,
+   "seq": "CAATTAGCTTAAGGCGGGTAAATGGCG",
+   "tm": 45.29
+  },
+  {
+   "dg": -0.583,
+   "dh": -22.4,
+   "seq": "CCACTCAATTAGCTTAAGGCGGGTA",
+   "tm": 45.29
+  },
+  {
+   "dg": -0.377,
+   "dh": -17.2,
+   "seq": "ACTCAAGGCTTTACCGAACCGTAGT",
+   "tm": 43.94
+  },
+  {
+   "dg": -1.093,
+   "dh": -21.9,
+   "seq": "CAATAATGCAGCACAGTTGCTT",
+   "tm": 53.29
+  },
+  {
+   "dg": 0.332,
+   "dh": -22.4,
+   "seq": "GGGCGAATATGGCTCCTC",
+   "tm": 32.48
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACGCTTTCTTTGAAGGTCCGGA",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.165,
+   "dh": -32.3,
+   "seq": "AGCGACTAAGTCGGGGGACGA",
+   "tm": 48.6
+  },
+  {
+   "dg": -0.188,
+   "dh": -22.7,
+   "seq": "CGTCTGCCCAGCATTGGTACTTCCTG",
+   "tm": 39.59
+  },
+  {
+   "dg": -0.613,
+   "dh": -21.5,
+   "seq": "CGGCAGGTCGGTACCAAACCAC",
+   "tm": 46.1
+  },
+  {
+   "dg": -0.626,
+   "dh": -23.2,
+   "seq": "GACGGCAGGTCGGTACCAAACC",
+   "tm": 45.6
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TGTGATCAGAGCCCATACCT",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.206,
+   "dh": -21.0,
+   "seq": "TCGCGGCCCGAAGCATGTT",
+   "tm": 40.07
+  },
+  {
+   "dg": 0.267,
+   "dh": -16.6,
+   "seq": "CTCTATGAGGTCAGCCCCCAAGC",
+   "tm": 32.1
+  },
+  {
+   "dg": -0.477,
+   "dh": -28.2,
+   "seq": "AGCCCCCAAGCAGTGCACTGT",
+   "tm": 42.34
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GAAACTATGTTCGGAACTAAGCTGCAT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TTACGTGAGGTTTGATACAGAGAACT",
+   "tm": 0.0
+  },
+  {
+   "dg": 1.312,
+   "dh": -45.7,
+   "seq": "GATACAGAGAACTTGCTTTCGTGTT",
+   "tm": 28.34
+  },
+  {
+   "dg": -0.016,
+   "dh": -23.8,
+   "seq": "CTTGCTCAAGATCGCGGAGT",
+   "tm": 37.21
+  },
+  {
+   "dg": -0.034,
+   "dh": -12.0,
+   "seq": "TGGCCAGTGAAACATGCTCAACAAG",
+   "tm": 37.87
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TGACATATCATCCTTCGTTGGGTAAT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.27,
+   "dh": -24.2,
+   "seq": "AAGTTACAAGAAACTCAACGGCCCTC",
+   "tm": 33.58
+  },
+  {
+   "dg": -0.752,
+   "dh": -23.5,
+   "seq": "AAATTTTTTAGACCATTAGTTGGGGGC",
+   "tm": 47.25
+  },
+  {
+   "dg": 0.049,
+   "dh": -26.7,
+   "seq": "CTGGGTACGTAGCGGCCGTT",
+   "tm": 36.43
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCTAGATCTCTCAGTCCCCTAGTGCGA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TTGCAACGCTGTTCTCGGA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.119,
+   "dh": -23.0,
+   "seq": "CGATGGACGTCTGGAGCCTA",
+   "tm": 35.4
+  },
+  {
+   "dg": -0.995,
+   "dh": -27.7,
+   "seq": "TACGTAGCGGCCGTTTATCGAGGCAA",
+   "tm": 48.55
+  },
+  {
+   "dg": -0.598,
+   "dh": -33.6,
+   "seq": "GGGAGGACATGCTTCTCCAATCATTAT",
+   "tm": 42.62
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TCACGACTCGCCATGAACTA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.249,
+   "dh": -45.4,
+   "seq": "CGCCTACGTACAGTTCTGGCTTAGTG",
+   "tm": 35.31
+  },
+  {
+   "dg": -0.673,
+   "dh": -28.8,
+   "seq": "GCGCGATGACAAGTCATTTGACGGTC",
+   "tm": 44.42
+  },
+  {
+   "dg": -0.049,
+   "dh": -23.2,
+   "seq": "GAGCGCATTCAGGGGTGATTTG",
+   "tm": 37.66
+  },
+  {
+   "dg": -1.015,
+   "dh": -28.8,
+   "seq": "TCGGCGCGATGACAAGTCAT",
+   "tm": 48.33
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AATAGCCTTTAGTGGACCTTCGCAT",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.845,
+   "dh": -29.3,
+   "seq": "ACAATACAATCCATCCGCCATGGC",
+   "tm": 46.21
+  },
+  {
+   "dg": 0.742,
+   "dh": -34.6,
+   "seq": "AACCACCGATGATGTCCGTGT",
+   "tm": 30.49
+  },
+  {
+   "dg": 0.023,
+   "dh": -44.5,
+   "seq": "ATGGTGTCTGAAATAGAAGCCAGAAC",
+   "tm": 36.84
+  },
+  {
+   "dg": 0.742,
+   "dh": -34.6,
+   "seq": "CCACCGATGATGTCCGTGTTTGCC",
+   "tm": 30.49
+  },
+  {
+   "dg": -0.352,
+   "dh": -20.6,
+   "seq": "CACCTCCCCTCGCAAGGATCAACC",
+   "tm": 42.39
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CTAGACTTTGAGACCCGGCCTGC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GTATTGGGCTGGTCGGATG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCATTGACCGAGGCGAAAGTA",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.997,
+   "dh": -28.8,
+   "seq": "CCCGTGTGGCTGTACTTGCC",
+   "tm": 48.13
+  },
+  {
+   "dg": -1.601,
+   "dh": -28.3,
+   "seq": "TCGCGGGCTTTGGCCATTGA",
+   "tm": 55.6
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCATTGACCGAGGCGAAAGTACTA",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.318,
+   "dh": -23.5,
+   "seq": "CTTCGGCTGCTTGTCGGACTGCTAAC",
+   "tm": 41.25
+  },
+  {
+   "dg": 0.672,
+   "dh": -43.7,
+   "seq": "ATCAGAGGCATCGCACTGGTAT",
+   "tm": 32.3
+  },
+  {
+   "dg": -0.318,
+   "dh": -23.5,
+   "seq": "GTAACACTTCGGCTGCTTGTCGGAC",
+   "tm": 41.25
+  },
+  {
+   "dg": 0.55,
+   "dh": -25.7,
+   "seq": "ACTGGTATGACGTGCCCGGTGT",
+   "tm": 30.5
+  },
+  {
+   "dg": -0.318,
+   "dh": -23.5,
+   "seq": "GTAACACTTCGGCTGCTTGTCGGA",
+   "tm": 41.25
+  },
+  {
+   "dg": 0.336,
+   "dh": -16.5,
+   "seq": "AGTGCCATTCGGTTGACAGTGG",
+   "tm": 30.82
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CACAATGGCGGAGTCTAGAAATGGTA",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.747,
+   "dh": -27.0,
+   "seq": "TGTGGAAGAGGTGCACGC",
+   "tm": 45.82
+  },
+  {
+   "dg": -0.938,
+   "dh": -35.9,
+   "seq": "AGTGCCATTCGGTTGACAGTGGCT",
+   "tm": 45.32
+  },
+  {
+   "dg": 0.262,
+   "dh": -23.2,
+   "seq": "GTGGAAGAGGTGCACGCCAT",
+   "tm": 33.54
+  },
+  {
+   "dg": -0.334,
+   "dh": -19.0,
+   "seq": "TATACTGAGAGGAAAGCCTGGGAGCAC",
+   "tm": 42.54
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CATGAGGAGCCGCAAAAGACTAC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.035,
+   "dh": -18.6,
+   "seq": "TTACCCCCTGCTACCATGAGGA",
+   "tm": 36.42
+  },
+  {
+   "dg": 0.259,
+   "dh": -43.0,
+   "seq": "TCATTACCCCCTGCTACCATGAGGAGC",
+   "tm": 35.14
+  },
+  {
+   "dg": -2.088,
+   "dh": -26.4,
+   "seq": "CAAAAGACTACGGACTTCCGTCTC",
+   "tm": 63.64
+  },
+  {
+   "dg": -0.426,
+   "dh": -23.0,
+   "seq": "GGCCATGCCTTGACTCTAATTT",
+   "tm": 42.85
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CTCGGTACATGGTTTTGAAATCTGTT",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.507,
+   "dh": -46.5,
+   "seq": "AGTTCAGGGTGGAAACAATCTGAT",
+   "tm": 40.42
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GATCCTATAATGGTCGCTATTACACC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGTTCATTGGGACCTGCATTTACTG",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.129,
+   "dh": -24.2,
+   "seq": "ATGCATCGTGCACATTACATCA",
+   "tm": 52.17
+  },
+  {
+   "dg": -0.458,
+   "dh": -29.7,
+   "seq": "CATGACGCCCGTCTTCTAATAATTAG",
+   "tm": 41.85
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AATCCCAGCCGTTTGAATCTAA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GTAGATTCTGGGGCAATTTACTGGA",
+   "tm": 0.0
+  },
+  {
+   "dg": -5.031,
+   "dh": -53.4,
+   "seq": "AAACTCGGTGCTACACAGCGAGTGTGT",
+   "tm": 69.26
+  },
+  {
+   "dg": -0.057,
+   "dh": -17.3,
+   "seq": "ACCGTTTCAGGTTCGCATGCTG",
+   "tm": 38.03
+  },
+  {
+   "dg": 0.326,
+   "dh": -20.7,
+   "seq": "GAGCTTGAAGGCAGGTGAC",
+   "tm": 32.19
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GCGACCGTTTTGATTTCACTCTTAC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGTTTTTCAGGTGGCTCAGGGGGG",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.049,
+   "dh": -36.0,
+   "seq": "ACCACCATCATTTGCGAATGATC",
+   "tm": 46.3
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGAATTGCTCACCATCCAGTCTG",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.058,
+   "dh": -14.4,
+   "seq": "AGCGAGGAAACCAGGAAGGAT",
+   "tm": 38.25
+  },
+  {
+   "dg": -0.506,
+   "dh": -18.6,
+   "seq": "CCAAGATGACCAGCGAGG",
+   "tm": 45.67
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GTAGGACCGGGGGAATCACAA",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.177,
+   "dh": -22.2,
+   "seq": "GTTTACTATCCCCAGGCACTGCACCA",
+   "tm": 54.36
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TAAAGTAGGACCGGGGGAATC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.184,
+   "dh": -18.5,
+   "seq": "TTTCCTCGTAAACCGCCTGAATT",
+   "tm": 33.94
+  },
+  {
+   "dg": -0.42,
+   "dh": -18.9,
+   "seq": "TGTGAGTTCCACGAGGCCGTTTAG",
+   "tm": 44.04
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TATACACTTCTCCCGCGGAACTA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGGGCAGAGGGTAGGGATAAG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CATGGGGCAGAGGGTAGGGATAAGA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGAGCTACACCAGGCGTCAG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGTTTCCCTGACCGCCGAGTGA",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.054,
+   "dh": -25.6,
+   "seq": "GATGAGGTTATTGCATGGCTTGC",
+   "tm": 50.32
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCAAGTCTAATTTTTGCGTGGG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.049,
+   "dh": -20.0,
+   "seq": "CGATGCCTCATTGGTGACTGTTT",
+   "tm": 36.24
+  },
+  {
+   "dg": -0.281,
+   "dh": -30.2,
+   "seq": "TGGCTTGCTGTACTTCGCAATTGAC",
+   "tm": 39.91
+  },
+  {
+   "dg": -0.878,
+   "dh": -12.1,
+   "seq": "AGTTAACTATCTACCGTAGGAGGTC",
+   "tm": 61.27
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TAGTTTCACTACGGGAATTGCTC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CATGAATGCGCAAAAACAGGTGAA",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.295,
+   "dh": -37.3,
+   "seq": "CGGTACACCAGTACTGAAGCGTTTTG",
+   "tm": 48.15
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TCGGAGCTCACCCAGACTCACA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CTGCACCGGATTCTATCACGCTCCC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.054,
+   "dh": -21.0,
+   "seq": "GCAAATGCTCAGGCCCTGTGACTCC",
+   "tm": 36.21
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TGCCGTATCTGGACAGTTCTATTC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GCACTAAGAGGTCGGCAAGAG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCTGAGGACTTGCAAACTGGGCTT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GAAGTCTACTCGTAATGCCCCCCG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.594,
+   "dh": -18.6,
+   "seq": "GCAGAGGTGGATTCAACAAACAGAGCT",
+   "tm": 27.41
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACTAAGAGGTCGGCAAGAGGGG",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.891,
+   "dh": -30.3,
+   "seq": "TAACTAGGCACGCTAGCAGGCGTTTCC",
+   "tm": 57.65
+  },
+  {
+   "dg": -0.212,
+   "dh": -20.2,
+   "seq": "GGTCCGGAATCTGTCCCGTACAATAT",
+   "tm": 40.3
+  },
+  {
+   "dg": 0.133,
+   "dh": -26.6,
+   "seq": "CCACGAACGCACGAAAAGTTTC",
+   "tm": 35.46
+  },
+  {
+   "dg": -0.41,
+   "dh": -15.9,
+   "seq": "CGCTACACGATGTCCATGGCA",
+   "tm": 45.22
+  },
+  {
+   "dg": 0.134,
+   "dh": -19.9,
+   "seq": "CAACGCCCTAGACTGAGGAGGCAA",
+   "tm": 34.92
+  },
+  {
+   "dg": -1.594,
+   "dh": -31.6,
+   "seq": "GCCAATGTGTGTCCGCTACACGATGT",
+   "tm": 53.47
+  },
+  {
+   "dg": -2.793,
+   "dh": -36.1,
+   "seq": "GTCGGGCTGCCCGATGTTATTTTT",
+   "tm": 63.01
+  },
+  {
+   "dg": 0.323,
+   "dh": -19.8,
+   "seq": "GACTGTGACGGTGGGCCAAGA",
+   "tm": 32.02
+  },
+  {
+   "dg": -1.112,
+   "dh": -27.8,
+   "seq": "AGGGCTTGAGGCATACTCACA",
+   "tm": 49.93
+  },
+  {
+   "dg": -0.398,
+   "dh": -31.8,
+   "seq": "GCCTCTTTTCTCCGAGCACATCTTGGG",
+   "tm": 40.93
+  },
+  {
+   "dg": -2.613,
+   "dh": -30.2,
+   "seq": "GCTGTAGTCGCGATAAGCGGCCAC",
+   "tm": 66.38
+  },
+  {
+   "dg": -0.398,
+   "dh": -31.8,
+   "seq": "TTTTCTCCGAGCACATCTTGGGAAT",
+   "tm": 40.93
+  },
+  {
+   "dg": -0.055,
+   "dh": -23.9,
+   "seq": "TCACAGTAGCTGCGTCGTCGTCAC",
+   "tm": 37.71
+  },
+  {
+   "dg": -1.338,
+   "dh": -30.6,
+   "seq": "CATGACTGGTCGCTAACCGGGGT",
+   "tm": 51.18
+  },
+  {
+   "dg": 0.119,
+   "dh": -16.5,
+   "seq": "AGAGCTGTGCTTCCCCTGCC",
+   "tm": 34.77
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AGTGCCGGTAGATGTCCA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGGTACTCTAATCTACGATGTAAAGGG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AGTCGAACTAGAGGATATTAGCGTCAA",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.63,
+   "dh": -24.6,
+   "seq": "GGAGGCGATCGCAGTCGAACTAGA",
+   "tm": 45.15
+  },
+  {
+   "dg": -0.209,
+   "dh": -28.4,
+   "seq": "TCTACAGGTGCGAAAAGGTACC",
+   "tm": 39.3
+  },
+  {
+   "dg": -0.294,
+   "dh": -21.1,
+   "seq": "GTTTGGAACTACGTTAGCGGGTAT",
+   "tm": 41.39
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AGTCCGACACATCCCAGTAATGC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.993,
+   "dh": -16.0,
+   "seq": "TGAACATTCCTGTGAGGGATTTAACA",
+   "tm": 18.88
+  },
+  {
+   "dg": -0.289,
+   "dh": -18.8,
+   "seq": "GACTCGTTTCAGCAAGGTGCCAG",
+   "tm": 41.84
+  },
+  {
+   "dg": -0.289,
+   "dh": -18.8,
+   "seq": "ACTCGTTTCAGCAAGGTGCC",
+   "tm": 41.84
+  },
+  {
+   "dg": 0.724,
+   "dh": -43.4,
+   "seq": "AGGTGCCAGAAGACTATGCGCGCTA",
+   "tm": 31.91
+  },
+  {
+   "dg": -0.879,
+   "dh": -23.1,
+   "seq": "GATGGAGCTTGCGGCTTA",
+   "tm": 49.27
+  },
+  {
+   "dg": -0.287,
+   "dh": -21.5,
+   "seq": "TGCTTTTAGTAACCGGGCGGGGTTC",
+   "tm": 41.19
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCATGCAGACCGAACACCCTTG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ATCAGGTGCGGTATAAAAAGATATGG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCATCCCTCTTTACACTCTCGGG",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.724,
+   "dh": -49.2,
+   "seq": "CCAATATCCAAGCAACCGAGCCAGGAT",
+   "tm": 41.63
+  },
+  {
+   "dg": -1.248,
+   "dh": -39.3,
+   "seq": "CTCCATTACGCACTCTAAAGTTCGT",
+   "tm": 47.17
+  },
+  {
+   "dg": -0.659,
+   "dh": -23.5,
+   "seq": "ACGCCAGTGTGTGGTACTT",
+   "tm": 45.95
+  },
+  {
+   "dg": -0.425,
+   "dh": -28.6,
+   "seq": "CTCTAAAGTTCGTACGCCACATTCGT",
+   "tm": 41.68
+  },
+  {
+   "dg": -0.083,
+   "dh": -28.6,
+   "seq": "TACGCCACATTCGTACGCC",
+   "tm": 37.91
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AGGCCCCAATATCCAAGCAACC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.278,
+   "dh": -27.6,
+   "seq": "TAACTGCGGTTCATTCGACACTAT",
+   "tm": 33.91
+  },
+  {
+   "dg": 0.278,
+   "dh": -27.6,
+   "seq": "TCGTAACTGCGGTTCATTCGAC",
+   "tm": 33.91
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GCTAGCCAGTCACATCTCGGGA",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.635,
+   "dh": -44.4,
+   "seq": "ATCCGTTGGAAGAGTAACAAGGGT",
+   "tm": 41.5
+  },
+  {
+   "dg": 0.306,
+   "dh": -20.5,
+   "seq": "ATTCTTGGATGGGGTGAGCCT",
+   "tm": 32.44
+  },
+  {
+   "dg": 0.46,
+   "dh": -30.6,
+   "seq": "ATCTCGGGAAACTCTTGTCAGGAGAA",
+   "tm": 32.41
+  },
+  {
+   "dg": -2.22,
+   "dh": -34.8,
+   "seq": "ACTTACTAGTGGCCGACCCACGACGTA",
+   "tm": 58.13
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TCCTTTGGGTATGCGCGTAGTAAA",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.649,
+   "dh": -25.6,
+   "seq": "GAACAACCAATATGCATGGTAGTCT",
+   "tm": 45.07
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ATTCGATTGTGCTAAAATGCTCC",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.774,
+   "dh": -34.8,
+   "seq": "ATATGTTACACTTGGAGTCCGCTCC",
+   "tm": 53.66
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCTCCCTGAAACATCCTTCTGTC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.566,
+   "dh": -28.4,
+   "seq": "TGACGAAATAGAAACGCTCGA",
+   "tm": 30.94
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GTTATCAAGTTGACGTGTCGGAATC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CTAATCCAACGGCGCTGTCAA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.342,
+   "dh": -18.2,
+   "seq": "CCTTAAATCCCATCCTGGCGGTCTG",
+   "tm": 31.27
+  },
+  {
+   "dg": -0.308,
+   "dh": -22.2,
+   "seq": "ACATTTGAGTGATGCACCATGCTCGGG",
+   "tm": 41.37
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GAGGTTTGTGATCCAGCCATAAA",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.308,
+   "dh": -22.2,
+   "seq": "TGAGTGATGCACCATGCTCGGGAG",
+   "tm": 41.37
+  },
+  {
+   "dg": -1.444,
+   "dh": -32.3,
+   "seq": "TAGTGATCGGAGGTATCTCCACC",
+   "tm": 51.51
+  },
+  {
+   "dg": -1.359,
+   "dh": -30.1,
+   "seq": "TAAGGTGGCTTTGCGTCCAGCCG",
+   "tm": 51.67
+  },
+  {
+   "dg": -0.196,
+   "dh": -13.9,
+   "seq": "CTACATCCCAGGCCGACCTT",
+   "tm": 41.44
+  },
+  {
+   "dg": -1.528,
+   "dh": -34.4,
+   "seq": "AATATTGGCGCTGGATACCCAGGAATA",
+   "tm": 51.42
+  },
+  {
+   "dg": -0.5,
+   "dh": -22.1,
+   "seq": "TGTGATACCAAGAGCCTAAGTGGGTA",
+   "tm": 44.17
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GATGAGCTGCCGTTATGCCAAAC",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.059,
+   "dh": -44.9,
+   "seq": "CGAGAAGGATCGGAAGCAGAGGCGTT",
+   "tm": 37.41
+  },
+  {
+   "dg": 0.157,
+   "dh": -20.4,
+   "seq": "TTGCGCAACCGTCTTCTTAATTAT",
+   "tm": 34.62
+  },
+  {
+   "dg": 0.157,
+   "dh": -20.4,
+   "seq": "AATATAAAACCATTGCGCAACCGTC",
+   "tm": 34.62
+  },
+  {
+   "dg": -0.785,
+   "dh": -24.6,
+   "seq": "TCGTGTGCTATGGCAATGTCTCAGA",
+   "tm": 47.23
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CAACGCCTCCATCGATCCAATTGAGT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCTCAACGCCTCCATCGATCCAATTGA",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.197,
+   "dh": -29.3,
+   "seq": "GCTCGGAATACTTCACCCGGA",
+   "tm": 39.1
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AATCGATTGCTAAAGTGGGTTCTTA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TGAGAAGACAGCGGACATGGG",
+   "tm": 0.0
+  },
+  {
+   "dg": -2.193,
+   "dh": -21.2,
+   "seq": "AAAATATTTGCGTAAGCGGGTTGTATG",
+   "tm": 72.79
+  },
+  {
+   "dg": 0.223,
+   "dh": -9.2,
+   "seq": "AAGTGGCTGTAAGAGGAACACA",
+   "tm": 29.66
+  },
+  {
+   "dg": 0.97,
+   "dh": -31.5,
+   "seq": "CATGCATGGCTTTCAAAAAATCCTC",
+   "tm": 27.74
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TTTACGTCATGCATGGCTTTCAA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.588,
+   "dh": -22.7,
+   "seq": "CGTTATATCACTCGATTGGGGCCCT",
+   "tm": 29.17
+  },
+  {
+   "dg": -1.925,
+   "dh": -41.9,
+   "seq": "ATACGTTAGGATTAACGGTGACCG",
+   "tm": 51.93
+  },
+  {
+   "dg": 0.032,
+   "dh": -23.1,
+   "seq": "AGCGTTCTCATGCGGATC",
+   "tm": 36.56
+  },
+  {
+   "dg": 0.032,
+   "dh": -23.1,
+   "seq": "CTGATTAGCGTTCTCATGCGGATC",
+   "tm": 36.56
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACTTGTCAATTCGGCCCTTCT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACGACGATAACAACCGAGACTA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.091,
+   "dh": -24.3,
+   "seq": "TCGATCGAAATTAAGCTGGCCTT",
+   "tm": 35.84
+  },
+  {
+   "dg": -0.32,
+   "dh": -17.9,
+   "seq": "TTATGGGGCTCTTTGACGAACCGT",
+   "tm": 42.64
+  },
+  {
+   "dg": 0.022,
+   "dh": -17.9,
+   "seq": "TGGGGCTCTTTGACGAACCGTGT",
+   "tm": 36.62
+  },
+  {
+   "dg": -1.833,
+   "dh": -27.9,
+   "seq": "CCCCGTTTGCAAAGTATGCA",
+   "tm": 58.82
+  },
+  {
+   "dg": -1.948,
+   "dh": -30.9,
+   "seq": "GTTTGCAAAGTATGCAGAGGGTGTGA",
+   "tm": 57.87
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TGAATTAAGATGTAGCTTCAATCCCC",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.013,
+   "dh": -19.4,
+   "seq": "GACGCGGAGGATCCTCTATT",
+   "tm": 54.08
+  },
+  {
+   "dg": -0.23,
+   "dh": -19.6,
+   "seq": "CTGAGGGGTTCCCAAAGAAACTCTC",
+   "tm": 40.69
+  },
+  {
+   "dg": -1.013,
+   "dh": -19.4,
+   "seq": "CAAGACGCGGAGGATCCTCTA",
+   "tm": 54.08
+  },
+  {
+   "dg": 0.51,
+   "dh": -14.9,
+   "seq": "CAAAAAGACACCCACGGTAGGCAGA",
+   "tm": 26.74
+  },
+  {
+   "dg": 0.018,
+   "dh": -26.7,
+   "seq": "GCTCCTATGGCTAAAAGTAAGCTGT",
+   "tm": 36.79
+  },
+  {
+   "dg": 0.313,
+   "dh": -20.9,
+   "seq": "TGCAAACCAAAGGCGTTTTCCTG",
+   "tm": 32.43
+  },
+  {
+   "dg": 0.006,
+   "dh": -28.9,
+   "seq": "GCAAACCAAAGGCGTTTTCCTGTGAT",
+   "tm": 36.94
+  },
+  {
+   "dg": -0.105,
+   "dh": -19.1,
+   "seq": "CCACAAAGGTTGTAAGGTTCACGGA",
+   "tm": 38.71
+  },
+  {
+   "dg": -0.136,
+   "dh": -20.0,
+   "seq": "AAAGGCCTATAGGGTCAGGTAATAGT",
+   "tm": 39.13
+  },
+  {
+   "dg": -1.742,
+   "dh": -46.4,
+   "seq": "GTGCCTCCTGGGTGGCGCATATT",
+   "tm": 49.1
+  },
+  {
+   "dg": -0.496,
+   "dh": -33.4,
+   "seq": "ATCTGCAGTGACTGGAGCTGACGTTTT",
+   "tm": 41.68
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACTGCTGTGGTCCTCCCTAA",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.136,
+   "dh": -20.0,
+   "seq": "TCGATGAAAAGGCCTATAGGGTCAGG",
+   "tm": 39.13
+  },
+  {
+   "dg": -0.302,
+   "dh": -27.3,
+   "seq": "GAGTAGCCTCGTCTATATCACGAATT",
+   "tm": 40.47
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACGGTCCTCTCGAGTAGC",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.025,
+   "dh": -16.6,
+   "seq": "AGGATTTGCCATTCATCTCTCTGAGC",
+   "tm": 37.46
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TCTCGACTGAATTTGTATAGCGTAC",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.531,
+   "dh": -28.7,
+   "seq": "GGATTGCCGTATGAAGAGCAGGC",
+   "tm": 42.85
+  },
+  {
+   "dg": -0.287,
+   "dh": -28.2,
+   "seq": "TGGTTCGCAACAACCCTCAG",
+   "tm": 40.19
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TCCAACACCGGACCAGCA",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.299,
+   "dh": -20.1,
+   "seq": "CGCCAATCGGAAAACGCCC",
+   "tm": 41.69
+  },
+  {
+   "dg": -0.081,
+   "dh": -22.5,
+   "seq": "CCCGTGTTGCCACAACGACATCG",
+   "tm": 38.12
+  },
+  {
+   "dg": -0.048,
+   "dh": -24.7,
+   "seq": "GCTCTCCACGGTACAAGAATGTTTGG",
+   "tm": 37.6
+  },
+  {
+   "dg": -0.523,
+   "dh": -23.5,
+   "seq": "TGTACTCGGACTCCGCGGTG",
+   "tm": 44.05
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CTGTAGCCCTTTGTTGCCTATCCG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TGGTGAAAGACGAGAGGGT",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.654,
+   "dh": -34.6,
+   "seq": "GGACTTAACAAGAGCTGTTAGGG",
+   "tm": 42.98
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AGTCGAATGTTAGATCACGCTAGAGG",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.443,
+   "dh": -23.5,
+   "seq": "GTGGCTTGAAGAAGAGTCCCGGTGAC",
+   "tm": 42.95
+  },
+  {
+   "dg": -0.721,
+   "dh": -27.7,
+   "seq": "TCAAACATCATGATGTGAGGGC",
+   "tm": 45.29
+  },
+  {
+   "dg": -0.877,
+   "dh": -16.1,
+   "seq": "AATCGCAAGAGGCACGTTACT",
+   "tm": 54.87
+  },
+  {
+   "dg": 0.478,
+   "dh": -21.2,
+   "seq": "GAACGATCTAGTTAGGAACGGGACAAA",
+   "tm": 30.16
+  },
+  {
+   "dg": 0.297,
+   "dh": -21.3,
+   "seq": "ACATTGCACTAAGGTTAGCACTC",
+   "tm": 32.73
+  },
+  {
+   "dg": -0.237,
+   "dh": -20.1,
+   "seq": "CTACCTATGCGTAGTTCGAGGAG",
+   "tm": 40.7
+  },
+  {
+   "dg": 0.326,
+   "dh": -20.7,
+   "seq": "GAAAACTGGGGAGGCATAGCAGCTAAT",
+   "tm": 32.19
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GAGAGTACACCTGCTGAGTTTGGGT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GTGGAATCAGGTTTGCTTGCC",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.894,
+   "dh": -22.7,
+   "seq": "GCGGATACGTCATCTACGAC",
+   "tm": 65.24
+  },
+  {
+   "dg": 0.49,
+   "dh": -18.3,
+   "seq": "ACTTGAGAGTACACCTGCTGAG",
+   "tm": 28.91
+  },
+  {
+   "dg": -0.102,
+   "dh": -24.6,
+   "seq": "CCTGACTCGAGATCCTCTCAC",
+   "tm": 38.29
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CTGCTGAGTTTGGGTGTCC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TCCGTGCGTACAATGCCTCATATG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TTGTCCCAGGCATGAGTTCTTGT",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.203,
+   "dh": -22.3,
+   "seq": "CACGGTTGGGGAAAAACACCT",
+   "tm": 39.86
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GTCACTTTGCTTGCAACCGG",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.203,
+   "dh": -22.3,
+   "seq": "GTTGGGGAAAAACACCTAACCTCGAA",
+   "tm": 39.86
+  },
+  {
+   "dg": -0.204,
+   "dh": -21.4,
+   "seq": "TCTAAAGGTTTCTCCGCTCTGCA",
+   "tm": 39.98
+  },
+  {
+   "dg": 0.751,
+   "dh": -30.0,
+   "seq": "AGCCCTTTCCGATCTAAAGCTTC",
+   "tm": 29.43
+  },
+  {
+   "dg": -0.095,
+   "dh": -31.1,
+   "seq": "TCCATCCTGTGCTATGGCGTGA",
+   "tm": 37.95
+  },
+  {
+   "dg": -0.515,
+   "dh": -44.6,
+   "seq": "TTGGTCGGGTCAAGTACACCGAG",
+   "tm": 40.62
+  },
+  {
+   "dg": -2.33,
+   "dh": -32.1,
+   "seq": "AGCTATGCCACGCTTGGC",
+   "tm": 61.28
+  },
+  {
+   "dg": -0.166,
+   "dh": -24.9,
+   "seq": "GTAAGCATCTCACTAAGGTGGTCGAAA",
+   "tm": 39.08
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CACCTTACCCCCTGCAAC",
+   "tm": 0.0
+  },
+  {
+   "dg": -3.297,
+   "dh": -36.7,
+   "seq": "CTTACGGGCGTAAACCCGTA",
+   "tm": 67.61
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGCGTAAACCCGTACAAGTTAC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCTAGGTTTAGCGTGCCACTTTAACTT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.637,
+   "dh": -21.9,
+   "seq": "TTAGGCTCGTGGGAAGGAGAAAG",
+   "tm": 28.23
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TCTTTATGACGCCGGCCA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ATCGGTTCACAAGACGGACACAATC",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.147,
+   "dh": -18.8,
+   "seq": "GCGTTTTGCTTTAGTCATCAGTAA",
+   "tm": 39.44
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CGAGGTTCCACAGAGTAAGCGGCT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGCGTTCAAATGTTGTATAAAAGGT",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.706,
+   "dh": -13.2,
+   "seq": "ATAAAAGGTACAACTGATGGGAACCCG",
+   "tm": 54.54
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CGAATTGGGCGTTCAAATGTTGTATA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CTAGTCTCGAGTGCTTTGCCATTA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.349,
+   "dh": -29.3,
+   "seq": "ACAATGTATGGATTGGGTGGAG",
+   "tm": 33.34
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TGTATCTCTGTTGCACGGTATG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.597,
+   "dh": -18.6,
+   "seq": "TGGAAGCAGCCATTACAGTCAGG",
+   "tm": 27.36
+  },
+  {
+   "dg": -1.943,
+   "dh": -25.2,
+   "seq": "GCGCCAGAGCGATGTGACATAT",
+   "tm": 62.92
+  },
+  {
+   "dg": -0.07,
+   "dh": -15.2,
+   "seq": "AGCCAGAGCCCAACCTGATA",
+   "tm": 38.44
+  },
+  {
+   "dg": -0.603,
+   "dh": -26.9,
+   "seq": "GCTGAAATTTATAGGATAGCCTACGGC",
+   "tm": 44.11
+  },
+  {
+   "dg": -0.707,
+   "dh": -32.0,
+   "seq": "TCTACGCCTCTTAGCAGGGGGT",
+   "tm": 44.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TGGTACGCTTAGGTCACTTGTTAG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CGCTTAGGTCACTTGTTAGATGCAA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TCATCTTCCATCGGCACCCTAAA",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.08,
+   "dh": -14.0,
+   "seq": "CACAACACTTTTTCGAGAGACAGTAGC",
+   "tm": 38.78
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AAGCTTAGCCGGTTCTGCC",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.155,
+   "dh": -18.2,
+   "seq": "AGATTCATGGTACCGCTTACG",
+   "tm": 39.67
+  },
+  {
+   "dg": -0.602,
+   "dh": -30.7,
+   "seq": "CCCAACGGACCATTAGATTCATGG",
+   "tm": 43.2
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AACAACACGCGTGCCCAGCTTCTAG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.531,
+   "dh": -19.5,
+   "seq": "TCTCCTTTCTGTTCCTACAACCCG",
+   "tm": 28.78
+  },
+  {
+   "dg": 0.297,
+   "dh": -23.4,
+   "seq": "GAAAGGACTTCTACTTCCCATCCT",
+   "tm": 33.11
+  },
+  {
+   "dg": -1.858,
+   "dh": -20.4,
+   "seq": "GGTATGGAAAGTACGGTACGTGGTCGA",
+   "tm": 68.07
+  },
+  {
+   "dg": 0.296,
+   "dh": -14.4,
+   "seq": "CTCACACCCATTGGCACGGACAC",
+   "tm": 30.76
+  },
+  {
+   "dg": -0.164,
+   "dh": -40.5,
+   "seq": "TGGTTCTCCTCTACGGTGAATCTC",
+   "tm": 38.26
+  },
+  {
+   "dg": -0.97,
+   "dh": -23.7,
+   "seq": "GTCTGGAAGACGCTAGCG",
+   "tm": 50.23
+  },
+  {
+   "dg": 0.296,
+   "dh": -14.4,
+   "seq": "GATTACTCACACCCATTGGCA",
+   "tm": 30.76
+  },
+  {
+   "dg": -0.633,
+   "dh": -26.7,
+   "seq": "ATCTGCATACCGCGGTTAC",
+   "tm": 44.54
+  },
+  {
+   "dg": 0.453,
+   "dh": -19.1,
+   "seq": "GTACCTAGAAGCCTCATGGTTAGTTT",
+   "tm": 29.81
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACGAAAACTGCTGAGACTTCCG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GCCTCGTCGAGACAGTAGACC",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.668,
+   "dh": -34.1,
+   "seq": "GGCGGTTAGGTTCGCCGTGAA",
+   "tm": 52.96
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GCCCCCTAAGACCCATTGAA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGGTGATGGATCCTGCCTCTA",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.997,
+   "dh": -25.9,
+   "seq": "GACCCATTGAACGTGCGGGT",
+   "tm": 49.41
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CGTTGTTTCAAGTTCTGTTCGCGAAA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.679,
+   "dh": -21.2,
+   "seq": "TATTTGAACGGCAGGAGTTTTTGG",
+   "tm": 27.37
+  },
+  {
+   "dg": 0.368,
+   "dh": -21.0,
+   "seq": "CCTCATTTGCCGACTAAACTCGAGG",
+   "tm": 31.66
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACAGCAACTTCCGCGCGAACAAC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.152,
+   "dh": -18.7,
+   "seq": "GCCGCGCTAACACCCTTAGGAC",
+   "tm": 34.5
+  },
+  {
+   "dg": 0.178,
+   "dh": -31.5,
+   "seq": "GAGGCCCTAGTATTCCTCCAAAGACGA",
+   "tm": 35.26
+  },
+  {
+   "dg": 0.286,
+   "dh": -14.1,
+   "seq": "GGAGTATCTTCTGTCATTTTTCACGTA",
+   "tm": 30.84
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AGGCCCTAGTATTCCTCCAAAGACGA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CGACATCTTTGCTTGCGGTGA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCTAGTATTCCTCCAAAGACGAACT",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.828,
+   "dh": -22.1,
+   "seq": "TTGGTCCTCACCATAACTGGTTA",
+   "tm": 49.07
+  },
+  {
+   "dg": 0.358,
+   "dh": -15.3,
+   "seq": "CAACTAAGGATTTGACCGGTGGTA",
+   "tm": 29.91
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CGTTAGCCCCTCCAATTTTGC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.358,
+   "dh": -15.3,
+   "seq": "GACCGGTGGTATAAGACTCACTC",
+   "tm": 29.91
+  },
+  {
+   "dg": 0.578,
+   "dh": -22.0,
+   "seq": "ACCCAGTTTAAGCCAACTTTGCATACG",
+   "tm": 29.06
+  },
+  {
+   "dg": 0.581,
+   "dh": -16.1,
+   "seq": "CCCGGAATGTCCCTGTTCTACA",
+   "tm": 26.19
+  },
+  {
+   "dg": -0.56,
+   "dh": -24.3,
+   "seq": "AGCGCCCTTACAGTTCGGCTGA",
+   "tm": 44.31
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCATCTTCGTTCTTGGCAGA",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.751,
+   "dh": -20.1,
+   "seq": "GTGTAGGTCTTTACCTCGCGCAACT",
+   "tm": 49.03
+  },
+  {
+   "dg": -0.669,
+   "dh": -32.2,
+   "seq": "TAGAGGGAGAGCAATTCAAAGCTTGC",
+   "tm": 43.58
+  },
+  {
+   "dg": -0.635,
+   "dh": -29.4,
+   "seq": "CCAGTGCACTTAGGGTGTTTAGCC",
+   "tm": 43.85
+  },
+  {
+   "dg": -1.874,
+   "dh": -29.1,
+   "seq": "TAGCCCAAGGGCATTAGAGGGAGAGC",
+   "tm": 58.34
+  },
+  {
+   "dg": 0.05,
+   "dh": -9.9,
+   "seq": "CAGGATGACCGGAGATTGAGC",
+   "tm": 35.43
+  },
+  {
+   "dg": -1.267,
+   "dh": -24.9,
+   "seq": "TTGACCGTGGTTCCGGTTTGGGT",
+   "tm": 53.63
+  },
+  {
+   "dg": -0.025,
+   "dh": -16.6,
+   "seq": "TTAGGAGGTGCCAGTTAGACTC",
+   "tm": 37.46
+  },
+  {
+   "dg": 0.038,
+   "dh": -23.3,
+   "seq": "ATCTCTTTGCTGCCTCCCAGGACAC",
+   "tm": 36.5
+  },
+  {
+   "dg": -1.027,
+   "dh": -26.3,
+   "seq": "GGGTCGTGACCACCACATTTTC",
+   "tm": 49.61
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TTTGGGTCAATGATCGGCCAC",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.609,
+   "dh": -18.5,
+   "seq": "GAGCTGTAGCTTCCTCACG",
+   "tm": 47.56
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CATCGCAGTACAAAGGAACCAACGAC",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.044,
+   "dh": -31.9,
+   "seq": "AGAATTCCCTGCAGTTAAGAGTGCG",
+   "tm": 47.49
+  },
+  {
+   "dg": -3.164,
+   "dh": -26.7,
+   "seq": "AACACCCGATAGGGCTTCGC",
+   "tm": 78.7
+  },
+  {
+   "dg": -0.651,
+   "dh": -30.3,
+   "seq": "TAAGTGAGATCACACTAGACGCTCCCC",
+   "tm": 43.8
+  },
+  {
+   "dg": -3.164,
+   "dh": -26.7,
+   "seq": "AACACCCGATAGGGCTTCG",
+   "tm": 78.7
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ATCGCAGTACAAAGGAACCAA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GCTCGGCCCGGCTTGATACT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGGTATGTGTGGCGGCTT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.167,
+   "dh": -15.8,
+   "seq": "TTGATACTCTGGCCATCGCA",
+   "tm": 33.75
+  },
+  {
+   "dg": -0.578,
+   "dh": -21.0,
+   "seq": "GTCGGTTTGCCATCATTTGGACACTA",
+   "tm": 45.78
+  },
+  {
+   "dg": 0.355,
+   "dh": -26.1,
+   "seq": "TTGAATCACGCCGGATTTTGT",
+   "tm": 32.84
+  },
+  {
+   "dg": 0.679,
+   "dh": -50.8,
+   "seq": "GAGCGTTCATCATGATATGCGACGGG",
+   "tm": 32.91
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TTCCTCCGTTATACTAGAGAACATGAG",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.278,
+   "dh": -25.0,
+   "seq": "CACGCCACGCGGATGACTCT",
+   "tm": 53.71
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CATCATCGGTTGCGGGGTTAGAGC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GAGCGCGTCGGATGTTATACC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.965,
+   "dh": -27.1,
+   "seq": "GCATCATCGGTTGCGGGGTT",
+   "tm": 26.34
+  },
+  {
+   "dg": -0.47,
+   "dh": -60.2,
+   "seq": "CCTTGACGCACTCGGTCAAGCACAT",
+   "tm": 39.44
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CTAAAGACTCCCTGGGATTTCAAGA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CGCTGGGTCCTATTCCTTGTG",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.851,
+   "dh": -30.3,
+   "seq": "AAGAAGTTTCGCTCAAACTACCTTC",
+   "tm": 45.97
+  },
+  {
+   "dg": 0.331,
+   "dh": -15.5,
+   "seq": "TAGAGTTGTTCCAGTGCGGCGG",
+   "tm": 30.52
+  },
+  {
+   "dg": -0.597,
+   "dh": -25.0,
+   "seq": "CCGCTACTCACTCCAGAGAG",
+   "tm": 44.58
+  },
+  {
+   "dg": -0.763,
+   "dh": -24.1,
+   "seq": "CGTGGTCTACACAGATGTGCG",
+   "tm": 47.14
+  },
+  {
+   "dg": -3.006,
+   "dh": -41.4,
+   "seq": "ATGGAGAGGCGTCTCCACAG",
+   "tm": 61.28
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GTGCGTAGAGTCTCACAGTCCGGCT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GACACTCTGCGTTTAGGGGTTGATTC",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.763,
+   "dh": -24.1,
+   "seq": "CCGTGGTCTACACAGATGTGC",
+   "tm": 47.14
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CGTAGAGTCTCACAGTCCGGCT",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.417,
+   "dh": -15.3,
+   "seq": "GATGATCGTAGAGCGCTGAA",
+   "tm": 45.7
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GTCTGCAGATCTGTAATACACGTAT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCGCAGAATCGCACCTAA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.631,
+   "dh": -21.4,
+   "seq": "CTTGCCAGACGACCCGCAGAA",
+   "tm": 28.11
+  },
+  {
+   "dg": 0.304,
+   "dh": -30.8,
+   "seq": "ACGACCCGCAGAATCGCAC",
+   "tm": 33.97
+  },
+  {
+   "dg": 0.189,
+   "dh": -27.8,
+   "seq": "ATATGTGCATCATCCCTTACTACGG",
+   "tm": 34.9
+  },
+  {
+   "dg": -0.958,
+   "dh": -25.3,
+   "seq": "TTGCTCTAGCAGTTAAAAAACGGTGA",
+   "tm": 49.21
+  },
+  {
+   "dg": 0.175,
+   "dh": -26.4,
+   "seq": "CGCGGTCTAGACTGGAAC",
+   "tm": 34.96
+  },
+  {
+   "dg": -1.117,
+   "dh": -26.7,
+   "seq": "TATAGGCCCTCTTAGGGGGTCG",
+   "tm": 50.54
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GAACGCTCGAAGACTGCAGTACCGG",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.019,
+   "dh": -24.4,
+   "seq": "GGGCAGACCCTGCTAAACCC",
+   "tm": 50.52
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TTATCCGTGTCCATTCATGCCCGAC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCAAACAGTCCGCTCCGT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ATCGCCGTCTGAGGAGCT",
+   "tm": 0.0
+  },
+  {
+   "dg": -5.318,
+   "dh": -62.0,
+   "seq": "CGTGAACCAGAAGCCCTGGTTCAAT",
+   "tm": 66.1
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GACATCCCGGCCAAGAATG",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.887,
+   "dh": -56.6,
+   "seq": "TAGCAGTTTGAAATCAATGCCTGCTTG",
+   "tm": 41.94
+  },
+  {
+   "dg": -0.878,
+   "dh": -23.7,
+   "seq": "CAAGGTGCAAAGCTGCGTCCTGC",
+   "tm": 48.93
+  },
+  {
+   "dg": 0.003,
+   "dh": -21.3,
+   "seq": "GCATTTTGCTTTCCCCACGGATCTC",
+   "tm": 36.96
+  },
+  {
+   "dg": -1.793,
+   "dh": -30.0,
+   "seq": "GTTTGAAATCAATGCCTGCTTGGCT",
+   "tm": 56.72
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TGGTGGGAAGGGTGGCACA",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.411,
+   "dh": -28.7,
+   "seq": "TAGTTGCTGCATAGCACTCAGGATTT",
+   "tm": 53.03
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GCGTCAGACTGGCACTTG",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.83,
+   "dh": -26.4,
+   "seq": "GTCAGTCCAAGGGTTGGCCTCCTAACA",
+   "tm": 47.06
+  },
+  {
+   "dg": -1.16,
+   "dh": -29.6,
+   "seq": "CATGCCACAATCCTGGCCG",
+   "tm": 49.65
+  },
+  {
+   "dg": -0.583,
+   "dh": -22.4,
+   "seq": "TGGCGTACAGCTTTTACCTAGC",
+   "tm": 45.29
+  },
+  {
+   "dg": 0.345,
+   "dh": -25.4,
+   "seq": "AGTCTAGCGCACTGACTTGT",
+   "tm": 32.85
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CGGTACAGTCATTCGGCGGC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.275,
+   "dh": -16.3,
+   "seq": "GCTGAGTTCGGGGCTTCCATAG",
+   "tm": 31.85
+  },
+  {
+   "dg": -1.074,
+   "dh": -31.7,
+   "seq": "GGCTTCCATAGCGCATGGGCACAAT",
+   "tm": 47.87
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TTCTGCTGCCTGAACATATCGTCGGAC",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.117,
+   "dh": -19.0,
+   "seq": "TTCCCCCTGCTCAAGCCTTCCCTA",
+   "tm": 38.93
+  },
+  {
+   "dg": 0.082,
+   "dh": -30.5,
+   "seq": "TGGGCTCACGATTCTGCTGCCTGA",
+   "tm": 36.17
+  },
+  {
+   "dg": -0.45,
+   "dh": -24.5,
+   "seq": "CAAGGGCGACTAACGTACATTACA",
+   "tm": 42.81
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AGGGCACAACTTTGACGACTTAT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TTCATACAGACCCGCTATAGACTCTTT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CATTTCATACAGACCCGCTATAGAC",
+   "tm": 0.0
+  },
+  {
+   "dg": -2.064,
+   "dh": -31.4,
+   "seq": "TCGCACGTAGTGTGTCGCGTTGAA",
+   "tm": 58.82
+  },
+  {
+   "dg": -4.593,
+   "dh": -45.3,
+   "seq": "GCCGCAGCATATGCGGTAA",
+   "tm": 71.99
+  },
+  {
+   "dg": -0.012,
+   "dh": -36.5,
+   "seq": "GCACGGAATCTGCCTCAGTG",
+   "tm": 37.1
+  },
+  {
+   "dg": -2.711,
+   "dh": -42.5,
+   "seq": "TCTGATGCCTGAGCATCTTGTAGG",
+   "tm": 58.13
+  },
+  {
+   "dg": -0.533,
+   "dh": -18.1,
+   "seq": "CGCAATCGTAGTACCGTTGTGG",
+   "tm": 46.41
+  },
+  {
+   "dg": -0.711,
+   "dh": -22.2,
+   "seq": "TTGCACATCACGACGATCGTACGTA",
+   "tm": 47.26
+  },
+  {
+   "dg": -0.086,
+   "dh": -28.2,
+   "seq": "TATGATGCGATTATGGGTCGTCTTTA",
+   "tm": 37.95
+  },
+  {
+   "dg": 0.336,
+   "dh": -45.3,
+   "seq": "CGATCGTACGTAATGTCGATATAGAT",
+   "tm": 34.72
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCATCAGAGGCTTGACGAGATAA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AATGCAGGCCTCGTTCAACA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACGCACCATCAGAGGCTTGACGAGATA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ATGCAGGCCTCGTTCAACAACT",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.935,
+   "dh": -37.4,
+   "seq": "ACTAAAGTTGCCATTTATGATGGCTG",
+   "tm": 53.92
+  },
+  {
+   "dg": -1.935,
+   "dh": -37.4,
+   "seq": "AAGTTGCCATTTATGATGGCTGGATCA",
+   "tm": 53.92
+  },
+  {
+   "dg": 0.264,
+   "dh": -20.7,
+   "seq": "TGTTACCGATCGAACGACAACT",
+   "tm": 33.1
+  },
+  {
+   "dg": -1.01,
+   "dh": -19.8,
+   "seq": "CGTAAGTGATGAAATATGGGAGACCT",
+   "tm": 53.68
+  },
+  {
+   "dg": 1.225,
+   "dh": -45.0,
+   "seq": "GAACCCAGATTAGGATACCCAATAATC",
+   "tm": 28.78
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACCGTTTCCACTAGCCGATGA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.541,
+   "dh": -17.4,
+   "seq": "ACAACTGACCGTTTCCACTAGCCGATG",
+   "tm": 27.65
+  },
+  {
+   "dg": -1.162,
+   "dh": -14.4,
+   "seq": "TCGCGAAGCAATAAACCTCC",
+   "tm": 64.23
+  },
+  {
+   "dg": -0.069,
+   "dh": -22.6,
+   "seq": "AACCTCCCGTAGAGCTCGCAC",
+   "tm": 37.95
+  },
+  {
+   "dg": -2.809,
+   "dh": -39.7,
+   "seq": "ACATTGGTGCCGCTTTTTGGGGC",
+   "tm": 60.62
+  },
+  {
+   "dg": -0.176,
+   "dh": -19.4,
+   "seq": "CGCCGCGGCATGTCAGTAGT",
+   "tm": 39.84
+  },
+  {
+   "dg": -0.869,
+   "dh": -27.6,
+   "seq": "CGACTTCGGTTTTTCAACCAATTG",
+   "tm": 47.08
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGGTCTTCGTGGTAGTCTAAGGATCTG",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.342,
+   "dh": -16.7,
+   "seq": "ATTGTATCTAGCAACGCGCAGACTA",
+   "tm": 43.48
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TTATGAGTGCCTGATCGACGT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACTCGCTCAGCTTCGTCACACACT",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.078,
+   "dh": -33.1,
+   "seq": "GCTCATGGGGTGAGGAGGTCAGT",
+   "tm": 47.44
+  },
+  {
+   "dg": -0.043,
+   "dh": -26.9,
+   "seq": "TATACTCTCGGGTGCAAATACCT",
+   "tm": 37.49
+  },
+  {
+   "dg": -3.219,
+   "dh": -45.4,
+   "seq": "TGCTGGGCTTACTCGCTCAGCT",
+   "tm": 60.67
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CACATAACGCTCATGACAAGACTTTAA",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.936,
+   "dh": -37.5,
+   "seq": "TAGGTTGGGATATTCCGAACAGTAGTA",
+   "tm": 44.94
+  },
+  {
+   "dg": -1.196,
+   "dh": -33.2,
+   "seq": "ACATGCCAGCGGTCTTGAAAGACGC",
+   "tm": 48.6
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TTAGACCGCTCCAAACACACCA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.111,
+   "dh": -25.8,
+   "seq": "AGTTCGTCGGCACCCTCGAT",
+   "tm": 35.67
+  },
+  {
+   "dg": -0.803,
+   "dh": -17.7,
+   "seq": "GTCACAGGTGTTAGCACGGGGAACC",
+   "tm": 51.74
+  },
+  {
+   "dg": 0.046,
+   "dh": -13.8,
+   "seq": "CACCAAGCCGGCATTCCCTTG",
+   "tm": 35.97
+  },
+  {
+   "dg": -2.859,
+   "dh": -50.0,
+   "seq": "TGGGGTTGCTCCAACGCCAG",
+   "tm": 55.81
+  },
+  {
+   "dg": -0.576,
+   "dh": -25.6,
+   "seq": "TGAGGCCCCGTTCTGACGTCTT",
+   "tm": 44.13
+  },
+  {
+   "dg": -0.256,
+   "dh": -28.6,
+   "seq": "CGGGTTTCTGGGGTTGCTCCAACG",
+   "tm": 39.8
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CGATTTTGGCGCAGTCTACATATGG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TTGAAGGTTTGAATCGGCGGGGATGT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "AGGGGAGGCTAGCTTATTGAGTTGA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.183,
+   "dh": -21.2,
+   "seq": "CACACACGAAATGCCCGTAGATCG",
+   "tm": 34.34
+  },
+  {
+   "dg": -0.031,
+   "dh": -24.0,
+   "seq": "TTTTGGCGCAGTCTACATATGGATG",
+   "tm": 37.4
+  },
+  {
+   "dg": -0.245,
+   "dh": -19.5,
+   "seq": "AGAATTGTACATTAGCCCAGGCCCG",
+   "tm": 40.95
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CATTCTAGCCGTCCCGAACA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.476,
+   "dh": -20.2,
+   "seq": "ATTCTAGCCGTCCCGAACATAGGATA",
+   "tm": 29.86
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACGTTTCGCTCTGGAATACC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CTTCGAGACTTAGTATGGCAGCC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.173,
+   "dh": -22.4,
+   "seq": "ACGGCTTCTCCCTAGGGTATA",
+   "tm": 34.62
+  },
+  {
+   "dg": -0.353,
+   "dh": -19.1,
+   "seq": "CGGGCGTCTGGTCCCTTATGGAAAACT",
+   "tm": 42.84
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GACCCTTAATTTGGCCCCCTATCC",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.173,
+   "dh": -22.4,
+   "seq": "AGACGGCTTCTCCCTAGGGTAT",
+   "tm": 34.62
+  },
+  {
+   "dg": -0.052,
+   "dh": -12.7,
+   "seq": "GCGCAAGGGTGAAAAGGA",
+   "tm": 38.28
+  },
+  {
+   "dg": -0.579,
+   "dh": -20.3,
+   "seq": "CAATACTGCAAGCGCAAGG",
+   "tm": 46.11
+  },
+  {
+   "dg": 0.069,
+   "dh": -50.7,
+   "seq": "TCAGGATAGTGCTGGCATCATCCGG",
+   "tm": 36.58
+  },
+  {
+   "dg": 0.4,
+   "dh": -16.3,
+   "seq": "CAGAGACACCCATTAGAGGTCAG",
+   "tm": 29.57
+  },
+  {
+   "dg": -1.471,
+   "dh": -24.2,
+   "seq": "GAACGGGATGCAGGAACTGTCTAA",
+   "tm": 57.07
+  },
+  {
+   "dg": -0.819,
+   "dh": -25.8,
+   "seq": "TACAAGGGTCCCGAAGCCGC",
+   "tm": 47.17
+  },
+  {
+   "dg": 0.307,
+   "dh": -20.4,
+   "seq": "GAGCTGTGGTCCGCTATGTA",
+   "tm": 32.4
+  },
+  {
+   "dg": -1.084,
+   "dh": -24.9,
+   "seq": "TGCAATCTTGCACACATCTGAC",
+   "tm": 51.12
+  },
+  {
+   "dg": -0.539,
+   "dh": -20.6,
+   "seq": "GACGTTTTCGACTAGTTGCCAGACGT",
+   "tm": 45.33
+  },
+  {
+   "dg": 0.554,
+   "dh": -26.4,
+   "seq": "GCTTATGTTCAGAGCTACCCTTATGCG",
+   "tm": 30.63
+  },
+  {
+   "dg": -0.064,
+   "dh": -11.1,
+   "seq": "TAAAGGGAACTCTGTGGCACTTGCG",
+   "tm": 38.8
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CGTGACATTACCTACTAGTTGCCG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.858,
+   "dh": -23.1,
+   "seq": "TGGTAACCCGATTAACTGGAGTGTT",
+   "tm": 25.89
+  },
+  {
+   "dg": 0.38,
+   "dh": -19.0,
+   "seq": "ATACAACCGCCACCGTGTGAGAAGC",
+   "tm": 30.92
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TACGGTTAGGAGGCATGAACTATA",
+   "tm": 0.0
+  },
+  {
+   "dg": -2.128,
+   "dh": -29.2,
+   "seq": "ACCGTTGTAAACGTGGTATTGA",
+   "tm": 61.38
+  },
+  {
+   "dg": -0.606,
+   "dh": -21.4,
+   "seq": "CGCTAAGGACAGACCTGCCCACGA",
+   "tm": 46.04
+  },
+  {
+   "dg": -0.102,
+   "dh": -26.2,
+   "seq": "ACGCTCTAAATGTTTTGCAGCCCAAA",
+   "tm": 38.22
+  },
+  {
+   "dg": -2.126,
+   "dh": -25.6,
+   "seq": "CCTGGGCGTTGCGAGAGCAT",
+   "tm": 65.09
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGGCTGCGACACGTTTAGTTGTACAA",
+   "tm": 0.0
+  },
+  {
+   "dg": -2.126,
+   "dh": -25.6,
+   "seq": "GGGCGTTGCGAGAGCATGTTC",
+   "tm": 65.09
+  },
+  {
+   "dg": 0.219,
+   "dh": -23.1,
+   "seq": "GTTAGCGTGTTGTTGCCGGCAAACTG",
+   "tm": 34.09
+  },
+  {
+   "dg": -1.005,
+   "dh": -17.5,
+   "seq": "GCTCAGGGGGAGACCGTTAG",
+   "tm": 55.91
+  },
+  {
+   "dg": -0.974,
+   "dh": -41.9,
+   "seq": "AGTGAACCTTGAGAGGGTTTACTCAG",
+   "tm": 44.38
+  },
+  {
+   "dg": -0.114,
+   "dh": -24.3,
+   "seq": "CAGTCGAATACGGGCGTAA",
+   "tm": 38.46
+  },
+  {
+   "dg": 0.038,
+   "dh": -15.7,
+   "seq": "GGCCTGTCGCGACTAGGATC",
+   "tm": 36.26
+  },
+  {
+   "dg": 0.253,
+   "dh": -23.6,
+   "seq": "AGGAGGTCCGCAGTCCTATGA",
+   "tm": 33.71
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CTGGCCGAACATAACTCCG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.206,
+   "dh": -19.7,
+   "seq": "TCGTCGCTGAGGTCATCCATTGCTC",
+   "tm": 33.79
+  },
+  {
+   "dg": -0.345,
+   "dh": -32.6,
+   "seq": "TCCATTGCTCTATGGGGTAGGAGTC",
+   "tm": 40.32
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GTGCTGCCAGTCTACCGT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACCCGGCCTAAAACCACAAGA",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.165,
+   "dh": -15.5,
+   "seq": "CACAAGACCACCTAGGCATAC",
+   "tm": 40.35
+  },
+  {
+   "dg": -0.706,
+   "dh": -19.7,
+   "seq": "GACAGCAAGAGGCGCCTAGTTTTCTC",
+   "tm": 48.52
+  },
+  {
+   "dg": 0.249,
+   "dh": -19.8,
+   "seq": "CAAACGGGGTAAACGGCACAATTGG",
+   "tm": 33.15
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GCCTGATCCAAGCTGAGAATATGTCGT",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GGGACATTGCCGGGTATAGATG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACCCGAGATCACGTCACT",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.122,
+   "dh": -21.8,
+   "seq": "CGTCAGCTCACGATAGAGTGTCGG",
+   "tm": 38.75
+  },
+  {
+   "dg": -0.102,
+   "dh": -28.6,
+   "seq": "AACGAGTTACTCTGTATTCAGCGCCC",
+   "tm": 38.11
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "CCAAGCTGAGAATATGTCGTGGGGTA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.098,
+   "dh": -18.4,
+   "seq": "ACATCTTGGGTATGGAGAAGCCTGAT",
+   "tm": 35.36
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TCGCCACCTTGTTACTCCAAA",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.068,
+   "dh": -16.6,
+   "seq": "GTAGACCGGGGCCCACAAGGTA",
+   "tm": 35.73
+  },
+  {
+   "dg": -0.884,
+   "dh": -61.1,
+   "seq": "GTGAGTTGTCCGCAGAGCACCAACTC",
+   "tm": 41.55
+  },
+  {
+   "dg": -1.57,
+   "dh": -29.2,
+   "seq": "GCGTCTTACGCCTTGAGAGACCAGGA",
+   "tm": 54.62
+  },
+  {
+   "dg": -1.929,
+   "dh": -34.4,
+   "seq": "CGAAGTACCTAGCGATGTAACGCGCG",
+   "tm": 55.42
+  },
+  {
+   "dg": 0.208,
+   "dh": -16.1,
+   "seq": "CCGTTCTGGCGACACATTGAG",
+   "tm": 33.04
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "ACCTTGTCAGCTTCATTCCTTC",
+   "tm": 0.0
+  },
+  {
+   "dg": -1.201,
+   "dh": -22.1,
+   "seq": "GAGACCAGGATACGGGCCAT",
+   "tm": 54.82
+  },
+  {
+   "dg": -0.815,
+   "dh": -52.6,
+   "seq": "CGTTCTGGCGACACATTGAGGCAG",
+   "tm": 41.88
+  },
+  {
+   "dg": -1.03,
+   "dh": -26.8,
+   "seq": "TAATTTCGAGTAGTCGACTGGAGT",
+   "tm": 49.4
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "GTAGATGACTGGATAAAACGGCAGG",
+   "tm": 0.0
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TGTAGATGACTGGATAAAACGGCAGGA",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.879,
+   "dh": -25.5,
+   "seq": "AAGAGACGATAGGTCGCAAGA",
+   "tm": 48.07
+  },
+  {
+   "dg": -0.158,
+   "dh": -38.3,
+   "seq": "GTCACGTGCACCAGCCGTATT",
+   "tm": 38.28
+  },
+  {
+   "dg": -1.142,
+   "dh": -27.5,
+   "seq": "CCTTCGGCGGTCCGTAAACC",
+   "tm": 50.44
+  },
+  {
+   "dg": 0.0,
+   "dh": 0.0,
+   "seq": "TCCACCATGACACCCACATCGG",
+   "tm": 0.0
+  },
+  {
+   "dg": -0.888,
+   "dh": -23.4,
+   "seq": "TTGTGCGTGGGCATGTTGGAAAAAA",
+   "tm": 49.23
+  },
+  {
+   "dg": -0.888,
+   "dh": -23.4,
+   "seq": "TTGCATTGTGCGTGGGCATGT",
+   "tm": 49.23
+  },
+  {
+   "dg": -0.379,
+   "dh": -19.2,
+   "seq": "CAAACACGTCCCCGTAGTATCATT",
+   "tm": 43.24
+  }
+ ]
+}

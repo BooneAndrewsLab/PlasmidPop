@@ -26,6 +26,7 @@ function report(
     homopolymer: 2,
     selfDimerDg: 0,
     hairpinDg: 0,
+    hairpinTm: 0,
     threePrimeSelf: 1,
     gcClamp: /[GC]$/.test(sequence),
     degenerate: 0,

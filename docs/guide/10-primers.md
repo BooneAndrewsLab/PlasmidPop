@@ -399,21 +399,22 @@ same numbers are what **Check a primer** warns about, so a pasted primer is
 judged by the rules the designed ones had to pass. They are remembered in
 this browser, from plasmid to plasmid; **Reset to defaults** puts them back.
 
-| Setting   | Default               | What it means                                                                                                                                                                                                            |
-| --------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Length    | 18–27 nt              | Shortest and longest primer.                                                                                                                                                                                             |
-| Tm        | 55–65 °C              | Melting temperature range.                                                                                                                                                                                               |
-| GC        | 35–65 %               | GC content range.                                                                                                                                                                                                        |
-| ΔTm       | ≤ 3 °C                | Largest Tm difference between the two primers of a pair.                                                                                                                                                                 |
-| Forward   | 0–200 bp before start | Where the forward primer may lie.                                                                                                                                                                                        |
-| Reverse   | 0–200 bp after end    | Where the reverse primer may lie.                                                                                                                                                                                        |
-| Base run  | ≤ 4                   | Longest run of one base (`GGGG` is 4).                                                                                                                                                                                   |
-| Hairpin   | ΔG > −2 kcal/mol      | Free energy of the most stable hairpin the primer can fold into (loop of at least 3 bases), at 37 °C and 50 mM Na⁺. A primer at or below the number is refused. Less negative is more lenient.                           |
-| Dimer     | ΔG > −6 kcal/mol      | Free energy of the most stable duplex a primer makes with itself, and of the most stable one the two primers of a pair make with each other. A primer or pair at or below the number is refused.                         |
-| 3′ dimer  | ≤ 4 bp                | Longest stretch at the 3′ end that pairs with itself or with the other primer of the pair — the dimer a polymerase can extend.                                                                                           |
-| GC clamp  | preferred             | Tick **required** to refuse a primer that does not end in G or C.                                                                                                                                                        |
-| Product   | 0–20,000 bp           | Shortest and longest product a pair may give. 20 kb is the most the PCR reaction will make.                                                                                                                              |
-| Elsewhere | refused               | Refuse a primer that would also anneal somewhere else on either strand — exact 3′ end, up to two mismatches elsewhere, the same rule as **Check a primer**'s binding sites. Untick it to allow a primer inside a repeat. |
+| Setting    | Default               | What it means                                                                                                                                                                                                                                         |
+| ---------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Length     | 18–27 nt              | Shortest and longest primer.                                                                                                                                                                                                                          |
+| Tm         | 55–65 °C              | Melting temperature range.                                                                                                                                                                                                                            |
+| GC         | 35–65 %               | GC content range.                                                                                                                                                                                                                                     |
+| ΔTm        | ≤ 3 °C                | Largest Tm difference between the two primers of a pair.                                                                                                                                                                                              |
+| Forward    | 0–200 bp before start | Where the forward primer may lie.                                                                                                                                                                                                                     |
+| Reverse    | 0–200 bp after end    | Where the reverse primer may lie.                                                                                                                                                                                                                     |
+| Base run   | ≤ 4                   | Longest run of one base (`GGGG` is 4).                                                                                                                                                                                                                |
+| Hairpin    | ΔG > −2 kcal/mol      | Free energy of the most stable hairpin the primer can fold into (loop of at least 3 bases), at 37 °C and 50 mM Na⁺. A primer at or below the number is refused. Less negative is more lenient.                                                        |
+| Hairpin Tm | ≤ 47 °C               | Melting temperature of the most stable hairpin, the measure Primer3 limits (`PRIMER_MAX_HAIRPIN_TH`, also 47 °C). A primer whose hairpin melts above the number is refused, even when its ΔG is mild: a short G/C stem has a small ΔG but melts high. |
+| Dimer      | ΔG > −6 kcal/mol      | Free energy of the most stable duplex a primer makes with itself, and of the most stable one the two primers of a pair make with each other. A primer or pair at or below the number is refused.                                                      |
+| 3′ dimer   | ≤ 4 bp                | Longest stretch at the 3′ end that pairs with itself or with the other primer of the pair — the dimer a polymerase can extend.                                                                                                                        |
+| GC clamp   | preferred             | Tick **required** to refuse a primer that does not end in G or C.                                                                                                                                                                                     |
+| Product    | 0–20,000 bp           | Shortest and longest product a pair may give. 20 kb is the most the PCR reaction will make.                                                                                                                                                           |
+| Elsewhere  | refused               | Refuse a primer that would also anneal somewhere else on either strand — exact 3′ end, up to two mismatches elsewhere, the same rule as **Check a primer**'s binding sites. Untick it to allow a primer inside a repeat.                              |
 
 **How far to trust the hairpin and dimer settings.** They are
 nearest-neighbour free-energy calculations (SantaLucia's stacking energies
@@ -431,7 +432,14 @@ for the fit, gave 91–95 % for hairpins and 91–98 % for dimers. The
 separate **3′ dimer** setting flags more, on purpose: a few bases pairing at
 a 3′ end can be extended whatever their free energy, so a pair is also
 refused for it, and against Primer3's ΔG alone that rule alone agrees 79 %
-of the time on pairs (the extra flags are the rule, not an error). Check a
+of the time on pairs (the extra flags are the rule, not an error). The **Hairpin
+Tm** limit is an estimate from the same model plus an enthalpy term for the
+loops, fitted to Primer3's hairpin Tm, and the Tm is steep in ΔG: on 800
+primers inside the designer's Tm and GC limits, it flags 82 % of the ones
+Primer3 refuses at 47 °C, and 10 % of all primers it flags where Primer3
+would not (the estimate is raised by 6 °C on purpose, since a miss lets
+through what Primer3 would refuse and a false flag only costs a candidate).
+Check a
 primer you care about in Primer3 or your supplier's tool. The data and the
 full report are in design notes 121 and 124.
 

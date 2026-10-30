@@ -16,7 +16,7 @@ import {
   meltingTemperature,
   threePrimeComplementarity,
 } from './thermo';
-import { dimerEnergy, hairpinEnergy, selfDimerEnergy } from './structure';
+import { dimerEnergy, hairpinEnergy, hairpinTm, selfDimerEnergy } from './structure';
 
 export interface PrimerReport {
   readonly sequence: string;
@@ -28,6 +28,8 @@ export interface PrimerReport {
   readonly selfDimerDg: number;
   /** ΔG of its best hairpin, kcal/mol, 0 or less (`hairpinEnergy`). */
   readonly hairpinDg: number;
+  /** Melting temperature of that hairpin, °C; 0 when it has none (`hairpinTm`). */
+  readonly hairpinTm: number;
   /** Bases at its 3′ end that pair with itself (`threePrimeComplementarity`). */
   readonly threePrimeSelf: number;
   /** Ends in G or C (a "GC clamp"). */
@@ -111,6 +113,7 @@ export function analyzePrimer(
   const homopolymer = longestHomopolymer(seq);
   const selfDimerDg = selfDimerEnergy(seq);
   const hairpinDg = hairpinEnergy(seq);
+  const hairpinMelt = hairpinTm(seq);
   const threePrimeSelf = threePrimeComplementarity(seq, seq);
   const last = seq.charAt(seq.length - 1);
   // S is G or C, so a clamp whichever molecule of the mix it is.
@@ -140,6 +143,9 @@ export function analyzePrimer(
   }
   if (homopolymer > c.maxHomopolymer) warnings.push(`Run of ${homopolymer} identical bases`);
   if (hairpinDg <= c.hairpinDg) warnings.push(`Hairpin, ΔG ${formatDg(hairpinDg)} kcal/mol`);
+  if (hairpinMelt > c.hairpinTm) {
+    warnings.push(`Hairpin melts at ${Math.round(hairpinMelt)} °C, above ${c.hairpinTm} °C`);
+  }
   if (selfDimerDg <= c.dimerDg) warnings.push(`Self-dimer, ΔG ${formatDg(selfDimerDg)} kcal/mol`);
   if (threePrimeSelf > c.maxThreePrime) {
     warnings.push(`3′ end pairs with itself over ${threePrimeSelf} bases`);
@@ -153,6 +159,7 @@ export function analyzePrimer(
     homopolymer,
     selfDimerDg,
     hairpinDg,
+    hairpinTm: hairpinMelt,
     threePrimeSelf,
     gcClamp,
     degenerate,
@@ -205,6 +212,7 @@ export function candidatePenalty(report: PrimerReport, c: PrimerCriteria): numbe
   if (report.gc < c.minGc || report.gc > c.maxGc) return null;
   if (report.homopolymer > c.maxHomopolymer) return null;
   if (report.hairpinDg <= c.hairpinDg) return null;
+  if (report.hairpinTm > c.hairpinTm) return null;
   if (report.selfDimerDg <= c.dimerDg) return null;
   if (report.threePrimeSelf > c.maxThreePrime) return null;
   if (c.requireGcClamp && !report.gcClamp) return null;
