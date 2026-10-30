@@ -814,7 +814,9 @@ reinstalled system, or Safari dropping the storage of a site you have not
 visited for seven days. **File ▸ Back up all documents…** (also a button on
 the Files tab, under **Storage and backup**) writes one ZIP file,
 `plasmidpop-backup-YYYY-MM-DD.zip`, with every stored document and its undo
-history, and the rest of what this browser keeps for you: your primers, your
+history (and, for a product made by a cloning reaction, the insert and
+junctions the [Clone check](10-primers.md#checking-a-clone-by-colony-pcr) page
+knows it by), and the rest of what this browser keeps for you: your primers, your
 parts, your own enzymes and imported tables, and the cloning shelf. It is an
 ordinary download, so keep it somewhere other than this browser. The ZIP is
 plain JSON inside; nothing is uploaded.

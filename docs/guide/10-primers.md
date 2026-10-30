@@ -308,9 +308,17 @@ or the cut vector closed on itself; when it cannot close, or is a PCR
 product with no phosphates to close with, the page says so and checks the
 pairs on the product alone — and whether the **orientation** is fixed by
 the method (two different sticky ends, Golden Gate overhangs) or open (one
-enzyme at both ends, blunt ends). On any other document the insert is the
+enzyme at both ends, blunt ends). The product keeps this with its stored
+document: close it and reopen it from Recent files, or reload the page, and
+the page still knows its insert, junctions and empty vector. It keeps them
+only while the product's bases are as they were made, so an edit anywhere in
+it, inside the insert or out, drops them (undoing the edit brings them back).
+Then, and on any document made elsewhere, the page says **No cloning context
+is kept for this document, so the selection is the insert**: the insert is the
 **selection** and the empty vector is any open circular tab you pick, or
-none.
+none. What is kept lives in this browser's storage only (and in a
+[backup](02-files.md#backing-up-and-restoring-everything) you make): it is not in the
+GenBank file you download or in a share link.
 
 - **Reuse** takes one primer as given — the insert's own primer from the
   design, one from the product's record, or one of My primers — and
