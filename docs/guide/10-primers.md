@@ -333,7 +333,9 @@ GenBank file you download or in a share link.
   primer must keep (50 bp), so a few bases lost or gained at the join do
   not sit under a primer. The [settings](#settings) are the primer
   designer's own, and every designed primer must anneal nowhere else on
-  the product.
+  the product, neither as a whole nor by its 3′ end alone (15 or more
+  bases, up to two mismatches), which is how the PCR simulator would prime
+  from a second site and draw an extra band.
 - **Design check primers** then gives, best first, up to five pairs across
   each junction and five flanking the insert. The table says what each
   pair spans and the band it gives on the **clone**, on the **empty**

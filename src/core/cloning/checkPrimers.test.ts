@@ -26,6 +26,7 @@ import {
   longestSharedStretch,
   partJunctions,
 } from './checkPrimers';
+import { annealsElsewhere } from '../primers';
 import { digest } from './digest';
 import { gateway } from './gateway';
 import { gibson } from './gibson';
@@ -360,12 +361,32 @@ describe('designCheckPrimers: a directional ligation (EcoRI + BamHI)', () => {
     expect(design.notes).toEqual([]);
   });
 
+  it('does not pick the pair whose forward primer part-anneals elsewhere (#351)', () => {
+    const forward = 'TTTCAGTGCCGTTCTTCTCCAGAC';
+    const reverse = 'TAAATGCATCAGATGGGGCCAGAC';
+    // The pair really is a trap: pcr draws a second band from it.
+    const trap = pcr(product, [
+      { name: 'F', sequence: forward },
+      { name: 'R', sequence: reverse },
+    ]);
+    expect(trap.products.length).toBeGreaterThan(1);
+    expect(
+      design.pairs.some((p) => p.forward.sequence === forward && p.reverse.sequence === reverse),
+    ).toBe(false);
+    expect(design.pairs.some((p) => p.forward.sequence === forward)).toBe(false);
+    const text = product.sequence.toString();
+    const own = text.toUpperCase().indexOf(forward);
+    expect(
+      annealsElsewhere(text, product.topology, forward, 'forward', {
+        start: own,
+        end: own + forward.length,
+      }),
+    ).toBe(true);
+  });
+
   it('every band is the stretch between the two sites, and the one pcr draws', () => {
     for (const p of design.pairs) {
-      // The pair's own band, once. A second band from a primer annealing
-      // partially elsewhere is #351: the designer's specificity rule does
-      // not look for it, and it is not what this test is about.
-      expect(p.bands.clone.filter((b) => b === p.productLength)).toHaveLength(1);
+      expect(p.bands.clone).toEqual([p.productLength]);
       expect(p.productLength).toBe(sliceLength(p, product.length, true));
       expect(p.productLength).toBeGreaterThanOrEqual(300);
       expect(p.productLength).toBeLessThanOrEqual(1000);
@@ -410,8 +431,7 @@ describe('designCheckPrimers: a directional ligation (EcoRI + BamHI)', () => {
         { name: 'F', sequence: p.forward.sequence },
         { name: 'R', sequence: p.reverse.sequence },
       ]);
-      // Partial 3′ annealing elsewhere (#351) can add a band; the pair's own comes once.
-      expect(run.products.filter((x) => x.mismatches === 0)).toHaveLength(1);
+      expect(run.products).toHaveLength(1);
     }
   });
 

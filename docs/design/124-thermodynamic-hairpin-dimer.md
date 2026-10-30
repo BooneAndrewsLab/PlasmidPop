@@ -133,11 +133,22 @@ The refusals left are Primer3's hairpin criterion, the Tm of the structure
 stay with #345. Ranking (#346) did not move. The gate in `primerPairs.test.ts`
 is tightened to 90 % accepted and 19 refusals.
 
+## Specificity follows `pcr` (#351)
+
+The new ranking surfaced a pair in the clone-check designer
+(`TTTCAGTGCCGTTCTTCTCCAGAC` / `TAAATGCATCAGATGGGGCCAGAC` on the tutorial
+pLig-Vector + Insert-EcoRI-BamHI) whose forward primer anneals with its 3'
+15 bases (2 mismatches) at a second site and primes there, so `pcr()` drew a
+second band. The designer's `requireSpecific` rule asked only whether the
+whole primer matched elsewhere. `annealsElsewhere` (`primerDesign.ts`) now
+adds `pcr`'s own rule, `findAnnealingSites`, to that check; sites are told
+apart by their 3' end. Both the primer designer's shortlist and the
+clone-check designer use it, and `checkPrimers.test.ts` is back to asserting
+one band per pair. The warnings in the cloning-end designers (`notSpecific`)
+still count whole-annealing-part sites only; they are advice, not selection.
+
 ## Left open
 
 - #345 (Primer3's hairpin-Tm criterion) and #346 (ranking) stand.
-- #351: a designed primer can anneal partially elsewhere and give a second
-  PCR band the designer's specificity rule does not catch; the new ranking
-  surfaced it in `checkPrimers.test.ts`, which now accepts the second band.
 - `longestHairpinStem`, `maxSelfComplementarity` stay in `thermo.ts`, with
   their tests, but nothing in the app calls them.

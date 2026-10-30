@@ -10,7 +10,7 @@ import {
   dimerEnergy,
   cleanPrimer,
   findAnnealingSites,
-  findPrimerBindingSites,
+  annealsElsewhere,
   gcFraction,
   longestHomopolymer,
   meltingTemperature,
@@ -29,7 +29,7 @@ import { type PcrPrimer, pcr } from './pcr';
  * the vector either side of the insert gives one size with the insert and
  * another without. This module designs such pairs on the product itself,
  * with the designer's own candidate rules (`analyzePrimer`,
- * `candidatePenalty`, specificity by `findPrimerBindingSites`), and then
+ * `candidatePenalty`, specificity by `annealsElsewhere`), and then
  * runs `pcr` on the clone, on the empty vector and on the clone with its
  * insert the wrong way round, so the bands it promises are the ones the
  * simulation would draw.
@@ -428,7 +428,7 @@ interface Paired {
 
 /**
  * Whether a primer anneals nowhere on the product but at its own site, by
- * the designer's rule (`findPrimerBindingSites`), remembered per oligo so
+ * the designer's rule (`annealsElsewhere`), remembered per oligo so
  * a candidate in many pairs is scanned once.
  */
 class Specificity {
@@ -448,11 +448,13 @@ class Specificity {
     const seen = this.known.get(key);
     if (seen !== undefined) return seen;
     this.scans++;
-    const elsewhere = findPrimerBindingSites(
+    const elsewhere = annealsElsewhere(
       this.text,
       this.product.topology,
       cand.report.sequence,
-    ).some((b) => b.strand !== strand || ((b.range.start % L) + L) % L !== own);
+      strand,
+      cand.site,
+    );
     this.known.set(key, !elsewhere);
     return !elsewhere;
   }

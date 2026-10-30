@@ -2,7 +2,7 @@ import { type Strand } from '../features';
 import { type Range, type Topology, rangePieces } from '../range';
 import { reverseComplement } from '../sequence';
 import { IUPAC_SETS } from '../analysis/codons';
-import { cleanPrimer, pairsWithCode } from './anneal';
+import { cleanPrimer, findAnnealingSites, pairsWithCode } from './anneal';
 import { DEFAULT_PRIMER_CRITERIA, type PrimerCriteria } from './criteria';
 import {
   gcFraction,
@@ -243,6 +243,35 @@ const SHORTLIST = 40;
 const MAX_SPECIFICITY_CHECKS = 400;
 
 /**
+ * Whether a primer anneals anywhere but at `own` on `strand`: by the whole
+ * -primer rule (`findPrimerBindingSites`) or by the rule `pcr` primes with
+ * (`findAnnealingSites`: the 3' end, at least 15 bases, two mismatches), so
+ * a primer that only part-anneals at a second site, and would draw a second
+ * band, is not called specific (#351). Sites are told apart by the 3' end,
+ * the base a polymerase extends from.
+ */
+export function annealsElsewhere(
+  sequence: string,
+  topology: Topology,
+  primer: string,
+  strand: Strand,
+  own: Range,
+): boolean {
+  const L = sequence.length;
+  const norm = (x: number): number => ((x % L) + L) % L;
+  // Position of the 3' end in forward coordinates, wrapped on a circle.
+  const threePrime = (r: Range, s: Strand): number => norm(s === 'forward' ? r.end : r.start);
+  const ownEnd = threePrime(own, strand);
+  const wholeElsewhere = findPrimerBindingSites(sequence, topology, primer).some(
+    (b) => b.strand !== strand || threePrime(b.range, b.strand) !== ownEnd,
+  );
+  if (wholeElsewhere) return true;
+  return findAnnealingSites(sequence, topology, primer).some(
+    (b) => b.strand !== strand || threePrime(b.range, b.strand) !== ownEnd,
+  );
+}
+
+/**
  * The best candidates, and with `specific` only those that anneal nowhere
  * but their own site. Checked in penalty order and only until the list is
  * full, because the check scans the whole template: most candidates never
@@ -260,9 +289,7 @@ function shortlist(
   for (let i = 0; i < candidates.length && i < MAX_SPECIFICITY_CHECKS; i++) {
     const cand = candidates[i];
     if (cand === undefined) break;
-    const sites = findPrimerBindingSites(sequence, topology, cand.report.sequence);
-    const elsewhere = sites.some((b) => b.strand !== strand || b.range.start !== cand.site.start);
-    if (elsewhere) continue;
+    if (annealsElsewhere(sequence, topology, cand.report.sequence, strand, cand.site)) continue;
     out.push(cand);
     if (out.length >= SHORTLIST) break;
   }
