@@ -132,6 +132,7 @@ piece of work needs its reasoning written down, with the next free number.
 118. [Marking the gap between the pieces of a join](118-join-gaps.md)
 119. [Showing one transcript of a gene](119-transcript-pick.md)
 120. [Check primers for a clone](120-check-primers.md)
+121. [Hairpin and dimer checks against Primer3](121-hairpin-dimer-oracle.md)
 
 ## Changelog to 1.1.0
 

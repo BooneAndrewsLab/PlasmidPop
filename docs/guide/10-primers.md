@@ -412,6 +412,18 @@ this browser, from plasmid to plasmid; **Reset to defaults** puts them back.
 | Product    | 0–20,000 bp           | Shortest and longest product a pair may give. 20 kb is the most the PCR reaction will make.                                                                                                                              |
 | Elsewhere  | refused               | Refuse a primer that would also anneal somewhere else on either strand — exact 3′ end, up to two mismatches elsewhere, the same rule as **Check a primer**'s binding sites. Untick it to allow a primer inside a repeat. |
 
+**How far to trust the hairpin and dimer settings.** They are length
+heuristics, not free-energy calculations: they count base pairs and do not
+weigh G/C against A/T. Against Primer3's thermodynamic calculations on a
+fixed set of 300 primers and 199 pairs (a set rich in hairpins and dimers),
+the same primers were flagged 82 % of the time for hairpins (Primer3 dG
+at or below −2 kcal/mol), 80 % for self-dimers and 71 % for primer pairs
+(dG at or below −6 kcal/mol). The disagreements run both ways: A/T-rich
+stems are flagged that Primer3 finds weak, and short G/C-rich stems or
+mismatched dimers pass that Primer3 finds stable. Treat a flag as a prompt
+to look, and check a primer you care about in Primer3 or your supplier's
+tool. The data and the full report are in design note 121.
+
 **Where to look** is measured from the selection's edges: the forward primer
 lies wholly between the two distances before the start, the reverse primer
 between the two after the end. A negative number reaches _into_ the

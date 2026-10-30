@@ -1,0 +1,4509 @@
+{
+ "biopython": "1.85",
+ "conditions": {
+  "dntpMM": 0,
+  "magnesiumMM": 0,
+  "oligoNM": 50,
+  "sodiumMM": 50,
+  "tempC": 37
+ },
+ "pairs": [
+  {
+   "a": "CACCGTCGCCCGAGCGACTCCACGCGGCCACC",
+   "b": "GATACATATTGAATTT",
+   "dg": -1.093,
+   "tm": -73.07
+  },
+  {
+   "a": "GTCTCCTCTGCGGCGCCCCGCAGAGGG",
+   "b": "ACGTACGTACGTACGTACGT",
+   "dg": -2.068,
+   "tm": -13.09
+  },
+  {
+   "a": "CTGGCGAGCAAGTACCCACGCGGCCGACCCCGT",
+   "b": "CCCATAACCGGGGGGCATTC",
+   "dg": -6.578,
+   "tm": 17.93
+  },
+  {
+   "a": "ATTAACGAATACCATTTATTTCATT",
+   "b": "CGCGCTTGACGCTTC",
+   "dg": -2.906,
+   "tm": -39.68
+  },
+  {
+   "a": "CCGCGCCTGAGCGTAC",
+   "b": "CATGCACCGCTGAAGGCAACATGCA",
+   "dg": -5.956,
+   "tm": 16.88
+  },
+  {
+   "a": "CCAACACAGGGGGGGGGTGTCGG",
+   "b": "CCCCCCTACACCAGCCGCG",
+   "dg": -7.244,
+   "tm": 14.83
+  },
+  {
+   "a": "TCTCAGAGCCTGACTGGCTCTGA",
+   "b": "TCCAGTACGAATTCTAATTAGAATTATGC",
+   "dg": -3.887,
+   "tm": -14.05
+  },
+  {
+   "a": "GAATTCGAATTCGAATTC",
+   "b": "TCGTGTCGCGTCCAGGGGCGACAC",
+   "dg": -2.788,
+   "tm": -42.38
+  },
+  {
+   "a": "TGGTAACAACGCGCGCCACCTT",
+   "b": "GAGGCGTACATGGCTTTGGA",
+   "dg": -5.707,
+   "tm": 4.65
+  },
+  {
+   "a": "TTGATAAACTCTCATATTAAACTAAGATAAATTAT",
+   "b": "CCTGGGTACCCATGGT",
+   "dg": -1.137,
+   "tm": -56.09
+  },
+  {
+   "a": "GGTAACCGTCGTAATACGCATACGAA",
+   "b": "AATTCTAATTTTATATCTTAAAATAGTGTAT",
+   "dg": -1.961,
+   "tm": -23.1
+  },
+  {
+   "a": "AGGAGGATTCAGGAAAGTATCCTCCT",
+   "b": "AGATTGCATTTATCCGAAGACAGTAGTCGAGGTCGGCT",
+   "dg": -3.006,
+   "tm": -17.16
+  },
+  {
+   "a": "GGACGACCACGACCAATGACGGGA",
+   "b": "CGCGTGGGGTGTTGCCTCAGC",
+   "dg": -6.64,
+   "tm": 12.22
+  },
+  {
+   "a": "CGGCCGTCTGCCTAGACCTCTAGGCA",
+   "b": "CCCCGAGACCCATGGGTCTCTGGA",
+   "dg": -4.313,
+   "tm": 7.27
+  },
+  {
+   "a": "CTAGATAGTGCTAGCTAGACGTCTAGC",
+   "b": "CAGCGGTTTCGACAACCGCTGGCC",
+   "dg": -4.089,
+   "tm": -3.99
+  },
+  {
+   "a": "GGATCCTTTTTTGGATCC",
+   "b": "GAATAGAGAAAATCATAACTGTG",
+   "dg": -1.402,
+   "tm": -52.49
+  },
+  {
+   "a": "GGGGGTGGAGGGTAGGCGCT",
+   "b": "AGATGCCGCTGTATTGCGGCATCTATTG",
+   "dg": -6.151,
+   "tm": 9.42
+  },
+  {
+   "a": "TTTAAGCCACACTTAAAC",
+   "b": "TTTTAATTAGCTTAATT",
+   "dg": -3.692,
+   "tm": -5.87
+  },
+  {
+   "a": "GACGCCTGAGGGACAC",
+   "b": "AATGCGAGCCCAGGCGATCGCC",
+   "dg": -8.563,
+   "tm": 23.74
+  },
+  {
+   "a": "CACAAATGTACGGACTCGTACATACA",
+   "b": "GTTCAGAGAACCATAATAGGGTCTG",
+   "dg": -2.627,
+   "tm": -19.33
+  },
+  {
+   "a": "TCGCGGCCAGCCTCTTAT",
+   "b": "GAAGTCCGCGGCGGCGTTCGTCGTC",
+   "dg": -7.137,
+   "tm": 18.97
+  },
+  {
+   "a": "CCTGGGTACCCATGGT",
+   "b": "TGGTCTACATGAACGTAGACC",
+   "dg": -3.604,
+   "tm": -11.87
+  },
+  {
+   "a": "GGGTATGCGGCCGGCCGCATCACTCCTA",
+   "b": "GAAAAACGACTCTTTGCATTTAA",
+   "dg": -3.128,
+   "tm": -20.95
+  },
+  {
+   "a": "CACGATCTACCATTGACGGTTTGGG",
+   "b": "AAAGGCCGCCTTCTGGGGCTAG",
+   "dg": -3.601,
+   "tm": -19.21
+  },
+  {
+   "a": "ATCAGCGGGTACAAGTCGCCGCGT",
+   "b": "CAATAATTATGGCATAGTACAATGCTAAAA",
+   "dg": -2.423,
+   "tm": -3.34
+  },
+  {
+   "a": "CAATCCCACCGATATTAATATCGCTATACGG",
+   "b": "GTAGCTATCCTCGTCCAGACG",
+   "dg": -2.869,
+   "tm": -36.24
+  },
+  {
+   "a": "GTGTCATCGGCCTGGACCT",
+   "b": "GAATTCGAATTCGAATTC",
+   "dg": -2.514,
+   "tm": -37.14
+  },
+  {
+   "a": "ATAGGATACAAAAAGTGCCC",
+   "b": "GTTGTGATCCTGTTTTGCAAACAGG",
+   "dg": -2.718,
+   "tm": 2.99
+  },
+  {
+   "a": "ATCGAAACAAGCAAAGCTTTGCTT",
+   "b": "ACGCCTAAGTGGCGACACTTA",
+   "dg": -3.037,
+   "tm": -38.54
+  },
+  {
+   "a": "ACGCCTAAGTGGCGACACTTA",
+   "b": "CCTAATATGCCCCCCCCGAGAAG",
+   "dg": -2.928,
+   "tm": -24.96
+  },
+  {
+   "a": "GCGGCACTGACCGA",
+   "b": "GTCTCCTCTGCGGCGCCCCGCAGAGGG",
+   "dg": -4.741,
+   "tm": 9.67
+  },
+  {
+   "a": "ATTATCCAACCTTCAGGTGCGTGC",
+   "b": "GCGCGCGCGCGCGCGCGC",
+   "dg": -5.893,
+   "tm": 9.59
+  },
+  {
+   "a": "GTCGTAAGATAAAATAAAATGGACAATTAATTT",
+   "b": "ACCAACTCTGGGAAACGTGACGT",
+   "dg": -3.164,
+   "tm": -36.55
+  },
+  {
+   "a": "AAATAACTAAGCATACTGCATATTGGTGCCAGATCA",
+   "b": "GCTCGGTGCGGCGCGGGCACTAT",
+   "dg": -5.903,
+   "tm": 9.91
+  },
+  {
+   "a": "CAACGATGTTAACGGGTTTTCAATTCCCCTTGTCGGGTTAA",
+   "b": "CAGTACCGCAGGTACCGCCGC",
+   "dg": -3.928,
+   "tm": -16.32
+  },
+  {
+   "a": "TGCAACCGCAGAGG",
+   "b": "TCGACCATCCGTCGTAAGGGGTG",
+   "dg": -3.464,
+   "tm": -16.85
+  },
+  {
+   "a": "CCCCGAGACCCATGGGTCTCTGGA",
+   "b": "ATATAAACTTAATTATA",
+   "dg": -1.364,
+   "tm": -75.12
+  },
+  {
+   "a": "CGCTAATCACGTAGACTCTG",
+   "b": "TTTACTTAATTTATTAATTGAATAACTATGG",
+   "dg": -2.594,
+   "tm": -18.0
+  },
+  {
+   "a": "TGTCGCGGGGGGGGGCGACCCCGCC",
+   "b": "AGGGCACTTCCCGGAAGGAAGGCTCA",
+   "dg": -4.128,
+   "tm": 7.33
+  },
+  {
+   "a": "CCCCTGGGATCCTAAAGGGGATTAGGC",
+   "b": "GGATGCCCCTCCCTCGGCG",
+   "dg": -5.153,
+   "tm": 9.81
+  },
+  {
+   "a": "AATGTTGGTAAT",
+   "b": "AGAAATTATACGCATCTCGGAAAT",
+   "dg": -1.245,
+   "tm": -50.18
+  },
+  {
+   "a": "ATGGCCTGTCCTACCGGCTGGACAGGCC",
+   "b": "TAGGTCGACTAATTTCTTT",
+   "dg": -1.678,
+   "tm": -9.27
+  },
+  {
+   "a": "CCCGCCGGGGGTTTCGCGG",
+   "b": "AACTGGGATTTGTCCAGGAGAAATCC",
+   "dg": -3.249,
+   "tm": -19.71
+  },
+  {
+   "a": "TTTACTTAATTTATTAATTGAATAACTATGG",
+   "b": "ACGTACGTACGTACGTACGT",
+   "dg": -0.564,
+   "tm": -60.3
+  },
+  {
+   "a": "GGATTCAATCCCTACTCATC",
+   "b": "TGGGGCTCACTCCTGAG",
+   "dg": -3.218,
+   "tm": -22.35
+  },
+  {
+   "a": "TCAAAATAATATTTATTTGTTCCCCTATTT",
+   "b": "GCAGACTGAGGTCTCAGGG",
+   "dg": -2.852,
+   "tm": -34.14
+  },
+  {
+   "a": "ATTAACGAATACCATTTATTTCATT",
+   "b": "TGAACGCGCTTGTCTGTGATCAAGCGCGTGGTAG",
+   "dg": -3.043,
+   "tm": -17.9
+  },
+  {
+   "a": "TAAGTACCTGTAAGGCATACGTACTTA",
+   "b": "CTAGTCCAGGGATCCCCCTGGACTCG",
+   "dg": -3.833,
+   "tm": -8.36
+  },
+  {
+   "a": "TTTATAGTAATAAATTATCACGATATTTTCA",
+   "b": "GTAGCTATCCTCGTCCAGACG",
+   "dg": -2.461,
+   "tm": -42.04
+  },
+  {
+   "a": "TACACCAGCCCCCCCAACACT",
+   "b": "CACGATCTACCATTGACGGTTTGGG",
+   "dg": -3.6,
+   "tm": -18.04
+  },
+  {
+   "a": "GGATTCAATCCCTACTCATC",
+   "b": "CTGACTCTAACTG",
+   "dg": -0.627,
+   "tm": -32.45
+  },
+  {
+   "a": "GCAACCATTCAATAGGACGCCC",
+   "b": "GTCTCACCTACGAAGAGGTGAGACC",
+   "dg": -2.749,
+   "tm": 5.58
+  },
+  {
+   "a": "TCCAGTACGAATTCTAATTAGAATTATGC",
+   "b": "CAATGTTCTGCTCAATAA",
+   "dg": -2.268,
+   "tm": -31.95
+  },
+  {
+   "a": "CGCTAAAATTAACTACGGGTTAATTTCTGAAG",
+   "b": "ATCAGCGGGTACAAGTCGCCGCGT",
+   "dg": -3.526,
+   "tm": -23.09
+  },
+  {
+   "a": "AGTCCAGCAAGCTATAGCTTGTAGAGGT",
+   "b": "GCGGGTAAGGCCTGTGAGATATCTCA",
+   "dg": -2.698,
+   "tm": -21.55
+  },
+  {
+   "a": "CATGGCTGAAAAGACTTAT",
+   "b": "CCCGTTCGCCGCGGCGCACTC",
+   "dg": -1.948,
+   "tm": -9.84
+  },
+  {
+   "a": "GGTTCTATAGA",
+   "b": "TAGGTAAAACGGGAGACTAC",
+   "dg": -1.677,
+   "tm": -54.48
+  },
+  {
+   "a": "AGCATCACCGGGGGGGAAGTT",
+   "b": "GTCAGCCCGCAGTCGCAGG",
+   "dg": -4.867,
+   "tm": -2.34
+  },
+  {
+   "a": "GCTCGGTGCGGCGCGGGCACTAT",
+   "b": "TATATTAAATAAGTTT",
+   "dg": -0.842,
+   "tm": -90.81
+  },
+  {
+   "a": "TAAGACTCGACCCCCGATAGTGGG",
+   "b": "TCAAAACACAATAGACAGCTATCAGTAATA",
+   "dg": -2.919,
+   "tm": -7.44
+  },
+  {
+   "a": "GCGGCCGATGCTGGGCTACTCTTCCA",
+   "b": "TATATTAAATAAGTTT",
+   "dg": -1.519,
+   "tm": -70.42
+  },
+  {
+   "a": "GGTATGGGTCGCCGCATACC",
+   "b": "TTTTTTTCAGTCATGAGG",
+   "dg": -2.189,
+   "tm": -29.14
+  },
+  {
+   "a": "TTTTTTTTAATTGTCACTAAA",
+   "b": "GAAACCCCCCAAGAGGGGGGCC",
+   "dg": -1.172,
+   "tm": -41.18
+  },
+  {
+   "a": "GCCGGTGGGCGGGCCGCCGGTCGGTG",
+   "b": "GAATTCGAATTCGAATTC",
+   "dg": -1.841,
+   "tm": -11.0
+  },
+  {
+   "a": "TACACCAGCCCCCCCAACACT",
+   "b": "TTTATAGTAATAAATTATCACGATATTTTCA",
+   "dg": -1.135,
+   "tm": -64.25
+  },
+  {
+   "a": "AAGATAGGCTTCGTAGCCGT",
+   "b": "CGCTAAAATTAACTACGGGTTAATTTCTGAAG",
+   "dg": -4.962,
+   "tm": -2.87
+  },
+  {
+   "a": "CTTAGTTATAAAAGCTTCC",
+   "b": "GGTAACCGTCGTAATACGCATACGAA",
+   "dg": -1.496,
+   "tm": -37.22
+  },
+  {
+   "a": "AAGATAGGCTTCGTAGCCGT",
+   "b": "GGGGGGGGCCAACACAGTAAT",
+   "dg": -3.857,
+   "tm": -15.28
+  },
+  {
+   "a": "GCGGTCTCACGGCCCACGGCCAGTGGCGACCACGCGGAGCA",
+   "b": "CATGCGCACCATCTCGAGATGCATG",
+   "dg": -4.695,
+   "tm": -9.26
+  },
+  {
+   "a": "GGGGGGAGCATCACCAGCG",
+   "b": "AAAAAATTGTCCGGTGTAT",
+   "dg": -3.795,
+   "tm": -8.65
+  },
+  {
+   "a": "TCACTCAGTTATTTTCGAAACTGAGT",
+   "b": "TTTATCATCTTATATGT",
+   "dg": -0.929,
+   "tm": -63.69
+  },
+  {
+   "a": "ATGGCCTGTCCTACCGGCTGGACAGGCC",
+   "b": "TCATATTGATCTACTAACCGGCT",
+   "dg": -5.157,
+   "tm": -4.34
+  },
+  {
+   "a": "GTGTCATCGGCCTGGACCT",
+   "b": "TTGTCTAATGCTAACTACCTCCGGGGTTCCAG",
+   "dg": -3.549,
+   "tm": -15.41
+  },
+  {
+   "a": "ATGAGGTCGGTTTCGACGCC",
+   "b": "GCGCGCGCGCGCGCGCGC",
+   "dg": -2.909,
+   "tm": -7.34
+  },
+  {
+   "a": "TTATGTCGCTTCTTTTTTAGCCATGTG",
+   "b": "ATATATATATATATATATAT",
+   "dg": -0.26,
+   "tm": -70.34
+  },
+  {
+   "a": "TCCGTTCGTGTAGGCTCGTCGCACG",
+   "b": "GGTAACCGTCGTAATACGCATACGAA",
+   "dg": -3.671,
+   "tm": -13.27
+  },
+  {
+   "a": "AGATTGCATTTATCCGAAGACAGTAGTCGAGGTCGGCT",
+   "b": "GGTATGGGTCGCCGCATACC",
+   "dg": -3.783,
+   "tm": 0.25
+  },
+  {
+   "a": "CTATACATATGATCGTCATATGTTC",
+   "b": "GGGAGCCCGAGACCGGTT",
+   "dg": -2.176,
+   "tm": -30.98
+  },
+  {
+   "a": "CTCTGCCAAGACCAGATCCAA",
+   "b": "GGGTATGCGGCCGGCCGCATCACTCCTA",
+   "dg": -2.926,
+   "tm": -2.81
+  },
+  {
+   "a": "CAATCCCACCGATATTAATATCGCTATACGG",
+   "b": "CTAACAAACATAAAGGAATTCCTT",
+   "dg": -2.036,
+   "tm": -50.12
+  },
+  {
+   "a": "TTTTTTCGTCCACCAGGGC",
+   "b": "GCCGGTGGGCGGGCCGCCGGTCGGTG",
+   "dg": -6.764,
+   "tm": 20.63
+  },
+  {
+   "a": "GTCGTAACCGGGCGGGCCGGGCTGGGATCC",
+   "b": "CAGTACCGCAGGTACCGCCGC",
+   "dg": -5.727,
+   "tm": 22.3
+  },
+  {
+   "a": "CGCGGCCCCGGGGGAGATTCTCGGACCGGGTGCCT",
+   "b": "ATAACGATTAAAGCTGTTGAGGTTTCGCATTATTCTAGTA",
+   "dg": -3.882,
+   "tm": -13.17
+  },
+  {
+   "a": "CTTCCAAAAAAGCTATAT",
+   "b": "GTGAAGGGCCACTTTAAGGCCT",
+   "dg": -1.974,
+   "tm": -35.67
+  },
+  {
+   "a": "CTGACCATCCATAGTACGGTGCTTAA",
+   "b": "TCAGGGGGTTTACACTGATAACCC",
+   "dg": -3.761,
+   "tm": -13.31
+  },
+  {
+   "a": "GCCAGGAATACCACAGGAGCGTAGCGCTCCGG",
+   "b": "GAATTCGAATTCGAATTC",
+   "dg": -2.459,
+   "tm": -41.14
+  },
+  {
+   "a": "AACGTAGGCGATGC",
+   "b": "TCGCGCATGCAACCCACCGCCTGCGGGCGGCA",
+   "dg": -8.619,
+   "tm": 25.56
+  },
+  {
+   "a": "GCGGCCGATGCTGGGCTACTCTTCCA",
+   "b": "TAGGTCGACTAATTTCTTT",
+   "dg": -3.73,
+   "tm": -19.51
+  },
+  {
+   "a": "CTGACTCTAACTG",
+   "b": "TGATATACGGTGATATGTTGATGC",
+   "dg": -2.104,
+   "tm": -30.91
+  },
+  {
+   "a": "CCCGAGCCACTCTTCCAAATA",
+   "b": "CGTCCACCATTTTTTCTCAGC",
+   "dg": -1.755,
+   "tm": -36.25
+  },
+  {
+   "a": "TTTACTTAGATAGAG",
+   "b": "CAATGTTCTGCTCAATAA",
+   "dg": -2.089,
+   "tm": -34.43
+  },
+  {
+   "a": "GCCAGGAATACCACAGGAGCGTAGCGCTCCGG",
+   "b": "AAAAAATTGTCCGGTGTAT",
+   "dg": -4.402,
+   "tm": -9.33
+  },
+  {
+   "a": "ATTCGATTGGTGGTCTGGAAA",
+   "b": "GTGCAAGCGGCCGCCGCTACAAGCGGCCGCA",
+   "dg": -4.048,
+   "tm": -4.66
+  },
+  {
+   "a": "TTACTGTTATTTATAAATGAACAAATTCATTTT",
+   "b": "ATAGGATACAAAAAGTGCCC",
+   "dg": -1.207,
+   "tm": -44.46
+  },
+  {
+   "a": "AATATTTGCGGCCGCAACGAGGG",
+   "b": "TCTTCACTCCCCCCAATTTA",
+   "dg": -2.877,
+   "tm": -30.81
+  },
+  {
+   "a": "TCACTCAGTTATTTTCGAAACTGAGT",
+   "b": "TATTTTTGGTGCGATGAGAAT",
+   "dg": -3.239,
+   "tm": -2.73
+  },
+  {
+   "a": "CGGTTTACTAACGGTTTGAACTAAAC",
+   "b": "AAACTCAAGTCGTTATAATTTTGAAAATAGACGTATTTACATTGA",
+   "dg": -2.436,
+   "tm": 2.39
+  },
+  {
+   "a": "TGATATACGGTGATATGTTGATGC",
+   "b": "GTAGCCTAAGCATAAAACAGTAGCAGAATATGCCATTGAAGGGC",
+   "dg": -2.895,
+   "tm": 0.81
+  },
+  {
+   "a": "CTGATACTACCCCGCACCT",
+   "b": "AAGATCCATAGTAATCCGATGA",
+   "dg": -1.795,
+   "tm": -34.93
+  },
+  {
+   "a": "GGGGGGAGCATCACCAGCG",
+   "b": "AGAAATTATACCGCTGGCGGAAAT",
+   "dg": -6.951,
+   "tm": 14.83
+  },
+  {
+   "a": "ATTAGTAACTAACGCCCGTCGCGAC",
+   "b": "GTCGCGAGCCCGCCCATAAGCGGGTGG",
+   "dg": -8.534,
+   "tm": 28.8
+  },
+  {
+   "a": "CGTTAGCGCCCGCCCATAAGCGGGTGG",
+   "b": "TGTCGCGGGGGGGGGCGACCCCCAC",
+   "dg": -11.783,
+   "tm": 38.63
+  },
+  {
+   "a": "TCCGACCTGTCGCTTATTCGAAC",
+   "b": "GTCGTAAGATAAAATAGTTCGAACAATTAATTT",
+   "dg": -5.416,
+   "tm": 7.07
+  },
+  {
+   "a": "ACCTAAGCGCGCTTGGC",
+   "b": "TACACCAGCCCCCCCGCCAAT",
+   "dg": -3.794,
+   "tm": -13.56
+  },
+  {
+   "a": "GATGACGTAGGCTAACATGGGC",
+   "b": "AAATAACTAAGCCCACTGCATATTGGTGCCAGATCA",
+   "dg": -3.283,
+   "tm": 8.34
+  },
+  {
+   "a": "AAAAAAAAAAAAAAAAAAAA",
+   "b": "GAGGGGGGGTTTTTCCAACG",
+   "dg": -1.668,
+   "tm": -34.97
+  },
+  {
+   "a": "CTGGTGCAATTAAACTGACAGTTTAA",
+   "b": "AAAAAATATTAAACTGAT",
+   "dg": -5.845,
+   "tm": 13.16
+  },
+  {
+   "a": "GATGTTAGCGCGTGGCGG",
+   "b": "GAGCTTCCCCGATAGCTC",
+   "dg": -3.481,
+   "tm": -26.58
+  },
+  {
+   "a": "CGGTTTACTAACGGTTTGAACTAAAC",
+   "b": "ATAGGATACAAAAAGTTTAG",
+   "dg": -3.28,
+   "tm": -6.23
+  },
+  {
+   "a": "TCGCGCATGCAACCCACCGCCTGCGGGCGGCA",
+   "b": "GCGGTCTCACGGCCCACTGCCGCCGGCGACCACGCGGAGCA",
+   "dg": -11.863,
+   "tm": 38.7
+  },
+  {
+   "a": "AAACTCAAGTCGTTATAATTTTGAAAATAGACGTATTTACATTGA",
+   "b": "GAATAGAGAAAATCATCAATGTG",
+   "dg": -5.158,
+   "tm": 6.48
+  },
+  {
+   "a": "ATGGCCTGTCCTACCGGCTGGACAGGCC",
+   "b": "GAGGGCCGGTTAGGCCAACG",
+   "dg": -9.605,
+   "tm": 32.27
+  },
+  {
+   "a": "GAAAGCTACTGGCGATACTCGCCAGTCG",
+   "b": "GGATGCCGACCCCTCGGCG",
+   "dg": -3.917,
+   "tm": 7.37
+  },
+  {
+   "a": "CTCATTACATTCGTTCACTGCAAC",
+   "b": "TTGGTTGCAAACGTTTTGAAC",
+   "dg": -5.462,
+   "tm": 15.62
+  },
+  {
+   "a": "ACTCAACGGCATTTAGGTGAGCCTT",
+   "b": "CCCGTTAAGGGCGGCGCACTC",
+   "dg": -5.415,
+   "tm": 8.53
+  },
+  {
+   "a": "GGAGCCCCCGGTTGGTCGCTAACGCGGG",
+   "b": "CCCGCGTTAGTACTAAATAATCCATG",
+   "dg": -10.614,
+   "tm": 34.88
+  },
+  {
+   "a": "CATATGCAATTCAAAATAT",
+   "b": "TCTTCACTCCCCCCATATTA",
+   "dg": -1.393,
+   "tm": -34.14
+  },
+  {
+   "a": "CTTAGTTATAAAAGCTTCC",
+   "b": "GCGGCGGAAGCTGA",
+   "dg": -5.794,
+   "tm": 8.46
+  },
+  {
+   "a": "CCGGCCTCGACCCTAATATCCCATTG",
+   "b": "CTGACCAATGCTG",
+   "dg": -2.624,
+   "tm": -16.84
+  },
+  {
+   "a": "AATGCGAGCCCAGGCGATCGCC",
+   "b": "TAGGCGCTTTCATGGCGTTCCC",
+   "dg": -4.807,
+   "tm": -4.49
+  },
+  {
+   "a": "GCCGAAAGTTCGGCCATGT",
+   "b": "CCACGACCAGCGGAAACATGG",
+   "dg": -4.093,
+   "tm": -6.81
+  },
+  {
+   "a": "ACTGTAGGACATGCTACGTAGCAT",
+   "b": "GTCAGCCATGAGTCGCAGG",
+   "dg": -3.346,
+   "tm": -17.39
+  },
+  {
+   "a": "GGATTCAATCCCTACTCATC",
+   "b": "GCTCGGTGGATGACGGGCACTAT",
+   "dg": -1.849,
+   "tm": -4.46
+  },
+  {
+   "a": "GGGAATCATTCGGCCGAATCCAT",
+   "b": "GTGTTGCCGCCCGGGCGAACATGGAT",
+   "dg": -8.609,
+   "tm": 24.71
+  },
+  {
+   "a": "CTAACAAACATAAAGGAATTCCTT",
+   "b": "AAGGAGCTCATGCGTGGTGGAG",
+   "dg": -2.071,
+   "tm": -32.61
+  },
+  {
+   "a": "ATAGATGGAAATATCGA",
+   "b": "GTCAGCCCGCTCGATCAGG",
+   "dg": -3.197,
+   "tm": -19.24
+  },
+  {
+   "a": "CTAGATAGTGCTAGCTAGACGTCTAGC",
+   "b": "TCCCCCTGGCTAGCGCTAGACG",
+   "dg": -8.263,
+   "tm": 26.9
+  },
+  {
+   "a": "TCGTGTCGCGTCCAGGGGCGACAC",
+   "b": "TGGTCTACATGGTGTCGGACC",
+   "dg": -5.87,
+   "tm": 10.32
+  },
+  {
+   "a": "TCATACACACAGCTTATG",
+   "b": "TGCTTTGCTCATAAGTGAA",
+   "dg": -3.265,
+   "tm": -4.2
+  },
+  {
+   "a": "CATGGCTGAAAAGACTTAT",
+   "b": "GCGCACTTGTCCGCTTACGGGCATAAGTC",
+   "dg": -3.391,
+   "tm": 4.95
+  },
+  {
+   "a": "ATTAACGAATACCATTTATTTCATT",
+   "b": "CGTGTCTGATCAGCCAGAAATGAGGTAT",
+   "dg": -1.867,
+   "tm": 3.58
+  },
+  {
+   "a": "CCCAATAATTGGAACTTTCACG",
+   "b": "AGCGTGATTCAGGAAAGTATCCTCCT",
+   "dg": -4.009,
+   "tm": 12.49
+  },
+  {
+   "a": "GGGTATGCGGCCGGCCGCATCACTCCTA",
+   "b": "TAGATTGTTTGGTTGCGTTTAG",
+   "dg": -4.015,
+   "tm": -12.74
+  },
+  {
+   "a": "AAAAAATTGTCCGGTGTAT",
+   "b": "GGGATACTCGTTCCTAT",
+   "dg": -1.637,
+   "tm": -35.14
+  },
+  {
+   "a": "CGTTAGCGCCCGCCCATAAGCGGGTGG",
+   "b": "GGACGACCACGCCACCCGACGGGA",
+   "dg": -8.257,
+   "tm": 27.88
+  },
+  {
+   "a": "TGGTAACAACGCGCGCCACCTT",
+   "b": "AGAAAAAGGGTCTAGCTATCGACGTG",
+   "dg": -2.499,
+   "tm": -30.22
+  },
+  {
+   "a": "CAATGTTCTGCTCAATAA",
+   "b": "GGGTTATTGAGATGCCTTGATTTCCATCCG",
+   "dg": -4.784,
+   "tm": 6.75
+  },
+  {
+   "a": "CCCGAGCCACTCTTCCAAATA",
+   "b": "CACAAATGTACGTATTTGTACATACA",
+   "dg": -2.047,
+   "tm": -15.4
+  },
+  {
+   "a": "AATGCGAGCCCAGGCGATCGCC",
+   "b": "GTGTCATCGGGCGATCCCT",
+   "dg": -6.086,
+   "tm": 17.7
+  },
+  {
+   "a": "ACGTACGTACGTACGTACGT",
+   "b": "GGGAGCCCGAGACCGACG",
+   "dg": -2.505,
+   "tm": -45.59
+  },
+  {
+   "a": "CGCTAAAATTAACTACGGGTTAATTTCTGAAG",
+   "b": "GGGCTTCAGAAGGCCGAATCCAT",
+   "dg": -5.111,
+   "tm": 9.72
+  },
+  {
+   "a": "CAGTACCGCAGGTACCGCCGC",
+   "b": "ACCCCCTGCTCTTCTGCGCAGGCGGC",
+   "dg": -5.906,
+   "tm": 14.26
+  },
+  {
+   "a": "ATAAACCGAATTTAACAACTTAATAA",
+   "b": "CCCTTAGATACTACTCA",
+   "dg": -1.827,
+   "tm": -70.1
+  },
+  {
+   "a": "GGGGGTGGAGGGTAGGCGCT",
+   "b": "CCCCGAGACCCATGGGTCTCTAGC",
+   "dg": -3.934,
+   "tm": 6.14
+  },
+  {
+   "a": "AGGGCACTTCCCGGAAGGAAGGCTCA",
+   "b": "TGTCGTATCTGAGCCTTCCTGAC",
+   "dg": -10.015,
+   "tm": 32.62
+  },
+  {
+   "a": "CACAAATGTACGGACTCGTACATACA",
+   "b": "ATAACGATTAAAGCTGTTGAGGTTTCGCATTATGTTAGTA",
+   "dg": -2.71,
+   "tm": -36.47
+  },
+  {
+   "a": "GGGGGGGGGGGGGGGGGGGG",
+   "b": "TCTTCACTCCCCCCCATTTA",
+   "dg": -9.336,
+   "tm": 28.31
+  },
+  {
+   "a": "TATATTAAATAAGTTT",
+   "b": "TCTATGATGGAAATATTTACCATCAAATG",
+   "dg": -1.367,
+   "tm": -28.06
+  },
+  {
+   "a": "ATAATTTGGTTTGAT",
+   "b": "TAAGTACCTGTAATCAAACCGTACTTA",
+   "dg": -5.13,
+   "tm": 9.2
+  },
+  {
+   "a": "ACTGTAGGACATGCTACGTAGCAT",
+   "b": "AATGCGAGCCCAGATGATCGCC",
+   "dg": -2.811,
+   "tm": -25.51
+  },
+  {
+   "a": "GGGTATGCGGCCGGCCGCATCACTCCTA",
+   "b": "CTCTGTAGAGACCAGATCCAA",
+   "dg": -2.74,
+   "tm": -30.45
+  },
+  {
+   "a": "TATAGAGCGGTGGGGGAGGCCACCGCTGA",
+   "b": "CAACGATGTTAACTCAGCGTCAATTCCCCTTGTCGGGTTAA",
+   "dg": -6.684,
+   "tm": 22.75
+  },
+  {
+   "a": "TCATATTGATCTACTAACCGGCT",
+   "b": "ATAACGATTAGCGCTGTTGAGGTTTCGCATTATTCTAGTA",
+   "dg": -2.402,
+   "tm": -19.58
+  },
+  {
+   "a": "GCTCGGTGCGGCGCGGGCACTAT",
+   "b": "ATAGTGCCATTCGAATTC",
+   "dg": -6.607,
+   "tm": 16.26
+  },
+  {
+   "a": "ATAACGATTAAAGCTGTTGAGGTTTCGCATTATTCTAGTA",
+   "b": "CTTCCAAAAAATACTAAT",
+   "dg": -1.241,
+   "tm": -34.16
+  },
+  {
+   "a": "TGTTCCGGTTTCGATTGTAGGGTGCG",
+   "b": "GGGGGGGGCCAACGCACCCTT",
+   "dg": -9.849,
+   "tm": 30.98
+  },
+  {
+   "a": "TTTTTTCGTCCACCAGGGC",
+   "b": "CTTCCAAGCCCTCTATAT",
+   "dg": -4.675,
+   "tm": -11.14
+  },
+  {
+   "a": "GGGGCTTTCGTTCCTAT",
+   "b": "CTATAGGAG",
+   "dg": -2.878,
+   "tm": -11.48
+  },
+  {
+   "a": "CGAACTTTAGTACTAAATAATCCATG",
+   "b": "ACATGGCTAAGCATACTGCATATTGGTGCCAGATCA",
+   "dg": -3.994,
+   "tm": -7.42
+  },
+  {
+   "a": "GGATTCAATCCCTACTCATC",
+   "b": "ATAATCTTGGTTTCCCTAATGACAAC",
+   "dg": -2.134,
+   "tm": -30.74
+  },
+  {
+   "a": "TTTAAGCCACACTTAAAC",
+   "b": "TATATTAATAAGTTTT",
+   "dg": -1.922,
+   "tm": -34.89
+  },
+  {
+   "a": "CGTCCACCATTTTTTCTCAGC",
+   "b": "TGTCGCGGGAAAAGGCGACCCCGCC",
+   "dg": -0.377,
+   "tm": -1.98
+  },
+  {
+   "a": "ACGAGATATTGTATACATATAGTGCA",
+   "b": "ACACTGTATAAGAGCTGATGA",
+   "dg": -2.721,
+   "tm": -9.55
+  },
+  {
+   "a": "AGGGCACTTCCCGGAAGGAAGGCTCA",
+   "b": "GGGGGAAGTCGACCAATGACGGGA",
+   "dg": -5.627,
+   "tm": 17.07
+  },
+  {
+   "a": "GGTATAGTCAATGCATTGTTAG",
+   "b": "GGTCGAATTGACTACCGCGTAG",
+   "dg": -4.53,
+   "tm": 6.86
+  },
+  {
+   "a": "TCAAAATAATATTTATTTGTTCCCCTATTT",
+   "b": "CCCGTTCGCCGCTATTAACTC",
+   "dg": -1.842,
+   "tm": -44.04
+  },
+  {
+   "a": "CGGGGAAGAAATAGTGGTGGGTTTTCT",
+   "b": "TAGCCACTATTGGAGACTAC",
+   "dg": -5.783,
+   "tm": 12.91
+  },
+  {
+   "a": "ACTATAATCTTTATAGT",
+   "b": "TCCAGTACGAATAAAGATTAGAATTATGC",
+   "dg": -4.54,
+   "tm": 11.14
+  },
+  {
+   "a": "GACGCCTGAGGGACAC",
+   "b": "CTCAGGCGCC",
+   "dg": -8.803,
+   "tm": 26.79
+  },
+  {
+   "a": "ACGCCTAAGTGGCGACACTTA",
+   "b": "CATGGCTCGCCAGACTTAT",
+   "dg": -5.65,
+   "tm": 0.4
+  },
+  {
+   "a": "TCCGGGCTCATGCGTGGTGGAG",
+   "b": "AGCCCGGAGGCTCCGTACAGT",
+   "dg": -8.001,
+   "tm": 20.1
+  },
+  {
+   "a": "GCCGCCGGCCGACCAGTTCGGCCGGGA",
+   "b": "TCGTGTGCGGCCCAGGGGCGACAC",
+   "dg": -9.407,
+   "tm": 30.0
+  },
+  {
+   "a": "CGCGTGGGGTGTTGCCTCAGC",
+   "b": "TGGTCGAGGCAAACGTAGACC",
+   "dg": -6.276,
+   "tm": 19.77
+  },
+  {
+   "a": "TTCAGTCATTTTTTCACGGA",
+   "b": "ATCAGAAAATACAAGTCGCCGCGT",
+   "dg": -4.154,
+   "tm": -18.93
+  },
+  {
+   "a": "GGTCGAGCGGGACCCCGCGTAG",
+   "b": "CGCTCGGGTGTCGGCGCTCGACCAGCGA",
+   "dg": -9.21,
+   "tm": 32.6
+  },
+  {
+   "a": "ACGCCTAAGTGGCGACACTTA",
+   "b": "AAGATACACTTCGTAGCCGT",
+   "dg": -4.159,
+   "tm": -6.81
+  },
+  {
+   "a": "TCTCAGAGCCTGACTGGCTCTGA",
+   "b": "TATAAAATTTTTTTGCTCTATATGAATT",
+   "dg": -4.12,
+   "tm": -8.76
+  },
+  {
+   "a": "CTAGATAGTGCTAGCTAGACGTCTAGC",
+   "b": "GCAGACTGGACGTCTAGGG",
+   "dg": -9.007,
+   "tm": 29.77
+  },
+  {
+   "a": "ATTCGATTGGTGGTCTGGAAA",
+   "b": "GATGTTAATCGAAGGCGG",
+   "dg": -5.317,
+   "tm": 9.61
+  },
+  {
+   "a": "GTGCAAGCGGCCGCCGCTACAAGCGGCCGCA",
+   "b": "TGTCGCCGCTTGGGGCGACCCCGCC",
+   "dg": -13.242,
+   "tm": 41.27
+  },
+  {
+   "a": "CGTTAGCGCCCGCCCATAAGCGGGTGG",
+   "b": "TAAGACTCGACCCCCGCTTATGGG",
+   "dg": -12.794,
+   "tm": 41.75
+  },
+  {
+   "a": "ACTGTAGGACATGCTACGTAGCAT",
+   "b": "AATGCGAGGTAGGGCGATCGCC",
+   "dg": -4.051,
+   "tm": 6.96
+  },
+  {
+   "a": "TTTAAGCCACACTTAAAC",
+   "b": "GTTGTGATCTTAATTTGCAAACAGG",
+   "dg": -2.151,
+   "tm": -1.06
+  },
+  {
+   "a": "TTTTTTTCAGTCATGAGG",
+   "b": "AATAGATCGTGAAAACTTATCT",
+   "dg": -2.842,
+   "tm": -19.24
+  },
+  {
+   "a": "ACTCAACGGCATTTAGGTGAGCCTT",
+   "b": "CATGCGCCTCATCTCGAGATGCATG",
+   "dg": -2.791,
+   "tm": 6.52
+  },
+  {
+   "a": "TTATGTCGCTTCTTTTTTAGCCATGTG",
+   "b": "AAAGAAGCGAAAACAAAATTA",
+   "dg": -8.014,
+   "tm": 24.04
+  },
+  {
+   "a": "TGCAACCGCAGAGG",
+   "b": "GTCAGTTGCCAGTCGCAGG",
+   "dg": -4.652,
+   "tm": -0.17
+  },
+  {
+   "a": "AAAAAAAAAAAAAAAAAAAA",
+   "b": "ATATTTTTTAAAGCTGTTGAGGTTTCGCATTATTCTAGTA",
+   "dg": -2.524,
+   "tm": -17.47
+  },
+  {
+   "a": "CGCTCGGGTGTCGGTAGGCGGGCAGCGA",
+   "b": "TGCCCGATATATATATATAT",
+   "dg": -7.423,
+   "tm": 15.01
+  },
+  {
+   "a": "TGGGGCTCACTCCTGAG",
+   "b": "ACTCGGAGTGAGCTTTATA",
+   "dg": -9.278,
+   "tm": 31.56
+  },
+  {
+   "a": "ACTCAACGGCATTTAGGTGAGCCTT",
+   "b": "GACGCTAAATGCGAGTACATCCAA",
+   "dg": -5.179,
+   "tm": 17.09
+  },
+  {
+   "a": "AATGTATCATGATATCG",
+   "b": "CACCATGATACATTGACGGTTTGGG",
+   "dg": -7.792,
+   "tm": 24.92
+  },
+  {
+   "a": "AGAAGAGGCCAGGCC",
+   "b": "GACGGGCTATCGGCTGGCCTTCTAT",
+   "dg": -8.874,
+   "tm": 26.92
+  },
+  {
+   "a": "AGAAGAGGCCAGGCC",
+   "b": "TCAAAATAATATTTATTTGTTGCCTCATTT",
+   "dg": -5.632,
+   "tm": 6.23
+  },
+  {
+   "a": "GGATTCAATCCCTACTCATC",
+   "b": "ATCAGAGTAGGCAAGTCGCCGCGT",
+   "dg": -5.786,
+   "tm": 11.8
+  },
+  {
+   "a": "GTGTCATCGGCCTGGACCT",
+   "b": "CAAGGCCGATGGTTGCGTTTAG",
+   "dg": -9.87,
+   "tm": 31.6
+  },
+  {
+   "a": "AGGGATGATGTGCACATCAGCGATGC",
+   "b": "TTATGTCGCTTCTTTTGTGCACATGTG",
+   "dg": -9.198,
+   "tm": 31.36
+  },
+  {
+   "a": "CCAACACAGGGGGGGGGTGTCGG",
+   "b": "GTCCCCCCCCCGAAGAGGTGAGACC",
+   "dg": -10.666,
+   "tm": 35.42
+  },
+  {
+   "a": "CCCGGGAAAATTTCCCGGG",
+   "b": "TTTACTTAGAAAGAG",
+   "dg": -1.774,
+   "tm": -29.04
+  }
+ ],
+ "primer3": "2.2.0",
+ "rows": [
+  {
+   "hairpin": {
+    "dg": -1.16,
+    "tm": 52.02
+   },
+   "homodimer": {
+    "dg": -5.926,
+    "tm": 27.24
+   },
+   "seq": "CCACGGCTTGTTGCAAACAACCGACT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.869,
+    "tm": -32.69
+   },
+   "seq": "ACTCTTGGACGGCTTTATA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -3.151,
+    "tm": -39.11
+   },
+   "seq": "TATTTTTGGTGCGATGAGAAT"
+  },
+  {
+   "hairpin": {
+    "dg": -2.445,
+    "tm": 59.14
+   },
+   "homodimer": {
+    "dg": -6.113,
+    "tm": 18.0
+   },
+   "seq": "GTGAAGGGCCACTTTAAGGCCT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.785,
+    "tm": -39.39
+   },
+   "seq": "CTTCCAAAAAAGCTATAT"
+  },
+  {
+   "hairpin": {
+    "dg": -1.177,
+    "tm": 48.8
+   },
+   "homodimer": {
+    "dg": -5.392,
+    "tm": -0.15
+   },
+   "seq": "AACTCAGCGGTCTTAGGTCGCGA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.462,
+    "tm": -19.85
+   },
+   "seq": "TGATATACGGTGATATGTTGATGC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.266,
+    "tm": 34.14
+   },
+   "homodimer": {
+    "dg": -2.315,
+    "tm": -24.48
+   },
+   "seq": "CTCTGCCAAGACCAGATCCAA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.017,
+    "tm": 36.71
+   },
+   "homodimer": {
+    "dg": -4.739,
+    "tm": -3.44
+   },
+   "seq": "TGTTCCGGTTTCGATTGTAGGGTGCG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -3.019,
+    "tm": -12.65
+   },
+   "seq": "CGATACTAGGTGGTTGCA"
+  },
+  {
+   "hairpin": {
+    "dg": -0.967,
+    "tm": 48.21
+   },
+   "homodimer": {
+    "dg": -9.835,
+    "tm": 30.16
+   },
+   "seq": "GCGGCCGATGCTGGGCTACTCTTCCA"
+  },
+  {
+   "hairpin": {
+    "dg": -0.437,
+    "tm": 44.14
+   },
+   "homodimer": {
+    "dg": -3.163,
+    "tm": -38.56
+   },
+   "seq": "GTTTTGCACGCAGATGACGT"
+  },
+  {
+   "hairpin": {
+    "dg": -1.608,
+    "tm": 51.89
+   },
+   "homodimer": {
+    "dg": -6.436,
+    "tm": 22.32
+   },
+   "seq": "GCAGACTGAGGTCTCAGGG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -3.867,
+    "tm": -30.94
+   },
+   "seq": "ACACGCAAAGAGAGCTGATGA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.223,
+    "tm": 29.66
+   },
+   "homodimer": {
+    "dg": -3.153,
+    "tm": -2.53
+   },
+   "seq": "CTGAAAGAGCAATACTGTCCAGACTG"
+  },
+  {
+   "hairpin": {
+    "dg": -1.743,
+    "tm": 54.13
+   },
+   "homodimer": {
+    "dg": -3.553,
+    "tm": 8.32
+   },
+   "seq": "TCGACCATCCGTCGTAAGGGGTG"
+  },
+  {
+   "hairpin": {
+    "dg": -1.11,
+    "tm": 50.51
+   },
+   "homodimer": {
+    "dg": -6.049,
+    "tm": 5.68
+   },
+   "seq": "GGGAGCCCGAGACCGGTT"
+  },
+  {
+   "hairpin": {
+    "dg": -2.365,
+    "tm": 60.56
+   },
+   "homodimer": {
+    "dg": -4.954,
+    "tm": 12.62
+   },
+   "seq": "GGAACGGATAAGTCCGCATTTAGA"
+  },
+  {
+   "hairpin": {
+    "dg": -1.882,
+    "tm": 59.6
+   },
+   "homodimer": {
+    "dg": -7.205,
+    "tm": 15.78
+   },
+   "seq": "CGCGGCGATTAGCCTGTGGT"
+  },
+  {
+   "hairpin": {
+    "dg": 1.933,
+    "tm": 26.52
+   },
+   "homodimer": {
+    "dg": -4.054,
+    "tm": 2.38
+   },
+   "seq": "GTGAATCACGAAGAGCAGATATCACC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.786,
+    "tm": -39.38
+   },
+   "seq": "GCAACCATTCAATAGGACGCCC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.635,
+    "tm": 33.01
+   },
+   "homodimer": {
+    "dg": -0.52,
+    "tm": 9.1
+   },
+   "seq": "AATAGATCGTGTCCACTTATCT"
+  },
+  {
+   "hairpin": {
+    "dg": -1.027,
+    "tm": 46.97
+   },
+   "homodimer": {
+    "dg": -7.915,
+    "tm": 26.21
+   },
+   "seq": "GGGTTAAACATCGTCCGATGA"
+  },
+  {
+   "hairpin": {
+    "dg": -0.823,
+    "tm": 46.12
+   },
+   "homodimer": {
+    "dg": -4.368,
+    "tm": 16.02
+   },
+   "seq": "ATCAGCGGGTACAAGTCGCCGCGT"
+  },
+  {
+   "hairpin": {
+    "dg": -0.915,
+    "tm": 47.22
+   },
+   "homodimer": {
+    "dg": -4.663,
+    "tm": 10.38
+   },
+   "seq": "TCCGACCTGTCGCTTATTCGAAC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.492,
+    "tm": -30.43
+   },
+   "seq": "CTCATTACATTCGTTCACTGCAAC"
+  },
+  {
+   "hairpin": {
+    "dg": -2.789,
+    "tm": 60.06
+   },
+   "homodimer": {
+    "dg": -9.282,
+    "tm": 29.84
+   },
+   "seq": "CCCGCCGGGGGTTTCGCGG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.193,
+    "tm": 34.35
+   },
+   "homodimer": {
+    "dg": -5.657,
+    "tm": 2.76
+   },
+   "seq": "GAGGGGGGGTTAGGCCAACG"
+  },
+  {
+   "hairpin": {
+    "dg": -1.035,
+    "tm": 47.43
+   },
+   "homodimer": {
+    "dg": -5.22,
+    "tm": 8.03
+   },
+   "seq": "ATCAGGCGCAGAACGGTGTGC"
+  },
+  {
+   "hairpin": {
+    "dg": -2.508,
+    "tm": 58.61
+   },
+   "homodimer": {
+    "dg": -7.15,
+    "tm": 20.16
+   },
+   "seq": "AAAGGCCGCCTTCTGGGGCTAG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -3.628,
+    "tm": -30.65
+   },
+   "seq": "ATTAACGAATACCATTTATTTCATT"
+  },
+  {
+   "hairpin": {
+    "dg": -0.634,
+    "tm": 44.76
+   },
+   "homodimer": {
+    "dg": -3.247,
+    "tm": 2.47
+   },
+   "seq": "TGCAAGAGTTTCCGCTTCGGT"
+  },
+  {
+   "hairpin": {
+    "dg": -0.246,
+    "tm": 40.24
+   },
+   "homodimer": {
+    "dg": -3.598,
+    "tm": -0.49
+   },
+   "seq": "GGATTCAATCCCTACTCATC"
+  },
+  {
+   "hairpin": {
+    "dg": -1.138,
+    "tm": 47.61
+   },
+   "homodimer": {
+    "dg": -3.256,
+    "tm": 9.43
+   },
+   "seq": "TACTCGCTTTCATGGCGTTCCC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.044,
+    "tm": -36.75
+   },
+   "seq": "CATATTGTTTGGTTGCGTTTAG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -3.628,
+    "tm": -30.65
+   },
+   "seq": "GAAAAACGACTCTTTGCATTTAA"
+  },
+  {
+   "hairpin": {
+    "dg": -0.501,
+    "tm": 43.64
+   },
+   "homodimer": {
+    "dg": -0.762,
+    "tm": -17.17
+   },
+   "seq": "TAAGACTCGACCCCCGATAGTGGG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.488,
+    "tm": 1.9
+   },
+   "seq": "TGCTTTGCTTTTAAATGAA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.258,
+    "tm": -34.68
+   },
+   "seq": "CAATGTTCTGCTCAATAA"
+  },
+  {
+   "hairpin": {
+    "dg": -0.993,
+    "tm": 45.25
+   },
+   "homodimer": {
+    "dg": -3.15,
+    "tm": -6.23
+   },
+   "seq": "GGACGACCACGACCAATGACGGGA"
+  },
+  {
+   "hairpin": {
+    "dg": -1.49,
+    "tm": 66.99
+   },
+   "homodimer": {
+    "dg": -5.297,
+    "tm": 20.8
+   },
+   "seq": "CAGTACCGCAGGTACCGCCGC"
+  },
+  {
+   "hairpin": {
+    "dg": -1.044,
+    "tm": 45.64
+   },
+   "homodimer": {
+    "dg": -5.436,
+    "tm": 21.02
+   },
+   "seq": "AGAAATCTCGTCTAGCTATCGACGTG"
+  },
+  {
+   "hairpin": {
+    "dg": -1.499,
+    "tm": 56.37
+   },
+   "homodimer": {
+    "dg": -4.308,
+    "tm": 19.63
+   },
+   "seq": "GGTCGCCGGTTGGCTGTCATACCGT"
+  },
+  {
+   "hairpin": {
+    "dg": -0.502,
+    "tm": 44.66
+   },
+   "homodimer": {
+    "dg": -4.241,
+    "tm": -9.45
+   },
+   "seq": "CGCGTGGGGTGTTGCCTCAGC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.702,
+    "tm": 10.03
+   },
+   "seq": "GTGTCATCGGCCTGGACCT"
+  },
+  {
+   "hairpin": {
+    "dg": -1.939,
+    "tm": 62.63
+   },
+   "homodimer": {
+    "dg": -15.988,
+    "tm": 53.19
+   },
+   "seq": "GTGTTGCCGCCCGGGCGAACGTTCAT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -5.157,
+    "tm": -4.34
+   },
+   "seq": "TCATATTGATCTACTAACCGGCT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -4.172,
+    "tm": 2.13
+   },
+   "seq": "ACGAGATATTGTATACATATAGTGCA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.505,
+    "tm": 30.3
+   },
+   "homodimer": {
+    "dg": -2.457,
+    "tm": -16.94
+   },
+   "seq": "TTATGTCGCTTCTTTTTTAGCCATGTG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -1.772,
+    "tm": -49.03
+   },
+   "seq": "CCCTGCCCCCTTTCCACCTTGCC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -1.67,
+    "tm": 8.41
+   },
+   "seq": "GATGACGTAGGCTAACATGGGC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -3.505,
+    "tm": -25.1
+   },
+   "seq": "GGCCCGTCCGACCGTGAG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.573,
+    "tm": -39.71
+   },
+   "seq": "GGATGGATACCTTGCTAG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.759,
+    "tm": 29.88
+   },
+   "homodimer": {
+    "dg": -2.358,
+    "tm": -21.13
+   },
+   "seq": "ATTTTCTGATCCTCTGAATC"
+  },
+  {
+   "hairpin": {
+    "dg": -0.652,
+    "tm": 44.53
+   },
+   "homodimer": {
+    "dg": -6.863,
+    "tm": 9.76
+   },
+   "seq": "GCGCGACTCCGACCGCCCCCAG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -1.619,
+    "tm": -26.06
+   },
+   "seq": "CATGGCTGAAAAGACTTAT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -3.268,
+    "tm": -11.38
+   },
+   "seq": "AAGTACAATTTCCTCAACAATCTGT"
+  },
+  {
+   "hairpin": {
+    "dg": -0.972,
+    "tm": 49.29
+   },
+   "homodimer": {
+    "dg": -5.756,
+    "tm": 6.36
+   },
+   "seq": "GATGTTAGCGCGTGGCGG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -1.772,
+    "tm": -49.03
+   },
+   "seq": "CATATTGATGTGCCTACTTTAT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.315,
+    "tm": -24.48
+   },
+   "seq": "AAGATCCATAGTAATCCGATGA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.896,
+    "tm": -35.24
+   },
+   "seq": "CGCTAATCACGTAGACTCTG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.7,
+    "tm": -30.18
+   },
+   "seq": "TAGGTAAAACGGGAGACTAC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -0.985,
+    "tm": -29.62
+   },
+   "seq": "ATTCTAATTATACCGTAA"
+  },
+  {
+   "hairpin": {
+    "dg": -1.573,
+    "tm": 50.73
+   },
+   "homodimer": {
+    "dg": -9.742,
+    "tm": 33.14
+   },
+   "seq": "GCTCGGTGCGGCGCGGGCACTAT"
+  },
+  {
+   "hairpin": {
+    "dg": -2.975,
+    "tm": 64.69
+   },
+   "homodimer": {
+    "dg": -5.833,
+    "tm": 18.11
+   },
+   "seq": "GACGGGCTATCGGCCCTCTGTCTAT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.448,
+    "tm": -38.61
+   },
+   "seq": "ATTCGATTGGTGGTCTGGAAA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.448,
+    "tm": -38.61
+   },
+   "seq": "ATTCGATTGGTTTCCCTAATGACAAC"
+  },
+  {
+   "hairpin": {
+    "dg": -0.104,
+    "tm": 38.65
+   },
+   "homodimer": {
+    "dg": -4.359,
+    "tm": 2.95
+   },
+   "seq": "TCCGGGCTCATGCGTGGTGGAG"
+  },
+  {
+   "hairpin": {
+    "dg": -0.357,
+    "tm": 42.0
+   },
+   "homodimer": {
+    "dg": -3.644,
+    "tm": -8.19
+   },
+   "seq": "GAGGCGTACATGGCTTTGGA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -3.668,
+    "tm": -0.67
+   },
+   "seq": "CTGACCATCCATAGTACGGTGCTTAA"
+  },
+  {
+   "hairpin": {
+    "dg": -0.965,
+    "tm": 46.11
+   },
+   "homodimer": {
+    "dg": -2.953,
+    "tm": 5.85
+   },
+   "seq": "ACTCAACGGCATTTAGGTGAGCCTT"
+  },
+  {
+   "hairpin": {
+    "dg": -1.007,
+    "tm": 50.83
+   },
+   "homodimer": {
+    "dg": -3.708,
+    "tm": -13.94
+   },
+   "seq": "CCCAATAATTGGAACTTTCACG"
+  },
+  {
+   "hairpin": {
+    "dg": -0.159,
+    "tm": 40.61
+   },
+   "homodimer": {
+    "dg": -1.704,
+    "tm": -45.38
+   },
+   "seq": "CTCCAGAAGCGTGAGGTCTTGGGTTT"
+  },
+  {
+   "hairpin": {
+    "dg": -0.896,
+    "tm": 51.24
+   },
+   "homodimer": {
+    "dg": -4.609,
+    "tm": -3.49
+   },
+   "seq": "AACGGCCTTAGTCGTACCAGCACTG"
+  },
+  {
+   "hairpin": {
+    "dg": -0.199,
+    "tm": 39.57
+   },
+   "homodimer": {
+    "dg": -2.011,
+    "tm": -4.74
+   },
+   "seq": "TGTCGTATCACGTTATTCCTGAC"
+  },
+  {
+   "hairpin": {
+    "dg": -2.427,
+    "tm": 60.03
+   },
+   "homodimer": {
+    "dg": -4.743,
+    "tm": 14.21
+   },
+   "seq": "CCACGACCAGCGGAAAGCTGT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -0.439,
+    "tm": -33.82
+   },
+   "seq": "AGGGGACACTGTTGGGGAAAAAA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.017,
+    "tm": 36.71
+   },
+   "homodimer": {
+    "dg": -4.609,
+    "tm": -3.49
+   },
+   "seq": "CCGGCCTCGACCCTAATATCCCATTG"
+  },
+  {
+   "hairpin": {
+    "dg": -1.821,
+    "tm": 61.8
+   },
+   "homodimer": {
+    "dg": -8.352,
+    "tm": 25.14
+   },
+   "seq": "ATTAGTAACTAACGCCCGTCGCGAC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.619,
+    "tm": -46.33
+   },
+   "seq": "CCCGAGCCACTCTTCCAAATA"
+  },
+  {
+   "hairpin": {
+    "dg": -3.749,
+    "tm": 66.18
+   },
+   "homodimer": {
+    "dg": -9.312,
+    "tm": 30.66
+   },
+   "seq": "CACCGTCGCCCGAGCGACTCCACGCGGCCACC"
+  },
+  {
+   "hairpin": {
+    "dg": -2.744,
+    "tm": 64.58
+   },
+   "homodimer": {
+    "dg": -13.04,
+    "tm": 43.66
+   },
+   "seq": "CGGGGGCCCCCCCAC"
+  },
+  {
+   "hairpin": {
+    "dg": -2.023,
+    "tm": 61.62
+   },
+   "homodimer": {
+    "dg": -5.349,
+    "tm": 3.47
+   },
+   "seq": "CGCGCTTGACGCTTC"
+  },
+  {
+   "hairpin": {
+    "dg": -1.712,
+    "tm": 52.8
+   },
+   "homodimer": {
+    "dg": -14.148,
+    "tm": 45.72
+   },
+   "seq": "GTCGTAACCGGGCGGGCCGGGCTGGGATCC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.132,
+    "tm": 35.22
+   },
+   "homodimer": {
+    "dg": -1.672,
+    "tm": -19.55
+   },
+   "seq": "GTCAGCCCGCAGTCGCAGG"
+  },
+  {
+   "hairpin": {
+    "dg": -0.427,
+    "tm": 40.51
+   },
+   "homodimer": {
+    "dg": -3.246,
+    "tm": 14.52
+   },
+   "seq": "CGCTCGGGTGTCGGTAGGCGGGCAGCGA"
+  },
+  {
+   "hairpin": {
+    "dg": -1.483,
+    "tm": 54.21
+   },
+   "homodimer": {
+    "dg": -5.985,
+    "tm": 17.74
+   },
+   "seq": "GGCTGGGTCGCGGCAGGTGCG"
+  },
+  {
+   "hairpin": {
+    "dg": -3.269,
+    "tm": 68.17
+   },
+   "homodimer": {
+    "dg": -13.563,
+    "tm": 43.11
+   },
+   "seq": "CGCGTCCGCGGGCACGCGC"
+  },
+  {
+   "hairpin": {
+    "dg": -2.554,
+    "tm": 63.71
+   },
+   "homodimer": {
+    "dg": -17.894,
+    "tm": 52.68
+   },
+   "seq": "GCCGGTGGGCGGGCCGCCGGTCGGTG"
+  },
+  {
+   "hairpin": {
+    "dg": -0.706,
+    "tm": 54.54
+   },
+   "homodimer": {
+    "dg": -9.257,
+    "tm": 28.9
+   },
+   "seq": "CCTGGGTACCCATGGT"
+  },
+  {
+   "hairpin": {
+    "dg": -3.907,
+    "tm": 69.32
+   },
+   "homodimer": {
+    "dg": -10.047,
+    "tm": 33.29
+   },
+   "seq": "GGTCGAGCGGGACCCCGCGTAG"
+  },
+  {
+   "hairpin": {
+    "dg": -0.301,
+    "tm": 42.31
+   },
+   "homodimer": {
+    "dg": -5.658,
+    "tm": 3.95
+   },
+   "seq": "TCGCGGCCAGCCTCTTAT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.038,
+    "tm": 36.38
+   },
+   "homodimer": {
+    "dg": -5.999,
+    "tm": 3.16
+   },
+   "seq": "CCCAGCGCTCAGGCACGA"
+  },
+  {
+   "hairpin": {
+    "dg": -0.151,
+    "tm": 39.01
+   },
+   "homodimer": {
+    "dg": -5.769,
+    "tm": 5.51
+   },
+   "seq": "GGGGGTGGAGGGTAGGCGCT"
+  },
+  {
+   "hairpin": {
+    "dg": -0.829,
+    "tm": 46.33
+   },
+   "homodimer": {
+    "dg": -9.835,
+    "tm": 30.16
+   },
+   "seq": "CTGGCGAGCAAGTACCCACGCGGCCGACCCCGT"
+  },
+  {
+   "hairpin": {
+    "dg": -2.426,
+    "tm": 49.26
+   },
+   "homodimer": {
+    "dg": -6.773,
+    "tm": 27.97
+   },
+   "seq": "TCGGTGTCGGCGCGGCTGGCCCGTCCCAGCG"
+  },
+  {
+   "hairpin": {
+    "dg": -4.507,
+    "tm": 64.47
+   },
+   "homodimer": {
+    "dg": -10.432,
+    "tm": 35.03
+   },
+   "seq": "GCCAGGAATACCACAGGAGCGTAGCGCTCCGG"
+  },
+  {
+   "hairpin": {
+    "dg": -4.813,
+    "tm": 62.92
+   },
+   "homodimer": {
+    "dg": -16.519,
+    "tm": 52.83
+   },
+   "seq": "TCGCGCATGCAACCCACCGCCTGCGGGCGGCA"
+  },
+  {
+   "hairpin": {
+    "dg": -1.835,
+    "tm": 57.95
+   },
+   "homodimer": {
+    "dg": -11.994,
+    "tm": 39.77
+   },
+   "seq": "GCGCACTTGTCCGCTTACGGGCTGGCCGA"
+  },
+  {
+   "hairpin": {
+    "dg": -1.595,
+    "tm": 54.42
+   },
+   "homodimer": {
+    "dg": -3.855,
+    "tm": 22.15
+   },
+   "seq": "GGAGCCCCCGGTTGGTCGCTAACGCGGG"
+  },
+  {
+   "hairpin": {
+    "dg": -3.978,
+    "tm": 78.79
+   },
+   "homodimer": {
+    "dg": -15.487,
+    "tm": 50.26
+   },
+   "seq": "TGTCGCGGGGGGGGGCGACCCCGCC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.052,
+    "tm": 35.89
+   },
+   "homodimer": {
+    "dg": -5.442,
+    "tm": -0.02
+   },
+   "seq": "CTCCGACGAGCGCCTTCAGCCGGGGG"
+  },
+  {
+   "hairpin": {
+    "dg": -4.337,
+    "tm": 68.75
+   },
+   "homodimer": {
+    "dg": -15.565,
+    "tm": 49.08
+   },
+   "seq": "CCCCCCCCCGGCAGCGGTGGCGGCCG"
+  },
+  {
+   "hairpin": {
+    "dg": -2.188,
+    "tm": 58.4
+   },
+   "homodimer": {
+    "dg": -9.823,
+    "tm": 31.43
+   },
+   "seq": "GAAGTCCGCGGCGGCGTTCGTCGTC"
+  },
+  {
+   "hairpin": {
+    "dg": -2.558,
+    "tm": 50.35
+   },
+   "homodimer": {
+    "dg": -12.732,
+    "tm": 39.26
+   },
+   "seq": "CGCGGCCCCGGGGGAGATTCTCGGACCGGGTGCCT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.884,
+    "tm": 28.26
+   },
+   "homodimer": {
+    "dg": -0.269,
+    "tm": 4.4
+   },
+   "seq": "TTTATAGTAATAAATTATCACGATATTTTCA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.601,
+    "tm": 31.53
+   },
+   "homodimer": {
+    "dg": -0.136,
+    "tm": -0.16
+   },
+   "seq": "AATTCTAATTTTATATCTTAAAATAGTGTAT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -6.155,
+    "tm": 13.53
+   },
+   "seq": "TAGGTCGACTAATTTCTTT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.46,
+    "tm": 31.19
+   },
+   "homodimer": {
+    "dg": -2.455,
+    "tm": -15.09
+   },
+   "seq": "TCAAAACACAATAGACAGCTATCAGTAATA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.658,
+    "tm": 29.14
+   },
+   "homodimer": {
+    "dg": -2.765,
+    "tm": -34.51
+   },
+   "seq": "ATAGATGGAAATATCGA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -1.587,
+    "tm": -31.45
+   },
+   "seq": "TTTATCATCTTATATGT"
+  },
+  {
+   "hairpin": {
+    "dg": -2.028,
+    "tm": 51.88
+   },
+   "homodimer": {
+    "dg": -5.34,
+    "tm": 20.14
+   },
+   "seq": "TTACTGTTATTTATAAATGAACAAATTCATTTT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.052,
+    "tm": 36.28
+   },
+   "homodimer": {
+    "dg": -1.825,
+    "tm": 3.29
+   },
+   "seq": "ACGTTCTTGTTGGTTACTTGAACAACTAATA"
+  },
+  {
+   "hairpin": {
+    "dg": -0.888,
+    "tm": 45.17
+   },
+   "homodimer": {
+    "dg": -3.735,
+    "tm": 3.51
+   },
+   "seq": "CAATAATTATGGCATAGTACAATGCTAAAA"
+  },
+  {
+   "hairpin": {
+    "dg": -0.792,
+    "tm": 52.05
+   },
+   "homodimer": {
+    "dg": -2.573,
+    "tm": -8.71
+   },
+   "seq": "GTCGTAAGATAAAATAAAATGGACAATTAATTT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.631,
+    "tm": 31.48
+   },
+   "homodimer": {
+    "dg": -1.892,
+    "tm": 13.78
+   },
+   "seq": "TCAAAATAATATTTATTTGTTCCCCTATTT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -1.056,
+    "tm": -40.69
+   },
+   "seq": "GATACATATTGAATTT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -1.888,
+    "tm": 15.78
+   },
+   "seq": "GCGTGTTGAGAATTATAATTATATTTTCA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -4.525,
+    "tm": 4.92
+   },
+   "seq": "TATAAAATTTTTTTGCATTATATGAATT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -3.441,
+    "tm": -28.57
+   },
+   "seq": "CATATGCAATTCAAAATAT"
+  },
+  {
+   "hairpin": {
+    "dg": -0.148,
+    "tm": 38.19
+   },
+   "homodimer": {
+    "dg": -3.604,
+    "tm": 0.35
+   },
+   "seq": "AAAATTTTAAAAACAAAATTA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -0.746,
+    "tm": -24.89
+   },
+   "seq": "AATAAATATCATCTTATAAATCTCGGAAC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -0.344,
+    "tm": -29.54
+   },
+   "seq": "TTGATAAACTCTCATATTAAACTAAGATAAATTAT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -1.834,
+    "tm": -44.32
+   },
+   "seq": "ATAATTTGGTTTGAT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.987,
+    "tm": 24.6
+   },
+   "homodimer": {
+    "dg": -3.004,
+    "tm": 5.01
+   },
+   "seq": "ACATTTGAAAAGATATGTTTTA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -1.984,
+    "tm": -53.8
+   },
+   "seq": "GAATAGAGAAAATCATAACTGTG"
+  },
+  {
+   "hairpin": {
+    "dg": -0.24,
+    "tm": 39.0
+   },
+   "homodimer": {
+    "dg": -7.656,
+    "tm": 27.74
+   },
+   "seq": "AATATTTATTATAATAAATTACAAAGAATA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.785,
+    "tm": 29.86
+   },
+   "homodimer": {
+    "dg": -1.061,
+    "tm": -28.95
+   },
+   "seq": "ATATAAACTTAATTATA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.317,
+    "tm": 33.86
+   },
+   "homodimer": {
+    "dg": -2.617,
+    "tm": -16.99
+   },
+   "seq": "TTTACTTAATTTATTAATTGAATAACTATGG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.46,
+    "tm": 31.54
+   },
+   "homodimer": {
+    "dg": -2.619,
+    "tm": -46.33
+   },
+   "seq": "ATAAACCGAATTTAACAACTTAATAA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -0.35,
+    "tm": -91.79
+   },
+   "seq": "AATGTTGGTAAT"
+  },
+  {
+   "hairpin": {
+    "dg": -1.96,
+    "tm": 59.48
+   },
+   "homodimer": {
+    "dg": -4.321,
+    "tm": 10.5
+   },
+   "seq": "CCGCGCCTGAGCGTAC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.023,
+    "tm": -32.55
+   },
+   "seq": "TTTACTTAGATAGAG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -1.692,
+    "tm": -60.4
+   },
+   "seq": "AGCTCGTCCC"
+  },
+  {
+   "hairpin": {
+    "dg": -0.398,
+    "tm": 46.0
+   },
+   "homodimer": {
+    "dg": -2.314,
+    "tm": -27.05
+   },
+   "seq": "ACAGCATG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.619,
+    "tm": -46.33
+   },
+   "seq": "CCTCCCGACA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.782,
+    "tm": -8.54
+   },
+   "seq": "GGTTCTATAGA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -1.087,
+    "tm": -73.5
+   },
+   "seq": "CTGACTCTAACTG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.322,
+    "tm": 31.14
+   },
+   "homodimer": {
+    "dg": -3.954,
+    "tm": -5.13
+   },
+   "seq": "GACGCCTGAGGGACAC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -0.214,
+    "tm": -105.76
+   },
+   "seq": "CTAAGGTTG"
+  },
+  {
+   "hairpin": {
+    "dg": -0.583,
+    "tm": 45.29
+   },
+   "homodimer": {
+    "dg": -6.058,
+    "tm": 12.6
+   },
+   "seq": "AGCTCGAGGCGA"
+  },
+  {
+   "hairpin": {
+    "dg": -0.227,
+    "tm": 40.11
+   },
+   "homodimer": {
+    "dg": -3.048,
+    "tm": -33.43
+   },
+   "seq": "AACGTAGGCGATGC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -1.407,
+    "tm": -65.74
+   },
+   "seq": "CTATACAGGTTCAGAG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.23,
+    "tm": 34.42
+   },
+   "homodimer": {
+    "dg": -12.824,
+    "tm": 42.37
+   },
+   "seq": "ACCTAAGCGCGCTTGGC"
+  },
+  {
+   "hairpin": {
+    "dg": -0.22,
+    "tm": 40.69
+   },
+   "homodimer": {
+    "dg": -2.356,
+    "tm": -48.71
+   },
+   "seq": "TGCAACCGCAGAGG"
+  },
+  {
+   "hairpin": {
+    "dg": -1.088,
+    "tm": 45.6
+   },
+   "homodimer": {
+    "dg": -5.324,
+    "tm": 9.52
+   },
+   "seq": "GTAGCCTAAGCATAAAACAGTAGCAGAATATGCCATTGAAGGGC"
+  },
+  {
+   "hairpin": {
+    "dg": -0.232,
+    "tm": 38.57
+   },
+   "homodimer": {
+    "dg": -3.04,
+    "tm": -2.64
+   },
+   "seq": "CAACGATGTTAACGGGTTTTCAATTCCCCTTGTCGGGTTAA"
+  },
+  {
+   "hairpin": {
+    "dg": -0.127,
+    "tm": 38.46
+   },
+   "homodimer": {
+    "dg": -1.537,
+    "tm": -1.64
+   },
+   "seq": "ATAACGATTAAAGCTGTTGAGGTTTCGCATTATTCTAGTA"
+  },
+  {
+   "hairpin": {
+    "dg": -2.134,
+    "tm": 62.2
+   },
+   "homodimer": {
+    "dg": -8.565,
+    "tm": 32.92
+   },
+   "seq": "GCGGTCTCACGGCCCACGGCCAGTGGCGACCACGCGGAGCA"
+  },
+  {
+   "hairpin": {
+    "dg": -0.431,
+    "tm": 43.69
+   },
+   "homodimer": {
+    "dg": -2.763,
+    "tm": -1.19
+   },
+   "seq": "AAATAACTAAGCATACTGCATATTGGTGCCAGATCA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.468,
+    "tm": 32.06
+   },
+   "homodimer": {
+    "dg": -1.134,
+    "tm": 13.92
+   },
+   "seq": "AAACTCAAGTCGTTATAATTTTGAAAATAGACGTATTTACATTGA"
+  },
+  {
+   "hairpin": {
+    "dg": -1.423,
+    "tm": 52.33
+   },
+   "homodimer": {
+    "dg": -4.081,
+    "tm": 7.07
+   },
+   "seq": "AGATTGCATTTATCCGAAGACAGTAGTCGAGGTCGGCT"
+  },
+  {
+   "hairpin": {
+    "dg": -0.363,
+    "tm": 43.41
+   },
+   "homodimer": {
+    "dg": -4.922,
+    "tm": 14.06
+   },
+   "seq": "TTGTCTAATGCTAACTACCTCCGGGGTTCCAG"
+  },
+  {
+   "hairpin": {
+    "dg": -0.282,
+    "tm": 39.87
+   },
+   "homodimer": {
+    "dg": -6.06,
+    "tm": 14.46
+   },
+   "seq": "CGTGTCTGATCAGCCAGATATGAGGTAT"
+  },
+  {
+   "hairpin": {
+    "dg": -1.36,
+    "tm": 50.46
+   },
+   "homodimer": {
+    "dg": -3.05,
+    "tm": 13.67
+   },
+   "seq": "GAAGCGCGTTGTCCAATATAAGGACGTTA"
+  },
+  {
+   "hairpin": {
+    "dg": -4.297,
+    "tm": 69.9
+   },
+   "homodimer": {
+    "dg": -8.775,
+    "tm": 30.08
+   },
+   "seq": "CTAGTGCCGCTGGGCACTATGGT"
+  },
+  {
+   "hairpin": {
+    "dg": -5.041,
+    "tm": 64.12
+   },
+   "homodimer": {
+    "dg": -11.834,
+    "tm": 38.16
+   },
+   "seq": "GTCTCACCTACGAAGAGGTGAGACC"
+  },
+  {
+   "hairpin": {
+    "dg": -1.69,
+    "tm": 50.64
+   },
+   "homodimer": {
+    "dg": -3.385,
+    "tm": 9.35
+   },
+   "seq": "TTATGTCGATTATCACGAC"
+  },
+  {
+   "hairpin": {
+    "dg": -1.135,
+    "tm": 47.39
+   },
+   "homodimer": {
+    "dg": -5.458,
+    "tm": 18.03
+   },
+   "seq": "GGACAGAAAGGACTTTCTAACG"
+  },
+  {
+   "hairpin": {
+    "dg": -1.199,
+    "tm": 53.38
+   },
+   "homodimer": {
+    "dg": -4.162,
+    "tm": 12.92
+   },
+   "seq": "GCGGCACTGACCGA"
+  },
+  {
+   "hairpin": {
+    "dg": -8.25,
+    "tm": 73.48
+   },
+   "homodimer": {
+    "dg": -17.366,
+    "tm": 49.25
+   },
+   "seq": "TGAACGCGCTTGTCTGTGATCAAGCGCGTGGTAG"
+  },
+  {
+   "hairpin": {
+    "dg": -0.006,
+    "tm": 37.08
+   },
+   "homodimer": {
+    "dg": -1.084,
+    "tm": 6.17
+   },
+   "seq": "CACGATCTACCATTGACGGTTTGGG"
+  },
+  {
+   "hairpin": {
+    "dg": -4.432,
+    "tm": 70.89
+   },
+   "homodimer": {
+    "dg": -11.337,
+    "tm": 37.33
+   },
+   "seq": "CGTTAGCGCCCGCCCATAAGCGGGTGG"
+  },
+  {
+   "hairpin": {
+    "dg": -9.809,
+    "tm": 84.69
+   },
+   "homodimer": {
+    "dg": -21.107,
+    "tm": 57.77
+   },
+   "seq": "GTGCAAGCGGCCGCCGCTACAAGCGGCCGCA"
+  },
+  {
+   "hairpin": {
+    "dg": -5.631,
+    "tm": 69.72
+   },
+   "homodimer": {
+    "dg": -11.657,
+    "tm": 38.23
+   },
+   "seq": "TATAGAGCGGTGGGGGAGGCCACCGCTGA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -1.271,
+    "tm": -51.26
+   },
+   "seq": "TATATTAAATAAGTTT"
+  },
+  {
+   "hairpin": {
+    "dg": -0.558,
+    "tm": 45.91
+   },
+   "homodimer": {
+    "dg": -2.914,
+    "tm": -7.16
+   },
+   "seq": "ATTATCCAACCTTCAGGTGCGTGC"
+  },
+  {
+   "hairpin": {
+    "dg": -0.557,
+    "tm": 42.02
+   },
+   "homodimer": {
+    "dg": -1.099,
+    "tm": 1.87
+   },
+   "seq": "TTTAAGCCACACTTAAAC"
+  },
+  {
+   "hairpin": {
+    "dg": -0.605,
+    "tm": 45.12
+   },
+   "homodimer": {
+    "dg": -4.772,
+    "tm": -5.12
+   },
+   "seq": "GGATGCCCCTCCCTCGGCG"
+  },
+  {
+   "hairpin": {
+    "dg": -5.911,
+    "tm": 81.08
+   },
+   "homodimer": {
+    "dg": -12.047,
+    "tm": 39.56
+   },
+   "seq": "GAAACCCCCCAAGAGGGGGGCC"
+  },
+  {
+   "hairpin": {
+    "dg": -8.398,
+    "tm": 75.19
+   },
+   "homodimer": {
+    "dg": -19.514,
+    "tm": 54.12
+   },
+   "seq": "GTCTCCTCTGCGGCGCCCCGCAGAGGG"
+  },
+  {
+   "hairpin": {
+    "dg": -3.668,
+    "tm": 59.78
+   },
+   "homodimer": {
+    "dg": -7.29,
+    "tm": 26.53
+   },
+   "seq": "CACAAATGTACGGACTCGTACATACA"
+  },
+  {
+   "hairpin": {
+    "dg": -0.279,
+    "tm": 38.5
+   },
+   "homodimer": {
+    "dg": -6.708,
+    "tm": 25.66
+   },
+   "seq": "TCGATTGCCACGCGAATCGGTGGG"
+  },
+  {
+   "hairpin": {
+    "dg": -0.582,
+    "tm": 43.19
+   },
+   "homodimer": {
+    "dg": -1.81,
+    "tm": -51.92
+   },
+   "seq": "TGGGGCTCACTCCTGAG"
+  },
+  {
+   "hairpin": {
+    "dg": -3.791,
+    "tm": 66.09
+   },
+   "homodimer": {
+    "dg": -9.461,
+    "tm": 31.53
+   },
+   "seq": "GCCGAAAGTTCGGCCATGT"
+  },
+  {
+   "hairpin": {
+    "dg": -1.116,
+    "tm": 44.96
+   },
+   "homodimer": {
+    "dg": -6.832,
+    "tm": 25.51
+   },
+   "seq": "TCCTCCATCTTGCGCTGAAGATGCG"
+  },
+  {
+   "hairpin": {
+    "dg": -4.231,
+    "tm": 67.83
+   },
+   "homodimer": {
+    "dg": -14.091,
+    "tm": 42.26
+   },
+   "seq": "CAGCGGTTTCGACAACCGCTGGCC"
+  },
+  {
+   "hairpin": {
+    "dg": -2.34,
+    "tm": 52.93
+   },
+   "homodimer": {
+    "dg": -7.271,
+    "tm": 28.57
+   },
+   "seq": "CTATACATATGATCGTCATATGTTC"
+  },
+  {
+   "hairpin": {
+    "dg": -5.565,
+    "tm": 66.79
+   },
+   "homodimer": {
+    "dg": -17.357,
+    "tm": 48.35
+   },
+   "seq": "AATGTCGCGCAAGCAGCATTGGTGCTTGCCCGA"
+  },
+  {
+   "hairpin": {
+    "dg": -2.68,
+    "tm": 59.76
+   },
+   "homodimer": {
+    "dg": -7.223,
+    "tm": 23.39
+   },
+   "seq": "AGGGCACTTCCCGGAAGGAAGGCTCA"
+  },
+  {
+   "hairpin": {
+    "dg": -2.246,
+    "tm": 50.36
+   },
+   "homodimer": {
+    "dg": -6.011,
+    "tm": 26.08
+   },
+   "seq": "CGCTAAAATTAACTACGGGTTAATTTCTGAAG"
+  },
+  {
+   "hairpin": {
+    "dg": -7.396,
+    "tm": 72.07
+   },
+   "homodimer": {
+    "dg": -20.889,
+    "tm": 53.81
+   },
+   "seq": "ATGGCCTGTCCTACCGGCTGGACAGGCC"
+  },
+  {
+   "hairpin": {
+    "dg": -0.818,
+    "tm": 49.27
+   },
+   "homodimer": {
+    "dg": -7.807,
+    "tm": 20.48
+   },
+   "seq": "AGAAGAGGCCAGGCC"
+  },
+  {
+   "hairpin": {
+    "dg": -3.827,
+    "tm": 59.45
+   },
+   "homodimer": {
+    "dg": -8.11,
+    "tm": 29.63
+   },
+   "seq": "TCACTCAGTTATTTTCGAAACTGAGT"
+  },
+  {
+   "hairpin": {
+    "dg": -2.455,
+    "tm": 60.54
+   },
+   "homodimer": {
+    "dg": -6.818,
+    "tm": 20.72
+   },
+   "seq": "AAGATAGGCTTCGTAGCCGT"
+  },
+  {
+   "hairpin": {
+    "dg": -2.051,
+    "tm": 45.74
+   },
+   "homodimer": {
+    "dg": -6.071,
+    "tm": 27.16
+   },
+   "seq": "GTGTATATTAAATCGGTGGTTTAATATACCGGAG"
+  },
+  {
+   "hairpin": {
+    "dg": -2.029,
+    "tm": 55.15
+   },
+   "homodimer": {
+    "dg": -3.228,
+    "tm": 8.78
+   },
+   "seq": "ATGAGGTCGGTTTCGACGCC"
+  },
+  {
+   "hairpin": {
+    "dg": -8.038,
+    "tm": 81.47
+   },
+   "homodimer": {
+    "dg": -17.199,
+    "tm": 51.47
+   },
+   "seq": "GCCGCCGGCCGACCAGTTCGGCCGGGA"
+  },
+  {
+   "hairpin": {
+    "dg": -5.806,
+    "tm": 71.3
+   },
+   "homodimer": {
+    "dg": -13.801,
+    "tm": 42.59
+   },
+   "seq": "TCTCAGAGCCTGACTGGCTCTGA"
+  },
+  {
+   "hairpin": {
+    "dg": -5.947,
+    "tm": 76.62
+   },
+   "homodimer": {
+    "dg": -14.39,
+    "tm": 44.91
+   },
+   "seq": "GAAAGCTACTGGCGATACTCGCCAGTCG"
+  },
+  {
+   "hairpin": {
+    "dg": -2.295,
+    "tm": 57.93
+   },
+   "homodimer": {
+    "dg": -9.791,
+    "tm": 33.51
+   },
+   "seq": "CCCCTGGGATCCTAAAGGGGATTAGGC"
+  },
+  {
+   "hairpin": {
+    "dg": -5.76,
+    "tm": 74.5
+   },
+   "homodimer": {
+    "dg": -16.304,
+    "tm": 47.98
+   },
+   "seq": "AGATGCCGCTGTATTGCGGCATCTATTG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.483,
+    "tm": 32.58
+   },
+   "homodimer": {
+    "dg": -1.467,
+    "tm": 7.17
+   },
+   "seq": "ACTATAATCTTTATAGT"
+  },
+  {
+   "hairpin": {
+    "dg": -3.353,
+    "tm": 57.25
+   },
+   "homodimer": {
+    "dg": -9.865,
+    "tm": 33.92
+   },
+   "seq": "TCTATGATGGTAATATTTACCATCAAATG"
+  },
+  {
+   "hairpin": {
+    "dg": -3.507,
+    "tm": 60.2
+   },
+   "homodimer": {
+    "dg": -8.826,
+    "tm": 30.37
+   },
+   "seq": "ACCCCCTGCTCTTCTGCGCAGGGTGT"
+  },
+  {
+   "hairpin": {
+    "dg": -6.932,
+    "tm": 75.28
+   },
+   "homodimer": {
+    "dg": -15.147,
+    "tm": 45.97
+   },
+   "seq": "CTAGTCCAGGGATCCCCCTGGACTCG"
+  },
+  {
+   "hairpin": {
+    "dg": -1.114,
+    "tm": 46.58
+   },
+   "homodimer": {
+    "dg": -4.344,
+    "tm": 16.36
+   },
+   "seq": "GGTAACCGTCGTAATACGCATACGAA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.077,
+    "tm": 35.92
+   },
+   "homodimer": {
+    "dg": -1.946,
+    "tm": -44.06
+   },
+   "seq": "TGTCTAACTCCTTTCGGA"
+  },
+  {
+   "hairpin": {
+    "dg": -4.267,
+    "tm": 60.75
+   },
+   "homodimer": {
+    "dg": -15.062,
+    "tm": 45.43
+   },
+   "seq": "GGTAGAAACAGATGACCCGGTCATCTGCGGCAG"
+  },
+  {
+   "hairpin": {
+    "dg": -6.187,
+    "tm": 62.82
+   },
+   "homodimer": {
+    "dg": -13.023,
+    "tm": 40.28
+   },
+   "seq": "GGGAAATCAAGATGCCTTGATTTCCATCCG"
+  },
+  {
+   "hairpin": {
+    "dg": -3.318,
+    "tm": 62.24
+   },
+   "homodimer": {
+    "dg": -13.635,
+    "tm": 43.36
+   },
+   "seq": "ATCGAAACAAGCAAAGCTTTGCTT"
+  },
+  {
+   "hairpin": {
+    "dg": -1.176,
+    "tm": 47.07
+   },
+   "homodimer": {
+    "dg": -2.035,
+    "tm": 12.82
+   },
+   "seq": "TCCGTTCGTGTAGGCTCGTCGCACG"
+  },
+  {
+   "hairpin": {
+    "dg": -1.592,
+    "tm": 48.22
+   },
+   "homodimer": {
+    "dg": -9.264,
+    "tm": 31.96
+   },
+   "seq": "CTGGTGCAATTAAACTGACAGTTTAA"
+  },
+  {
+   "hairpin": {
+    "dg": -1.999,
+    "tm": 49.2
+   },
+   "homodimer": {
+    "dg": -10.169,
+    "tm": 34.39
+   },
+   "seq": "AACTGGGATTTGTCCAGGAGAAATCC"
+  },
+  {
+   "hairpin": {
+    "dg": -1.559,
+    "tm": 49.78
+   },
+   "homodimer": {
+    "dg": -2.81,
+    "tm": 15.28
+   },
+   "seq": "TCAGGGGGTTTACACTGATAACCC"
+  },
+  {
+   "hairpin": {
+    "dg": -0.372,
+    "tm": 42.88
+   },
+   "homodimer": {
+    "dg": -3.274,
+    "tm": 1.88
+   },
+   "seq": "CATGCACCGCTGAAGGCAACATGCA"
+  },
+  {
+   "hairpin": {
+    "dg": -2.513,
+    "tm": 52.97
+   },
+   "homodimer": {
+    "dg": -4.829,
+    "tm": 18.79
+   },
+   "seq": "TGGTCTGAGAAATCAGCTTTATCTGATTT"
+  },
+  {
+   "hairpin": {
+    "dg": -1.833,
+    "tm": 58.31
+   },
+   "homodimer": {
+    "dg": -12.103,
+    "tm": 40.17
+   },
+   "seq": "AATGCGAGCCCAGGCGATCGCC"
+  },
+  {
+   "hairpin": {
+    "dg": -0.632,
+    "tm": 42.11
+   },
+   "homodimer": {
+    "dg": -1.465,
+    "tm": 2.46
+   },
+   "seq": "TTATACCGAATCCCAATACCATTCG"
+  },
+  {
+   "hairpin": {
+    "dg": -0.968,
+    "tm": 48.41
+   },
+   "homodimer": {
+    "dg": -3.391,
+    "tm": -0.09
+   },
+   "seq": "GTTCAGAGAACCATAATAGGGTCTG"
+  },
+  {
+   "hairpin": {
+    "dg": -1.407,
+    "tm": 53.86
+   },
+   "homodimer": {
+    "dg": -7.942,
+    "tm": 25.12
+   },
+   "seq": "CTAACAAACATAAAGGAATTCCTT"
+  },
+  {
+   "hairpin": {
+    "dg": -0.661,
+    "tm": 43.54
+   },
+   "homodimer": {
+    "dg": -3.525,
+    "tm": 5.74
+   },
+   "seq": "CGGTTTACTAACGGTTTGAACTAAAC"
+  },
+  {
+   "hairpin": {
+    "dg": -0.946,
+    "tm": 52.0
+   },
+   "homodimer": {
+    "dg": -7.228,
+    "tm": 26.35
+   },
+   "seq": "AGGAGGATTCAGGAAAGTATCCTCCT"
+  },
+  {
+   "hairpin": {
+    "dg": -0.529,
+    "tm": 44.4
+   },
+   "homodimer": {
+    "dg": -4.69,
+    "tm": -0.81
+   },
+   "seq": "ACCAACTCTGGGAAACGTGACGT"
+  },
+  {
+   "hairpin": {
+    "dg": -2.191,
+    "tm": 56.87
+   },
+   "homodimer": {
+    "dg": -4.187,
+    "tm": 9.62
+   },
+   "seq": "CATTCGGGTGCTCAAACTAGAGCA"
+  },
+  {
+   "hairpin": {
+    "dg": -2.287,
+    "tm": 58.36
+   },
+   "homodimer": {
+    "dg": -11.428,
+    "tm": 37.63
+   },
+   "seq": "ACTGTAGGACATGCTACGTAGCAT"
+  },
+  {
+   "hairpin": {
+    "dg": -1.236,
+    "tm": 47.78
+   },
+   "homodimer": {
+    "dg": -2.477,
+    "tm": 4.0
+   },
+   "seq": "GAGCTTCCTGAATAGCTC"
+  },
+  {
+   "hairpin": {
+    "dg": -0.782,
+    "tm": 41.54
+   },
+   "homodimer": {
+    "dg": -7.242,
+    "tm": 22.73
+   },
+   "seq": "GCGGGTAAGGCCTGTGAGATATCTCA"
+  },
+  {
+   "hairpin": {
+    "dg": -1.465,
+    "tm": 49.75
+   },
+   "homodimer": {
+    "dg": -2.735,
+    "tm": 5.11
+   },
+   "seq": "TATATGCGACGTAAAAGCGTC"
+  },
+  {
+   "hairpin": {
+    "dg": -3.647,
+    "tm": 71.33
+   },
+   "homodimer": {
+    "dg": -8.947,
+    "tm": 29.69
+   },
+   "seq": "ACGCCTAAGTGGCGACACTTA"
+  },
+  {
+   "hairpin": {
+    "dg": -3.611,
+    "tm": 58.59
+   },
+   "homodimer": {
+    "dg": -7.026,
+    "tm": 25.7
+   },
+   "seq": "TGGTCTACATGAACGTAGACC"
+  },
+  {
+   "hairpin": {
+    "dg": -1.402,
+    "tm": 52.76
+   },
+   "homodimer": {
+    "dg": -4.82,
+    "tm": 10.19
+   },
+   "seq": "GTAGCTATCCTCGTCCAGACG"
+  },
+  {
+   "hairpin": {
+    "dg": -2.234,
+    "tm": 54.56
+   },
+   "homodimer": {
+    "dg": -7.411,
+    "tm": 28.28
+   },
+   "seq": "GTTGTGATCCTGTTTTGCAAACAGG"
+  },
+  {
+   "hairpin": {
+    "dg": -2.481,
+    "tm": 56.32
+   },
+   "homodimer": {
+    "dg": -13.282,
+    "tm": 42.62
+   },
+   "seq": "CTAGATAGTGCTAGCTAGACGTCTAGC"
+  },
+  {
+   "hairpin": {
+    "dg": -1.7,
+    "tm": 55.63
+   },
+   "homodimer": {
+    "dg": -2.778,
+    "tm": 12.91
+   },
+   "seq": "GACGAGTAGTTGGAGTACATCCAA"
+  },
+  {
+   "hairpin": {
+    "dg": -4.426,
+    "tm": 65.32
+   },
+   "homodimer": {
+    "dg": -9.216,
+    "tm": 31.85
+   },
+   "seq": "CGGCCGTCTGCCTAGACCTCTAGGCA"
+  },
+  {
+   "hairpin": {
+    "dg": -1.371,
+    "tm": 62.11
+   },
+   "homodimer": {
+    "dg": -1.862,
+    "tm": 16.45
+   },
+   "seq": "TAAGTACCTGTAAGGCATACGTACTTA"
+  },
+  {
+   "hairpin": {
+    "dg": -2.249,
+    "tm": 60.93
+   },
+   "homodimer": {
+    "dg": -6.639,
+    "tm": 24.63
+   },
+   "seq": "GCTATATACCCTTCCCAGGGTATA"
+  },
+  {
+   "hairpin": {
+    "dg": -2.834,
+    "tm": 54.45
+   },
+   "homodimer": {
+    "dg": -6.714,
+    "tm": 23.08
+   },
+   "seq": "GGTATGGGTCGCCGCATACC"
+  },
+  {
+   "hairpin": {
+    "dg": -4.591,
+    "tm": 73.6
+   },
+   "homodimer": {
+    "dg": -8.175,
+    "tm": 27.83
+   },
+   "seq": "AGTTGCGGGTACGGGACAAGATCCCGTA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.75,
+    "tm": -38.74
+   },
+   "seq": "CTAGATCGTTGTTTTGGCACA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.3,
+    "tm": 34.1
+   },
+   "homodimer": {
+    "dg": -1.559,
+    "tm": -39.29
+   },
+   "seq": "CGGGGAAGAAATAGTGGTGGGTTTTCT"
+  },
+  {
+   "hairpin": {
+    "dg": -4.415,
+    "tm": 65.13
+   },
+   "homodimer": {
+    "dg": -12.089,
+    "tm": 38.79
+   },
+   "seq": "TCGTGTCGCGTCCAGGGGCGACAC"
+  },
+  {
+   "hairpin": {
+    "dg": -0.299,
+    "tm": 41.69
+   },
+   "homodimer": {
+    "dg": -2.185,
+    "tm": -49.36
+   },
+   "seq": "AGAAATTATACGCATCTCGGAAAT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.348,
+    "tm": -51.53
+   },
+   "seq": "TCATACACACAGCTTATG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -5.768,
+    "tm": 11.8
+   },
+   "seq": "TTGGACAGAAACGTTTTGAAC"
+  },
+  {
+   "hairpin": {
+    "dg": -1.509,
+    "tm": 52.4
+   },
+   "homodimer": {
+    "dg": -14.526,
+    "tm": 48.01
+   },
+   "seq": "AATATTTGCGGCCGCAACGAGGG"
+  },
+  {
+   "hairpin": {
+    "dg": -1.926,
+    "tm": 56.92
+   },
+   "homodimer": {
+    "dg": -14.197,
+    "tm": 46.63
+   },
+   "seq": "GTCTTCTTAATCGGCGCCGATCGCTA"
+  },
+  {
+   "hairpin": {
+    "dg": -2.035,
+    "tm": 52.22
+   },
+   "homodimer": {
+    "dg": -12.714,
+    "tm": 40.76
+   },
+   "seq": "AGGGATGATGTGCACATCAGCGATGC"
+  },
+  {
+   "hairpin": {
+    "dg": -1.915,
+    "tm": 54.23
+   },
+   "homodimer": {
+    "dg": -12.503,
+    "tm": 41.7
+   },
+   "seq": "CCCGGGTCGCCGCGGCAGAAGTT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -5.359,
+    "tm": 13.61
+   },
+   "seq": "AATGTATCATGATATCG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.101,
+    "tm": 35.91
+   },
+   "homodimer": {
+    "dg": -8.714,
+    "tm": 28.66
+   },
+   "seq": "GGTATAGTCAATGCATTGTTAG"
+  },
+  {
+   "hairpin": {
+    "dg": -1.474,
+    "tm": 48.25
+   },
+   "homodimer": {
+    "dg": -9.169,
+    "tm": 31.47
+   },
+   "seq": "CAATCCCACCGATATTAATATCGCTATACGG"
+  },
+  {
+   "hairpin": {
+    "dg": -1.941,
+    "tm": 56.83
+   },
+   "homodimer": {
+    "dg": -14.399,
+    "tm": 45.74
+   },
+   "seq": "CCCGTTCGCCGCGGCGCACTC"
+  },
+  {
+   "hairpin": {
+    "dg": -0.382,
+    "tm": 46.4
+   },
+   "homodimer": {
+    "dg": -9.61,
+    "tm": 29.43
+   },
+   "seq": "TGGTAACAACGCGCGCCACCTT"
+  },
+  {
+   "hairpin": {
+    "dg": -4.645,
+    "tm": 68.9
+   },
+   "homodimer": {
+    "dg": -16.127,
+    "tm": 49.5
+   },
+   "seq": "GACGTCTGCGAATTCGCAGAGATGT"
+  },
+  {
+   "hairpin": {
+    "dg": -4.524,
+    "tm": 72.1
+   },
+   "homodimer": {
+    "dg": -22.018,
+    "tm": 64.02
+   },
+   "seq": "GGGTATGCGGCCGGCCGCATCACTCCTA"
+  },
+  {
+   "hairpin": {
+    "dg": -2.639,
+    "tm": 64.13
+   },
+   "homodimer": {
+    "dg": -4.423,
+    "tm": 18.96
+   },
+   "seq": "GGACCACAATTGGTGGGC"
+  },
+  {
+   "hairpin": {
+    "dg": -0.056,
+    "tm": 37.63
+   },
+   "homodimer": {
+    "dg": -10.032,
+    "tm": 34.03
+   },
+   "seq": "GGGAATCATTCGGCCGAATCCAT"
+  },
+  {
+   "hairpin": {
+    "dg": -3.04,
+    "tm": 59.0
+   },
+   "homodimer": {
+    "dg": -14.774,
+    "tm": 46.21
+   },
+   "seq": "TGGATTTCGATGTGTCATGACACATGATCC"
+  },
+  {
+   "hairpin": {
+    "dg": -3.04,
+    "tm": 59.0
+   },
+   "homodimer": {
+    "dg": -12.398,
+    "tm": 39.99
+   },
+   "seq": "AGTCCAGCAAGCTATAGCTTGTAGAGGT"
+  },
+  {
+   "hairpin": {
+    "dg": -2.935,
+    "tm": 59.95
+   },
+   "homodimer": {
+    "dg": -15.255,
+    "tm": 46.99
+   },
+   "seq": "TCGCCGACGCATGAGCTCATGCATATC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.608,
+    "tm": 30.65
+   },
+   "homodimer": {
+    "dg": -6.162,
+    "tm": 19.71
+   },
+   "seq": "CGAACTTTAGTACTAAATAATCCATG"
+  },
+  {
+   "hairpin": {
+    "dg": -2.427,
+    "tm": 60.55
+   },
+   "homodimer": {
+    "dg": -12.148,
+    "tm": 39.73
+   },
+   "seq": "TCCCCCTGGCTAGCTAGCCGTA"
+  },
+  {
+   "hairpin": {
+    "dg": -1.435,
+    "tm": 47.74
+   },
+   "homodimer": {
+    "dg": -8.966,
+    "tm": 31.04
+   },
+   "seq": "TCCAGTACGAATTCTAATTAGAATTATGC"
+  },
+  {
+   "hairpin": {
+    "dg": -0.742,
+    "tm": 43.96
+   },
+   "homodimer": {
+    "dg": -8.607,
+    "tm": 31.2
+   },
+   "seq": "CATGCGCACCATCTCGAGATGCATG"
+  },
+  {
+   "hairpin": {
+    "dg": -3.096,
+    "tm": 62.4
+   },
+   "homodimer": {
+    "dg": -16.452,
+    "tm": 47.2
+   },
+   "seq": "GAAGAACGACCCTTCGCGAAGGGCGCT"
+  },
+  {
+   "hairpin": {
+    "dg": -3.354,
+    "tm": 61.68
+   },
+   "homodimer": {
+    "dg": -13.076,
+    "tm": 40.26
+   },
+   "seq": "CTCGAGCACTATATAGTGCGTGTCGAGT"
+  },
+  {
+   "hairpin": {
+    "dg": -2.191,
+    "tm": 59.2
+   },
+   "homodimer": {
+    "dg": -17.823,
+    "tm": 50.83
+   },
+   "seq": "CCCCGAGACCCATGGGTCTCTGGA"
+  },
+  {
+   "hairpin": {
+    "dg": -2.764,
+    "tm": 65.36
+   },
+   "homodimer": {
+    "dg": -14.673,
+    "tm": 48.37
+   },
+   "seq": "AGACCGCCCCGCGGGGTTGCACTGC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -4.096,
+    "tm": -7.96
+   },
+   "seq": "CTTAGTTATAAAAGCTTCC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.789,
+    "tm": -9.15
+   },
+   "seq": "AAAACTTAGTTATAAAC"
+  },
+  {
+   "hairpin": {
+    "dg": -0.147,
+    "tm": 41.41
+   },
+   "homodimer": {
+    "dg": -2.07,
+    "tm": -56.17
+   },
+   "seq": "ATAGGATACAAAAAGTGCCC"
+  },
+  {
+   "hairpin": {
+    "dg": -0.358,
+    "tm": 46.39
+   },
+   "homodimer": {
+    "dg": -3.628,
+    "tm": -30.65
+   },
+   "seq": "AAAAAATAGGATACGAAT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.462,
+    "tm": 30.42
+   },
+   "homodimer": {
+    "dg": -4.739,
+    "tm": -3.44
+   },
+   "seq": "TTGTCCGGTAAAAAAGCACCA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -4.739,
+    "tm": -3.44
+   },
+   "seq": "AAAAAATTGTCCGGTGTAT"
+  },
+  {
+   "hairpin": {
+    "dg": -1.286,
+    "tm": 49.38
+   },
+   "homodimer": {
+    "dg": -3.935,
+    "tm": 9.75
+   },
+   "seq": "GGCTCCGTAAAAAAAAACGGTCT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.717,
+    "tm": -34.43
+   },
+   "seq": "AAAAAAAAGGCTCCGTACAGT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.106,
+    "tm": -36.37
+   },
+   "seq": "CTGATACTACCCCGCACCT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -0.417,
+    "tm": -77.31
+   },
+   "seq": "CCCCCTGATACTACTCA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -0.444,
+    "tm": -72.28
+   },
+   "seq": "TCTTCACTCCCCCCAATTTA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": 1.418,
+    "tm": -369.73
+   },
+   "seq": "CCCCCTCTTCACTCCCTC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -1.729,
+    "tm": -55.85
+   },
+   "seq": "TACACCAGCCCCCCCAACACT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -4.551,
+    "tm": -7.68
+   },
+   "seq": "CCCCCCTACACCAGCCGCG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.619,
+    "tm": -46.33
+   },
+   "seq": "CCTAATATGCCCCCCCCGAGAAG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -5.461,
+    "tm": 6.93
+   },
+   "seq": "CCCCCCCCCCTAATATGCATG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.526,
+    "tm": -34.13
+   },
+   "seq": "CTTTCGTTCGGGGGGCATT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.057,
+    "tm": -39.86
+   },
+   "seq": "GGGGCTTTCGTTCCTAT"
+  },
+  {
+   "hairpin": {
+    "dg": -0.171,
+    "tm": 39.37
+   },
+   "homodimer": {
+    "dg": -5.672,
+    "tm": 4.15
+   },
+   "seq": "CCCATAACCGGGGGGCATTC"
+  },
+  {
+   "hairpin": {
+    "dg": -2.057,
+    "tm": 57.1
+   },
+   "homodimer": {
+    "dg": -8.471,
+    "tm": 23.69
+   },
+   "seq": "GGGGGCCCATAACCCCTC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.282,
+    "tm": 32.03
+   },
+   "homodimer": {
+    "dg": -5.192,
+    "tm": -1.42
+   },
+   "seq": "AGCATCACCGGGGGGGAAGTT"
+  },
+  {
+   "hairpin": {
+    "dg": -1.46,
+    "tm": 61.97
+   },
+   "homodimer": {
+    "dg": -2.428,
+    "tm": -4.3
+   },
+   "seq": "GGGGGGAGCATCACCAGCG"
+  },
+  {
+   "hairpin": {
+    "dg": -0.218,
+    "tm": 39.54
+   },
+   "homodimer": {
+    "dg": -3.142,
+    "tm": -20.6
+   },
+   "seq": "CCAACACAGGGGGGGGGTGTCGG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -5.499,
+    "tm": 2.18
+   },
+   "seq": "GGGGGGGGCCAACACAGTAAT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -3.738,
+    "tm": -26.93
+   },
+   "seq": "AATTAGCTTTTTTTGCCCA"
+  },
+  {
+   "hairpin": {
+    "dg": -0.151,
+    "tm": 38.44
+   },
+   "homodimer": {
+    "dg": -3.738,
+    "tm": -26.93
+   },
+   "seq": "TTTTAATTAGCTTAATT"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.7,
+    "tm": -30.18
+   },
+   "seq": "TTCAGTCATTTTTTCACGGA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.296,
+    "tm": 32.52
+   },
+   "homodimer": {
+    "dg": -3.521,
+    "tm": -15.0
+   },
+   "seq": "TTTTTTTCAGTCATGAGG"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -1.12,
+    "tm": -78.56
+   },
+   "seq": "CGTCCACCATTTTTTCTCAGC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.178,
+    "tm": 33.74
+   },
+   "homodimer": {
+    "dg": -2.703,
+    "tm": -19.77
+   },
+   "seq": "TTTTTTCGTCCACCAGGGC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -0.756,
+    "tm": -64.19
+   },
+   "seq": "AATTGTCACTTTTTTTTTGGAAA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": -2.15,
+    "tm": -26.24
+   },
+   "seq": "TTTTTTTTAATTGTCACTAAA"
+  },
+  {
+   "hairpin": {
+    "dg": -5.718,
+    "tm": 67.02
+   },
+   "homodimer": {
+    "dg": -19.137,
+    "tm": 54.86
+   },
+   "seq": "ACGTACGTACGTACGTACGT"
+  },
+  {
+   "hairpin": {
+    "dg": -0.024,
+    "tm": 37.16
+   },
+   "homodimer": {
+    "dg": -5.489,
+    "tm": 25.98
+   },
+   "seq": "ATATATATATATATATATAT"
+  },
+  {
+   "hairpin": {
+    "dg": -8.995,
+    "tm": 84.12
+   },
+   "homodimer": {
+    "dg": -29.622,
+    "tm": 75.91
+   },
+   "seq": "GCGCGCGCGCGCGCGCGC"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "seq": "AAAAAAAAAAAAAAAAAAAA"
+  },
+  {
+   "hairpin": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "homodimer": {
+    "dg": 0.0,
+    "tm": 0.0
+   },
+   "seq": "GGGGGGGGGGGGGGGGGGGG"
+  },
+  {
+   "hairpin": {
+    "dg": -2.341,
+    "tm": 55.68
+   },
+   "homodimer": {
+    "dg": -13.142,
+    "tm": 43.32
+   },
+   "seq": "GAATTCGAATTCGAATTC"
+  },
+  {
+   "hairpin": {
+    "dg": -6.594,
+    "tm": 78.56
+   },
+   "homodimer": {
+    "dg": -16.514,
+    "tm": 50.11
+   },
+   "seq": "CCCGGGAAAATTTCCCGGG"
+  },
+  {
+   "hairpin": {
+    "dg": -2.651,
+    "tm": 56.1
+   },
+   "homodimer": {
+    "dg": -5.106,
+    "tm": 17.53
+   },
+   "seq": "GGATCCTTTTTTGGATCC"
+  }
+ ]
+}

@@ -53,6 +53,7 @@ import digest
 import editing
 import fastq
 import gateway
+import hairpindimer
 import pcr
 import thermo
 
@@ -501,6 +502,7 @@ def main():
     snapgene()
     abif()
     write('thermo.json', thermo.generate())
+    write('hairpinDimer.json', hairpindimer.generate())
     write('pcr.json', pcr.generate())
     write('assembly.json', assembly.generate())
     write('digest.json', digest.generate())
