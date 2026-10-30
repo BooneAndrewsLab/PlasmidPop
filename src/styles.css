@@ -1798,6 +1798,27 @@ button {
   white-space: nowrap;
 }
 
+/* A button that deletes from the document, apart from those that only
+   change the view (#316): the danger colour, as Remove feature in the
+   editor has, and a danger outline when pointed at or focused. */
+.feature-item__remove {
+  color: var(--danger);
+}
+
+.feature-item__remove:hover:not(:disabled),
+.feature-item__remove:focus-visible {
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+  background: var(--danger-surface);
+}
+
+/* Between a view action and a removal in a group notice (#316). */
+.feature-item__divider {
+  flex: 1 0 100%;
+  height: 1px;
+  margin: 3px 0;
+  background: var(--line);
+}
+
 .feature-item__bulk-type {
   min-width: 0;
   overflow: hidden;

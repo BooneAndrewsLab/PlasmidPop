@@ -209,10 +209,13 @@ function GroupNotice({
               Show only this transcript
             </button>
           )}
+          {others !== null && gene !== undefined && gene !== '' && (
+            <span className="feature-item__divider" aria-hidden="true" />
+          )}
           {others !== null && (
             <button
               type="button"
-              className="button button--quiet button--small feature-item__bulk"
+              className="button button--quiet button--small feature-item__bulk feature-item__remove"
               data-tip={`Keep this one and remove the others from the document; Undo puts them back${group.kind === 'transcripts' ? '. Their CDSs and peptides stay.' : ''}`}
               onClick={() => {
                 editorStore.apply(others);
@@ -283,12 +286,16 @@ export function FeatureList({ doc, reader = false }: Props) {
     [doc, transcriptPicks],
   );
   const listed = plan.hidden.size === 0 ? features : features.filter((f) => !plan.hidden.has(f.id));
-  // How many features each type has, for Remove all (#316).
+  // How many features of each type the list shows, for Remove all (#316):
+  // with a transcript picked, what the pick leaves out is neither counted
+  // nor removed.
   const typeCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const f of doc.features) counts.set(f.type, (counts.get(f.type) ?? 0) + 1);
+    for (const f of listed) counts.set(f.type, (counts.get(f.type) ?? 0) + 1);
     return counts;
-  }, [doc]);
+    // `listed` follows the document and the plan.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc, plan]);
   // Which features the views draw as one (item 115), for the notice under a selected member.
   const groupOf = useMemo(
     () =>
@@ -473,7 +480,7 @@ export function FeatureList({ doc, reader = false }: Props) {
                     </button>
                     <button
                       type="button"
-                      className="button button--quiet button--small"
+                      className="button button--quiet button--small feature-item__remove"
                       onClick={() => {
                         editorStore.apply({ type: 'removeFeature', id: f.id });
                       }}
@@ -483,10 +490,10 @@ export function FeatureList({ doc, reader = false }: Props) {
                     {(typeCounts.get(f.type) ?? 0) > 1 && (
                       <button
                         type="button"
-                        className="button button--quiet button--small feature-item__bulk"
-                        data-tip={`Remove every ${f.type} feature from the document, hidden ones too; Undo puts them back`}
+                        className="button button--quiet button--small feature-item__bulk feature-item__remove"
+                        data-tip={`Remove every ${f.type} feature listed here, hidden types included; Undo puts them back`}
                         onClick={() => {
-                          const op = removeTypeOp(doc, f.type);
+                          const op = removeTypeOp(doc, f.type, listed);
                           if (op !== null) editorStore.apply(op);
                         }}
                       >

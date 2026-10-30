@@ -320,6 +320,71 @@ describe('grouped features (#308)', () => {
     });
   });
 
+  it('removes all of a type as the list shows it while a transcript is picked (#316)', () => {
+    const ins = SeqDocument.create({
+      sequence: 'A'.repeat(INS_LENGTH),
+      features: insShapedRecord(),
+    });
+    const mrnas = (): string[] =>
+      (editorStore.document?.features.all() ?? [])
+        .filter((f) => f.type === 'mRNA')
+        .map((f) => f.id);
+    act(() => {
+      editorStore.setTranscriptPicks(new Map());
+      editorStore.openDocument(ins);
+      editorStore.selectFeature('m-1');
+    });
+    const view = render(<FeatureList doc={ins} />);
+    const rerender = (): void => {
+      view.rerender(<FeatureList doc={editorStore.document ?? ins} />);
+    };
+    // No pick: every mRNA counts.
+    expect(screen.getByRole('button', { name: 'Remove all 5 mRNA' })).toBeInTheDocument();
+    const all = mrnas();
+    act(() => {
+      editorStore.pickTranscript('INS', 'NM_000207.3');
+    });
+    // Picked: the list shows INS variant 1 and the readthrough, and so does the count.
+    expect(screen.getByRole('button', { name: 'Remove all 2 mRNA' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove all 2 mRNA' }));
+    rerender();
+    expect(mrnas()).toEqual(all.filter((id) => id !== 'm-1' && id !== 'm-rt'));
+    expect(editorStore.getState().history?.undoLabel).toBe('Remove 2 mRNA features');
+    act(() => {
+      editorStore.undo();
+    });
+    rerender();
+    expect(mrnas()).toEqual(all);
+    act(() => {
+      editorStore.closeDocument();
+      editorStore.restoreLastTranscriptPicks([]);
+    });
+  });
+
+  it('marks the removals apart from the view actions in a group notice (#316)', () => {
+    const ins = SeqDocument.create({
+      sequence: 'A'.repeat(INS_LENGTH),
+      features: insShapedRecord(),
+    });
+    act(() => {
+      editorStore.setTranscriptPicks(new Map());
+      editorStore.openDocument(ins);
+      editorStore.selectFeature('m-1');
+    });
+    render(<FeatureList doc={ins} />);
+    const show = screen.getByRole('button', { name: 'Show only this transcript' });
+    const others = screen.getByRole('button', { name: 'Remove the other 3 transcripts' });
+    expect(show).not.toHaveClass('feature-item__remove');
+    expect(others).toHaveClass('feature-item__remove');
+    expect(screen.getByRole('button', { name: 'Remove all 5 mRNA' })).toHaveClass(
+      'feature-item__remove',
+    );
+    expect(screen.getByRole('button', { name: 'Remove' })).toHaveClass('feature-item__remove');
+    act(() => {
+      editorStore.closeDocument();
+    });
+  });
+
   it('shows one transcript of a gene, its rows alone, and brings the rest back (item 119)', () => {
     const ins = SeqDocument.create({
       sequence: 'A'.repeat(INS_LENGTH),

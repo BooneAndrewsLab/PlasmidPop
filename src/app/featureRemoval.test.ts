@@ -77,6 +77,29 @@ describe('removeTypeOp (#316)', () => {
     expect(removeTypeOp(doc, 'tRNA')).toBeNull();
     expect(featuresOfType(doc, 'CDS').map((f) => f.id)).toEqual(['cds1', 'cds2']);
   });
+
+  it('takes only the listed features when given them: a transcript pick hides the rest (#316)', () => {
+    const listed = doc.features.all().filter((f) => f.id !== 'm2' && f.id !== 'm3');
+    expect(featuresOfType(doc, 'mRNA', listed).map((f) => f.id)).toEqual(['m1', 'm4']);
+    const op = removeTypeOp(doc, 'mRNA', listed);
+    expect(op).toEqual({
+      type: 'removeFeatures',
+      ids: ['m1', 'm4'],
+      label: 'Remove 2 mRNA features',
+    });
+    expect(ids(apply(doc, op))).toEqual([
+      'src',
+      'gene',
+      'cds1',
+      'sig1',
+      'm2',
+      'cds2',
+      'sig2',
+      'm3',
+      'site',
+    ]);
+    expect(removeTypeOp(doc, 'tRNA', listed)).toBeNull();
+  });
 });
 
 describe('removeOtherMembersOp (#316)', () => {

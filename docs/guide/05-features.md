@@ -125,11 +125,16 @@ so the file you save no longer matches the NCBI record, and **Undo** takes
 it back in one step.
 
 - **Remove all N _type_**, under the selected feature, removes every
-  feature of its type.
+  feature of its type. While a transcript is picked, Remove all counts only
+  what the list shows: the gene's other transcripts, left out of the list,
+  are neither counted nor removed.
 - Under a member of a grouped bar or row, the note listing the group has
   **Remove the other transcripts** (for a gene's mRNA variants: keeps the
   selected one, removes the gene's other mRNAs) or **Remove the other
   copies** (for features on the same bases: keeps the selected one).
+
+The buttons that remove are in red, apart from **Show only this
+transcript**, which changes only what the views draw.
 
 Removing the other transcripts removes only those mRNAs. Their CDSs and
 peptides stay, as nothing in the record says which CDS belongs to which

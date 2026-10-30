@@ -8,18 +8,34 @@ import { type FeatureGroup, featureLabel } from '@/view/featureGroups';
  * already does on its own (Remove), and is null when there is nothing to do.
  */
 
-/** Every feature of `type` in the document, hidden or drawn, in document order. */
-export function featuresOfType(doc: SeqDocument, type: string): Feature[] {
-  return doc.features.all().filter((f) => f.type === type);
+/**
+ * Every feature of `type` in the document, hidden or drawn, in document
+ * order; or, given `listed`, every one of those (#316): while a transcript
+ * is picked (item 119) the Features list leaves the gene's other variants
+ * out, and a bulk removal must take what the list shows, not what it hides.
+ */
+export function featuresOfType(
+  doc: SeqDocument,
+  type: string,
+  listed: readonly Feature[] = doc.features.all(),
+): Feature[] {
+  return listed.filter((f) => f.type === type);
 }
 
 function plural(n: number, one: string, many: string): string {
   return `${n.toLocaleString()} ${n === 1 ? one : many}`;
 }
 
-/** Removes every feature of `type`: `Remove 14 mRNA features`. Null when it has none. */
-export function removeTypeOp(doc: SeqDocument, type: string): EditOp | null {
-  const ids = featuresOfType(doc, type).map((f) => f.id);
+/**
+ * Removes every feature of `type` (of `listed`, when given; see
+ * `featuresOfType`): `Remove 14 mRNA features`. Null when it has none.
+ */
+export function removeTypeOp(
+  doc: SeqDocument,
+  type: string,
+  listed?: readonly Feature[],
+): EditOp | null {
+  const ids = featuresOfType(doc, type, listed).map((f) => f.id);
   if (ids.length === 0) return null;
   return {
     type: 'removeFeatures',

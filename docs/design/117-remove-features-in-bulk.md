@@ -34,6 +34,11 @@ type)` and `removeOtherMembersOp(group, keepId)`, pure and null when there
   - **Remove the other transcript(s) / copy (copies)**, in the notice under a
     member of a group the views draw as one (item 115).
   - Both say how many go on the button, and the Undo tip names it again.
+  - The buttons that delete (these two and the row's Remove) carry
+    `.feature-item__remove`: the danger colour of the editor's Remove
+    feature, with a danger outline on hover and focus, so they read apart
+    from **Show only this transcript** (item 119), a view change with the
+    same quiet button; a thin rule separates the two in the group notice.
     No confirmation dialog: one Undo takes it back, as it does Remove, and
     no edit in the app asks first.
     Not in the phone reader, which never edits (its list has no Remove
@@ -41,9 +46,13 @@ type)` and `removeOtherMembersOp(group, keepId)`, pure and null when there
 
 ## What each removes, exactly
 
-- **Of a type**: every feature whose type is that type, in the whole
-  document, including features of a type hidden in the views (item 109;
-  they are listed in the Features tab, which is where the command is).
+- **Of a type**: every feature of that type the Features list shows,
+  including features of a type hidden in the views (item 109; they are
+  listed in the Features tab, which is where the command is). With no
+  transcript picked that is the whole document. While one is picked (item 119) the list leaves out the gene's other variants, and the count and the
+  ids follow the list (`featuresOfType(doc, type, listed)`): at first the
+  button counted and removed the hidden ones too (INS picked, two mRNAs
+  listed, "Remove all 5 mRNA"), removing rows the user could not see.
 - **Of a variant**: a transcript variant is what item 115 groups, a gene's
   mRNA (by `/gene` and strand). The command keeps the selected variant and
   removes the gene's other mRNAs — only those. Removing one variant is the
