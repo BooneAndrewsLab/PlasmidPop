@@ -32,21 +32,67 @@
       149,
       173
      ],
-     "penalty": 3.102,
+     "penalty": 3.797,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 3.017,
       "leftTm": 59.98,
       "passes": true,
-      "penalty": 3.044,
-      "rightGc": 57.1,
-      "rightPenalty": 0.027,
-      "rightTm": 60.03
+      "penalty": 8.122,
+      "rightGc": 50.0,
+      "rightPenalty": 5.105,
+      "rightTm": 60.11
      },
-     "rev": "TTTCTCAACACGGTGCTCCCC",
+     "rev": "GCACCCTGCTTCTCTCTGAATTATCG",
      "right": [
-      649,
-      670
+      732,
+      758
+     ]
+    },
+    {
+     "fwd": "ACGTCAAAAGTCCCGAACTTCCC",
+     "left": [
+      159,
+      182
+     ],
+     "penalty": 3.811,
+     "primer3": {
+      "leftGc": 52.2,
+      "leftPenalty": 2.038,
+      "leftTm": 60.04,
+      "passes": true,
+      "penalty": 3.327,
+      "rightGc": 54.5,
+      "rightPenalty": 1.289,
+      "rightTm": 60.29
+     },
+     "rev": "ATGGACGCTAACAATCGGCAGG",
+     "right": [
+      797,
+      819
+     ]
+    },
+    {
+     "fwd": "ACGTCAAAAGTCCCGAACTTCCC",
+     "left": [
+      159,
+      182
+     ],
+     "penalty": 3.849,
+     "primer3": {
+      "leftGc": 52.2,
+      "leftPenalty": 2.038,
+      "leftTm": 60.04,
+      "passes": true,
+      "penalty": 2.267,
+      "rightGc": 57.1,
+      "rightPenalty": 0.229,
+      "rightTm": 60.23
+     },
+     "rev": "TGGACGCTAACAATCGGCAGG",
+     "right": [
+      797,
+      818
      ]
     },
     {
@@ -55,7 +101,7 @@
       149,
       173
      ],
-     "penalty": 3.166,
+     "penalty": 3.877,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 3.017,
@@ -78,7 +124,7 @@
       149,
       173
      ],
-     "penalty": 3.205,
+     "penalty": 3.916,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 3.017,
@@ -93,52 +139,6 @@
      "right": [
       797,
       818
-     ]
-    },
-    {
-     "fwd": "TTCAACCAGTCACGTCAAAAGTCCC",
-     "left": [
-      148,
-      173
-     ],
-     "penalty": 3.433,
-     "primer3": {
-      "leftGc": 48.0,
-      "leftPenalty": 4.216,
-      "leftTm": 60.22,
-      "passes": true,
-      "penalty": 5.506,
-      "rightGc": 54.5,
-      "rightPenalty": 1.289,
-      "rightTm": 60.29
-     },
-     "rev": "ATGGACGCTAACAATCGGCAGG",
-     "right": [
-      797,
-      819
-     ]
-    },
-    {
-     "fwd": "TCAACCAGTCACGTCAAAAGTCCC",
-     "left": [
-      149,
-      173
-     ],
-     "penalty": 3.468,
-     "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 3.017,
-      "leftTm": 59.98,
-      "passes": true,
-      "penalty": 4.307,
-      "rightGc": 54.5,
-      "rightPenalty": 1.29,
-      "rightTm": 60.29
-     },
-     "rev": "TTTTCTCAACACGGTGCTCCCC",
-     "right": [
-      649,
-      671
      ]
     }
    ],
@@ -232,40 +232,12 @@
    "name": "t01",
    "ours": [
     {
-     "fwd": "GGTTTACCGTATGTCAGCTTCCTCG",
-     "left": [
-      721,
-      746
-     ],
-     "penalty": 3.85,
-     "primer3": {
-      "explain": {
-       "left": "considered 1, ok 1",
-       "pair": "considered 0, ok 0",
-       "right": "considered 1, high hairpin stability 1, ok 0"
-      },
-      "leftGc": 52.0,
-      "leftPenalty": 4.048,
-      "leftTm": 60.05,
-      "passes": false,
-      "penalty": 5.146,
-      "rightGc": 54.5,
-      "rightPenalty": 1.098,
-      "rightTm": 60.1
-     },
-     "rev": "TTGAACGCGGGAACCACAGTAG",
-     "right": [
-      1278,
-      1300
-     ]
-    },
-    {
      "fwd": "GGGTTTACCGTATGTCAGCTTCCTC",
      "left": [
       720,
       745
      ],
-     "penalty": 3.905,
+     "penalty": 4.562,
      "primer3": {
       "leftGc": 52.0,
       "leftPenalty": 4.236,
@@ -288,7 +260,7 @@
       721,
       746
      ],
-     "penalty": 3.939,
+     "penalty": 4.595,
      "primer3": {
       "leftGc": 52.0,
       "leftPenalty": 4.048,
@@ -311,54 +283,67 @@
       720,
       745
      ],
-     "penalty": 3.987,
+     "penalty": 4.603,
      "primer3": {
-      "explain": {
-       "left": "considered 1, ok 1",
-       "pair": "considered 0, ok 0",
-       "right": "considered 1, high hairpin stability 1, ok 0"
-      },
       "leftGc": 52.0,
       "leftPenalty": 4.236,
       "leftTm": 59.76,
-      "passes": false,
-      "penalty": 4.407,
-      "rightGc": 57.1,
-      "rightPenalty": 0.171,
-      "rightTm": 59.83
+      "passes": true,
+      "penalty": 7.949,
+      "rightGc": 50.0,
+      "rightPenalty": 3.713,
+      "rightTm": 59.29
      },
-     "rev": "TGAACGCGGGAACCACAGTAG",
+     "rev": "ACGTTCGTCTCCGCCTATTACTTC",
      "right": [
-      1278,
-      1299
+      1149,
+      1173
      ]
     },
     {
-     "fwd": "GTAGCGTCGAACGTAGACCGAAG",
+     "fwd": "AGTGGGTTTACCGTATGTCAGCTTC",
      "left": [
-      674,
-      697
+      717,
+      742
      ],
-     "penalty": 4.012,
+     "penalty": 4.603,
      "primer3": {
-      "explain": {
-       "left": "considered 1, ok 1",
-       "pair": "considered 0, ok 0",
-       "right": "considered 1, high hairpin stability 1, ok 0"
-      },
-      "leftGc": 56.5,
-      "leftPenalty": 2.103,
-      "leftTm": 60.1,
-      "passes": false,
-      "penalty": 3.201,
-      "rightGc": 54.5,
-      "rightPenalty": 1.098,
-      "rightTm": 60.1
+      "leftGc": 48.0,
+      "leftPenalty": 4.581,
+      "leftTm": 59.42,
+      "passes": true,
+      "penalty": 8.294,
+      "rightGc": 50.0,
+      "rightPenalty": 3.713,
+      "rightTm": 59.29
      },
-     "rev": "TTGAACGCGGGAACCACAGTAG",
+     "rev": "ACGTTCGTCTCCGCCTATTACTTC",
      "right": [
-      1278,
-      1300
+      1149,
+      1173
+     ]
+    },
+    {
+     "fwd": "TGGGTTTACCGTATGTCAGCTTCC",
+     "left": [
+      719,
+      743
+     ],
+     "penalty": 4.603,
+     "primer3": {
+      "leftGc": 50.0,
+      "leftPenalty": 3.613,
+      "leftTm": 59.39,
+      "passes": true,
+      "penalty": 7.326,
+      "rightGc": 50.0,
+      "rightPenalty": 3.713,
+      "rightTm": 59.29
+     },
+     "rev": "ACGTTCGTCTCCGCCTATTACTTC",
+     "right": [
+      1149,
+      1173
      ]
     }
    ],
@@ -452,143 +437,118 @@
    "name": "t02",
    "ours": [
     {
-     "fwd": "AGGATACGCGAAGCAGTGTGG",
+     "fwd": "TCTCGCAATGCACTAACTCTCGG",
      "left": [
-      975,
-      996
+      943,
+      966
      ],
-     "penalty": 4.004,
+     "penalty": 4.326,
      "primer3": {
-      "explain": {
-       "left": "considered 1, high hairpin stability 1, ok 0",
-       "pair": "considered 0, ok 0",
-       "right": "considered 1, ok 1"
-      },
-      "leftGc": 57.1,
-      "leftPenalty": 0.037,
-      "leftTm": 59.96,
-      "passes": false,
-      "penalty": 2.123,
-      "rightGc": 52.2,
-      "rightPenalty": 2.086,
-      "rightTm": 59.91
-     },
-     "rev": "AGCAGAAGTGCCGGGACAAATAG",
-     "right": [
-      1586,
-      1609
-     ]
-    },
-    {
-     "fwd": "CTAACTCTCGGCGACGGACAAG",
-     "left": [
-      955,
-      977
-     ],
-     "penalty": 4.097,
-     "primer3": {
-      "explain": {
-       "left": "considered 1, high hairpin stability 1, ok 0",
-       "pair": "considered 0, ok 0",
-       "right": "considered 1, ok 1"
-      },
-      "leftGc": 59.1,
-      "leftPenalty": 1.037,
-      "leftTm": 60.04,
-      "passes": false,
-      "penalty": 2.327,
-      "rightGc": 59.1,
-      "rightPenalty": 1.29,
-      "rightTm": 60.29
-     },
-     "rev": "GCGGGGTAGCCATTGGAGTAAC",
-     "right": [
-      1644,
-      1666
-     ]
-    },
-    {
-     "fwd": "CTCGGCGACGGACAAGGATAC",
-     "left": [
-      961,
-      982
-     ],
-     "penalty": 4.175,
-     "primer3": {
-      "explain": {
-       "left": "considered 1, high hairpin stability 1, ok 0",
-       "pair": "considered 0, ok 0",
-       "right": "considered 1, ok 1"
-      },
-      "leftGc": 61.9,
-      "leftPenalty": 0.097,
-      "leftTm": 60.1,
-      "passes": false,
-      "penalty": 2.183,
-      "rightGc": 52.2,
-      "rightPenalty": 2.086,
-      "rightTm": 59.91
-     },
-     "rev": "AGCAGAAGTGCCGGGACAAATAG",
-     "right": [
-      1586,
-      1609
-     ]
-    },
-    {
-     "fwd": "ATACGCGAAGCAGTGTGGAGAAC",
-     "left": [
-      978,
-      1001
-     ],
-     "penalty": 4.213,
-     "primer3": {
-      "explain": {
-       "left": "considered 1, high hairpin stability 1, ok 0",
-       "pair": "considered 0, ok 0",
-       "right": "considered 1, ok 1"
-      },
       "leftGc": 52.2,
-      "leftPenalty": 2.222,
-      "leftTm": 60.22,
-      "passes": false,
-      "penalty": 4.382,
-      "rightGc": 56.5,
-      "rightPenalty": 2.161,
-      "rightTm": 60.16
+      "leftPenalty": 2.264,
+      "leftTm": 59.74,
+      "passes": true,
+      "penalty": 4.347,
+      "rightGc": 52.2,
+      "rightPenalty": 2.083,
+      "rightTm": 59.92
      },
-     "rev": "CCCAAGACCTTAGCAGAAGTGCC",
+     "rev": "ACCTCTTCGAATCAAGGCGACAC",
      "right": [
-      1597,
-      1620
+      1541,
+      1564
      ]
     },
     {
-     "fwd": "CTCGGCGACGGACAAGGATAC",
+     "fwd": "TCTCGCAATGCACTAACTCTCGG",
      "left": [
-      961,
-      982
+      943,
+      966
      ],
-     "penalty": 4.228,
+     "penalty": 4.561,
      "primer3": {
-      "explain": {
-       "left": "considered 1, high hairpin stability 1, ok 0",
-       "pair": "considered 0, ok 0",
-       "right": "considered 1, ok 1"
-      },
-      "leftGc": 61.9,
-      "leftPenalty": 0.097,
-      "leftTm": 60.1,
-      "passes": false,
-      "penalty": 3.257,
-      "rightGc": 54.2,
-      "rightPenalty": 3.16,
-      "rightTm": 60.16
+      "leftGc": 52.2,
+      "leftPenalty": 2.264,
+      "leftTm": 59.74,
+      "passes": true,
+      "penalty": 6.554,
+      "rightGc": 48.0,
+      "rightPenalty": 4.29,
+      "rightTm": 59.71
      },
-     "rev": "CAGCCCAAGACCTTAGCAGAAGTG",
+     "rev": "TTACCTCTTCGAATCAAGGCGACAC",
      "right": [
-      1599,
-      1623
+      1541,
+      1566
+     ]
+    },
+    {
+     "fwd": "TCTCGCAATGCACTAACTCTCGG",
+     "left": [
+      943,
+      966
+     ],
+     "penalty": 4.577,
+     "primer3": {
+      "leftGc": 52.2,
+      "leftPenalty": 2.264,
+      "leftTm": 59.74,
+      "passes": true,
+      "penalty": 7.485,
+      "rightGc": 50.0,
+      "rightPenalty": 5.222,
+      "rightTm": 59.78
+     },
+     "rev": "GGTAGCCATTGGAGTAACCTGTTACG",
+     "right": [
+      1636,
+      1662
+     ]
+    },
+    {
+     "fwd": "AAGCAGTGTGGAGAACCTGGC",
+     "left": [
+      985,
+      1006
+     ],
+     "penalty": 4.701,
+     "primer3": {
+      "leftGc": 57.1,
+      "leftPenalty": 0.026,
+      "leftTm": 60.03,
+      "passes": true,
+      "penalty": 5.192,
+      "rightGc": 50.0,
+      "rightPenalty": 5.166,
+      "rightTm": 59.83
+     },
+     "rev": "CCATTGGAGTAACCTGTTACGATCCG",
+     "right": [
+      1631,
+      1657
+     ]
+    },
+    {
+     "fwd": "AGTCTCGCAATGCACTAACTCTCG",
+     "left": [
+      941,
+      965
+     ],
+     "penalty": 4.724,
+     "primer3": {
+      "leftGc": 50.0,
+      "leftPenalty": 3.246,
+      "leftTm": 59.75,
+      "passes": true,
+      "penalty": 8.468,
+      "rightGc": 50.0,
+      "rightPenalty": 5.222,
+      "rightTm": 59.78
+     },
+     "rev": "GGTAGCCATTGGAGTAACCTGTTACG",
+     "right": [
+      1636,
+      1662
      ]
     }
    ],
@@ -682,64 +642,41 @@
    "name": "t03",
    "ours": [
     {
-     "fwd": "ACCTAACTGCGTCGTCGGTG",
+     "fwd": "AAGTTTCGGACCTAACTGCGTCG",
      "left": [
-      393,
-      413
+      384,
+      407
      ],
-     "penalty": 4.422,
+     "penalty": 4.356,
      "primer3": {
-      "leftGc": 60.0,
-      "leftPenalty": 1.112,
-      "leftTm": 59.89,
+      "leftGc": 52.2,
+      "leftPenalty": 2.161,
+      "leftTm": 60.16,
       "passes": true,
-      "penalty": 3.315,
-      "rightGc": 63.2,
-      "rightPenalty": 2.203,
-      "rightTm": 59.8
+      "penalty": 5.263,
+      "rightGc": 50.0,
+      "rightPenalty": 3.102,
+      "rightTm": 60.1
      },
-     "rev": "TTCTCCGTCCCGTGTGCTG",
+     "rev": "TGTACAGCTAACCAAAGACACGGC",
      "right": [
-      978,
-      997
+      850,
+      874
      ]
     },
     {
-     "fwd": "TTTCGGACCTAACTGCGTCGTC",
+     "fwd": "AAGTTTCGGACCTAACTGCGTCG",
      "left": [
-      387,
-      409
+      384,
+      407
      ],
-     "penalty": 4.476,
+     "penalty": 4.525,
      "primer3": {
-      "leftGc": 54.5,
-      "leftPenalty": 1.09,
-      "leftTm": 59.91,
+      "leftGc": 52.2,
+      "leftPenalty": 2.161,
+      "leftTm": 60.16,
       "passes": true,
-      "penalty": 3.293,
-      "rightGc": 63.2,
-      "rightPenalty": 2.203,
-      "rightTm": 59.8
-     },
-     "rev": "TTCTCCGTCCCGTGTGCTG",
-     "right": [
-      978,
-      997
-     ]
-    },
-    {
-     "fwd": "TTTCGGACCTAACTGCGTCGTC",
-     "left": [
-      387,
-      409
-     ],
-     "penalty": 4.538,
-     "primer3": {
-      "leftGc": 54.5,
-      "leftPenalty": 1.09,
-      "leftTm": 59.91,
-      "passes": true,
-      "penalty": 2.314,
+      "penalty": 3.386,
       "rightGc": 54.5,
       "rightPenalty": 1.225,
       "rightTm": 60.22
@@ -751,41 +688,64 @@
      ]
     },
     {
-     "fwd": "CTGCGTCGTCGGTGTGTTG",
+     "fwd": "AGTTTCGGACCTAACTGCGTCG",
      "left": [
-      399,
-      418
+      385,
+      407
      ],
-     "penalty": 4.73,
+     "penalty": 4.555,
      "primer3": {
-      "leftGc": 63.2,
-      "leftPenalty": 2.399,
-      "leftTm": 59.6,
+      "leftGc": 54.5,
+      "leftPenalty": 1.09,
+      "leftTm": 59.91,
       "passes": true,
-      "penalty": 4.602,
-      "rightGc": 63.2,
-      "rightPenalty": 2.203,
-      "rightTm": 59.8
+      "penalty": 4.192,
+      "rightGc": 50.0,
+      "rightPenalty": 3.102,
+      "rightTm": 60.1
      },
-     "rev": "TTCTCCGTCCCGTGTGCTG",
+     "rev": "TGTACAGCTAACCAAAGACACGGC",
      "right": [
-      978,
-      997
+      850,
+      874
      ]
     },
     {
-     "fwd": "TAACTGCGTCGTCGGTGTGTTG",
+     "fwd": "AGTTTCGGACCTAACTGCGTCG",
      "left": [
-      396,
-      418
+      385,
+      407
      ],
-     "penalty": 4.792,
+     "penalty": 4.842,
      "primer3": {
       "leftGc": 54.5,
-      "leftPenalty": 1.66,
-      "leftTm": 60.66,
+      "leftPenalty": 1.09,
+      "leftTm": 59.91,
       "passes": true,
-      "penalty": 4.123,
+      "penalty": 2.315,
+      "rightGc": 54.5,
+      "rightPenalty": 1.225,
+      "rightTm": 60.22
+     },
+     "rev": "TCGCACTCGCTTGAGGATGAAC",
+     "right": [
+      998,
+      1020
+     ]
+    },
+    {
+     "fwd": "AAGTTTCGGACCTAACTGCGTCG",
+     "left": [
+      384,
+      407
+     ],
+     "penalty": 4.865,
+     "primer3": {
+      "leftGc": 52.2,
+      "leftPenalty": 2.161,
+      "leftTm": 60.16,
+      "passes": true,
+      "penalty": 4.625,
       "rightGc": 52.2,
       "rightPenalty": 2.463,
       "rightTm": 60.46
@@ -892,30 +852,7 @@
       872,
       893
      ],
-     "penalty": 3.523,
-     "primer3": {
-      "leftGc": 57.1,
-      "leftPenalty": 0.177,
-      "leftTm": 59.82,
-      "passes": true,
-      "penalty": 0.474,
-      "rightGc": 57.1,
-      "rightPenalty": 0.297,
-      "rightTm": 59.7
-     },
-     "rev": "GCCCTTCTTTGTTCCGATGCG",
-     "right": [
-      1285,
-      1306
-     ]
-    },
-    {
-     "fwd": "AGCACCAAACCATCCGAGGAC",
-     "left": [
-      872,
-      893
-     ],
-     "penalty": 3.745,
+     "penalty": 4.117,
      "primer3": {
       "leftGc": 57.1,
       "leftPenalty": 0.177,
@@ -933,26 +870,49 @@
      ]
     },
     {
+     "fwd": "ATGAGCACCAAACCATCCGAGG",
+     "left": [
+      869,
+      891
+     ],
+     "penalty": 4.224,
+     "primer3": {
+      "leftGc": 54.5,
+      "leftPenalty": 1.098,
+      "leftTm": 59.9,
+      "passes": true,
+      "penalty": 2.386,
+      "rightGc": 54.5,
+      "rightPenalty": 1.288,
+      "rightTm": 59.71
+     },
+     "rev": "TCTGGCTCGCATGAGATGGAAC",
+     "right": [
+      1161,
+      1183
+     ]
+    },
+    {
      "fwd": "AGCACCAAACCATCCGAGGAC",
      "left": [
       872,
       893
      ],
-     "penalty": 3.783,
+     "penalty": 4.354,
      "primer3": {
       "leftGc": 57.1,
       "leftPenalty": 0.177,
       "leftTm": 59.82,
       "passes": true,
-      "penalty": 2.503,
+      "penalty": 2.511,
       "rightGc": 52.2,
-      "rightPenalty": 2.326,
+      "rightPenalty": 2.335,
       "rightTm": 59.67
      },
-     "rev": "TGTCTCTATCCGGTTGCGTTGTC",
+     "rev": "TCAGCTCAGGGCATGTTAGCTTC",
      "right": [
-      1228,
-      1251
+      1318,
+      1341
      ]
     },
     {
@@ -961,44 +921,49 @@
       870,
       891
      ],
-     "penalty": 3.783,
+     "penalty": 4.384,
      "primer3": {
       "leftGc": 57.1,
       "leftPenalty": 0.177,
       "leftTm": 59.82,
       "passes": true,
-      "penalty": 2.502,
-      "rightGc": 52.2,
-      "rightPenalty": 2.326,
-      "rightTm": 59.67
+      "penalty": 1.464,
+      "rightGc": 54.5,
+      "rightPenalty": 1.288,
+      "rightTm": 59.71
      },
-     "rev": "TGTCTCTATCCGGTTGCGTTGTC",
+     "rev": "TCTGGCTCGCATGAGATGGAAC",
      "right": [
-      1228,
-      1251
+      1161,
+      1183
      ]
     },
     {
-     "fwd": "AGCACCAAACCATCCGAGGAC",
+     "fwd": "AGGGAACCCATGAGCACCAAAC",
      "left": [
-      872,
-      893
+      860,
+      882
      ],
-     "penalty": 3.994,
+     "penalty": 4.399,
      "primer3": {
-      "leftGc": 57.1,
-      "leftPenalty": 0.177,
-      "leftTm": 59.82,
-      "passes": true,
-      "penalty": 1.462,
-      "rightGc": 59.1,
-      "rightPenalty": 1.285,
+      "explain": {
+       "left": "considered 1, high hairpin stability 1, ok 0",
+       "pair": "considered 0, ok 0",
+       "right": "considered 1, ok 1"
+      },
+      "leftGc": 54.5,
+      "leftPenalty": 1.03,
+      "leftTm": 60.03,
+      "passes": false,
+      "penalty": 2.318,
+      "rightGc": 54.5,
+      "rightPenalty": 1.288,
       "rightTm": 59.71
      },
-     "rev": "CGCTTTGAGTAGGGGCTCTCTG",
+     "rev": "TCTGGCTCGCATGAGATGGAAC",
      "right": [
-      1179,
-      1201
+      1161,
+      1183
      ]
     }
    ],
@@ -1092,64 +1057,18 @@
    "name": "t05",
    "ours": [
     {
-     "fwd": "TGATGGCACGATGAGTAATGGGC",
+     "fwd": "TGAGTGGCATGTAATGTGTGACAGG",
      "left": [
-      285,
-      308
+      245,
+      270
      ],
-     "penalty": 2.867,
+     "penalty": 3.741,
      "primer3": {
-      "leftGc": 52.2,
-      "leftPenalty": 2.037,
-      "leftTm": 60.04,
+      "leftGc": 48.0,
+      "leftPenalty": 4.125,
+      "leftTm": 59.87,
       "passes": true,
-      "penalty": 5.117,
-      "rightGc": 54.2,
-      "rightPenalty": 3.079,
-      "rightTm": 59.92
-     },
-     "rev": "ACACGGTTAGGTAGAGGTAGGCAG",
-     "right": [
-      753,
-      777
-     ]
-    },
-    {
-     "fwd": "AGCCTTTGTTCATCTCCCTCGTTC",
-     "left": [
-      155,
-      179
-     ],
-     "penalty": 2.964,
-     "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 3.374,
-      "leftTm": 59.63,
-      "passes": true,
-      "penalty": 8.814,
-      "rightGc": 46.2,
-      "rightPenalty": 5.44,
-      "rightTm": 59.56
-     },
-     "rev": "TCGTTTTATCTACAGCCATTCGGGTC",
-     "right": [
-      715,
-      741
-     ]
-    },
-    {
-     "fwd": "AGCCTTTGTTCATCTCCCTCGTTC",
-     "left": [
-      155,
-      179
-     ],
-     "penalty": 2.965,
-     "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 3.374,
-      "leftTm": 59.63,
-      "passes": true,
-      "penalty": 6.454,
+      "penalty": 7.204,
       "rightGc": 54.2,
       "rightPenalty": 3.079,
       "rightTm": 59.92
@@ -1166,7 +1085,7 @@
       302,
       325
      ],
-     "penalty": 3.007,
+     "penalty": 3.76,
      "primer3": {
       "leftGc": 52.2,
       "leftPenalty": 2.086,
@@ -1184,26 +1103,72 @@
      ]
     },
     {
+     "fwd": "ATGGGCGTTCTTCAGCTACTTGG",
+     "left": [
+      302,
+      325
+     ],
+     "penalty": 3.839,
+     "primer3": {
+      "leftGc": 52.2,
+      "leftPenalty": 2.086,
+      "leftTm": 59.91,
+      "passes": true,
+      "penalty": 7.259,
+      "rightGc": 53.8,
+      "rightPenalty": 5.173,
+      "rightTm": 59.83
+     },
+     "rev": "CTATGGGGTACACGGTTAGGTAGAGG",
+     "right": [
+      760,
+      786
+     ]
+    },
+    {
+     "fwd": "CTTTGTTCATCTCCCTCGTTCTAGCC",
+     "left": [
+      158,
+      184
+     ],
+     "penalty": 3.854,
+     "primer3": {
+      "leftGc": 50.0,
+      "leftPenalty": 5.221,
+      "leftTm": 59.78,
+      "passes": true,
+      "penalty": 8.354,
+      "rightGc": 54.2,
+      "rightPenalty": 3.133,
+      "rightTm": 59.87
+     },
+     "rev": "GTGCATCGAGTATCCAAGCTACCC",
+     "right": [
+      617,
+      641
+     ]
+    },
+    {
      "fwd": "AGCCTTTGTTCATCTCCCTCGTTC",
      "left": [
       155,
       179
      ],
-     "penalty": 3.104,
+     "penalty": 3.91,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 3.374,
       "leftTm": 59.63,
       "passes": true,
-      "penalty": 9.742,
-      "rightGc": 44.4,
-      "rightPenalty": 6.367,
-      "rightTm": 59.63
+      "penalty": 8.814,
+      "rightGc": 46.2,
+      "rightPenalty": 5.44,
+      "rightTm": 59.56
      },
-     "rev": "ATCGTTTTATCTACAGCCATTCGGGTC",
+     "rev": "TCGTTTTATCTACAGCCATTCGGGTC",
      "right": [
       715,
-      742
+      741
      ]
     }
    ],
@@ -1297,12 +1262,63 @@
    "name": "t06",
    "ours": [
     {
+     "fwd": "AACGCTCCACAATATCGAGTGACG",
+     "left": [
+      671,
+      695
+     ],
+     "penalty": 4.067,
+     "primer3": {
+      "leftGc": 50.0,
+      "leftPenalty": 3.045,
+      "leftTm": 60.05,
+      "passes": true,
+      "penalty": 6.439,
+      "rightGc": 50.0,
+      "rightPenalty": 3.394,
+      "rightTm": 60.39
+     },
+     "rev": "ACGAGGACTCATTTCAAGCAACGG",
+     "right": [
+      1272,
+      1296
+     ]
+    },
+    {
+     "fwd": "AAGCGTGTGGTCTCAGACATTCG",
+     "left": [
+      708,
+      731
+     ],
+     "penalty": 4.436,
+     "primer3": {
+      "explain": {
+       "left": "considered 1, ok 1",
+       "pair": "considered 0, ok 0",
+       "right": "considered 1, high hairpin stability 1, ok 0"
+      },
+      "leftGc": 52.2,
+      "leftPenalty": 2.161,
+      "leftTm": 60.16,
+      "passes": false,
+      "penalty": 7.375,
+      "rightGc": 53.8,
+      "rightPenalty": 5.214,
+      "rightTm": 60.21
+     },
+     "rev": "GAGAGACAGGAAGGCTCTACAAGAGG",
+     "right": [
+      1309,
+      1335
+     ]
+    },
+    {
      "fwd": "ATATCGAGTGACGTGGAAGAGACCC",
      "left": [
       682,
       707
      ],
-     "penalty": 3.688,
+     "penalty": 4.436,
      "primer3": {
       "leftGc": 52.0,
       "leftPenalty": 4.273,
@@ -1320,49 +1336,31 @@
      ]
     },
     {
-     "fwd": "CGCTATTTCCTCCCAACGGTGAC",
+     "fwd": "AACGCTCCACAATATCGAGTGACG",
      "left": [
-      629,
-      652
+      671,
+      695
      ],
-     "penalty": 3.702,
+     "penalty": 4.47,
      "primer3": {
-      "leftGc": 56.5,
-      "leftPenalty": 2.525,
-      "leftTm": 60.53,
-      "passes": true,
-      "penalty": 5.919,
-      "rightGc": 50.0,
-      "rightPenalty": 3.394,
-      "rightTm": 60.39
+      "explain": {
+       "left": "considered 1, ok 1",
+       "pair": "considered 0, ok 0",
+       "right": "considered 1, high hairpin stability 1, ok 0"
+      },
+      "leftGc": 50.0,
+      "leftPenalty": 3.045,
+      "leftTm": 60.05,
+      "passes": false,
+      "penalty": 8.259,
+      "rightGc": 53.8,
+      "rightPenalty": 5.214,
+      "rightTm": 60.21
      },
-     "rev": "ACGAGGACTCATTTCAAGCAACGG",
+     "rev": "GAGAGACAGGAAGGCTCTACAAGAGG",
      "right": [
-      1272,
-      1296
-     ]
-    },
-    {
-     "fwd": "GTGACGTGGAAGAGACCCGAAG",
-     "left": [
-      689,
-      711
-     ],
-     "penalty": 3.767,
-     "primer3": {
-      "leftGc": 59.1,
-      "leftPenalty": 1.091,
-      "leftTm": 59.91,
-      "passes": true,
-      "penalty": 4.22,
-      "rightGc": 50.0,
-      "rightPenalty": 3.129,
-      "rightTm": 59.87
-     },
-     "rev": "TGTACGTGATCGCGGGTTTATAGC",
-     "right": [
-      1231,
-      1255
+      1309,
+      1335
      ]
     },
     {
@@ -1371,36 +1369,13 @@
       681,
       707
      ],
-     "penalty": 3.775,
+     "penalty": 4.523,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 5.487,
       "leftTm": 60.49,
       "passes": true,
       "penalty": 8.881,
-      "rightGc": 50.0,
-      "rightPenalty": 3.394,
-      "rightTm": 60.39
-     },
-     "rev": "ACGAGGACTCATTTCAAGCAACGG",
-     "right": [
-      1272,
-      1296
-     ]
-    },
-    {
-     "fwd": "TGCGCTATTTCCTCCCAACGG",
-     "left": [
-      627,
-      648
-     ],
-     "penalty": 3.803,
-     "primer3": {
-      "leftGc": 57.1,
-      "leftPenalty": 0.229,
-      "leftTm": 60.23,
-      "passes": true,
-      "penalty": 3.623,
       "rightGc": 50.0,
       "rightPenalty": 3.394,
       "rightTm": 60.39
@@ -1502,35 +1477,12 @@
    "name": "t07",
    "ours": [
     {
-     "fwd": "TCCCAATGAAGTGCGGTCTAACG",
-     "left": [
-      178,
-      201
-     ],
-     "penalty": 3.006,
-     "primer3": {
-      "leftGc": 52.2,
-      "leftPenalty": 2.084,
-      "leftTm": 59.92,
-      "passes": true,
-      "penalty": 3.117,
-      "rightGc": 54.5,
-      "rightPenalty": 1.033,
-      "rightTm": 60.03
-     },
-     "rev": "TAAGGTGTTCGGCAGTGTGGTG",
-     "right": [
-      609,
-      631
-     ]
-    },
-    {
      "fwd": "AAATTGCCCCTAGCGGTAACTTGG",
      "left": [
       146,
       170
      ],
-     "penalty": 3.174,
+     "penalty": 3.684,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 3.16,
@@ -1553,7 +1505,7 @@
       147,
       170
      ],
-     "penalty": 3.216,
+     "penalty": 3.726,
      "primer3": {
       "leftGc": 52.2,
       "leftPenalty": 2.089,
@@ -1571,23 +1523,41 @@
      ]
     },
     {
-     "fwd": "ATGAAGTGCGGTCTAACGCTCAG",
+     "fwd": "AAATTGCCCCTAGCGGTAACTTGG",
      "left": [
-      183,
-      206
+      146,
+      170
      ],
-     "penalty": 3.38,
+     "penalty": 3.794,
      "primer3": {
-      "explain": {
-       "left": "considered 1, high hairpin stability 1, ok 0",
-       "pair": "considered 0, ok 0",
-       "right": "considered 1, ok 1"
-      },
+      "leftGc": 50.0,
+      "leftPenalty": 3.16,
+      "leftTm": 60.16,
+      "passes": true,
+      "penalty": 5.443,
+      "rightGc": 52.2,
+      "rightPenalty": 2.283,
+      "rightTm": 60.28
+     },
+     "rev": "TTAAGGTGTTCGGCAGTGTGGTG",
+     "right": [
+      609,
+      632
+     ]
+    },
+    {
+     "fwd": "TGAGTTCCCAATGAAGTGCGGTC",
+     "left": [
+      173,
+      196
+     ],
+     "penalty": 3.916,
+     "primer3": {
       "leftGc": 52.2,
-      "leftPenalty": 2.021,
-      "leftTm": 59.98,
-      "passes": false,
-      "penalty": 3.054,
+      "leftPenalty": 2.099,
+      "leftTm": 60.1,
+      "passes": true,
+      "penalty": 3.132,
       "rightGc": 54.5,
       "rightPenalty": 1.033,
       "rightTm": 60.03
@@ -1599,18 +1569,18 @@
      ]
     },
     {
-     "fwd": "TGAGTTCCCAATGAAGTGCGGTC",
+     "fwd": "TTCCCAATGAAGTGCGGTCTAACG",
      "left": [
-      173,
-      196
+      177,
+      201
      ],
-     "penalty": 3.47,
+     "penalty": 3.921,
      "primer3": {
-      "leftGc": 52.2,
-      "leftPenalty": 2.099,
-      "leftTm": 60.1,
+      "leftGc": 50.0,
+      "leftPenalty": 3.16,
+      "leftTm": 60.16,
       "passes": true,
-      "penalty": 3.132,
+      "penalty": 4.194,
       "rightGc": 54.5,
       "rightPenalty": 1.033,
       "rightTm": 60.03
@@ -1712,18 +1682,41 @@
    "name": "t08",
    "ours": [
     {
-     "fwd": "CATTCGCCATAACAGCCAACCG",
+     "fwd": "AACCGCCCGAGTTCACTTATAACG",
      "left": [
-      550,
-      572
+      567,
+      591
      ],
-     "penalty": 3.402,
+     "penalty": 3.651,
      "primer3": {
-      "leftGc": 54.5,
-      "leftPenalty": 1.215,
-      "leftTm": 59.78,
+      "leftGc": 50.0,
+      "leftPenalty": 3.014,
+      "leftTm": 59.99,
       "passes": true,
-      "penalty": 3.428,
+      "penalty": 5.051,
+      "rightGc": 52.2,
+      "rightPenalty": 2.037,
+      "rightTm": 60.04
+     },
+     "rev": "ACACAACAGAGGTGCCAGTGATG",
+     "right": [
+      830,
+      853
+     ]
+    },
+    {
+     "fwd": "AACCGCCCGAGTTCACTTATAACG",
+     "left": [
+      567,
+      591
+     ],
+     "penalty": 3.674,
+     "primer3": {
+      "leftGc": 50.0,
+      "leftPenalty": 3.014,
+      "leftTm": 59.99,
+      "passes": true,
+      "penalty": 5.227,
       "rightGc": 52.2,
       "rightPenalty": 2.213,
       "rightTm": 59.79
@@ -1735,18 +1728,18 @@
      ]
     },
     {
-     "fwd": "CATTCGCCATAACAGCCAACCG",
+     "fwd": "AACCGCCCGAGTTCACTTATAACG",
      "left": [
-      550,
-      572
+      567,
+      591
      ],
-     "penalty": 3.585,
+     "penalty": 3.822,
      "primer3": {
-      "leftGc": 54.5,
-      "leftPenalty": 1.215,
-      "leftTm": 59.78,
+      "leftGc": 50.0,
+      "leftPenalty": 3.014,
+      "leftTm": 59.99,
       "passes": true,
-      "penalty": 4.411,
+      "penalty": 6.21,
       "rightGc": 50.0,
       "rightPenalty": 3.196,
       "rightTm": 59.8
@@ -1758,77 +1751,49 @@
      ]
     },
     {
-     "fwd": "CATTCGCCATAACAGCCAACCG",
+     "fwd": "AACCGCCCGAGTTCACTTATAACG",
      "left": [
-      550,
-      572
+      567,
+      591
      ],
-     "penalty": 3.694,
+     "penalty": 3.851,
      "primer3": {
-      "leftGc": 54.5,
-      "leftPenalty": 1.215,
-      "leftTm": 59.78,
+      "leftGc": 50.0,
+      "leftPenalty": 3.014,
+      "leftTm": 59.99,
       "passes": true,
-      "penalty": 2.507,
-      "rightGc": 54.5,
-      "rightPenalty": 1.292,
-      "rightTm": 59.71
+      "penalty": 7.06,
+      "rightGc": 48.0,
+      "rightPenalty": 4.046,
+      "rightTm": 60.05
      },
-     "rev": "TGGAGAACACAACAGAGGTGCC",
+     "rev": "TTGATGGAGAACACAACAGAGGTGC",
+     "right": [
+      838,
+      863
+     ]
+    },
+    {
+     "fwd": "ACCGCCCGAGTTCACTTATAACG",
+     "left": [
+      568,
+      591
+     ],
+     "penalty": 3.895,
+     "primer3": {
+      "leftGc": 52.2,
+      "leftPenalty": 2.264,
+      "leftTm": 59.74,
+      "passes": true,
+      "penalty": 4.477,
+      "rightGc": 52.2,
+      "rightPenalty": 2.213,
+      "rightTm": 59.79
+     },
+     "rev": "ATGGAGAACACAACAGAGGTGCC",
      "right": [
       837,
-      859
-     ]
-    },
-    {
-     "fwd": "CATTCGCCATAACAGCCAACCG",
-     "left": [
-      550,
-      572
-     ],
-     "penalty": 3.785,
-     "primer3": {
-      "explain": {
-       "left": "considered 1, ok 1",
-       "pair": "considered 0, ok 0",
-       "right": "considered 1, high hairpin stability 1, ok 0"
-      },
-      "leftGc": 54.5,
-      "leftPenalty": 1.215,
-      "leftTm": 59.78,
-      "passes": false,
-      "penalty": 5.226,
-      "rightGc": 48.0,
-      "rightPenalty": 4.011,
-      "rightTm": 59.99
-     },
-     "rev": "AGATGAATGCACATGGCAGTCAGAG",
-     "right": [
-      941,
-      966
-     ]
-    },
-    {
-     "fwd": "ATAACAGCCAACCGCCCGAG",
-     "left": [
-      558,
-      578
-     ],
-     "penalty": 3.957,
-     "primer3": {
-      "leftGc": 60.0,
-      "leftPenalty": 1.233,
-      "leftTm": 60.23,
-      "passes": true,
-      "penalty": 4.511,
-      "rightGc": 50.0,
-      "rightPenalty": 3.279,
-      "rightTm": 60.28
-     },
-     "rev": "AACACAACAGAGGTGCCAGTGATG",
-     "right": [
-      830,
-      854
+      860
      ]
     }
    ],
@@ -1927,7 +1892,7 @@
       171,
       196
      ],
-     "penalty": 2.954,
+     "penalty": 3.599,
      "primer3": {
       "leftGc": 52.0,
       "leftPenalty": 4.068,
@@ -1950,7 +1915,7 @@
       177,
       202
      ],
-     "penalty": 3.119,
+     "penalty": 3.764,
      "primer3": {
       "leftGc": 52.0,
       "leftPenalty": 4.159,
@@ -1968,12 +1933,58 @@
      ]
     },
     {
+     "fwd": "TAGGGTTCGGGTAGCTTGTCTCTC",
+     "left": [
+      178,
+      202
+     ],
+     "penalty": 4.039,
+     "primer3": {
+      "leftGc": 54.2,
+      "leftPenalty": 3.079,
+      "leftTm": 59.92,
+      "passes": true,
+      "penalty": 8.239,
+      "rightGc": 50.0,
+      "rightPenalty": 5.16,
+      "rightTm": 60.16
+     },
+     "rev": "GGTAACCCGCTATGATAAAGTCGCTG",
+     "right": [
+      687,
+      713
+     ]
+    },
+    {
+     "fwd": "TTTAGGGTTCGGGTAGCTTGTCTCTC",
+     "left": [
+      176,
+      202
+     ],
+     "penalty": 4.104,
+     "primer3": {
+      "leftGc": 50.0,
+      "leftPenalty": 5.38,
+      "leftTm": 60.38,
+      "passes": true,
+      "penalty": 10.539,
+      "rightGc": 50.0,
+      "rightPenalty": 5.16,
+      "rightTm": 60.16
+     },
+     "rev": "GGTAACCCGCTATGATAAAGTCGCTG",
+     "right": [
+      687,
+      713
+     ]
+    },
+    {
      "fwd": "GGTTCTTCGTTCCTTTAGGGTTCGG",
      "left": [
       163,
       188
      ],
-     "penalty": 3.22,
+     "penalty": 4.171,
      "primer3": {
       "leftGc": 52.0,
       "leftPenalty": 4.16,
@@ -1988,52 +1999,6 @@
      "right": [
       687,
       713
-     ]
-    },
-    {
-     "fwd": "TTAGGGTTCGGGTAGCTTGTCTCTC",
-     "left": [
-      177,
-      202
-     ],
-     "penalty": 3.336,
-     "primer3": {
-      "leftGc": 52.0,
-      "leftPenalty": 4.159,
-      "leftTm": 60.16,
-      "passes": true,
-      "penalty": 6.26,
-      "rightGc": 52.2,
-      "rightPenalty": 2.1,
-      "rightTm": 60.1
-     },
-     "rev": "ACCCGCTATGATAAAGTCGCTGC",
-     "right": [
-      686,
-      709
-     ]
-    },
-    {
-     "fwd": "GTTCCTTTAGGGTTCGGGTAGCTTG",
-     "left": [
-      171,
-      196
-     ],
-     "penalty": 3.353,
-     "primer3": {
-      "leftGc": 52.0,
-      "leftPenalty": 4.068,
-      "leftTm": 59.93,
-      "passes": true,
-      "penalty": 6.168,
-      "rightGc": 52.2,
-      "rightPenalty": 2.1,
-      "rightTm": 60.1
-     },
-     "rev": "ACCCGCTATGATAAAGTCGCTGC",
-     "right": [
-      686,
-      709
      ]
     }
    ],
@@ -2127,118 +2092,118 @@
    "name": "t10",
    "ours": [
     {
-     "fwd": "TCGACGAGTTTATTGACCTGCCTG",
+     "fwd": "TGTGAAAACCTAGATGACGCCAGC",
      "left": [
-      314,
-      338
+      281,
+      305
      ],
-     "penalty": 3.925,
+     "penalty": 4.067,
      "primer3": {
       "leftGc": 50.0,
-      "leftPenalty": 3.308,
-      "leftTm": 59.69,
+      "leftPenalty": 3.16,
+      "leftTm": 60.16,
       "passes": true,
-      "penalty": 4.458,
-      "rightGc": 59.1,
-      "rightPenalty": 1.15,
-      "rightTm": 59.85
+      "penalty": 8.429,
+      "rightGc": 50.0,
+      "rightPenalty": 5.269,
+      "rightTm": 60.27
      },
-     "rev": "CGTATCCCTCGCTTCGTCTCAC",
+     "rev": "TCCATTAGTAGGCACTAAGCGTCCTC",
      "right": [
-      484,
-      506
+      628,
+      654
      ]
     },
     {
-     "fwd": "TGAAAACCTAGATGACGCCAGCTC",
+     "fwd": "TACCTGCCACTCTAGCCCCTC",
      "left": [
-      283,
-      307
+      251,
+      272
      ],
-     "penalty": 3.932,
+     "penalty": 4.242,
      "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 3.311,
-      "leftTm": 59.69,
+      "leftGc": 61.9,
+      "leftPenalty": 0.115,
+      "leftTm": 59.89,
       "passes": true,
-      "penalty": 4.462,
-      "rightGc": 59.1,
-      "rightPenalty": 1.15,
-      "rightTm": 59.85
+      "penalty": 2.136,
+      "rightGc": 56.5,
+      "rightPenalty": 2.021,
+      "rightTm": 59.98
      },
-     "rev": "CGTATCCCTCGCTTCGTCTCAC",
+     "rev": "CTGTCAATCAGGCTCTGTCGGTC",
      "right": [
-      484,
-      506
+      558,
+      581
      ]
     },
     {
-     "fwd": "TCGACGAGTTTATTGACCTGCCTG",
+     "fwd": "AAAACCTAGATGACGCCAGCTCG",
      "left": [
-      314,
-      338
+      285,
+      308
      ],
-     "penalty": 3.952,
+     "penalty": 4.318,
      "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 3.308,
-      "leftTm": 59.69,
+      "leftGc": 52.2,
+      "leftPenalty": 2.022,
+      "leftTm": 59.98,
       "passes": true,
-      "penalty": 4.779,
-      "rightGc": 59.1,
-      "rightPenalty": 1.471,
-      "rightTm": 59.53
+      "penalty": 4.043,
+      "rightGc": 56.5,
+      "rightPenalty": 2.021,
+      "rightTm": 59.98
      },
-     "rev": "GTATCCCTCGCTTCGTCTCACC",
+     "rev": "CTGTCAATCAGGCTCTGTCGGTC",
      "right": [
-      483,
-      505
+      558,
+      581
      ]
     },
     {
-     "fwd": "TGAAAACCTAGATGACGCCAGCTC",
+     "fwd": "TAGCTACCTGCCACTCTAGCCC",
      "left": [
-      283,
-      307
+      247,
+      269
      ],
-     "penalty": 3.952,
+     "penalty": 4.338,
      "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 3.311,
-      "leftTm": 59.69,
+      "leftGc": 59.1,
+      "leftPenalty": 1.036,
+      "leftTm": 59.96,
       "passes": true,
-      "penalty": 4.783,
-      "rightGc": 59.1,
-      "rightPenalty": 1.471,
-      "rightTm": 59.53
+      "penalty": 3.057,
+      "rightGc": 56.5,
+      "rightPenalty": 2.021,
+      "rightTm": 59.98
      },
-     "rev": "GTATCCCTCGCTTCGTCTCACC",
+     "rev": "CTGTCAATCAGGCTCTGTCGGTC",
      "right": [
-      483,
-      505
+      558,
+      581
      ]
     },
     {
-     "fwd": "TCGACGAGTTTATTGACCTGCCTG",
+     "fwd": "AAAACCTAGATGACGCCAGCTCG",
      "left": [
-      314,
-      338
+      285,
+      308
      ],
-     "penalty": 4.015,
+     "penalty": 4.363,
      "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 3.308,
-      "leftTm": 59.69,
+      "leftGc": 52.2,
+      "leftPenalty": 2.022,
+      "leftTm": 59.98,
       "passes": true,
-      "penalty": 4.499,
-      "rightGc": 60.0,
-      "rightPenalty": 1.192,
-      "rightTm": 59.81
+      "penalty": 7.291,
+      "rightGc": 50.0,
+      "rightPenalty": 5.269,
+      "rightTm": 60.27
      },
-     "rev": "TAGCGTGCCAAAGACCCCTG",
+     "rev": "TCCATTAGTAGGCACTAAGCGTCCTC",
      "right": [
-      524,
-      544
+      628,
+      654
      ]
     }
    ],
@@ -2332,26 +2297,26 @@
    "name": "t11",
    "ours": [
     {
-     "fwd": "TACACTCGGCGATTATGGGTACTACC",
+     "fwd": "AGATTGCTGTGCTTGAGACAGAGAG",
      "left": [
-      459,
-      485
+      535,
+      560
      ],
-     "penalty": 5.934,
+     "penalty": 5.498,
      "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 5.104,
-      "leftTm": 60.1,
+      "leftGc": 48.0,
+      "leftPenalty": 4.579,
+      "leftTm": 59.42,
       "passes": true,
-      "penalty": 10.372,
-      "rightGc": 50.0,
-      "rightPenalty": 5.267,
-      "rightTm": 60.27
+      "penalty": 10.628,
+      "rightGc": 48.1,
+      "rightPenalty": 6.049,
+      "rightTm": 59.95
      },
-     "rev": "GAGTTCTACTTGAATAACCGGCGTGG",
+     "rev": "CATGGTAAGGGTGATAATACACGAGCG",
      "right": [
-      763,
-      789
+      905,
+      932
      ]
     },
     {
@@ -2360,7 +2325,7 @@
       525,
       552
      ],
-     "penalty": 6.045,
+     "penalty": 5.769,
      "primer3": {
       "explain": {
        "left": "considered 1, high hairpin stability 1, ok 0",
@@ -2383,72 +2348,82 @@
      ]
     },
     {
-     "fwd": "TACACTCGGCGATTATGGGTACTACC",
+     "fwd": "CGGCGATTATGGGTACTACCATTCTC",
      "left": [
-      459,
-      485
+      465,
+      491
      ],
-     "penalty": 6.094,
+     "penalty": 5.904,
      "primer3": {
+      "explain": {
+       "left": "considered 1, ok 1",
+       "pair": "considered 0, ok 0",
+       "right": "considered 1, high hairpin stability 1, ok 0"
+      },
       "leftGc": 50.0,
-      "leftPenalty": 5.104,
-      "leftTm": 60.1,
-      "passes": true,
-      "penalty": 11.204,
-      "rightGc": 48.1,
-      "rightPenalty": 6.1,
-      "rightTm": 59.9
+      "leftPenalty": 5.492,
+      "leftTm": 59.51,
+      "passes": false,
+      "penalty": 6.059,
+      "rightGc": 52.4,
+      "rightPenalty": 0.567,
+      "rightTm": 59.43
      },
-     "rev": "GCTAGAGTTCTACTTGAATAACCGGCG",
+     "rev": "AACCGGCGTGGTTCAACAAAG",
      "right": [
-      766,
-      793
+      753,
+      774
      ]
     },
     {
-     "fwd": "ATACACTCGGCGATTATGGGTACTACC",
+     "fwd": "GGCGATTATGGGTACTACCATTCTCG",
      "left": [
-      458,
-      485
+      466,
+      492
      ],
-     "penalty": 6.22,
+     "penalty": 5.92,
      "primer3": {
-      "leftGc": 48.1,
-      "leftPenalty": 6.159,
-      "leftTm": 60.16,
-      "passes": true,
-      "penalty": 11.426,
-      "rightGc": 50.0,
-      "rightPenalty": 5.267,
-      "rightTm": 60.27
+      "explain": {
+       "left": "considered 1, ok 1",
+       "pair": "considered 0, ok 0",
+       "right": "considered 1, high hairpin stability 1, ok 0"
+      },
+      "leftGc": 50.0,
+      "leftPenalty": 5.492,
+      "leftTm": 59.51,
+      "passes": false,
+      "penalty": 6.059,
+      "rightGc": 52.4,
+      "rightPenalty": 0.567,
+      "rightTm": 59.43
      },
-     "rev": "GAGTTCTACTTGAATAACCGGCGTGG",
+     "rev": "AACCGGCGTGGTTCAACAAAG",
      "right": [
-      763,
-      789
+      753,
+      774
      ]
     },
     {
-     "fwd": "TACACTCGGCGATTATGGGTACTACC",
+     "fwd": "AGATTGCTGTGCTTGAGACAGAGAG",
      "left": [
-      459,
-      485
+      535,
+      560
      ],
-     "penalty": 6.294,
+     "penalty": 5.988,
      "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 5.104,
-      "leftTm": 60.1,
+      "leftGc": 48.0,
+      "leftPenalty": 4.579,
+      "leftTm": 59.42,
       "passes": true,
-      "penalty": 9.397,
+      "penalty": 9.495,
       "rightGc": 48.0,
-      "rightPenalty": 4.293,
-      "rightTm": 59.71
+      "rightPenalty": 4.917,
+      "rightTm": 59.08
      },
-     "rev": "AGTTCTACTTGAATAACCGGCGTGG",
+     "rev": "TGGTAAGGGTGATAATACACGAGCG",
      "right": [
-      763,
-      788
+      905,
+      930
      ]
     }
    ],
@@ -2542,18 +2517,18 @@
    "name": "t12",
    "ours": [
     {
-     "fwd": "TTCCGGTCCTCAACACAATTCCC",
+     "fwd": "GTGTCAAGGTTTTGGAGGTAATGCC",
      "left": [
-      778,
-      801
+      883,
+      908
      ],
-     "penalty": 4.978,
+     "penalty": 5.671,
      "primer3": {
-      "leftGc": 52.2,
-      "leftPenalty": 2.213,
-      "leftTm": 59.79,
+      "leftGc": 48.0,
+      "leftPenalty": 4.862,
+      "leftTm": 59.14,
       "passes": true,
-      "penalty": 4.116,
+      "penalty": 6.765,
       "rightGc": 54.5,
       "rightPenalty": 1.903,
       "rightTm": 59.1
@@ -2565,18 +2540,18 @@
      ]
     },
     {
-     "fwd": "TCCGGTCCTCAACACAATTCCC",
+     "fwd": "TGTCAAGGTTTTGGAGGTAATGCCC",
      "left": [
-      779,
-      801
+      884,
+      909
      ],
-     "penalty": 5.115,
+     "penalty": 5.759,
      "primer3": {
-      "leftGc": 54.5,
-      "leftPenalty": 1.49,
-      "leftTm": 59.51,
+      "leftGc": 48.0,
+      "leftPenalty": 4.044,
+      "leftTm": 60.04,
       "passes": true,
-      "penalty": 3.393,
+      "penalty": 5.947,
       "rightGc": 54.5,
       "rightPenalty": 1.903,
       "rightTm": 59.1
@@ -2584,29 +2559,6 @@
      "rev": "GCCGCCAGCTAAACGTATCATC",
      "right": [
       1232,
-      1254
-     ]
-    },
-    {
-     "fwd": "CCGGTCCTCAACACAATTCCCTC",
-     "left": [
-      780,
-      803
-     ],
-     "penalty": 5.356,
-     "primer3": {
-      "leftGc": 56.5,
-      "leftPenalty": 2.161,
-      "leftTm": 60.16,
-      "passes": true,
-      "penalty": 4.504,
-      "rightGc": 52.2,
-      "rightPenalty": 2.343,
-      "rightTm": 60.34
-     },
-     "rev": "GCCGCCAGCTAAACGTATCATCA",
-     "right": [
-      1231,
       1254
      ]
     },
@@ -2616,7 +2568,7 @@
       777,
       801
      ],
-     "penalty": 5.361,
+     "penalty": 5.798,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 3.139,
@@ -2634,18 +2586,18 @@
      ]
     },
     {
-     "fwd": "GTGTCAAGGTTTTGGAGGTAATGCC",
+     "fwd": "CGTTCTTGTGTCAAGGTTTTGGAGG",
      "left": [
-      883,
-      908
+      876,
+      901
      ],
-     "penalty": 5.461,
+     "penalty": 5.839,
      "primer3": {
       "leftGc": 48.0,
-      "leftPenalty": 4.862,
-      "leftTm": 59.14,
+      "leftPenalty": 4.682,
+      "leftTm": 59.32,
       "passes": true,
-      "penalty": 6.765,
+      "penalty": 6.585,
       "rightGc": 54.5,
       "rightPenalty": 1.903,
       "rightTm": 59.1
@@ -2654,6 +2606,29 @@
      "right": [
       1232,
       1254
+     ]
+    },
+    {
+     "fwd": "TGTCAAGGTTTTGGAGGTAATGCCC",
+     "left": [
+      884,
+      909
+     ],
+     "penalty": 5.854,
+     "primer3": {
+      "leftGc": 48.0,
+      "leftPenalty": 4.044,
+      "leftTm": 60.04,
+      "passes": true,
+      "penalty": 8.222,
+      "rightGc": 48.0,
+      "rightPenalty": 4.178,
+      "rightTm": 59.82
+     },
+     "rev": "CCGCCAGCTAAACGTATCATCAGAA",
+     "right": [
+      1228,
+      1253
      ]
     }
    ],
@@ -2752,7 +2727,7 @@
       611,
       635
      ],
-     "penalty": 2.765,
+     "penalty": 3.41,
      "primer3": {
       "leftGc": 54.2,
       "leftPenalty": 3.016,
@@ -2775,76 +2750,7 @@
       611,
       635
      ],
-     "penalty": 3.349,
-     "primer3": {
-      "leftGc": 54.2,
-      "leftPenalty": 3.016,
-      "leftTm": 59.98,
-      "passes": true,
-      "penalty": 7.032,
-      "rightGc": 52.0,
-      "rightPenalty": 4.015,
-      "rightTm": 59.98
-     },
-     "rev": "ATAAACCCCAGTAGGACCGGATCAG",
-     "right": [
-      930,
-      955
-     ]
-    },
-    {
-     "fwd": "GGTCTTCTTTCCATACTGTCGCCC",
-     "left": [
-      610,
-      634
-     ],
-     "penalty": 3.365,
-     "primer3": {
-      "leftGc": 54.2,
-      "leftPenalty": 3.016,
-      "leftTm": 59.98,
-      "passes": true,
-      "penalty": 5.115,
-      "rightGc": 52.2,
-      "rightPenalty": 2.099,
-      "rightTm": 60.1
-     },
-     "rev": "TGTGTTCCAGCTTTCCGATGTCC",
-     "right": [
-      1036,
-      1059
-     ]
-    },
-    {
-     "fwd": "GTCTTCTTTCCATACTGTCGCCCC",
-     "left": [
-      611,
-      635
-     ],
-     "penalty": 3.461,
-     "primer3": {
-      "leftGc": 54.2,
-      "leftPenalty": 3.016,
-      "leftTm": 59.98,
-      "passes": true,
-      "penalty": 8.122,
-      "rightGc": 50.0,
-      "rightPenalty": 5.106,
-      "rightTm": 60.11
-     },
-     "rev": "GAGACCTCATTAGCGTTGGACGATTC",
-     "right": [
-      1008,
-      1034
-     ]
-    },
-    {
-     "fwd": "GTCTTCTTTCCATACTGTCGCCCC",
-     "left": [
-      611,
-      635
-     ],
-     "penalty": 3.534,
+     "penalty": 3.528,
      "primer3": {
       "leftGc": 54.2,
       "leftPenalty": 3.016,
@@ -2859,6 +2765,75 @@
      "right": [
       1051,
       1077
+     ]
+    },
+    {
+     "fwd": "GTCTTCTTTCCATACTGTCGCCCC",
+     "left": [
+      611,
+      635
+     ],
+     "penalty": 3.779,
+     "primer3": {
+      "leftGc": 54.2,
+      "leftPenalty": 3.016,
+      "leftTm": 59.98,
+      "passes": true,
+      "penalty": 6.375,
+      "rightGc": 50.0,
+      "rightPenalty": 3.359,
+      "rightTm": 59.64
+     },
+     "rev": "GCTCTTTCGTGTGTTCCAGCTTTC",
+     "right": [
+      1044,
+      1068
+     ]
+    },
+    {
+     "fwd": "CTGGTCTTCTTTCCATACTGTCGCC",
+     "left": [
+      608,
+      633
+     ],
+     "penalty": 3.92,
+     "primer3": {
+      "leftGc": 52.0,
+      "leftPenalty": 4.009,
+      "leftTm": 59.99,
+      "passes": true,
+      "penalty": 6.108,
+      "rightGc": 52.2,
+      "rightPenalty": 2.099,
+      "rightTm": 60.1
+     },
+     "rev": "TGTGTTCCAGCTTTCCGATGTCC",
+     "right": [
+      1036,
+      1059
+     ]
+    },
+    {
+     "fwd": "CTGGTCTTCTTTCCATACTGTCGCC",
+     "left": [
+      608,
+      633
+     ],
+     "penalty": 4.003,
+     "primer3": {
+      "leftGc": 52.0,
+      "leftPenalty": 4.009,
+      "leftTm": 59.99,
+      "passes": true,
+      "penalty": 7.368,
+      "rightGc": 50.0,
+      "rightPenalty": 3.359,
+      "rightTm": 59.64
+     },
+     "rev": "GCTCTTTCGTGTGTTCCAGCTTTC",
+     "right": [
+      1044,
+      1068
      ]
     }
    ],
@@ -2952,12 +2927,35 @@
    "name": "t14",
    "ours": [
     {
+     "fwd": "TCATACTTCTGAGCGATGACGGC",
+     "left": [
+      189,
+      212
+     ],
+     "penalty": 4.913,
+     "primer3": {
+      "leftGc": 52.2,
+      "leftPenalty": 2.446,
+      "leftTm": 59.55,
+      "passes": true,
+      "penalty": 8.652,
+      "rightGc": 48.1,
+      "rightPenalty": 6.206,
+      "rightTm": 59.79
+     },
+     "rev": "GTTCTTCGACTACTGACAGCATAACCC",
+     "right": [
+      649,
+      676
+     ]
+    },
+    {
      "fwd": "ATACTTCTGAGCGATGACGGCG",
      "left": [
       191,
       213
      ],
-     "penalty": 4.251,
+     "penalty": 5.108,
      "primer3": {
       "leftGc": 54.5,
       "leftPenalty": 1.153,
@@ -2975,18 +2973,18 @@
      ]
     },
     {
-     "fwd": "TACTTCTGAGCGATGACGGCG",
+     "fwd": "GGTCATACTTCTGAGCGATGACGG",
      "left": [
-      192,
-      213
+      187,
+      211
      ],
-     "penalty": 4.461,
+     "penalty": 5.122,
      "primer3": {
-      "leftGc": 57.1,
-      "leftPenalty": 0.231,
-      "leftTm": 59.77,
+      "leftGc": 54.2,
+      "leftPenalty": 3.129,
+      "leftTm": 59.87,
       "passes": true,
-      "penalty": 6.436,
+      "penalty": 9.335,
       "rightGc": 48.1,
       "rightPenalty": 6.206,
       "rightTm": 59.79
@@ -2998,72 +2996,49 @@
      ]
     },
     {
-     "fwd": "ATACTTCTGAGCGATGACGGCG",
+     "fwd": "TTTTCGTCAGGTCATACTTCTGAGCG",
      "left": [
-      191,
-      213
+      178,
+      204
      ],
-     "penalty": 4.668,
+     "penalty": 5.171,
      "primer3": {
-      "leftGc": 54.5,
-      "leftPenalty": 1.153,
-      "leftTm": 59.85,
+      "leftGc": 46.2,
+      "leftPenalty": 5.272,
+      "leftTm": 59.73,
       "passes": true,
-      "penalty": 7.364,
+      "penalty": 11.478,
       "rightGc": 48.1,
-      "rightPenalty": 6.212,
-      "rightTm": 60.21
+      "rightPenalty": 6.206,
+      "rightTm": 59.79
      },
-     "rev": "TCTTCGACTACTGACAGCATAACCCTC",
+     "rev": "GTTCTTCGACTACTGACAGCATAACCC",
      "right": [
-      647,
-      674
+      649,
+      676
      ]
     },
     {
-     "fwd": "ATACTTCTGAGCGATGACGGCG",
+     "fwd": "CAGGTCATACTTCTGAGCGATGACG",
      "left": [
-      191,
-      213
+      185,
+      210
      ],
-     "penalty": 4.961,
+     "penalty": 5.305,
      "primer3": {
-      "leftGc": 54.5,
-      "leftPenalty": 1.153,
-      "leftTm": 59.85,
+      "leftGc": 52.0,
+      "leftPenalty": 4.118,
+      "leftTm": 59.88,
       "passes": true,
-      "penalty": 6.806,
-      "rightGc": 50.0,
-      "rightPenalty": 5.653,
-      "rightTm": 59.35
-     },
-     "rev": "CTTCGACTACTGACAGCATAACCCTC",
-     "right": [
-      647,
-      673
-     ]
-    },
-    {
-     "fwd": "TACTTCTGAGCGATGACGGCG",
-     "left": [
-      192,
-      213
-     ],
-     "penalty": 4.984,
-     "primer3": {
-      "leftGc": 57.1,
-      "leftPenalty": 0.231,
-      "leftTm": 59.77,
-      "passes": true,
-      "penalty": 6.442,
+      "penalty": 10.323,
       "rightGc": 48.1,
-      "rightPenalty": 6.212,
-      "rightTm": 60.21
+      "rightPenalty": 6.206,
+      "rightTm": 59.79
      },
-     "rev": "TCTTCGACTACTGACAGCATAACCCTC",
+     "rev": "GTTCTTCGACTACTGACAGCATAACCC",
      "right": [
-      647,
-      674
+      649,
+      676
      ]
     }
    ],
@@ -3162,7 +3137,7 @@
       526,
       550
      ],
-     "penalty": 5.741,
+     "penalty": 4.882,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 3.429,
@@ -3180,35 +3155,12 @@
      ]
     },
     {
-     "fwd": "CAAACTCGGCGCAACCTGTATG",
-     "left": [
-      540,
-      562
-     ],
-     "penalty": 5.844,
-     "primer3": {
-      "leftGc": 54.5,
-      "leftPenalty": 1.275,
-      "leftTm": 59.72,
-      "passes": true,
-      "penalty": 5.57,
-      "rightGc": 52.0,
-      "rightPenalty": 4.295,
-      "rightTm": 59.71
-     },
-     "rev": "CTAAACAAGAGAAAGCCCCTCTCCG",
-     "right": [
-      1133,
-      1158
-     ]
-    },
-    {
      "fwd": "ACAGGTGTTCTACTCAAACTCGGC",
      "left": [
       526,
       550
      ],
-     "penalty": 5.858,
+     "penalty": 4.999,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 3.429,
@@ -3226,18 +3178,18 @@
      ]
     },
     {
-     "fwd": "AGGTGTTCTACTCAAACTCGGCG",
+     "fwd": "CGATACAGGTGTTCTACTCAAACTCGG",
      "left": [
-      528,
-      551
+      522,
+      549
      ],
-     "penalty": 5.858,
+     "penalty": 5.073,
      "primer3": {
-      "leftGc": 52.2,
-      "leftPenalty": 2.388,
-      "leftTm": 59.61,
+      "leftGc": 48.1,
+      "leftPenalty": 6.411,
+      "leftTm": 59.59,
       "passes": true,
-      "penalty": 4.85,
+      "penalty": 8.873,
       "rightGc": 52.2,
       "rightPenalty": 2.462,
       "rightTm": 59.54
@@ -3249,18 +3201,41 @@
      ]
     },
     {
-     "fwd": "AGGTGTTCTACTCAAACTCGGCG",
+     "fwd": "CGATACAGGTGTTCTACTCAAACTCGG",
      "left": [
-      528,
-      551
+      522,
+      549
      ],
-     "penalty": 5.893,
+     "penalty": 5.155,
      "primer3": {
-      "leftGc": 52.2,
-      "leftPenalty": 2.388,
-      "leftTm": 59.61,
+      "leftGc": 48.1,
+      "leftPenalty": 6.411,
+      "leftTm": 59.59,
       "passes": true,
-      "penalty": 6.682,
+      "penalty": 10.706,
+      "rightGc": 52.0,
+      "rightPenalty": 4.295,
+      "rightTm": 59.71
+     },
+     "rev": "CTAAACAAGAGAAAGCCCCTCTCCG",
+     "right": [
+      1133,
+      1158
+     ]
+    },
+    {
+     "fwd": "GATACAGGTGTTCTACTCAAACTCGGC",
+     "left": [
+      523,
+      550
+     ],
+     "penalty": 5.215,
+     "primer3": {
+      "leftGc": 48.1,
+      "leftPenalty": 6.206,
+      "leftTm": 59.79,
+      "passes": true,
+      "penalty": 10.5,
       "rightGc": 52.0,
       "rightPenalty": 4.295,
       "rightTm": 59.71
@@ -3367,7 +3342,7 @@
       249,
       276
      ],
-     "penalty": 9.656,
+     "penalty": 9.463,
      "primer3": {
       "leftGc": 44.4,
       "leftPenalty": 7.15,
@@ -3390,7 +3365,7 @@
       247,
       274
      ],
-     "penalty": 10.456,
+     "penalty": 10.263,
      "primer3": {
       "leftGc": 44.4,
       "leftPenalty": 7.966,
@@ -3413,53 +3388,7 @@
       250,
       276
      ],
-     "penalty": 10.774,
-     "primer3": {
-      "leftGc": 46.2,
-      "leftPenalty": 7.26,
-      "leftTm": 57.74,
-      "passes": true,
-      "penalty": 13.826,
-      "rightGc": 42.3,
-      "rightPenalty": 6.566,
-      "rightTm": 58.43
-     },
-     "rev": "GCATTTTAAATCTGGCAGCACTAAGC",
-     "right": [
-      645,
-      671
-     ]
-    },
-    {
-     "fwd": "AAGTTGCTACTCTCACATTCGTTCTC",
-     "left": [
-      245,
-      271
-     ],
-     "penalty": 11.191,
-     "primer3": {
-      "leftGc": 42.3,
-      "leftPenalty": 7.176,
-      "leftTm": 57.82,
-      "passes": true,
-      "penalty": 13.742,
-      "rightGc": 42.3,
-      "rightPenalty": 6.566,
-      "rightTm": 58.43
-     },
-     "rev": "GCATTTTAAATCTGGCAGCACTAAGC",
-     "right": [
-      645,
-      671
-     ]
-    },
-    {
-     "fwd": "GCTACTCTCACATTCGTTCTCTACAC",
-     "left": [
-      250,
-      276
-     ],
-     "penalty": 11.505,
+     "penalty": 10.366,
      "primer3": {
       "leftGc": 46.2,
       "leftPenalty": 7.26,
@@ -3474,6 +3403,52 @@
      "right": [
       582,
       609
+     ]
+    },
+    {
+     "fwd": "AGTTGCTACTCTCACATTCGTTCTC",
+     "left": [
+      246,
+      271
+     ],
+     "penalty": 10.404,
+     "primer3": {
+      "leftGc": 44.0,
+      "leftPenalty": 6.494,
+      "leftTm": 57.51,
+      "passes": true,
+      "penalty": 15.041,
+      "rightGc": 40.7,
+      "rightPenalty": 8.547,
+      "rightTm": 57.45
+     },
+     "rev": "TGTTCTATCACTGACTGATCACATTGG",
+     "right": [
+      582,
+      609
+     ]
+    },
+    {
+     "fwd": "GCTACTCTCACATTCGTTCTCTACAC",
+     "left": [
+      250,
+      276
+     ],
+     "penalty": 10.564,
+     "primer3": {
+      "leftGc": 46.2,
+      "leftPenalty": 7.26,
+      "leftTm": 57.74,
+      "passes": true,
+      "penalty": 13.826,
+      "rightGc": 42.3,
+      "rightPenalty": 6.566,
+      "rightTm": 58.43
+     },
+     "rev": "GCATTTTAAATCTGGCAGCACTAAGC",
+     "right": [
+      645,
+      671
      ]
     }
    ],
@@ -3567,26 +3542,49 @@
    "name": "t17",
    "ours": [
     {
+     "fwd": "CGTGGGCATAAGTTCCTCTGCTAATC",
+     "left": [
+      718,
+      744
+     ],
+     "penalty": 4.202,
+     "primer3": {
+      "leftGc": 50.0,
+      "leftPenalty": 5.105,
+      "leftTm": 60.11,
+      "passes": true,
+      "penalty": 6.202,
+      "rightGc": 54.5,
+      "rightPenalty": 1.097,
+      "rightTm": 60.1
+     },
+     "rev": "AGCTTGGACGCTTTCAGGACAG",
+     "right": [
+      1004,
+      1026
+     ]
+    },
+    {
      "fwd": "ATCAGGTGACGGCATCAAGCAG",
      "left": [
       747,
       769
      ],
-     "penalty": 3.536,
+     "penalty": 4.397,
      "primer3": {
       "leftGc": 54.5,
       "leftPenalty": 1.225,
       "leftTm": 60.23,
       "passes": true,
-      "penalty": 3.508,
-      "rightGc": 52.2,
-      "rightPenalty": 2.282,
-      "rightTm": 60.28
+      "penalty": 2.323,
+      "rightGc": 54.5,
+      "rightPenalty": 1.097,
+      "rightTm": 60.1
      },
-     "rev": "TGAGCGACGGAAGATAGCAAAGC",
+     "rev": "AGCTTGGACGCTTTCAGGACAG",
      "right": [
-      1023,
-      1046
+      1004,
+      1026
      ]
     },
     {
@@ -3595,21 +3593,44 @@
       748,
       769
      ],
-     "penalty": 3.696,
+     "penalty": 4.43,
      "primer3": {
       "leftGc": 57.1,
       "leftPenalty": 0.162,
       "leftTm": 60.16,
       "passes": true,
-      "penalty": 2.444,
-      "rightGc": 52.2,
-      "rightPenalty": 2.282,
-      "rightTm": 60.28
+      "penalty": 1.259,
+      "rightGc": 54.5,
+      "rightPenalty": 1.097,
+      "rightTm": 60.1
      },
-     "rev": "TGAGCGACGGAAGATAGCAAAGC",
+     "rev": "AGCTTGGACGCTTTCAGGACAG",
      "right": [
-      1023,
-      1046
+      1004,
+      1026
+     ]
+    },
+    {
+     "fwd": "GTGGGCATAAGTTCCTCTGCTAATCG",
+     "left": [
+      719,
+      745
+     ],
+     "penalty": 4.502,
+     "primer3": {
+      "leftGc": 50.0,
+      "leftPenalty": 5.105,
+      "leftTm": 60.11,
+      "passes": true,
+      "penalty": 6.202,
+      "rightGc": 54.5,
+      "rightPenalty": 1.097,
+      "rightTm": 60.1
+     },
+     "rev": "AGCTTGGACGCTTTCAGGACAG",
+     "right": [
+      1004,
+      1026
      ]
     },
     {
@@ -3618,67 +3639,21 @@
       718,
       744
      ],
-     "penalty": 3.782,
+     "penalty": 4.527,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 5.105,
       "leftTm": 60.11,
       "passes": true,
-      "penalty": 7.387,
-      "rightGc": 52.2,
-      "rightPenalty": 2.282,
-      "rightTm": 60.28
+      "penalty": 7.266,
+      "rightGc": 56.5,
+      "rightPenalty": 2.161,
+      "rightTm": 60.16
      },
-     "rev": "TGAGCGACGGAAGATAGCAAAGC",
+     "rev": "GTAAAGGACGTGAGTGGGCAGAC",
      "right": [
-      1023,
-      1046
-     ]
-    },
-    {
-     "fwd": "TCATCAGGTGACGGCATCAAGC",
-     "left": [
-      745,
-      767
-     ],
-     "penalty": 3.836,
-     "primer3": {
-      "leftGc": 54.5,
-      "leftPenalty": 1.225,
-      "leftTm": 60.23,
-      "passes": true,
-      "penalty": 3.507,
-      "rightGc": 52.2,
-      "rightPenalty": 2.282,
-      "rightTm": 60.28
-     },
-     "rev": "TGAGCGACGGAAGATAGCAAAGC",
-     "right": [
-      1023,
-      1046
-     ]
-    },
-    {
-     "fwd": "TGCGTGGGCATAAGTTCCTCTG",
-     "left": [
-      716,
-      738
-     ],
-     "penalty": 4.028,
-     "primer3": {
-      "leftGc": 54.5,
-      "leftPenalty": 1.096,
-      "leftTm": 59.9,
-      "passes": true,
-      "penalty": 3.378,
-      "rightGc": 52.2,
-      "rightPenalty": 2.282,
-      "rightTm": 60.28
-     },
-     "rev": "TGAGCGACGGAAGATAGCAAAGC",
-     "right": [
-      1023,
-      1046
+      1048,
+      1071
      ]
     }
    ],
@@ -3777,7 +3752,7 @@
       333,
       359
      ],
-     "penalty": 4.157,
+     "penalty": 4.437,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 5.324,
@@ -3795,35 +3770,12 @@
      ]
     },
     {
-     "fwd": "CCTGAACCACAAAGACATTACCGACC",
-     "left": [
-      337,
-      363
-     ],
-     "penalty": 4.263,
-     "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 5.377,
-      "leftTm": 60.38,
-      "passes": true,
-      "penalty": 6.538,
-      "rightGc": 59.1,
-      "rightPenalty": 1.161,
-      "rightTm": 60.16
-     },
-     "rev": "ATCCGTGGGGACTTCTGGAGAG",
-     "right": [
-      720,
-      742
-     ]
-    },
-    {
      "fwd": "CCCACCTGAACCACAAAGACATTACC",
      "left": [
       333,
       359
      ],
-     "penalty": 4.338,
+     "penalty": 4.475,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 5.324,
@@ -3841,41 +3793,18 @@
      ]
     },
     {
-     "fwd": "TGAATCCCACCTGAACCACAAAGAC",
+     "fwd": "TTGAATCCCACCTGAACCACAAAGAC",
      "left": [
-      328,
+      327,
       353
      ],
-     "penalty": 4.417,
+     "penalty": 4.505,
      "primer3": {
-      "leftGc": 48.0,
-      "leftPenalty": 4.243,
-      "leftTm": 59.76,
+      "leftGc": 46.2,
+      "leftPenalty": 5.007,
+      "leftTm": 59.99,
       "passes": true,
-      "penalty": 5.404,
-      "rightGc": 59.1,
-      "rightPenalty": 1.161,
-      "rightTm": 60.16
-     },
-     "rev": "ATCCGTGGGGACTTCTGGAGAG",
-     "right": [
-      720,
-      742
-     ]
-    },
-    {
-     "fwd": "CCTGAACCACAAAGACATTACCGACC",
-     "left": [
-      337,
-      363
-     ],
-     "penalty": 4.444,
-     "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 5.377,
-      "leftTm": 60.38,
-      "passes": true,
-      "penalty": 5.47,
+      "penalty": 5.1,
       "rightGc": 61.9,
       "rightPenalty": 0.093,
       "rightTm": 60.09
@@ -3884,6 +3813,52 @@
      "right": [
       720,
       741
+     ]
+    },
+    {
+     "fwd": "TGAATCCCACCTGAACCACAAAGAC",
+     "left": [
+      328,
+      353
+     ],
+     "penalty": 4.599,
+     "primer3": {
+      "leftGc": 48.0,
+      "leftPenalty": 4.243,
+      "leftTm": 59.76,
+      "passes": true,
+      "penalty": 4.336,
+      "rightGc": 61.9,
+      "rightPenalty": 0.093,
+      "rightTm": 60.09
+     },
+     "rev": "TCCGTGGGGACTTCTGGAGAG",
+     "right": [
+      720,
+      741
+     ]
+    },
+    {
+     "fwd": "TTGAATCCCACCTGAACCACAAAGAC",
+     "left": [
+      327,
+      353
+     ],
+     "penalty": 4.603,
+     "primer3": {
+      "leftGc": 46.2,
+      "leftPenalty": 5.007,
+      "leftTm": 59.99,
+      "passes": true,
+      "penalty": 6.168,
+      "rightGc": 59.1,
+      "rightPenalty": 1.161,
+      "rightTm": 60.16
+     },
+     "rev": "ATCCGTGGGGACTTCTGGAGAG",
+     "right": [
+      720,
+      742
      ]
     }
    ],
@@ -3977,35 +3952,12 @@
    "name": "t19",
    "ours": [
     {
-     "fwd": "GCTCACTGTTCCTGTCGCCATAG",
-     "left": [
-      386,
-      409
-     ],
-     "penalty": 4.494,
-     "primer3": {
-      "leftGc": 56.5,
-      "leftPenalty": 2.282,
-      "leftTm": 60.28,
-      "passes": true,
-      "penalty": 3.699,
-      "rightGc": 59.1,
-      "rightPenalty": 1.416,
-      "rightTm": 60.42
-     },
-     "rev": "CCAGGCACCGTTACTCCACTTG",
-     "right": [
-      989,
-      1011
-     ]
-    },
-    {
      "fwd": "AACGGCTCACTGTTCCTGTCG",
      "left": [
       382,
       403
      ],
-     "penalty": 4.533,
+     "penalty": 4.043,
      "primer3": {
       "leftGc": 57.1,
       "leftPenalty": 0.096,
@@ -4023,64 +3975,41 @@
      ]
     },
     {
-     "fwd": "TAGGTTCGGGATGGTGTAGGGAC",
+     "fwd": "AGCAAACATGAATCTTGTCCCCTCC",
      "left": [
-      347,
-      370
+      292,
+      317
      ],
-     "penalty": 4.539,
+     "penalty": 4.106,
      "primer3": {
-      "leftGc": 56.5,
-      "leftPenalty": 2.091,
-      "leftTm": 59.91,
+      "leftGc": 48.0,
+      "leftPenalty": 4.129,
+      "leftTm": 59.87,
       "passes": true,
-      "penalty": 2.186,
-      "rightGc": 57.1,
-      "rightPenalty": 0.095,
-      "rightTm": 60.09
+      "penalty": 9.288,
+      "rightGc": 50.0,
+      "rightPenalty": 5.159,
+      "rightTm": 60.16
      },
-     "rev": "AGGCACCGTTACTCCACTTGC",
+     "rev": "ACCGTTACTCCACTTGCTACCTAGTC",
      "right": [
-      988,
-      1009
+      979,
+      1005
      ]
     },
     {
-     "fwd": "TAGGTTCGGGATGGTGTAGGGAC",
+     "fwd": "AGCAAACATGAATCTTGTCCCCTCC",
      "left": [
-      347,
-      370
+      292,
+      317
      ],
-     "penalty": 4.61,
+     "penalty": 4.115,
      "primer3": {
-      "leftGc": 56.5,
-      "leftPenalty": 2.091,
-      "leftTm": 59.91,
+      "leftGc": 48.0,
+      "leftPenalty": 4.129,
+      "leftTm": 59.87,
       "passes": true,
-      "penalty": 2.122,
-      "rightGc": 57.1,
-      "rightPenalty": 0.03,
-      "rightTm": 60.03
-     },
-     "rev": "TTCCTCGTATAACGCCCACGC",
-     "right": [
-      903,
-      924
-     ]
-    },
-    {
-     "fwd": "GCTCACTGTTCCTGTCGCCATAG",
-     "left": [
-      386,
-      409
-     ],
-     "penalty": 4.634,
-     "primer3": {
-      "leftGc": 56.5,
-      "leftPenalty": 2.282,
-      "leftTm": 60.28,
-      "passes": true,
-      "penalty": 5.386,
+      "penalty": 7.233,
       "rightGc": 54.2,
       "rightPenalty": 3.104,
       "rightTm": 60.1
@@ -4089,6 +4018,52 @@
      "right": [
       908,
       932
+     ]
+    },
+    {
+     "fwd": "GCTAACGGCTCACTGTTCCTGTC",
+     "left": [
+      379,
+      402
+     ],
+     "penalty": 4.189,
+     "primer3": {
+      "leftGc": 56.5,
+      "leftPenalty": 2.463,
+      "leftTm": 60.46,
+      "passes": true,
+      "penalty": 7.623,
+      "rightGc": 50.0,
+      "rightPenalty": 5.159,
+      "rightTm": 60.16
+     },
+     "rev": "ACCGTTACTCCACTTGCTACCTAGTC",
+     "right": [
+      979,
+      1005
+     ]
+    },
+    {
+     "fwd": "TGCTAACGGCTCACTGTTCCTG",
+     "left": [
+      378,
+      400
+     ],
+     "penalty": 4.199,
+     "primer3": {
+      "leftGc": 54.5,
+      "leftPenalty": 1.158,
+      "leftTm": 59.84,
+      "passes": true,
+      "penalty": 6.317,
+      "rightGc": 50.0,
+      "rightPenalty": 5.159,
+      "rightTm": 60.16
+     },
+     "rev": "ACCGTTACTCCACTTGCTACCTAGTC",
+     "right": [
+      979,
+      1005
      ]
     }
    ],
@@ -4182,87 +4157,26 @@
    "name": "t20",
    "ours": [
     {
-     "fwd": "TCGGCGGCGTTTGTTATTGC",
+     "fwd": "GCAACGGGAATGCAAGTTCGG",
      "left": [
-      552,
-      572
+      570,
+      591
      ],
-     "penalty": 3.599,
+     "penalty": 4.975,
      "primer3": {
-      "explain": {
-       "left": "considered 1, ok 1",
-       "pair": "considered 0, ok 0",
-       "right": "considered 1, high hairpin stability 1, ok 0"
-      },
-      "leftGc": 55.0,
-      "leftPenalty": 1.041,
-      "leftTm": 59.96,
-      "passes": false,
-      "penalty": 3.141,
-      "rightGc": 52.2,
-      "rightPenalty": 2.099,
-      "rightTm": 60.1
-     },
-     "rev": "TTTTGCCGGTACGTTAGGTTCCC",
-     "right": [
-      1180,
-      1203
-     ]
-    },
-    {
-     "fwd": "GGTCGGCGGCGTTTGTTATTG",
-     "left": [
-      550,
-      571
-     ],
-     "penalty": 3.716,
-     "primer3": {
-      "explain": {
-       "left": "considered 1, ok 1",
-       "pair": "considered 0, ok 0",
-       "right": "considered 1, high hairpin stability 1, ok 0"
-      },
       "leftGc": 57.1,
-      "leftPenalty": 0.292,
-      "leftTm": 60.29,
-      "passes": false,
-      "penalty": 2.391,
-      "rightGc": 52.2,
-      "rightPenalty": 2.099,
+      "leftPenalty": 0.228,
+      "leftTm": 60.23,
+      "passes": true,
+      "penalty": 4.33,
+      "rightGc": 52.0,
+      "rightPenalty": 4.102,
       "rightTm": 60.1
      },
-     "rev": "TTTTGCCGGTACGTTAGGTTCCC",
+     "rev": "TACGTTAGGTTCCCCTGTACACTGG",
      "right": [
-      1180,
-      1203
-     ]
-    },
-    {
-     "fwd": "TCGGCGGCGTTTGTTATTGC",
-     "left": [
-      552,
-      572
-     ],
-     "penalty": 3.775,
-     "primer3": {
-      "explain": {
-       "left": "considered 1, ok 1",
-       "pair": "considered 0, ok 0",
-       "right": "considered 1, high hairpin stability 1, ok 0"
-      },
-      "leftGc": 55.0,
-      "leftPenalty": 1.041,
-      "leftTm": 59.96,
-      "passes": false,
-      "penalty": 2.201,
-      "rightGc": 54.5,
-      "rightPenalty": 1.16,
-      "rightTm": 59.84
-     },
-     "rev": "TTTGCCGGTACGTTAGGTTCCC",
-     "right": [
-      1180,
-      1202
+      1169,
+      1194
      ]
     },
     {
@@ -4271,7 +4185,30 @@
       589,
       616
      ],
-     "penalty": 4.103,
+     "penalty": 4.975,
+     "primer3": {
+      "leftGc": 48.1,
+      "leftPenalty": 6.101,
+      "leftTm": 59.9,
+      "passes": true,
+      "penalty": 10.203,
+      "rightGc": 52.0,
+      "rightPenalty": 4.102,
+      "rightTm": 60.1
+     },
+     "rev": "TACGTTAGGTTCCCCTGTACACTGG",
+     "right": [
+      1169,
+      1194
+     ]
+    },
+    {
+     "fwd": "GGATGGTGTCGGATTGTACGTGATTAG",
+     "left": [
+      589,
+      616
+     ],
+     "penalty": 5.04,
      "primer3": {
       "explain": {
        "left": "considered 1, ok 1",
@@ -4294,12 +4231,35 @@
      ]
     },
     {
+     "fwd": "TTCGGATGGTGTCGGATTGTACG",
+     "left": [
+      586,
+      609
+     ],
+     "penalty": 5.082,
+     "primer3": {
+      "leftGc": 52.2,
+      "leftPenalty": 2.264,
+      "leftTm": 59.74,
+      "passes": true,
+      "penalty": 7.489,
+      "rightGc": 50.0,
+      "rightPenalty": 5.225,
+      "rightTm": 59.78
+     },
+     "rev": "GGCCCTACAACTGTAAACTCTATGGC",
+     "right": [
+      1088,
+      1114
+     ]
+    },
+    {
      "fwd": "GGATGGTGTCGGATTGTACGTGATTAG",
      "left": [
       589,
       616
      ],
-     "penalty": 4.16,
+     "penalty": 5.097,
      "primer3": {
       "explain": {
        "left": "considered 1, ok 1",
@@ -4412,95 +4372,26 @@
    "name": "t21",
    "ours": [
     {
-     "fwd": "AATTAGAGGGTACACGATATGCTGCG",
+     "fwd": "CCACACTCTGATCCAACTATCATGCG",
      "left": [
-      254,
-      280
+      216,
+      242
      ],
-     "penalty": 6.38,
-     "primer3": {
-      "leftGc": 46.2,
-      "leftPenalty": 5.547,
-      "leftTm": 59.45,
-      "passes": true,
-      "penalty": 9.952,
-      "rightGc": 52.0,
-      "rightPenalty": 4.405,
-      "rightTm": 59.6
-     },
-     "rev": "CATGCAGATACGGTTACCCTCTGTC",
-     "right": [
-      673,
-      698
-     ]
-    },
-    {
-     "fwd": "AGAGGGTACACGATATGCTGCG",
-     "left": [
-      258,
-      280
-     ],
-     "penalty": 6.418,
-     "primer3": {
-      "leftGc": 54.5,
-      "leftPenalty": 1.732,
-      "leftTm": 59.27,
-      "passes": true,
-      "penalty": 6.136,
-      "rightGc": 52.0,
-      "rightPenalty": 4.405,
-      "rightTm": 59.6
-     },
-     "rev": "CATGCAGATACGGTTACCCTCTGTC",
-     "right": [
-      673,
-      698
-     ]
-    },
-    {
-     "fwd": "TTAGAGGGTACACGATATGCTGCG",
-     "left": [
-      256,
-      280
-     ],
-     "penalty": 6.491,
+     "penalty": 5.039,
      "primer3": {
       "leftGc": 50.0,
-      "leftPenalty": 3.896,
-      "leftTm": 59.1,
+      "leftPenalty": 5.105,
+      "leftTm": 60.11,
       "passes": true,
-      "penalty": 8.3,
-      "rightGc": 52.0,
-      "rightPenalty": 4.405,
-      "rightTm": 59.6
+      "penalty": 10.426,
+      "rightGc": 50.0,
+      "rightPenalty": 5.321,
+      "rightTm": 60.32
      },
-     "rev": "CATGCAGATACGGTTACCCTCTGTC",
+     "rev": "CGTTGTACATGCAGATACGGTTACCC",
      "right": [
-      673,
-      698
-     ]
-    },
-    {
-     "fwd": "ATTAGAGGGTACACGATATGCTGCG",
-     "left": [
-      255,
-      280
-     ],
-     "penalty": 6.602,
-     "primer3": {
-      "leftGc": 48.0,
-      "leftPenalty": 4.801,
-      "leftTm": 59.2,
-      "passes": true,
-      "penalty": 9.206,
-      "rightGc": 52.0,
-      "rightPenalty": 4.405,
-      "rightTm": 59.6
-     },
-     "rev": "CATGCAGATACGGTTACCCTCTGTC",
-     "right": [
-      673,
-      698
+      679,
+      705
      ]
     },
     {
@@ -4509,7 +4400,7 @@
       216,
       242
      ],
-     "penalty": 6.614,
+     "penalty": 5.158,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 5.105,
@@ -4524,6 +4415,75 @@
      "right": [
       673,
       700
+     ]
+    },
+    {
+     "fwd": "CCACACTCTGATCCAACTATCATGCG",
+     "left": [
+      216,
+      242
+     ],
+     "penalty": 5.203,
+     "primer3": {
+      "leftGc": 50.0,
+      "leftPenalty": 5.105,
+      "leftTm": 60.11,
+      "passes": true,
+      "penalty": 11.26,
+      "rightGc": 48.1,
+      "rightPenalty": 6.154,
+      "rightTm": 59.85
+     },
+     "rev": "GTTGTACATGCAGATACGGTTACCCTC",
+     "right": [
+      677,
+      704
+     ]
+    },
+    {
+     "fwd": "CCACACTCTGATCCAACTATCATGCG",
+     "left": [
+      216,
+      242
+     ],
+     "penalty": 5.463,
+     "primer3": {
+      "leftGc": 50.0,
+      "leftPenalty": 5.105,
+      "leftTm": 60.11,
+      "passes": true,
+      "penalty": 9.51,
+      "rightGc": 52.0,
+      "rightPenalty": 4.405,
+      "rightTm": 59.6
+     },
+     "rev": "CATGCAGATACGGTTACCCTCTGTC",
+     "right": [
+      673,
+      698
+     ]
+    },
+    {
+     "fwd": "GTCCACACTCTGATCCAACTATCATGC",
+     "left": [
+      214,
+      241
+     ],
+     "penalty": 5.475,
+     "primer3": {
+      "leftGc": 48.1,
+      "leftPenalty": 6.156,
+      "leftTm": 59.84,
+      "passes": true,
+      "penalty": 10.68,
+      "rightGc": 52.0,
+      "rightPenalty": 4.523,
+      "rightTm": 59.48
+     },
+     "rev": "ACGGTTACCCTCTGTCTAGTACTCG",
+     "right": [
+      664,
+      689
      ]
     }
    ],
@@ -4617,82 +4577,77 @@
    "name": "t22",
    "ours": [
     {
-     "fwd": "GATGCTCGGAGTAGAACGCCTTTAAG",
-     "left": [
-      174,
-      200
-     ],
-     "penalty": 4.912,
-     "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 5.106,
-      "leftTm": 60.11,
-      "passes": true,
-      "penalty": 8.153,
-      "rightGc": 50.0,
-      "rightPenalty": 3.047,
-      "rightTm": 60.05
-     },
-     "rev": "GCGGCTATCAACAGTGTTAAACGC",
-     "right": [
-      758,
-      782
-     ]
-    },
-    {
      "fwd": "TAGAACGCCTTTAAGCCCGCC",
      "left": [
       185,
       206
      ],
-     "penalty": 4.957,
+     "penalty": 4.917,
+     "primer3": {
+      "leftGc": 57.1,
+      "leftPenalty": 0.229,
+      "leftTm": 60.23,
+      "passes": true,
+      "penalty": 5.335,
+      "rightGc": 46.2,
+      "rightPenalty": 5.106,
+      "rightTm": 60.11
+     },
+     "rev": "ACGTGGATAATATGGAACTCGCAACG",
+     "right": [
+      656,
+      682
+     ]
+    },
+    {
+     "fwd": "TAACCGTTACAGCCCTCACGTTG",
+     "left": [
+      306,
+      329
+     ],
+     "penalty": 4.947,
      "primer3": {
       "explain": {
        "left": "considered 1, ok 1",
        "pair": "considered 0, ok 0",
        "right": "considered 1, high hairpin stability 1, ok 0"
       },
-      "leftGc": 57.1,
-      "leftPenalty": 0.229,
-      "leftTm": 60.23,
+      "leftGc": 52.2,
+      "leftPenalty": 2.144,
+      "leftTm": 59.86,
       "passes": false,
-      "penalty": 6.44,
-      "rightGc": 48.1,
-      "rightPenalty": 6.211,
-      "rightTm": 60.21
+      "penalty": 7.312,
+      "rightGc": 50.0,
+      "rightPenalty": 5.168,
+      "rightTm": 59.83
      },
-     "rev": "CACTGGTACTGATAGCAGGTTTCAAGC",
+     "rev": "CATGCTTCACTGGTACTGATAGCAGG",
      "right": [
-      622,
-      649
+      630,
+      656
      ]
     },
     {
-     "fwd": "CTCGGAGTAGAACGCCTTTAAGCC",
+     "fwd": "TCGGAGTAGAACGCCTTTAAGCC",
      "left": [
-      178,
+      179,
       202
      ],
-     "penalty": 4.997,
+     "penalty": 4.951,
      "primer3": {
-      "explain": {
-       "left": "considered 1, ok 1",
-       "pair": "considered 0, ok 0",
-       "right": "considered 1, high hairpin stability 1, ok 0"
-      },
-      "leftGc": 54.2,
-      "leftPenalty": 3.044,
-      "leftTm": 60.04,
-      "passes": false,
-      "penalty": 5.181,
-      "rightGc": 52.2,
-      "rightPenalty": 2.137,
-      "rightTm": 59.86
+      "leftGc": 52.2,
+      "leftPenalty": 2.574,
+      "leftTm": 59.43,
+      "passes": true,
+      "penalty": 5.991,
+      "rightGc": 50.0,
+      "rightPenalty": 3.417,
+      "rightTm": 59.58
      },
-     "rev": "CGCTAAGCAAGCGATTCCATGTG",
+     "rev": "GCTAAGCAAGCGATTCCATGTGTC",
      "right": [
-      790,
-      813
+      788,
+      812
      ]
     },
     {
@@ -4701,54 +4656,49 @@
       185,
       206
      ],
-     "penalty": 5.007,
+     "penalty": 4.968,
      "primer3": {
-      "explain": {
-       "left": "considered 1, ok 1",
-       "pair": "considered 0, ok 0",
-       "right": "considered 1, high hairpin stability 1, ok 0"
-      },
       "leftGc": 57.1,
       "leftPenalty": 0.229,
       "leftTm": 60.23,
-      "passes": false,
-      "penalty": 0.327,
-      "rightGc": 52.4,
-      "rightPenalty": 0.098,
-      "rightTm": 59.9
+      "passes": true,
+      "penalty": 4.84,
+      "rightGc": 52.0,
+      "rightPenalty": 4.611,
+      "rightTm": 60.61
      },
-     "rev": "AACTCGCAACGCATGCTTCAC",
+     "rev": "GGTTGGTACAGTGTCAGGTGCAATC",
      "right": [
-      646,
-      667
+      714,
+      739
      ]
     },
     {
-     "fwd": "TAGAACGCCTTTAAGCCCGCC",
+     "fwd": "TTAACCGTTACAGCCCTCACGTTG",
      "left": [
-      185,
-      206
+      305,
+      329
      ],
-     "penalty": 5.064,
+     "penalty": 4.983,
      "primer3": {
       "explain": {
        "left": "considered 1, ok 1",
        "pair": "considered 0, ok 0",
        "right": "considered 1, high hairpin stability 1, ok 0"
       },
-      "leftGc": 57.1,
-      "leftPenalty": 0.229,
-      "leftTm": 60.23,
+      "leftGc": 50.0,
+      "leftPenalty": 3.102,
+      "leftTm": 60.1,
       "passes": false,
-      "penalty": 2.366,
-      "rightGc": 52.2,
-      "rightPenalty": 2.137,
-      "rightTm": 59.86
+      "penalty": 9.104,
+      "rightGc": 48.1,
+      "rightPenalty": 6.002,
+      "rightTm": 60.0
      },
-     "rev": "CGCTAAGCAAGCGATTCCATGTG",
+     "rev": "GCTTCACTGGTACTGATAGCAGGTTTC",
      "right": [
-      790,
-      813
+      626,
+      653
      ]
     }
    ],
@@ -4842,118 +4792,143 @@
    "name": "t23",
    "ours": [
     {
-     "fwd": "CTCTACCTAAGGCAAAACACATAATCC",
+     "fwd": "TGCAGTTCATCATTGAGTGATGCGT",
      "left": [
-      131,
-      158
+      185,
+      210
      ],
-     "penalty": 11.629,
+     "penalty": 8.165,
      "primer3": {
-      "leftGc": 40.7,
-      "leftPenalty": 9.602,
-      "leftTm": 56.4,
-      "passes": true,
-      "penalty": 13.566,
-      "rightGc": 55.0,
-      "rightPenalty": 3.964,
-      "rightTm": 57.04
-     },
-     "rev": "CTAGTTTCGTTTCCGCGTGG",
-     "right": [
-      614,
-      634
-     ]
-    },
-    {
-     "fwd": "CTCTACCTAAGGCAAAACACATAATCC",
-     "left": [
-      131,
-      158
-     ],
-     "penalty": 11.629,
-     "primer3": {
-      "leftGc": 40.7,
-      "leftPenalty": 9.602,
-      "leftTm": 56.4,
-      "passes": true,
-      "penalty": 12.236,
-      "rightGc": 55.0,
-      "rightPenalty": 2.634,
-      "rightTm": 58.37
-     },
-     "rev": "TAGTTTCGTTTCCGCGTGGG",
-     "right": [
-      613,
-      633
-     ]
-    },
-    {
-     "fwd": "CTCTACCTAAGGCAAAACACATAATCC",
-     "left": [
-      131,
-      158
-     ],
-     "penalty": 12.019,
-     "primer3": {
-      "leftGc": 40.7,
-      "leftPenalty": 9.602,
-      "leftTm": 56.4,
-      "passes": true,
-      "penalty": 12.743,
-      "rightGc": 57.9,
-      "rightPenalty": 3.141,
-      "rightTm": 58.86
-     },
-     "rev": "AGTTTCGTTTCCGCGTGGG",
-     "right": [
-      613,
-      632
-     ]
-    },
-    {
-     "fwd": "CTCTACCTAAGGCAAAACACATAATCC",
-     "left": [
-      131,
-      158
-     ],
-     "penalty": 12.129,
-     "primer3": {
-      "leftGc": 40.7,
-      "leftPenalty": 9.602,
-      "leftTm": 56.4,
-      "passes": true,
-      "penalty": 12.581,
+      "explain": {
+       "left": "considered 1, high hairpin stability 1, ok 0",
+       "pair": "considered 0, ok 0",
+       "right": "considered 1, ok 1"
+      },
+      "leftGc": 44.0,
+      "leftPenalty": 4.16,
+      "leftTm": 60.16,
+      "passes": false,
+      "penalty": 7.32,
       "rightGc": 50.0,
-      "rightPenalty": 2.979,
-      "rightTm": 58.02
+      "rightPenalty": 3.161,
+      "rightTm": 60.16
      },
-     "rev": "TACTAGTTTCGTTTCCGCGTGG",
+     "rev": "TTACTAGTTTCGTTTCCGCGTGGG",
      "right": [
-      614,
+      613,
+      637
+     ]
+    },
+    {
+     "fwd": "TGCAGTTCATCATTGAGTGATGCGT",
+     "left": [
+      185,
+      210
+     ],
+     "penalty": 8.443,
+     "primer3": {
+      "explain": {
+       "left": "considered 1, high hairpin stability 1, ok 0",
+       "pair": "considered 0, ok 0",
+       "right": "considered 1, ok 1"
+      },
+      "leftGc": 44.0,
+      "leftPenalty": 4.16,
+      "leftTm": 60.16,
+      "passes": false,
+      "penalty": 6.241,
+      "rightGc": 52.2,
+      "rightPenalty": 2.081,
+      "rightTm": 59.92
+     },
+     "rev": "TACTAGTTTCGTTTCCGCGTGGG",
+     "right": [
+      613,
       636
      ]
     },
     {
-     "fwd": "CTCTACCTAAGGCAAAACACATAATCC",
+     "fwd": "TTGCAGTTCATCATTGAGTGATGCG",
      "left": [
-      131,
-      158
+      184,
+      209
      ],
-     "penalty": 12.268,
+     "penalty": 8.534,
      "primer3": {
-      "leftGc": 40.7,
-      "leftPenalty": 9.602,
-      "leftTm": 56.4,
-      "passes": true,
-      "penalty": 11.149,
-      "rightGc": 52.4,
-      "rightPenalty": 1.547,
-      "rightTm": 58.45
+      "explain": {
+       "left": "considered 1, high hairpin stability 1, ok 0",
+       "pair": "considered 0, ok 0",
+       "right": "considered 1, ok 1"
+      },
+      "leftGc": 44.0,
+      "leftPenalty": 4.736,
+      "leftTm": 59.26,
+      "passes": false,
+      "penalty": 6.817,
+      "rightGc": 52.2,
+      "rightPenalty": 2.081,
+      "rightTm": 59.92
      },
-     "rev": "ACTAGTTTCGTTTCCGCGTGG",
+     "rev": "TACTAGTTTCGTTTCCGCGTGGG",
      "right": [
-      614,
-      635
+      613,
+      636
+     ]
+    },
+    {
+     "fwd": "ATTGCAGTTCATCATTGAGTGATGCG",
+     "left": [
+      183,
+      209
+     ],
+     "penalty": 8.633,
+     "primer3": {
+      "explain": {
+       "left": "considered 1, high hairpin stability 1, ok 0",
+       "pair": "considered 0, ok 0",
+       "right": "considered 1, ok 1"
+      },
+      "leftGc": 42.3,
+      "leftPenalty": 5.651,
+      "leftTm": 59.35,
+      "passes": false,
+      "penalty": 7.733,
+      "rightGc": 52.2,
+      "rightPenalty": 2.081,
+      "rightTm": 59.92
+     },
+     "rev": "TACTAGTTTCGTTTCCGCGTGGG",
+     "right": [
+      613,
+      636
+     ]
+    },
+    {
+     "fwd": "TTGCAGTTCATCATTGAGTGATGCG",
+     "left": [
+      184,
+      209
+     ],
+     "penalty": 8.737,
+     "primer3": {
+      "explain": {
+       "left": "considered 1, high hairpin stability 1, ok 0",
+       "pair": "considered 0, ok 0",
+       "right": "considered 1, ok 1"
+      },
+      "leftGc": 44.0,
+      "leftPenalty": 4.736,
+      "leftTm": 59.26,
+      "passes": false,
+      "penalty": 7.897,
+      "rightGc": 50.0,
+      "rightPenalty": 3.161,
+      "rightTm": 60.16
+     },
+     "rev": "TTACTAGTTTCGTTTCCGCGTGGG",
+     "right": [
+      613,
+      637
      ]
     }
    ],
@@ -5047,12 +5022,58 @@
    "name": "t24",
    "ours": [
     {
+     "fwd": "GGCCACGCTAATTATGCTGTAATCAG",
+     "left": [
+      1179,
+      1205
+     ],
+     "penalty": 8.101,
+     "primer3": {
+      "leftGc": 46.2,
+      "leftPenalty": 5.974,
+      "leftTm": 59.03,
+      "passes": true,
+      "penalty": 12.962,
+      "rightGc": 44.4,
+      "rightPenalty": 6.988,
+      "rightTm": 59.01
+     },
+     "rev": "CAATCAAAAGTCTCACCCTCGAAGTTG",
+     "right": [
+      1400,
+      1427
+     ]
+    },
+    {
+     "fwd": "CCAACCTGAATCAATACACGTATGGC",
+     "left": [
+      1156,
+      1182
+     ],
+     "penalty": 8.32,
+     "primer3": {
+      "leftGc": 46.2,
+      "leftPenalty": 6.087,
+      "leftTm": 58.91,
+      "passes": true,
+      "penalty": 13.075,
+      "rightGc": 44.4,
+      "rightPenalty": 6.988,
+      "rightTm": 59.01
+     },
+     "rev": "CAATCAAAAGTCTCACCCTCGAAGTTG",
+     "right": [
+      1400,
+      1427
+     ]
+    },
+    {
      "fwd": "ACCTCAATAACTATCGCGCACAGAG",
      "left": [
       1047,
       1072
      ],
-     "penalty": 8.431,
+     "penalty": 8.501,
      "primer3": {
       "leftGc": 48.0,
       "leftPenalty": 4.402,
@@ -5070,64 +5091,18 @@
      ]
     },
     {
-     "fwd": "CACGTATGGCCACGCTAATTATGC",
+     "fwd": "GGCCAACCTGAATCAATACACGTATG",
      "left": [
-      1172,
-      1196
+      1154,
+      1180
      ],
-     "penalty": 8.531,
-     "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 3.531,
-      "leftTm": 59.47,
-      "passes": true,
-      "penalty": 10.518,
-      "rightGc": 44.4,
-      "rightPenalty": 6.988,
-      "rightTm": 59.01
-     },
-     "rev": "CAATCAAAAGTCTCACCCTCGAAGTTG",
-     "right": [
-      1400,
-      1427
-     ]
-    },
-    {
-     "fwd": "CGTATGGCCACGCTAATTATGCTG",
-     "left": [
-      1174,
-      1198
-     ],
-     "penalty": 8.531,
-     "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 3.764,
-      "leftTm": 59.24,
-      "passes": true,
-      "penalty": 10.751,
-      "rightGc": 44.4,
-      "rightPenalty": 6.988,
-      "rightTm": 59.01
-     },
-     "rev": "CAATCAAAAGTCTCACCCTCGAAGTTG",
-     "right": [
-      1400,
-      1427
-     ]
-    },
-    {
-     "fwd": "AACCTCAATAACTATCGCGCACAGAG",
-     "left": [
-      1046,
-      1072
-     ],
-     "penalty": 8.716,
+     "penalty": 8.6,
      "primer3": {
       "leftGc": 46.2,
-      "leftPenalty": 5.165,
-      "leftTm": 59.84,
+      "leftPenalty": 6.087,
+      "leftTm": 58.91,
       "passes": true,
-      "penalty": 12.152,
+      "penalty": 13.075,
       "rightGc": 44.4,
       "rightPenalty": 6.988,
       "rightTm": 59.01
@@ -5139,26 +5114,26 @@
      ]
     },
     {
-     "fwd": "ACCTCAATAACTATCGCGCACAG",
+     "fwd": "GCCAACCTGAATCAATACACGTATGG",
      "left": [
-      1047,
-      1070
+      1155,
+      1181
      ],
-     "penalty": 8.8,
+     "penalty": 8.62,
      "primer3": {
-      "leftGc": 47.8,
-      "leftPenalty": 4.028,
-      "leftTm": 57.97,
+      "leftGc": 46.2,
+      "leftPenalty": 6.087,
+      "leftTm": 58.91,
       "passes": true,
-      "penalty": 11.933,
-      "rightGc": 40.7,
-      "rightPenalty": 7.905,
-      "rightTm": 58.1
+      "penalty": 13.075,
+      "rightGc": 44.4,
+      "rightPenalty": 6.988,
+      "rightTm": 59.01
      },
-     "rev": "AATCAATCAAAAGTCTCACCCTCGAAG",
+     "rev": "CAATCAAAAGTCTCACCCTCGAAGTTG",
      "right": [
-      1403,
-      1430
+      1400,
+      1427
      ]
     }
    ],
@@ -5257,7 +5232,7 @@
       491,
       513
      ],
-     "penalty": 3.592,
+     "penalty": 3.947,
      "primer3": {
       "leftGc": 54.5,
       "leftPenalty": 1.037,
@@ -5280,7 +5255,7 @@
       491,
       513
      ],
-     "penalty": 3.871,
+     "penalty": 4.141,
      "primer3": {
       "leftGc": 54.5,
       "leftPenalty": 1.037,
@@ -5298,72 +5273,72 @@
      ]
     },
     {
-     "fwd": "GCGAGACCGTTATGGATTGGGG",
+     "fwd": "CATTACGCCAATCACGCCCAAC",
      "left": [
-      467,
-      489
+      491,
+      513
      ],
-     "penalty": 4.179,
+     "penalty": 4.441,
      "primer3": {
-      "leftGc": 59.1,
-      "leftPenalty": 1.353,
-      "leftTm": 60.35,
+      "leftGc": 54.5,
+      "leftPenalty": 1.037,
+      "leftTm": 60.04,
       "passes": true,
-      "penalty": 3.376,
+      "penalty": 4.225,
+      "rightGc": 50.0,
+      "rightPenalty": 3.188,
+      "rightTm": 59.81
+     },
+     "rev": "TCGACACTACGTATGGCATCTTGC",
+     "right": [
+      941,
+      965
+     ]
+    },
+    {
+     "fwd": "CATTACGCCAATCACGCCCAAC",
+     "left": [
+      491,
+      513
+     ],
+     "penalty": 4.519,
+     "primer3": {
+      "leftGc": 54.5,
+      "leftPenalty": 1.037,
+      "leftTm": 60.04,
+      "passes": true,
+      "penalty": 6.094,
+      "rightGc": 46.2,
+      "rightPenalty": 5.057,
+      "rightTm": 59.94
+     },
+     "rev": "AGTTCGCCAAGTACATTGTTAGGTCG",
+     "right": [
+      906,
+      932
+     ]
+    },
+    {
+     "fwd": "CATTACGCCAATCACGCCCAAC",
+     "left": [
+      491,
+      513
+     ],
+     "penalty": 4.542,
+     "primer3": {
+      "leftGc": 54.5,
+      "leftPenalty": 1.037,
+      "leftTm": 60.04,
+      "passes": true,
+      "penalty": 3.319,
       "rightGc": 52.2,
-      "rightPenalty": 2.023,
-      "rightTm": 59.98
+      "rightPenalty": 2.282,
+      "rightTm": 60.28
      },
-     "rev": "ATGGCATCTTGCGTGTGGTAGAG",
+     "rev": "TACGTATGGCATCTTGCGTGTGG",
      "right": [
-      930,
-      953
-     ]
-    },
-    {
-     "fwd": "CATTACGCCAATCACGCCCAAC",
-     "left": [
-      491,
-      513
-     ],
-     "penalty": 4.304,
-     "primer3": {
-      "leftGc": 54.5,
-      "leftPenalty": 1.037,
-      "leftTm": 60.04,
-      "passes": true,
-      "penalty": 3.498,
-      "rightGc": 56.5,
-      "rightPenalty": 2.462,
-      "rightTm": 59.54
-     },
-     "rev": "GGCCACCATAGAGCAGGGATAAC",
-     "right": [
-      1007,
-      1030
-     ]
-    },
-    {
-     "fwd": "CATTACGCCAATCACGCCCAAC",
-     "left": [
-      491,
-      513
-     ],
-     "penalty": 4.31,
-     "primer3": {
-      "leftGc": 54.5,
-      "leftPenalty": 1.037,
-      "leftTm": 60.04,
-      "passes": true,
-      "penalty": 5.365,
-      "rightGc": 52.0,
-      "rightPenalty": 4.328,
-      "rightTm": 60.33
-     },
-     "rev": "GTATGGCATCTTGCGTGTGGTAGAG",
-     "right": [
-      930,
-      955
+      935,
+      958
      ]
     }
    ],
@@ -5462,7 +5437,76 @@
       1232,
       1254
      ],
-     "penalty": 3.332,
+     "penalty": 4.836,
+     "primer3": {
+      "leftGc": 59.1,
+      "leftPenalty": 1.036,
+      "leftTm": 60.04,
+      "passes": true,
+      "penalty": 4.08,
+      "rightGc": 54.2,
+      "rightPenalty": 3.044,
+      "rightTm": 60.04
+     },
+     "rev": "CCGAACCTACTATGCGGTGTCTTG",
+     "right": [
+      1636,
+      1660
+     ]
+    },
+    {
+     "fwd": "GTGAGACCCTACGCCGTGAATC",
+     "left": [
+      1232,
+      1254
+     ],
+     "penalty": 5.042,
+     "primer3": {
+      "leftGc": 59.1,
+      "leftPenalty": 1.036,
+      "leftTm": 60.04,
+      "passes": true,
+      "penalty": 6.249,
+      "rightGc": 50.0,
+      "rightPenalty": 5.214,
+      "rightTm": 60.21
+     },
+     "rev": "GAACCTACTATGCGGTGTCTTGTTGG",
+     "right": [
+      1632,
+      1658
+     ]
+    },
+    {
+     "fwd": "GTGAGACCCTACGCCGTGAATC",
+     "left": [
+      1232,
+      1254
+     ],
+     "penalty": 5.064,
+     "primer3": {
+      "leftGc": 59.1,
+      "leftPenalty": 1.036,
+      "leftTm": 60.04,
+      "passes": true,
+      "penalty": 5.044,
+      "rightGc": 52.0,
+      "rightPenalty": 4.009,
+      "rightTm": 59.99
+     },
+     "rev": "CCTACTATGCGGTGTCTTGTTGGAC",
+     "right": [
+      1630,
+      1655
+     ]
+    },
+    {
+     "fwd": "GTGAGACCCTACGCCGTGAATC",
+     "left": [
+      1232,
+      1254
+     ],
+     "penalty": 5.088,
      "primer3": {
       "leftGc": 59.1,
       "leftPenalty": 1.036,
@@ -5480,87 +5524,18 @@
      ]
     },
     {
-     "fwd": "GTGAGACCCTACGCCGTGAATC",
+     "fwd": "GACCCTACGCCGTGAATCCC",
      "left": [
-      1232,
-      1254
+      1236,
+      1256
      ],
-     "penalty": 3.504,
+     "penalty": 5.127,
      "primer3": {
-      "leftGc": 59.1,
-      "leftPenalty": 1.036,
-      "leftTm": 60.04,
+      "leftGc": 65.0,
+      "leftPenalty": 1.023,
+      "leftTm": 60.02,
       "passes": true,
-      "penalty": 3.257,
-      "rightGc": 56.5,
-      "rightPenalty": 2.221,
-      "rightTm": 60.22
-     },
-     "rev": "GTAAAGGGTTCGTCCGTCGTCTG",
-     "right": [
-      1562,
-      1585
-     ]
-    },
-    {
-     "fwd": "GAGACCCTACGCCGTGAATCC",
-     "left": [
-      1234,
-      1255
-     ],
-     "penalty": 3.577,
-     "primer3": {
-      "leftGc": 61.9,
-      "leftPenalty": 0.236,
-      "leftTm": 59.76,
-      "passes": true,
-      "penalty": 0.405,
-      "rightGc": 57.1,
-      "rightPenalty": 0.169,
-      "rightTm": 59.83
-     },
-     "rev": "AAAGGGTTCGTCCGTCGTCTG",
-     "right": [
-      1562,
-      1583
-     ]
-    },
-    {
-     "fwd": "GTGAGACCCTACGCCGTGAATC",
-     "left": [
-      1232,
-      1254
-     ],
-     "penalty": 3.759,
-     "primer3": {
-      "leftGc": 59.1,
-      "leftPenalty": 1.036,
-      "leftTm": 60.04,
-      "passes": true,
-      "penalty": 4.225,
-      "rightGc": 50.0,
-      "rightPenalty": 3.19,
-      "rightTm": 59.81
-     },
-     "rev": "ACATATCGCGTAAAGGGTTCGTCC",
-     "right": [
-      1570,
-      1594
-     ]
-    },
-    {
-     "fwd": "GTGAGACCCTACGCCGTGAATC",
-     "left": [
-      1232,
-      1254
-     ],
-     "penalty": 3.814,
-     "primer3": {
-      "leftGc": 59.1,
-      "leftPenalty": 1.036,
-      "leftTm": 60.04,
-      "passes": true,
-      "penalty": 4.08,
+      "penalty": 4.068,
       "rightGc": 54.2,
       "rightPenalty": 3.044,
       "rightTm": 60.04
@@ -5662,64 +5637,18 @@
    "name": "t27",
    "ours": [
     {
-     "fwd": "ACGCATTATCCTGAAGACCCGC",
+     "fwd": "GTTGGACGCATTATCCTGAAGACC",
      "left": [
-      299,
-      321
+      294,
+      318
      ],
-     "penalty": 10.174,
+     "penalty": 10.088,
      "primer3": {
-      "leftGc": 54.5,
-      "leftPenalty": 1.034,
-      "leftTm": 60.03,
+      "leftGc": 50.0,
+      "leftPenalty": 4.481,
+      "leftTm": 58.52,
       "passes": true,
-      "penalty": 8.747,
-      "rightGc": 40.7,
-      "rightPenalty": 7.713,
-      "rightTm": 58.29
-     },
-     "rev": "AGTAGACTAACCCGATAAAAGTGCAGT",
-     "right": [
-      897,
-      924
-     ]
-    },
-    {
-     "fwd": "CGCATTATCCTGAAGACCCGC",
-     "left": [
-      300,
-      321
-     ],
-     "penalty": 10.266,
-     "primer3": {
-      "leftGc": 57.1,
-      "leftPenalty": 1.29,
-      "leftTm": 58.71,
-      "passes": true,
-      "penalty": 9.003,
-      "rightGc": 40.7,
-      "rightPenalty": 7.713,
-      "rightTm": 58.29
-     },
-     "rev": "AGTAGACTAACCCGATAAAAGTGCAGT",
-     "right": [
-      897,
-      924
-     ]
-    },
-    {
-     "fwd": "GACGCATTATCCTGAAGACCCG",
-     "left": [
-      298,
-      320
-     ],
-     "penalty": 10.284,
-     "primer3": {
-      "leftGc": 54.5,
-      "leftPenalty": 2.802,
-      "leftTm": 58.2,
-      "passes": true,
-      "penalty": 10.515,
+      "penalty": 12.194,
       "rightGc": 40.7,
       "rightPenalty": 7.713,
       "rightTm": 58.29
@@ -5736,7 +5665,7 @@
       295,
       319
      ],
-     "penalty": 10.352,
+     "penalty": 10.088,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 3.555,
@@ -5754,18 +5683,64 @@
      ]
     },
     {
-     "fwd": "GTTGGACGCATTATCCTGAAGACC",
+     "fwd": "TGGACGCATTATCCTGAAGACCC",
      "left": [
-      294,
-      318
+      296,
+      319
      ],
-     "penalty": 10.352,
+     "penalty": 10.206,
+     "primer3": {
+      "leftGc": 52.2,
+      "leftPenalty": 2.835,
+      "leftTm": 59.17,
+      "passes": true,
+      "penalty": 10.548,
+      "rightGc": 40.7,
+      "rightPenalty": 7.713,
+      "rightTm": 58.29
+     },
+     "rev": "AGTAGACTAACCCGATAAAAGTGCAGT",
+     "right": [
+      897,
+      924
+     ]
+    },
+    {
+     "fwd": "GGTTGGTAGTTGGACGCATTATCC",
+     "left": [
+      286,
+      310
+     ],
+     "penalty": 10.325,
      "primer3": {
       "leftGc": 50.0,
-      "leftPenalty": 4.481,
-      "leftTm": 58.52,
+      "leftPenalty": 4.486,
+      "leftTm": 58.51,
       "passes": true,
-      "penalty": 12.194,
+      "penalty": 12.349,
+      "rightGc": 42.3,
+      "rightPenalty": 7.862,
+      "rightTm": 57.14
+     },
+     "rev": "AGTAGACTAACCCGATAAAAGTGCAG",
+     "right": [
+      898,
+      924
+     ]
+    },
+    {
+     "fwd": "AGTTGGACGCATTATCCTGAAGACC",
+     "left": [
+      293,
+      318
+     ],
+     "penalty": 10.388,
+     "primer3": {
+      "leftGc": 48.0,
+      "leftPenalty": 4.526,
+      "leftTm": 59.47,
+      "passes": true,
+      "penalty": 12.239,
       "rightGc": 40.7,
       "rightPenalty": 7.713,
       "rightTm": 58.29
@@ -5867,81 +5842,12 @@
    "name": "t28",
    "ours": [
     {
-     "fwd": "ACTAGCAGACGCCGCATAAATTG",
-     "left": [
-      701,
-      724
-     ],
-     "penalty": 7.838,
-     "primer3": {
-      "leftGc": 47.8,
-      "leftPenalty": 3.233,
-      "leftTm": 58.77,
-      "passes": true,
-      "penalty": 10.404,
-      "rightGc": 44.4,
-      "rightPenalty": 7.171,
-      "rightTm": 58.83
-     },
-     "rev": "AAGCTATTAGTCTCCGACTTTCTTGGG",
-     "right": [
-      1262,
-      1289
-     ]
-    },
-    {
-     "fwd": "ACTAGCAGACGCCGCATAAATTG",
-     "left": [
-      701,
-      724
-     ],
-     "penalty": 7.989,
-     "primer3": {
-      "leftGc": 47.8,
-      "leftPenalty": 3.233,
-      "leftTm": 58.77,
-      "passes": true,
-      "penalty": 9.676,
-      "rightGc": 46.2,
-      "rightPenalty": 6.443,
-      "rightTm": 58.56
-     },
-     "rev": "AGCTATTAGTCTCCGACTTTCTTGGG",
-     "right": [
-      1262,
-      1288
-     ]
-    },
-    {
-     "fwd": "AACTAGCAGACGCCGCATAAATTG",
-     "left": [
-      700,
-      724
-     ],
-     "penalty": 8.015,
-     "primer3": {
-      "leftGc": 45.8,
-      "leftPenalty": 3.944,
-      "leftTm": 59.06,
-      "passes": true,
-      "penalty": 11.115,
-      "rightGc": 44.4,
-      "rightPenalty": 7.171,
-      "rightTm": 58.83
-     },
-     "rev": "AAGCTATTAGTCTCCGACTTTCTTGGG",
-     "right": [
-      1262,
-      1289
-     ]
-    },
-    {
      "fwd": "AGCAGACGCCGCATAAATTGC",
      "left": [
       704,
       725
      ],
-     "penalty": 8.145,
+     "penalty": 7.018,
      "primer3": {
       "leftGc": 52.4,
       "leftPenalty": 0.232,
@@ -5964,7 +5870,7 @@
       703,
       725
      ],
-     "penalty": 8.174,
+     "penalty": 7.098,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 1.719,
@@ -5979,6 +5885,75 @@
      "right": [
       1157,
       1184
+     ]
+    },
+    {
+     "fwd": "ACTAGCAGACGCCGCATAAATTG",
+     "left": [
+      701,
+      724
+     ],
+     "penalty": 7.102,
+     "primer3": {
+      "leftGc": 47.8,
+      "leftPenalty": 3.233,
+      "leftTm": 58.77,
+      "passes": true,
+      "penalty": 10.404,
+      "rightGc": 44.4,
+      "rightPenalty": 7.171,
+      "rightTm": 58.83
+     },
+     "rev": "AAGCTATTAGTCTCCGACTTTCTTGGG",
+     "right": [
+      1262,
+      1289
+     ]
+    },
+    {
+     "fwd": "TAGCAGACGCCGCATAAATTGC",
+     "left": [
+      703,
+      725
+     ],
+     "penalty": 7.122,
+     "primer3": {
+      "leftGc": 50.0,
+      "leftPenalty": 1.719,
+      "leftTm": 59.28,
+      "passes": true,
+      "penalty": 8.89,
+      "rightGc": 44.4,
+      "rightPenalty": 7.171,
+      "rightTm": 58.83
+     },
+     "rev": "AAGCTATTAGTCTCCGACTTTCTTGGG",
+     "right": [
+      1262,
+      1289
+     ]
+    },
+    {
+     "fwd": "CTAGCAGACGCCGCATAAATTGC",
+     "left": [
+      702,
+      725
+     ],
+     "penalty": 7.197,
+     "primer3": {
+      "leftGc": 52.2,
+      "leftPenalty": 2.077,
+      "leftTm": 59.92,
+      "passes": true,
+      "penalty": 8.403,
+      "rightGc": 44.4,
+      "rightPenalty": 6.326,
+      "rightTm": 59.67
+     },
+     "rev": "AGCTATTAGTCTCCGACTTTCTTGGGT",
+     "right": [
+      1261,
+      1288
      ]
     }
    ],
@@ -6072,49 +6047,26 @@
    "name": "t29",
    "ours": [
     {
-     "fwd": "AATGACGGTCTGCGTATTCACTGG",
+     "fwd": "TTAGACCTGTTACTAGTCCGTGCCC",
      "left": [
-      495,
-      519
+      410,
+      435
      ],
-     "penalty": 4.072,
+     "penalty": 5.361,
      "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 3.015,
-      "leftTm": 59.98,
+      "leftGc": 52.0,
+      "leftPenalty": 4.16,
+      "leftTm": 60.16,
       "passes": true,
-      "penalty": 3.041,
-      "rightGc": 61.9,
-      "rightPenalty": 0.026,
-      "rightTm": 60.03
+      "penalty": 5.258,
+      "rightGc": 59.1,
+      "rightPenalty": 1.099,
+      "rightTm": 60.1
      },
-     "rev": "CAATATGGAAGGCCGGACCCC",
+     "rev": "GGCGTCTCACGGGTATAAGCTG",
      "right": [
-      688,
-      709
-     ]
-    },
-    {
-     "fwd": "TCGTTCGCACCTGTTAGCCTAC",
-     "left": [
-      363,
-      385
-     ],
-     "penalty": 4.487,
-     "primer3": {
-      "leftGc": 54.5,
-      "leftPenalty": 1.346,
-      "leftTm": 59.65,
-      "passes": true,
-      "penalty": 1.371,
-      "rightGc": 61.9,
-      "rightPenalty": 0.026,
-      "rightTm": 60.03
-     },
-     "rev": "CAATATGGAAGGCCGGACCCC",
-     "right": [
-      688,
-      709
+      662,
+      684
      ]
     },
     {
@@ -6123,7 +6075,7 @@
       495,
       519
      ],
-     "penalty": 4.537,
+     "penalty": 5.388,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 3.015,
@@ -6141,49 +6093,72 @@
      ]
     },
     {
-     "fwd": "ATGACGGTCTGCGTATTCACTGG",
+     "fwd": "TCGGTCGTTCGCACCTGTTAG",
      "left": [
-      496,
-      519
+      359,
+      380
      ],
-     "penalty": 4.691,
+     "penalty": 5.404,
      "primer3": {
-      "leftGc": 52.2,
-      "leftPenalty": 2.266,
-      "leftTm": 59.73,
+      "leftGc": 57.1,
+      "leftPenalty": 0.1,
+      "leftTm": 59.9,
       "passes": true,
-      "penalty": 2.292,
-      "rightGc": 61.9,
-      "rightPenalty": 0.026,
-      "rightTm": 60.03
+      "penalty": 1.199,
+      "rightGc": 59.1,
+      "rightPenalty": 1.099,
+      "rightTm": 60.1
      },
-     "rev": "CAATATGGAAGGCCGGACCCC",
+     "rev": "GGCGTCTCACGGGTATAAGCTG",
      "right": [
-      688,
-      709
+      662,
+      684
      ]
     },
     {
-     "fwd": "AATGACGGTCTGCGTATTCACTGG",
+     "fwd": "TCGGTCGTTCGCACCTGTTAG",
      "left": [
-      495,
-      519
+      359,
+      380
      ],
-     "penalty": 4.713,
+     "penalty": 5.462,
      "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 3.015,
-      "leftTm": 59.98,
+      "leftGc": 57.1,
+      "leftPenalty": 0.1,
+      "leftTm": 59.9,
       "passes": true,
-      "penalty": 3.111,
+      "penalty": 0.267,
       "rightGc": 61.9,
-      "rightPenalty": 0.096,
+      "rightPenalty": 0.167,
+      "rightTm": 59.83
+     },
+     "rev": "CGGGCGTCTCACGGGTATAAG",
+     "right": [
+      665,
+      686
+     ]
+    },
+    {
+     "fwd": "TTAGACCTGTTACTAGTCCGTGCCC",
+     "left": [
+      410,
+      435
+     ],
+     "penalty": 5.479,
+     "primer3": {
+      "leftGc": 52.0,
+      "leftPenalty": 4.16,
+      "leftTm": 60.16,
+      "passes": true,
+      "penalty": 5.258,
+      "rightGc": 59.1,
+      "rightPenalty": 1.099,
       "rightTm": 60.1
      },
-     "rev": "GGGCGTCTCACGGGTATAAGC",
+     "rev": "CTCACGGGTATAAGCTGACCGC",
      "right": [
-      664,
-      685
+      657,
+      679
      ]
     }
    ],
@@ -6277,35 +6252,12 @@
    "name": "t30",
    "ours": [
     {
-     "fwd": "CAGATAGGAAGAGTTTGGTTACCGCAC",
-     "left": [
-      789,
-      816
-     ],
-     "penalty": 4.288,
-     "primer3": {
-      "leftGc": 48.1,
-      "leftPenalty": 6.002,
-      "leftTm": 60.0,
-      "passes": true,
-      "penalty": 11.161,
-      "rightGc": 46.2,
-      "rightPenalty": 5.159,
-      "rightTm": 60.16
-     },
-     "rev": "AGCACTATTTGAAGCCAACTAACGGG",
-     "right": [
-      1335,
-      1361
-     ]
-    },
-    {
      "fwd": "ATTGGGAGAATCCGTAAGCGTTCG",
      "left": [
       831,
       855
      ],
-     "penalty": 4.303,
+     "penalty": 4.373,
      "primer3": {
       "explain": {
        "left": "considered 1, high hairpin stability 1, ok 0",
@@ -6328,35 +6280,12 @@
      ]
     },
     {
-     "fwd": "AGCGTTCGTTTTAATGGCGCAG",
-     "left": [
-      847,
-      869
-     ],
-     "penalty": 4.353,
-     "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 1.025,
-      "leftTm": 59.98,
-      "passes": true,
-      "penalty": 6.184,
-      "rightGc": 46.2,
-      "rightPenalty": 5.159,
-      "rightTm": 60.16
-     },
-     "rev": "AGCACTATTTGAAGCCAACTAACGGG",
-     "right": [
-      1335,
-      1361
-     ]
-    },
-    {
      "fwd": "TTGGGAGAATCCGTAAGCGTTCG",
      "left": [
       832,
       855
      ],
-     "penalty": 4.463,
+     "penalty": 4.533,
      "primer3": {
       "explain": {
        "left": "considered 1, high hairpin stability 1, ok 0",
@@ -6384,7 +6313,7 @@
       831,
       855
      ],
-     "penalty": 4.591,
+     "penalty": 4.762,
      "primer3": {
       "explain": {
        "left": "considered 1, high hairpin stability 1, ok 0",
@@ -6395,15 +6324,66 @@
       "leftPenalty": 3.044,
       "leftTm": 60.04,
       "passes": false,
-      "penalty": 3.15,
-      "rightGc": 61.9,
-      "rightPenalty": 0.107,
-      "rightTm": 59.89
+      "penalty": 5.142,
+      "rightGc": 52.2,
+      "rightPenalty": 2.099,
+      "rightTm": 60.1
      },
-     "rev": "GCTCCCTGAGGAAGACACTGC",
+     "rev": "AGCGCTATGACCATAATTGCCCC",
      "right": [
-      1231,
-      1252
+      1257,
+      1280
+     ]
+    },
+    {
+     "fwd": "CCGTAAGCGTTCGTTTTAATGGCG",
+     "left": [
+      842,
+      866
+     ],
+     "penalty": 4.917,
+     "primer3": {
+      "leftGc": 50.0,
+      "leftPenalty": 3.331,
+      "leftTm": 60.33,
+      "passes": true,
+      "penalty": 8.49,
+      "rightGc": 46.2,
+      "rightPenalty": 5.159,
+      "rightTm": 60.16
+     },
+     "rev": "AGCACTATTTGAAGCCAACTAACGGG",
+     "right": [
+      1335,
+      1361
+     ]
+    },
+    {
+     "fwd": "TTGGGAGAATCCGTAAGCGTTCG",
+     "left": [
+      832,
+      855
+     ],
+     "penalty": 4.922,
+     "primer3": {
+      "explain": {
+       "left": "considered 1, high hairpin stability 1, ok 0",
+       "pair": "considered 0, ok 0",
+       "right": "considered 1, ok 1"
+      },
+      "leftGc": 52.2,
+      "leftPenalty": 2.021,
+      "leftTm": 59.98,
+      "passes": false,
+      "penalty": 4.12,
+      "rightGc": 52.2,
+      "rightPenalty": 2.099,
+      "rightTm": 60.1
+     },
+     "rev": "AGCGCTATGACCATAATTGCCCC",
+     "right": [
+      1257,
+      1280
      ]
     }
    ],
@@ -6497,26 +6477,49 @@
    "name": "t31",
    "ours": [
     {
-     "fwd": "TACCGTATCGCTCAACAATCCGC",
+     "fwd": "AAGAACCGCATTACCGTATCGCTC",
      "left": [
-      467,
-      490
+      456,
+      480
      ],
-     "penalty": 2.988,
+     "penalty": 3.858,
      "primer3": {
-      "leftGc": 52.2,
-      "leftPenalty": 2.101,
+      "leftGc": 50.0,
+      "leftPenalty": 3.103,
       "leftTm": 60.1,
       "passes": true,
-      "penalty": 5.177,
-      "rightGc": 54.2,
-      "rightPenalty": 3.076,
-      "rightTm": 59.92
+      "penalty": 7.148,
+      "rightGc": 48.0,
+      "rightPenalty": 4.046,
+      "rightTm": 60.05
      },
-     "rev": "CCTTCCCACGGTGACCAATAACTC",
+     "rev": "TTGTGATTCATCATGGATCGGCTGG",
      "right": [
-      725,
-      749
+      795,
+      820
+     ]
+    },
+    {
+     "fwd": "AGAACCGCATTACCGTATCGCTC",
+     "left": [
+      457,
+      480
+     ],
+     "penalty": 3.863,
+     "primer3": {
+      "leftGc": 52.2,
+      "leftPenalty": 2.141,
+      "leftTm": 59.86,
+      "passes": true,
+      "penalty": 5.338,
+      "rightGc": 50.0,
+      "rightPenalty": 3.196,
+      "rightTm": 59.8
+     },
+     "rev": "TGTGATTCATCATGGATCGGCTGG",
+     "right": [
+      795,
+      819
      ]
     },
     {
@@ -6525,90 +6528,67 @@
       456,
       480
      ],
-     "penalty": 3.174,
+     "penalty": 3.951,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 3.103,
       "leftTm": 60.1,
       "passes": true,
-      "penalty": 6.179,
-      "rightGc": 54.2,
-      "rightPenalty": 3.076,
-      "rightTm": 59.92
+      "penalty": 6.299,
+      "rightGc": 50.0,
+      "rightPenalty": 3.196,
+      "rightTm": 59.8
      },
-     "rev": "CCTTCCCACGGTGACCAATAACTC",
+     "rev": "TGTGATTCATCATGGATCGGCTGG",
      "right": [
-      725,
-      749
+      795,
+      819
      ]
     },
     {
-     "fwd": "AGAACCGCATTACCGTATCGCTC",
+     "fwd": "TACCGTATCGCTCAACAATCCGC",
      "left": [
-      457,
-      480
-     ],
-     "penalty": 3.217,
-     "primer3": {
-      "leftGc": 52.2,
-      "leftPenalty": 2.141,
-      "leftTm": 59.86,
-      "passes": true,
-      "penalty": 5.218,
-      "rightGc": 54.2,
-      "rightPenalty": 3.076,
-      "rightTm": 59.92
-     },
-     "rev": "CCTTCCCACGGTGACCAATAACTC",
-     "right": [
-      725,
-      749
-     ]
-    },
-    {
-     "fwd": "AGAACCGCATTACCGTATCGCTC",
-     "left": [
-      457,
-      480
-     ],
-     "penalty": 3.311,
-     "primer3": {
-      "leftGc": 52.2,
-      "leftPenalty": 2.141,
-      "leftTm": 59.86,
-      "passes": true,
-      "penalty": 3.561,
-      "rightGc": 54.5,
-      "rightPenalty": 1.419,
-      "rightTm": 59.58
-     },
-     "rev": "ATCAGGTTCTTCGTCCACAGCC",
-     "right": [
-      747,
-      769
-     ]
-    },
-    {
-     "fwd": "TTACCGTATCGCTCAACAATCCGC",
-     "left": [
-      466,
+      467,
       490
      ],
-     "penalty": 3.338,
+     "penalty": 3.972,
      "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 3.334,
-      "leftTm": 60.33,
+      "leftGc": 52.2,
+      "leftPenalty": 2.101,
+      "leftTm": 60.1,
       "passes": true,
-      "penalty": 6.411,
-      "rightGc": 54.2,
-      "rightPenalty": 3.076,
-      "rightTm": 59.92
+      "penalty": 6.146,
+      "rightGc": 48.0,
+      "rightPenalty": 4.046,
+      "rightTm": 60.05
      },
-     "rev": "CCTTCCCACGGTGACCAATAACTC",
+     "rev": "TTGTGATTCATCATGGATCGGCTGG",
      "right": [
-      725,
-      749
+      795,
+      820
+     ]
+    },
+    {
+     "fwd": "CGCATTACCGTATCGCTCAACAATC",
+     "left": [
+      462,
+      487
+     ],
+     "penalty": 3.997,
+     "primer3": {
+      "leftGc": 48.0,
+      "leftPenalty": 4.498,
+      "leftTm": 59.5,
+      "passes": true,
+      "penalty": 5.982,
+      "rightGc": 54.5,
+      "rightPenalty": 1.484,
+      "rightTm": 59.52
+     },
+     "rev": "AGGTTCTTCGTCCACAGCCTTC",
+     "right": [
+      744,
+      766
      ]
     }
    ],
@@ -6702,49 +6682,26 @@
    "name": "t32",
    "ours": [
     {
-     "fwd": "ACCTCCGACACACACACACAC",
+     "fwd": "CACACACACACACACACACACC",
      "left": [
-      387,
-      408
+      399,
+      421
      ],
-     "penalty": 3.185,
+     "penalty": 3.396,
      "primer3": {
-      "leftGc": 57.1,
-      "leftPenalty": 0.038,
-      "leftTm": 59.96,
+      "leftGc": 54.5,
+      "leftPenalty": 1.34,
+      "leftTm": 59.66,
       "passes": true,
-      "penalty": 0.078,
-      "rightGc": 61.9,
-      "rightPenalty": 0.04,
-      "rightTm": 59.96
+      "penalty": 3.489,
+      "rightGc": 52.2,
+      "rightPenalty": 2.149,
+      "rightTm": 59.85
      },
-     "rev": "GGAAGGTCTTGCTCATCGGGG",
+     "rev": "TGGGACCACCAGAAGTAATTGCG",
      "right": [
-      1025,
-      1046
-     ]
-    },
-    {
-     "fwd": "ACCTCCGACACACACACACAC",
-     "left": [
-      387,
-      408
-     ],
-     "penalty": 3.185,
-     "primer3": {
-      "leftGc": 57.1,
-      "leftPenalty": 0.038,
-      "leftTm": 59.96,
-      "passes": true,
-      "penalty": 0.078,
-      "rightGc": 61.9,
-      "rightPenalty": 0.04,
-      "rightTm": 59.96
-     },
-     "rev": "GGGAAGGTCTTGCTCATCGGG",
-     "right": [
-      1026,
-      1047
+      986,
+      1009
      ]
     },
     {
@@ -6753,7 +6710,7 @@
       404,
       425
      ],
-     "penalty": 3.186,
+     "penalty": 3.423,
      "primer3": {
       "leftGc": 57.1,
       "leftPenalty": 0.108,
@@ -6776,7 +6733,7 @@
       404,
       425
      ],
-     "penalty": 3.231,
+     "penalty": 3.469,
      "primer3": {
       "leftGc": 57.1,
       "leftPenalty": 0.108,
@@ -6794,26 +6751,49 @@
      ]
     },
     {
-     "fwd": "CACACACACACACACACACACC",
+     "fwd": "ACACACACACACACACCTCCC",
      "left": [
-      399,
-      421
+      404,
+      425
      ],
-     "penalty": 3.235,
+     "penalty": 3.572,
+     "primer3": {
+      "leftGc": 57.1,
+      "leftPenalty": 0.108,
+      "leftTm": 59.89,
+      "passes": true,
+      "penalty": 3.419,
+      "rightGc": 50.0,
+      "rightPenalty": 3.31,
+      "rightTm": 59.69
+     },
+     "rev": "TTAAGGAGATACGTGGTGCTGTGC",
+     "right": [
+      940,
+      964
+     ]
+    },
+    {
+     "fwd": "ACACACACACACACACACCTCC",
+     "left": [
+      402,
+      424
+     ],
+     "penalty": 3.636,
      "primer3": {
       "leftGc": 54.5,
-      "leftPenalty": 1.34,
-      "leftTm": 59.66,
+      "leftPenalty": 1.161,
+      "leftTm": 60.16,
       "passes": true,
-      "penalty": 2.592,
-      "rightGc": 60.0,
-      "rightPenalty": 1.252,
-      "rightTm": 59.75
+      "penalty": 3.31,
+      "rightGc": 52.2,
+      "rightPenalty": 2.149,
+      "rightTm": 59.85
      },
-     "rev": "ACCGAGCGACGCCTAATGAG",
+     "rev": "TGGGACCACCAGAAGTAATTGCG",
      "right": [
-      892,
-      912
+      986,
+      1009
      ]
     }
    ],
@@ -6907,41 +6887,18 @@
    "name": "t33",
    "ours": [
     {
-     "fwd": "CCTTAGCTCCGTGACGTGTCC",
+     "fwd": "CACTTAAGCACGTCCCTTAGCTCC",
      "left": [
-      285,
-      306
+      271,
+      295
      ],
-     "penalty": 4.282,
+     "penalty": 4.203,
      "primer3": {
-      "leftGc": 61.9,
-      "leftPenalty": 0.035,
-      "leftTm": 59.96,
+      "leftGc": 54.2,
+      "leftPenalty": 3.015,
+      "leftTm": 59.98,
       "passes": true,
-      "penalty": 2.305,
-      "rightGc": 56.5,
-      "rightPenalty": 2.27,
-      "rightTm": 59.73
-     },
-     "rev": "CCAGCCTTCATCCCTACTTCGTG",
-     "right": [
-      788,
-      811
-     ]
-    },
-    {
-     "fwd": "TGTCCGGGCCGTATGGTTTG",
-     "left": [
-      301,
-      321
-     ],
-     "penalty": 4.569,
-     "primer3": {
-      "leftGc": 60.0,
-      "leftPenalty": 1.163,
-      "leftTm": 60.16,
-      "passes": true,
-      "penalty": 4.234,
+      "penalty": 6.087,
       "rightGc": 50.0,
       "rightPenalty": 3.072,
       "rightTm": 59.93
@@ -6953,64 +6910,41 @@
      ]
     },
     {
-     "fwd": "CCTTAGCTCCGTGACGTGTCC",
+     "fwd": "GGTTTGCGGGTATGTCAAAACCG",
      "left": [
-      285,
-      306
+      315,
+      338
      ],
-     "penalty": 4.582,
+     "penalty": 4.473,
      "primer3": {
-      "leftGc": 61.9,
-      "leftPenalty": 0.035,
-      "leftTm": 59.96,
+      "leftGc": 52.2,
+      "leftPenalty": 2.08,
+      "leftTm": 59.92,
       "passes": true,
-      "penalty": 2.305,
-      "rightGc": 56.5,
-      "rightPenalty": 2.27,
-      "rightTm": 59.73
+      "penalty": 6.153,
+      "rightGc": 52.0,
+      "rightPenalty": 4.073,
+      "rightTm": 59.93
      },
-     "rev": "CAGCCTTCATCCCTACTTCGTGG",
+     "rev": "ACTAGTGGAGCCCTATTCAGTGGTC",
      "right": [
-      787,
-      810
+      877,
+      902
      ]
     },
     {
-     "fwd": "TAGTCCACGCCACACCTCAAC",
+     "fwd": "GGTTTGCGGGTATGTCAAAACCG",
      "left": [
-      378,
-      399
+      315,
+      338
      ],
-     "penalty": 4.622,
+     "penalty": 4.473,
      "primer3": {
-      "leftGc": 57.1,
-      "leftPenalty": 0.51,
-      "leftTm": 59.49,
+      "leftGc": 52.2,
+      "leftPenalty": 2.08,
+      "leftTm": 59.92,
       "passes": true,
-      "penalty": 2.059,
-      "rightGc": 59.1,
-      "rightPenalty": 1.55,
-      "rightTm": 59.45
-     },
-     "rev": "CCCAGCCTTCATCCCTACTTCG",
-     "right": [
-      790,
-      812
-     ]
-    },
-    {
-     "fwd": "CCTTAGCTCCGTGACGTGTCC",
-     "left": [
-      285,
-      306
-     ],
-     "penalty": 4.634,
-     "primer3": {
-      "leftGc": 61.9,
-      "leftPenalty": 0.035,
-      "leftTm": 59.96,
-      "passes": true,
-      "penalty": 3.107,
+      "penalty": 5.152,
       "rightGc": 50.0,
       "rightPenalty": 3.072,
       "rightTm": 59.93
@@ -7019,6 +6953,52 @@
      "right": [
       848,
       872
+     ]
+    },
+    {
+     "fwd": "CTTAAGCACGTCCCTTAGCTCCG",
+     "left": [
+      273,
+      296
+     ],
+     "penalty": 4.581,
+     "primer3": {
+      "leftGc": 56.5,
+      "leftPenalty": 2.04,
+      "leftTm": 60.04,
+      "passes": true,
+      "penalty": 5.112,
+      "rightGc": 50.0,
+      "rightPenalty": 3.072,
+      "rightTm": 59.93
+     },
+     "rev": "TTGGTGTATCGACTGTGCGAGTTC",
+     "right": [
+      848,
+      872
+     ]
+    },
+    {
+     "fwd": "CTTAAGCACGTCCCTTAGCTCCG",
+     "left": [
+      273,
+      296
+     ],
+     "penalty": 4.583,
+     "primer3": {
+      "leftGc": 56.5,
+      "leftPenalty": 2.04,
+      "leftTm": 60.04,
+      "passes": true,
+      "penalty": 6.113,
+      "rightGc": 52.0,
+      "rightPenalty": 4.073,
+      "rightTm": 59.93
+     },
+     "rev": "ACTAGTGGAGCCCTATTCAGTGGTC",
+     "right": [
+      877,
+      902
      ]
     }
    ],
@@ -7112,26 +7092,72 @@
    "name": "t34",
    "ours": [
     {
-     "fwd": "TGGTTCGTAGGCACGCAGTC",
+     "fwd": "GGCTAACGACCTTAAGTACGTGGTTC",
      "left": [
-      387,
-      407
+      367,
+      393
      ],
-     "penalty": 4.229,
+     "penalty": 4.796,
      "primer3": {
-      "leftGc": 60.0,
-      "leftPenalty": 1.163,
-      "leftTm": 60.16,
+      "leftGc": 50.0,
+      "leftPenalty": 5.001,
+      "leftTm": 60.0,
       "passes": true,
-      "penalty": 1.269,
+      "penalty": 6.156,
+      "rightGc": 54.5,
+      "rightPenalty": 1.155,
+      "rightTm": 59.85
+     },
+     "rev": "AAGTTCTGTGCAGTCTCGTCCG",
+     "right": [
+      946,
+      968
+     ]
+    },
+    {
+     "fwd": "GGCTAACGACCTTAAGTACGTGGTTC",
+     "left": [
+      367,
+      393
+     ],
+     "penalty": 4.959,
+     "primer3": {
+      "leftGc": 50.0,
+      "leftPenalty": 5.001,
+      "leftTm": 60.0,
+      "passes": true,
+      "penalty": 9.065,
+      "rightGc": 52.0,
+      "rightPenalty": 4.064,
+      "rightTm": 59.94
+     },
+     "rev": "CTTCCTCGAAGTTCTGTGCAGTCTC",
+     "right": [
+      951,
+      976
+     ]
+    },
+    {
+     "fwd": "GGCTAACGACCTTAAGTACGTGGTTC",
+     "left": [
+      367,
+      393
+     ],
+     "penalty": 5.051,
+     "primer3": {
+      "leftGc": 50.0,
+      "leftPenalty": 5.001,
+      "leftTm": 60.0,
+      "passes": true,
+      "penalty": 5.108,
       "rightGc": 61.9,
       "rightPenalty": 0.107,
       "rightTm": 59.89
      },
-     "rev": "GGCAAGCCTCACTGGTCTCTC",
+     "rev": "GCAAGCCTCACTGGTCTCTCC",
      "right": [
-      815,
-      836
+      814,
+      835
      ]
     },
     {
@@ -7140,21 +7166,21 @@
       260,
       281
      ],
-     "penalty": 4.394,
+     "penalty": 5.074,
      "primer3": {
       "leftGc": 61.9,
       "leftPenalty": 0.036,
       "leftTm": 59.96,
       "passes": true,
-      "penalty": 0.142,
-      "rightGc": 61.9,
-      "rightPenalty": 0.107,
-      "rightTm": 59.89
+      "penalty": 0.206,
+      "rightGc": 57.1,
+      "rightPenalty": 0.17,
+      "rightTm": 59.83
      },
-     "rev": "GGCAAGCCTCACTGGTCTCTC",
+     "rev": "TGTCACAGCGAACTCAGGCTC",
      "right": [
-      815,
-      836
+      893,
+      914
      ]
     },
     {
@@ -7163,67 +7189,21 @@
       259,
       280
      ],
-     "penalty": 4.394,
+     "penalty": 5.074,
      "primer3": {
       "leftGc": 61.9,
       "leftPenalty": 0.036,
       "leftTm": 59.96,
       "passes": true,
-      "penalty": 0.142,
-      "rightGc": 61.9,
-      "rightPenalty": 0.107,
-      "rightTm": 59.89
+      "penalty": 0.206,
+      "rightGc": 57.1,
+      "rightPenalty": 0.17,
+      "rightTm": 59.83
      },
-     "rev": "GGCAAGCCTCACTGGTCTCTC",
+     "rev": "TGTCACAGCGAACTCAGGCTC",
      "right": [
-      815,
-      836
-     ]
-    },
-    {
-     "fwd": "TGGTTCGTAGGCACGCAGTC",
-     "left": [
-      387,
-      407
-     ],
-     "penalty": 4.426,
-     "primer3": {
-      "leftGc": 60.0,
-      "leftPenalty": 1.163,
-      "leftTm": 60.16,
-      "passes": true,
-      "penalty": 2.326,
-      "rightGc": 65.0,
-      "rightPenalty": 1.163,
-      "rightTm": 60.16
-     },
-     "rev": "GGGCAAGCCTCACTGGTCTC",
-     "right": [
-      817,
-      837
-     ]
-    },
-    {
-     "fwd": "CCCACGACCATCACGGACTC",
-     "left": [
-      258,
-      278
-     ],
-     "penalty": 4.504,
-     "primer3": {
-      "leftGc": 65.0,
-      "leftPenalty": 1.045,
-      "leftTm": 59.95,
-      "passes": true,
-      "penalty": 1.152,
-      "rightGc": 61.9,
-      "rightPenalty": 0.107,
-      "rightTm": 59.89
-     },
-     "rev": "GGCAAGCCTCACTGGTCTCTC",
-     "right": [
-      815,
-      836
+      893,
+      914
      ]
     }
    ],
@@ -7317,49 +7297,26 @@
    "name": "t35",
    "ours": [
     {
-     "fwd": "TCTGCTTGCGGTGCTCATAACTC",
+     "fwd": "TGTCAAAGAACAAGTCTCAGCGTCC",
      "left": [
-      300,
-      323
+      273,
+      298
      ],
-     "penalty": 2.861,
+     "penalty": 3.83,
      "primer3": {
-      "leftGc": 52.2,
-      "leftPenalty": 2.222,
-      "leftTm": 60.22,
+      "leftGc": 48.0,
+      "leftPenalty": 4.047,
+      "leftTm": 60.05,
       "passes": true,
-      "penalty": 7.436,
-      "rightGc": 50.0,
-      "rightPenalty": 5.214,
-      "rightTm": 60.21
-     },
-     "rev": "TCCTGCTAAACCTAATGTCTCCCTCG",
-     "right": [
-      866,
-      892
-     ]
-    },
-    {
-     "fwd": "TCTGCTTGCGGTGCTCATAACTC",
-     "left": [
-      300,
-      323
-     ],
-     "penalty": 3.075,
-     "primer3": {
-      "leftGc": 52.2,
-      "leftPenalty": 2.222,
-      "leftTm": 60.22,
-      "passes": true,
-      "penalty": 2.255,
-      "rightGc": 57.1,
-      "rightPenalty": 0.033,
+      "penalty": 6.082,
+      "rightGc": 52.2,
+      "rightPenalty": 2.034,
       "rightTm": 60.03
      },
-     "rev": "CTGTGTGTGTGTGTGTGTGCG",
+     "rev": "ACCCCACAACCCTTTAATGGCAG",
      "right": [
-      827,
-      848
+      733,
+      756
      ]
     },
     {
@@ -7368,7 +7325,30 @@
       273,
       298
      ],
-     "penalty": 3.409,
+     "penalty": 3.83,
+     "primer3": {
+      "leftGc": 48.0,
+      "leftPenalty": 4.047,
+      "leftTm": 60.05,
+      "passes": true,
+      "penalty": 6.082,
+      "rightGc": 52.2,
+      "rightPenalty": 2.034,
+      "rightTm": 60.03
+     },
+     "rev": "TGACCCCACAACCCTTTAATGGC",
+     "right": [
+      735,
+      758
+     ]
+    },
+    {
+     "fwd": "TGTCAAAGAACAAGTCTCAGCGTCC",
+     "left": [
+      273,
+      298
+     ],
+     "penalty": 3.855,
      "primer3": {
       "leftGc": 48.0,
       "leftPenalty": 4.047,
@@ -7386,41 +7366,41 @@
      ]
     },
     {
-     "fwd": "TTGTGAACGGTAGAAGGCGTGG",
+     "fwd": "TGTCAAAGAACAAGTCTCAGCGTCC",
      "left": [
-      180,
-      202
+      273,
+      298
      ],
-     "penalty": 3.465,
+     "penalty": 3.975,
      "primer3": {
-      "leftGc": 54.5,
-      "leftPenalty": 1.098,
-      "leftTm": 60.1,
+      "leftGc": 48.0,
+      "leftPenalty": 4.047,
+      "leftTm": 60.05,
       "passes": true,
-      "penalty": 1.131,
-      "rightGc": 57.1,
-      "rightPenalty": 0.033,
-      "rightTm": 60.03
+      "penalty": 9.262,
+      "rightGc": 50.0,
+      "rightPenalty": 5.214,
+      "rightTm": 60.21
      },
-     "rev": "CTGTGTGTGTGTGTGTGTGCG",
+     "rev": "TCCTGCTAAACCTAATGTCTCCCTCG",
      "right": [
-      827,
-      848
+      866,
+      892
      ]
     },
     {
-     "fwd": "TTGTGAACGGTAGAAGGCGTGG",
+     "fwd": "TCTGCTTGCGGTGCTCATAACTC",
      "left": [
-      180,
-      202
+      300,
+      323
      ],
-     "penalty": 3.483,
+     "penalty": 4.03,
      "primer3": {
-      "leftGc": 54.5,
-      "leftPenalty": 1.098,
-      "leftTm": 60.1,
+      "leftGc": 52.2,
+      "leftPenalty": 2.222,
+      "leftTm": 60.22,
       "passes": true,
-      "penalty": 6.312,
+      "penalty": 7.436,
       "rightGc": 50.0,
       "rightPenalty": 5.214,
       "rightTm": 60.21
@@ -7522,49 +7502,26 @@
    "name": "t36",
    "ours": [
     {
-     "fwd": "GACTAATCACTGAGCAACCCCGAAC",
+     "fwd": "GTTCGGAGACTAATCACTGAGCAACC",
      "left": [
-      458,
-      483
+      451,
+      477
      ],
-     "penalty": 3.123,
-     "primer3": {
-      "leftGc": 52.0,
-      "leftPenalty": 4.216,
-      "leftTm": 60.22,
-      "passes": true,
-      "penalty": 4.245,
-      "rightGc": 61.9,
-      "rightPenalty": 0.029,
-      "rightTm": 60.03
-     },
-     "rev": "CCGAGGAATGGGAGCGAAGAC",
-     "right": [
-      886,
-      907
-     ]
-    },
-    {
-     "fwd": "ACTAATCACTGAGCAACCCCGAAC",
-     "left": [
-      459,
-      483
-     ],
-     "penalty": 3.195,
+     "penalty": 3.669,
      "primer3": {
       "leftGc": 50.0,
-      "leftPenalty": 3.373,
-      "leftTm": 59.63,
+      "leftPenalty": 5.002,
+      "leftTm": 60.0,
       "passes": true,
-      "penalty": 3.402,
-      "rightGc": 61.9,
-      "rightPenalty": 0.029,
-      "rightTm": 60.03
+      "penalty": 9.012,
+      "rightGc": 52.0,
+      "rightPenalty": 4.01,
+      "rightTm": 59.99
      },
-     "rev": "CCGAGGAATGGGAGCGAAGAC",
+     "rev": "GTTTTGCCCCTGTCCGTCTAGTATG",
      "right": [
-      886,
-      907
+      766,
+      791
      ]
     },
     {
@@ -7573,7 +7530,7 @@
       459,
       483
      ],
-     "penalty": 3.463,
+     "penalty": 3.948,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 3.373,
@@ -7591,41 +7548,18 @@
      ]
     },
     {
-     "fwd": "ACTAATCACTGAGCAACCCCGAAC",
+     "fwd": "CTAATCACTGAGCAACCCCGAACTC",
      "left": [
-      459,
-      483
+      460,
+      485
      ],
-     "penalty": 3.557,
+     "penalty": 4.03,
      "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 3.373,
-      "leftTm": 59.63,
+      "leftGc": 52.0,
+      "leftPenalty": 4.009,
+      "leftTm": 59.99,
       "passes": true,
-      "penalty": 3.895,
-      "rightGc": 57.1,
-      "rightPenalty": 0.522,
-      "rightTm": 59.48
-     },
-     "rev": "AAAAGGGACCAAGAGCCGAGG",
-     "right": [
-      901,
-      922
-     ]
-    },
-    {
-     "fwd": "GTTCGGAGACTAATCACTGAGCAACC",
-     "left": [
-      451,
-      477
-     ],
-     "penalty": 3.62,
-     "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 5.002,
-      "leftTm": 60.0,
-      "passes": true,
-      "penalty": 9.012,
+      "penalty": 8.019,
       "rightGc": 52.0,
       "rightPenalty": 4.01,
       "rightTm": 59.99
@@ -7634,6 +7568,52 @@
      "right": [
       766,
       791
+     ]
+    },
+    {
+     "fwd": "ATGTCAGATACACGAGGCTTGGC",
+     "left": [
+      526,
+      549
+     ],
+     "penalty": 4.059,
+     "primer3": {
+      "leftGc": 52.2,
+      "leftPenalty": 2.27,
+      "leftTm": 59.73,
+      "passes": true,
+      "penalty": 5.519,
+      "rightGc": 54.2,
+      "rightPenalty": 3.249,
+      "rightTm": 59.75
+     },
+     "rev": "CGACGAATAAGGGACTCTTGGTGG",
+     "right": [
+      830,
+      854
+     ]
+    },
+    {
+     "fwd": "GACTAATCACTGAGCAACCCCGAAC",
+     "left": [
+      458,
+      483
+     ],
+     "penalty": 4.069,
+     "primer3": {
+      "leftGc": 52.0,
+      "leftPenalty": 4.216,
+      "leftTm": 60.22,
+      "passes": true,
+      "penalty": 4.245,
+      "rightGc": 61.9,
+      "rightPenalty": 0.029,
+      "rightTm": 60.03
+     },
+     "rev": "CCGAGGAATGGGAGCGAAGAC",
+     "right": [
+      886,
+      907
      ]
     }
    ],
@@ -7727,26 +7707,26 @@
    "name": "t37",
    "ours": [
     {
-     "fwd": "CAGTGCCCAAATGCCCCAAAG",
+     "fwd": "GCCCAAATGCCCCAAAGCTTAC",
      "left": [
-      241,
-      262
+      245,
+      267
      ],
-     "penalty": 3.603,
+     "penalty": 4.362,
      "primer3": {
-      "leftGc": 57.1,
-      "leftPenalty": 0.175,
-      "leftTm": 59.82,
+      "leftGc": 54.5,
+      "leftPenalty": 1.096,
+      "leftTm": 59.9,
       "passes": true,
-      "penalty": 0.337,
-      "rightGc": 57.1,
-      "rightPenalty": 0.162,
-      "rightTm": 60.16
+      "penalty": 3.185,
+      "rightGc": 56.5,
+      "rightPenalty": 2.089,
+      "rightTm": 59.91
      },
-     "rev": "TAGAGTGACTGTTGCTGCCGC",
+     "rev": "TAACCTCCGCCCTAGAGTGACTG",
      "right": [
-      805,
-      826
+      815,
+      838
      ]
     },
     {
@@ -7755,7 +7735,7 @@
       241,
       262
      ],
-     "penalty": 3.774,
+     "penalty": 4.743,
      "primer3": {
       "leftGc": 57.1,
       "leftPenalty": 0.175,
@@ -7778,21 +7758,21 @@
       241,
       262
      ],
-     "penalty": 4.319,
+     "penalty": 4.744,
      "primer3": {
       "leftGc": 57.1,
       "leftPenalty": 0.175,
       "leftTm": 59.82,
       "passes": true,
-      "penalty": 0.47,
-      "rightGc": 57.1,
-      "rightPenalty": 0.295,
-      "rightTm": 59.7
+      "penalty": 2.264,
+      "rightGc": 56.5,
+      "rightPenalty": 2.089,
+      "rightTm": 59.91
      },
-     "rev": "TGCTTACGCTCGTGACGGTAG",
+     "rev": "TAACCTCCGCCCTAGAGTGACTG",
      "right": [
-      850,
-      871
+      815,
+      838
      ]
     },
     {
@@ -7801,44 +7781,44 @@
       241,
       262
      ],
-     "penalty": 4.523,
+     "penalty": 4.748,
      "primer3": {
       "leftGc": 57.1,
       "leftPenalty": 0.175,
       "leftTm": 59.82,
       "passes": true,
-      "penalty": 1.4,
-      "rightGc": 59.1,
-      "rightPenalty": 1.225,
-      "rightTm": 60.22
+      "penalty": 2.336,
+      "rightGc": 56.5,
+      "rightPenalty": 2.161,
+      "rightTm": 60.16
      },
-     "rev": "CGCCCTAGAGTGACTGTTGCTG",
+     "rev": "TGTAACCTCCGCCCTAGAGTGAC",
      "right": [
-      809,
-      831
+      817,
+      840
      ]
     },
     {
-     "fwd": "CAGTGCCCAAATGCCCCAAAG",
+     "fwd": "GCCCAAATGCCCCAAAGCTTAC",
      "left": [
-      241,
-      262
+      245,
+      267
      ],
-     "penalty": 4.523,
+     "penalty": 4.961,
      "primer3": {
-      "leftGc": 57.1,
-      "leftPenalty": 0.175,
-      "leftTm": 59.82,
+      "leftGc": 54.5,
+      "leftPenalty": 1.096,
+      "leftTm": 59.9,
       "passes": true,
-      "penalty": 1.4,
+      "penalty": 2.191,
       "rightGc": 59.1,
-      "rightPenalty": 1.225,
-      "rightTm": 60.22
+      "rightPenalty": 1.095,
+      "rightTm": 59.9
      },
-     "rev": "CCTAGAGTGACTGTTGCTGCCG",
+     "rev": "CCCTAGAGTGACTGTTGCTGCC",
      "right": [
-      806,
-      828
+      807,
+      829
      ]
     }
    ],
@@ -7937,7 +7917,7 @@
       1240,
       1264
      ],
-     "penalty": 2.221,
+     "penalty": 2.667,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 3.011,
@@ -7960,7 +7940,7 @@
       1240,
       1264
      ],
-     "penalty": 2.821,
+     "penalty": 3.267,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 3.011,
@@ -7978,35 +7958,12 @@
      ]
     },
     {
-     "fwd": "AGTGGCGACAAATGACAGTTACGG",
-     "left": [
-      1236,
-      1260
-     ],
-     "penalty": 2.993,
-     "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 3.394,
-      "leftTm": 60.39,
-      "passes": true,
-      "penalty": 8.396,
-      "rightGc": 50.0,
-      "rightPenalty": 5.003,
-      "rightTm": 60.0
-     },
-     "rev": "CGGGTTACAGAGATGAGTTTCAGCAG",
-     "right": [
-      1442,
-      1468
-     ]
-    },
-    {
      "fwd": "GCGACAAATGACAGTTACGGCAAG",
      "left": [
       1240,
       1264
      ],
-     "penalty": 3.021,
+     "penalty": 3.467,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 3.011,
@@ -8029,7 +7986,7 @@
       1240,
       1264
      ],
-     "penalty": 3.216,
+     "penalty": 3.663,
      "primer3": {
       "leftGc": 50.0,
       "leftPenalty": 3.011,
@@ -8044,6 +8001,29 @@
      "right": [
       1434,
       1458
+     ]
+    },
+    {
+     "fwd": "GCGACAAATGACAGTTACGGCAAG",
+     "left": [
+      1240,
+      1264
+     ],
+     "penalty": 3.877,
+     "primer3": {
+      "leftGc": 50.0,
+      "leftPenalty": 3.011,
+      "leftTm": 59.99,
+      "passes": true,
+      "penalty": 9.483,
+      "rightGc": 48.1,
+      "rightPenalty": 6.473,
+      "rightTm": 59.53
+     },
+     "rev": "GGGTTACAGAGATGAGTTTCAGCAGAG",
+     "right": [
+      1440,
+      1467
      ]
     }
    ],
@@ -8137,12 +8117,81 @@
    "name": "t39",
    "ours": [
     {
+     "fwd": "CCCTTTTCGAATCGCATGAGCAC",
+     "left": [
+      221,
+      244
+     ],
+     "penalty": 4.06,
+     "primer3": {
+      "leftGc": 52.2,
+      "leftPenalty": 2.199,
+      "leftTm": 59.8,
+      "passes": true,
+      "penalty": 5.449,
+      "rightGc": 54.2,
+      "rightPenalty": 3.25,
+      "rightTm": 59.75
+     },
+     "rev": "CTGCCATAGGACGAGGAAACAGAC",
+     "right": [
+      555,
+      579
+     ]
+    },
+    {
+     "fwd": "CCGTAAGTGTCCTCAACAACAGGTTC",
+     "left": [
+      246,
+      272
+     ],
+     "penalty": 4.088,
+     "primer3": {
+      "leftGc": 50.0,
+      "leftPenalty": 5.322,
+      "leftTm": 60.32,
+      "passes": true,
+      "penalty": 10.59,
+      "rightGc": 50.0,
+      "rightPenalty": 5.268,
+      "rightTm": 60.27
+     },
+     "rev": "CATTGACTGCCATAGGACGAGGAAAC",
+     "right": [
+      559,
+      585
+     ]
+    },
+    {
+     "fwd": "GGACGCTAGGTGACAAATCTCAGG",
+     "left": [
+      97,
+      121
+     ],
+     "penalty": 4.144,
+     "primer3": {
+      "leftGc": 54.2,
+      "leftPenalty": 3.25,
+      "leftTm": 59.75,
+      "passes": true,
+      "penalty": 6.501,
+      "rightGc": 54.2,
+      "rightPenalty": 3.25,
+      "rightTm": 59.75
+     },
+     "rev": "CTGCCATAGGACGAGGAAACAGAC",
+     "right": [
+      555,
+      579
+     ]
+    },
+    {
      "fwd": "TCGAATCGCATGAGCACTCCC",
      "left": [
       227,
       248
      ],
-     "penalty": 3.45,
+     "penalty": 4.162,
      "primer3": {
       "leftGc": 57.1,
       "leftPenalty": 0.029,
@@ -8165,7 +8214,7 @@
       230,
       253
      ],
-     "penalty": 3.453,
+     "penalty": 4.166,
      "primer3": {
       "leftGc": 52.2,
       "leftPenalty": 2.039,
@@ -8180,75 +8229,6 @@
      "right": [
       559,
       585
-     ]
-    },
-    {
-     "fwd": "CCGTAAGTGTCCTCAACAACAGGTTC",
-     "left": [
-      246,
-      272
-     ],
-     "penalty": 3.643,
-     "primer3": {
-      "leftGc": 50.0,
-      "leftPenalty": 5.322,
-      "leftTm": 60.32,
-      "passes": true,
-      "penalty": 10.59,
-      "rightGc": 50.0,
-      "rightPenalty": 5.268,
-      "rightTm": 60.27
-     },
-     "rev": "CATTGACTGCCATAGGACGAGGAAAC",
-     "right": [
-      559,
-      585
-     ]
-    },
-    {
-     "fwd": "AGTGTCCTCAACAACAGGTTCGC",
-     "left": [
-      251,
-      274
-     ],
-     "penalty": 3.784,
-     "primer3": {
-      "leftGc": 52.2,
-      "leftPenalty": 2.283,
-      "leftTm": 60.28,
-      "passes": true,
-      "penalty": 7.551,
-      "rightGc": 50.0,
-      "rightPenalty": 5.268,
-      "rightTm": 60.27
-     },
-     "rev": "CATTGACTGCCATAGGACGAGGAAAC",
-     "right": [
-      559,
-      585
-     ]
-    },
-    {
-     "fwd": "AATCGCATGAGCACTCCCGTAAG",
-     "left": [
-      230,
-      253
-     ],
-     "penalty": 3.885,
-     "primer3": {
-      "leftGc": 52.2,
-      "leftPenalty": 2.039,
-      "leftTm": 60.04,
-      "passes": true,
-      "penalty": 4.308,
-      "rightGc": 56.5,
-      "rightPenalty": 2.269,
-      "rightTm": 59.73
-     },
-     "rev": "GCCATAGGACGAGGAAACAGACC",
-     "right": [
-      554,
-      577
      ]
     }
    ],

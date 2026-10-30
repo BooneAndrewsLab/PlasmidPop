@@ -117,11 +117,14 @@ describe('selected primer pairs against primer3-py', () => {
 
   it("Primer3's own verdict: accepted share holds the measured floor", () => {
     const accepted = all.filter(({ o }) => o.primer3.passes).length;
-    // The aim was 95 %; it is not met. Measured 177 of 200 = 88.5 %.
-    expect(accepted / all.length).toBeGreaterThanOrEqual(0.86);
-    // Known deviation #345: every refusal is a hairpin Primer3 finds too stable.
+    // The aim was 95 %; it is not met. Measured 181 of 200 = 90.5 % (88.5 %
+    // before the ΔG hairpin check, item 123).
+    expect(accepted / all.length).toBeGreaterThanOrEqual(0.9);
+    // What is left of #345: every refusal is a hairpin Primer3 finds too
+    // stable by its own criterion, the Tm of the structure (at most 47 C),
+    // which is not the ΔG ours uses.
     const refused = all.filter(({ o }) => !o.primer3.passes);
-    expect(refused.length).toBeLessThanOrEqual(23);
+    expect(refused.length).toBeLessThanOrEqual(19);
     for (const { o } of refused) {
       const e = o.primer3.explain;
       const reasons = [e?.left, e?.right, e?.pair].join(' ');
@@ -131,7 +134,7 @@ describe('selected primer pairs against primer3-py', () => {
   });
 
   it('top pair against Primer3 top pair: overlap holds the measured floor', () => {
-    // Known deviation #346: the two rank differently.
+    // Known deviation #346 (unchanged by item 123: 0, 7 and 18 of 40): the two rank differently.
     let equal = 0;
     let overlap = 0;
     let anyOverlap = 0;

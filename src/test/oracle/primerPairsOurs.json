@@ -5,16 +5,42 @@
    "pairs": [
     {
      "fwd": "TCAACCAGTCACGTCAAAAGTCCC",
-     "rev": "TTTCTCAACACGGTGCTCCCC",
+     "rev": "GCACCCTGCTTCTCTCTGAATTATCG",
      "left": [
       149,
       173
      ],
      "right": [
-      649,
-      670
+      732,
+      758
      ],
-     "penalty": 3.102
+     "penalty": 3.797
+    },
+    {
+     "fwd": "ACGTCAAAAGTCCCGAACTTCCC",
+     "rev": "ATGGACGCTAACAATCGGCAGG",
+     "left": [
+      159,
+      182
+     ],
+     "right": [
+      797,
+      819
+     ],
+     "penalty": 3.811
+    },
+    {
+     "fwd": "ACGTCAAAAGTCCCGAACTTCCC",
+     "rev": "TGGACGCTAACAATCGGCAGG",
+     "left": [
+      159,
+      182
+     ],
+     "right": [
+      797,
+      818
+     ],
+     "penalty": 3.849
     },
     {
      "fwd": "TCAACCAGTCACGTCAAAAGTCCC",
@@ -27,7 +53,7 @@
       797,
       819
      ],
-     "penalty": 3.166
+     "penalty": 3.877
     },
     {
      "fwd": "TCAACCAGTCACGTCAAAAGTCCC",
@@ -40,52 +66,13 @@
       797,
       818
      ],
-     "penalty": 3.205
-    },
-    {
-     "fwd": "TTCAACCAGTCACGTCAAAAGTCCC",
-     "rev": "ATGGACGCTAACAATCGGCAGG",
-     "left": [
-      148,
-      173
-     ],
-     "right": [
-      797,
-      819
-     ],
-     "penalty": 3.433
-    },
-    {
-     "fwd": "TCAACCAGTCACGTCAAAAGTCCC",
-     "rev": "TTTTCTCAACACGGTGCTCCCC",
-     "left": [
-      149,
-      173
-     ],
-     "right": [
-      649,
-      671
-     ],
-     "penalty": 3.468
+     "penalty": 3.916
     }
    ]
   },
   {
    "name": "t01",
    "pairs": [
-    {
-     "fwd": "GGTTTACCGTATGTCAGCTTCCTCG",
-     "rev": "TTGAACGCGGGAACCACAGTAG",
-     "left": [
-      721,
-      746
-     ],
-     "right": [
-      1278,
-      1300
-     ],
-     "penalty": 3.85
-    },
     {
      "fwd": "GGGTTTACCGTATGTCAGCTTCCTC",
      "rev": "TTCGTCTCCGCCTATTACTTCGC",
@@ -97,7 +84,7 @@
       1147,
       1170
      ],
-     "penalty": 3.905
+     "penalty": 4.562
     },
     {
      "fwd": "GGTTTACCGTATGTCAGCTTCCTCG",
@@ -110,33 +97,46 @@
       1148,
       1172
      ],
-     "penalty": 3.939
+     "penalty": 4.595
     },
     {
      "fwd": "GGGTTTACCGTATGTCAGCTTCCTC",
-     "rev": "TGAACGCGGGAACCACAGTAG",
+     "rev": "ACGTTCGTCTCCGCCTATTACTTC",
      "left": [
       720,
       745
      ],
      "right": [
-      1278,
-      1299
+      1149,
+      1173
      ],
-     "penalty": 3.987
+     "penalty": 4.603
     },
     {
-     "fwd": "GTAGCGTCGAACGTAGACCGAAG",
-     "rev": "TTGAACGCGGGAACCACAGTAG",
+     "fwd": "AGTGGGTTTACCGTATGTCAGCTTC",
+     "rev": "ACGTTCGTCTCCGCCTATTACTTC",
      "left": [
-      674,
-      697
+      717,
+      742
      ],
      "right": [
-      1278,
-      1300
+      1149,
+      1173
      ],
-     "penalty": 4.012
+     "penalty": 4.603
+    },
+    {
+     "fwd": "TGGGTTTACCGTATGTCAGCTTCC",
+     "rev": "ACGTTCGTCTCCGCCTATTACTTC",
+     "left": [
+      719,
+      743
+     ],
+     "right": [
+      1149,
+      1173
+     ],
+     "penalty": 4.603
     }
    ]
   },
@@ -144,69 +144,69 @@
    "name": "t02",
    "pairs": [
     {
-     "fwd": "AGGATACGCGAAGCAGTGTGG",
-     "rev": "AGCAGAAGTGCCGGGACAAATAG",
+     "fwd": "TCTCGCAATGCACTAACTCTCGG",
+     "rev": "ACCTCTTCGAATCAAGGCGACAC",
      "left": [
-      975,
-      996
+      943,
+      966
      ],
      "right": [
-      1586,
-      1609
+      1541,
+      1564
      ],
-     "penalty": 4.004
+     "penalty": 4.326
     },
     {
-     "fwd": "CTAACTCTCGGCGACGGACAAG",
-     "rev": "GCGGGGTAGCCATTGGAGTAAC",
+     "fwd": "TCTCGCAATGCACTAACTCTCGG",
+     "rev": "TTACCTCTTCGAATCAAGGCGACAC",
      "left": [
-      955,
-      977
+      943,
+      966
      ],
      "right": [
-      1644,
-      1666
+      1541,
+      1566
      ],
-     "penalty": 4.097
+     "penalty": 4.561
     },
     {
-     "fwd": "CTCGGCGACGGACAAGGATAC",
-     "rev": "AGCAGAAGTGCCGGGACAAATAG",
+     "fwd": "TCTCGCAATGCACTAACTCTCGG",
+     "rev": "GGTAGCCATTGGAGTAACCTGTTACG",
      "left": [
-      961,
-      982
+      943,
+      966
      ],
      "right": [
-      1586,
-      1609
+      1636,
+      1662
      ],
-     "penalty": 4.175
+     "penalty": 4.577
     },
     {
-     "fwd": "ATACGCGAAGCAGTGTGGAGAAC",
-     "rev": "CCCAAGACCTTAGCAGAAGTGCC",
+     "fwd": "AAGCAGTGTGGAGAACCTGGC",
+     "rev": "CCATTGGAGTAACCTGTTACGATCCG",
      "left": [
-      978,
-      1001
+      985,
+      1006
      ],
      "right": [
-      1597,
-      1620
+      1631,
+      1657
      ],
-     "penalty": 4.213
+     "penalty": 4.701
     },
     {
-     "fwd": "CTCGGCGACGGACAAGGATAC",
-     "rev": "CAGCCCAAGACCTTAGCAGAAGTG",
+     "fwd": "AGTCTCGCAATGCACTAACTCTCG",
+     "rev": "GGTAGCCATTGGAGTAACCTGTTACG",
      "left": [
-      961,
-      982
+      941,
+      965
      ],
      "right": [
-      1599,
-      1623
+      1636,
+      1662
      ],
-     "penalty": 4.228
+     "penalty": 4.724
     }
    ]
   },
@@ -214,88 +214,75 @@
    "name": "t03",
    "pairs": [
     {
-     "fwd": "ACCTAACTGCGTCGTCGGTG",
-     "rev": "TTCTCCGTCCCGTGTGCTG",
+     "fwd": "AAGTTTCGGACCTAACTGCGTCG",
+     "rev": "TGTACAGCTAACCAAAGACACGGC",
      "left": [
-      393,
-      413
+      384,
+      407
      ],
      "right": [
-      978,
-      997
+      850,
+      874
      ],
-     "penalty": 4.422
+     "penalty": 4.356
     },
     {
-     "fwd": "TTTCGGACCTAACTGCGTCGTC",
-     "rev": "TTCTCCGTCCCGTGTGCTG",
-     "left": [
-      387,
-      409
-     ],
-     "right": [
-      978,
-      997
-     ],
-     "penalty": 4.476
-    },
-    {
-     "fwd": "TTTCGGACCTAACTGCGTCGTC",
+     "fwd": "AAGTTTCGGACCTAACTGCGTCG",
      "rev": "TCGCACTCGCTTGAGGATGAAC",
      "left": [
-      387,
-      409
+      384,
+      407
      ],
      "right": [
       998,
       1020
      ],
-     "penalty": 4.538
+     "penalty": 4.525
     },
     {
-     "fwd": "CTGCGTCGTCGGTGTGTTG",
-     "rev": "TTCTCCGTCCCGTGTGCTG",
+     "fwd": "AGTTTCGGACCTAACTGCGTCG",
+     "rev": "TGTACAGCTAACCAAAGACACGGC",
      "left": [
-      399,
-      418
+      385,
+      407
      ],
      "right": [
-      978,
-      997
+      850,
+      874
      ],
-     "penalty": 4.73
+     "penalty": 4.555
     },
     {
-     "fwd": "TAACTGCGTCGTCGGTGTGTTG",
+     "fwd": "AGTTTCGGACCTAACTGCGTCG",
+     "rev": "TCGCACTCGCTTGAGGATGAAC",
+     "left": [
+      385,
+      407
+     ],
+     "right": [
+      998,
+      1020
+     ],
+     "penalty": 4.842
+    },
+    {
+     "fwd": "AAGTTTCGGACCTAACTGCGTCG",
      "rev": "TTCGCACTCGCTTGAGGATGAAC",
      "left": [
-      396,
-      418
+      384,
+      407
      ],
      "right": [
       998,
       1021
      ],
-     "penalty": 4.792
+     "penalty": 4.865
     }
    ]
   },
   {
    "name": "t04",
    "pairs": [
-    {
-     "fwd": "AGCACCAAACCATCCGAGGAC",
-     "rev": "GCCCTTCTTTGTTCCGATGCG",
-     "left": [
-      872,
-      893
-     ],
-     "right": [
-      1285,
-      1306
-     ],
-     "penalty": 3.523
-    },
     {
      "fwd": "AGCACCAAACCATCCGAGGAC",
      "rev": "TCTGGCTCGCATGAGATGGAAC",
@@ -307,46 +294,59 @@
       1161,
       1183
      ],
-     "penalty": 3.745
+     "penalty": 4.117
+    },
+    {
+     "fwd": "ATGAGCACCAAACCATCCGAGG",
+     "rev": "TCTGGCTCGCATGAGATGGAAC",
+     "left": [
+      869,
+      891
+     ],
+     "right": [
+      1161,
+      1183
+     ],
+     "penalty": 4.224
     },
     {
      "fwd": "AGCACCAAACCATCCGAGGAC",
-     "rev": "TGTCTCTATCCGGTTGCGTTGTC",
+     "rev": "TCAGCTCAGGGCATGTTAGCTTC",
      "left": [
       872,
       893
      ],
      "right": [
-      1228,
-      1251
+      1318,
+      1341
      ],
-     "penalty": 3.783
+     "penalty": 4.354
     },
     {
      "fwd": "TGAGCACCAAACCATCCGAGG",
-     "rev": "TGTCTCTATCCGGTTGCGTTGTC",
+     "rev": "TCTGGCTCGCATGAGATGGAAC",
      "left": [
       870,
       891
      ],
      "right": [
-      1228,
-      1251
+      1161,
+      1183
      ],
-     "penalty": 3.783
+     "penalty": 4.384
     },
     {
-     "fwd": "AGCACCAAACCATCCGAGGAC",
-     "rev": "CGCTTTGAGTAGGGGCTCTCTG",
+     "fwd": "AGGGAACCCATGAGCACCAAAC",
+     "rev": "TCTGGCTCGCATGAGATGGAAC",
      "left": [
-      872,
-      893
+      860,
+      882
      ],
      "right": [
-      1179,
-      1201
+      1161,
+      1183
      ],
-     "penalty": 3.994
+     "penalty": 4.399
     }
    ]
   },
@@ -354,43 +354,17 @@
    "name": "t05",
    "pairs": [
     {
-     "fwd": "TGATGGCACGATGAGTAATGGGC",
+     "fwd": "TGAGTGGCATGTAATGTGTGACAGG",
      "rev": "ACACGGTTAGGTAGAGGTAGGCAG",
      "left": [
-      285,
-      308
+      245,
+      270
      ],
      "right": [
       753,
       777
      ],
-     "penalty": 2.867
-    },
-    {
-     "fwd": "AGCCTTTGTTCATCTCCCTCGTTC",
-     "rev": "TCGTTTTATCTACAGCCATTCGGGTC",
-     "left": [
-      155,
-      179
-     ],
-     "right": [
-      715,
-      741
-     ],
-     "penalty": 2.964
-    },
-    {
-     "fwd": "AGCCTTTGTTCATCTCCCTCGTTC",
-     "rev": "ACACGGTTAGGTAGAGGTAGGCAG",
-     "left": [
-      155,
-      179
-     ],
-     "right": [
-      753,
-      777
-     ],
-     "penalty": 2.965
+     "penalty": 3.741
     },
     {
      "fwd": "ATGGGCGTTCTTCAGCTACTTGG",
@@ -403,26 +377,78 @@
       753,
       777
      ],
-     "penalty": 3.007
+     "penalty": 3.76
+    },
+    {
+     "fwd": "ATGGGCGTTCTTCAGCTACTTGG",
+     "rev": "CTATGGGGTACACGGTTAGGTAGAGG",
+     "left": [
+      302,
+      325
+     ],
+     "right": [
+      760,
+      786
+     ],
+     "penalty": 3.839
+    },
+    {
+     "fwd": "CTTTGTTCATCTCCCTCGTTCTAGCC",
+     "rev": "GTGCATCGAGTATCCAAGCTACCC",
+     "left": [
+      158,
+      184
+     ],
+     "right": [
+      617,
+      641
+     ],
+     "penalty": 3.854
     },
     {
      "fwd": "AGCCTTTGTTCATCTCCCTCGTTC",
-     "rev": "ATCGTTTTATCTACAGCCATTCGGGTC",
+     "rev": "TCGTTTTATCTACAGCCATTCGGGTC",
      "left": [
       155,
       179
      ],
      "right": [
       715,
-      742
+      741
      ],
-     "penalty": 3.104
+     "penalty": 3.91
     }
    ]
   },
   {
    "name": "t06",
    "pairs": [
+    {
+     "fwd": "AACGCTCCACAATATCGAGTGACG",
+     "rev": "ACGAGGACTCATTTCAAGCAACGG",
+     "left": [
+      671,
+      695
+     ],
+     "right": [
+      1272,
+      1296
+     ],
+     "penalty": 4.067
+    },
+    {
+     "fwd": "AAGCGTGTGGTCTCAGACATTCG",
+     "rev": "GAGAGACAGGAAGGCTCTACAAGAGG",
+     "left": [
+      708,
+      731
+     ],
+     "right": [
+      1309,
+      1335
+     ],
+     "penalty": 4.436
+    },
     {
      "fwd": "ATATCGAGTGACGTGGAAGAGACCC",
      "rev": "ACGAGGACTCATTTCAAGCAACGG",
@@ -434,33 +460,20 @@
       1272,
       1296
      ],
-     "penalty": 3.688
+     "penalty": 4.436
     },
     {
-     "fwd": "CGCTATTTCCTCCCAACGGTGAC",
-     "rev": "ACGAGGACTCATTTCAAGCAACGG",
+     "fwd": "AACGCTCCACAATATCGAGTGACG",
+     "rev": "GAGAGACAGGAAGGCTCTACAAGAGG",
      "left": [
-      629,
-      652
+      671,
+      695
      ],
      "right": [
-      1272,
-      1296
+      1309,
+      1335
      ],
-     "penalty": 3.702
-    },
-    {
-     "fwd": "GTGACGTGGAAGAGACCCGAAG",
-     "rev": "TGTACGTGATCGCGGGTTTATAGC",
-     "left": [
-      689,
-      711
-     ],
-     "right": [
-      1231,
-      1255
-     ],
-     "penalty": 3.767
+     "penalty": 4.47
     },
     {
      "fwd": "AATATCGAGTGACGTGGAAGAGACCC",
@@ -473,39 +486,13 @@
       1272,
       1296
      ],
-     "penalty": 3.775
-    },
-    {
-     "fwd": "TGCGCTATTTCCTCCCAACGG",
-     "rev": "ACGAGGACTCATTTCAAGCAACGG",
-     "left": [
-      627,
-      648
-     ],
-     "right": [
-      1272,
-      1296
-     ],
-     "penalty": 3.803
+     "penalty": 4.523
     }
    ]
   },
   {
    "name": "t07",
    "pairs": [
-    {
-     "fwd": "TCCCAATGAAGTGCGGTCTAACG",
-     "rev": "TAAGGTGTTCGGCAGTGTGGTG",
-     "left": [
-      178,
-      201
-     ],
-     "right": [
-      609,
-      631
-     ],
-     "penalty": 3.006
-    },
     {
      "fwd": "AAATTGCCCCTAGCGGTAACTTGG",
      "rev": "TAAGGTGTTCGGCAGTGTGGTG",
@@ -517,7 +504,7 @@
       609,
       631
      ],
-     "penalty": 3.174
+     "penalty": 3.684
     },
     {
      "fwd": "AATTGCCCCTAGCGGTAACTTGG",
@@ -530,20 +517,20 @@
       609,
       631
      ],
-     "penalty": 3.216
+     "penalty": 3.726
     },
     {
-     "fwd": "ATGAAGTGCGGTCTAACGCTCAG",
-     "rev": "TAAGGTGTTCGGCAGTGTGGTG",
+     "fwd": "AAATTGCCCCTAGCGGTAACTTGG",
+     "rev": "TTAAGGTGTTCGGCAGTGTGGTG",
      "left": [
-      183,
-      206
+      146,
+      170
      ],
      "right": [
       609,
-      631
+      632
      ],
-     "penalty": 3.38
+     "penalty": 3.794
     },
     {
      "fwd": "TGAGTTCCCAATGAAGTGCGGTC",
@@ -556,7 +543,20 @@
       609,
       631
      ],
-     "penalty": 3.47
+     "penalty": 3.916
+    },
+    {
+     "fwd": "TTCCCAATGAAGTGCGGTCTAACG",
+     "rev": "TAAGGTGTTCGGCAGTGTGGTG",
+     "left": [
+      177,
+      201
+     ],
+     "right": [
+      609,
+      631
+     ],
+     "penalty": 3.921
     }
    ]
   },
@@ -564,69 +564,69 @@
    "name": "t08",
    "pairs": [
     {
-     "fwd": "CATTCGCCATAACAGCCAACCG",
+     "fwd": "AACCGCCCGAGTTCACTTATAACG",
+     "rev": "ACACAACAGAGGTGCCAGTGATG",
+     "left": [
+      567,
+      591
+     ],
+     "right": [
+      830,
+      853
+     ],
+     "penalty": 3.651
+    },
+    {
+     "fwd": "AACCGCCCGAGTTCACTTATAACG",
      "rev": "ATGGAGAACACAACAGAGGTGCC",
      "left": [
-      550,
-      572
+      567,
+      591
      ],
      "right": [
       837,
       860
      ],
-     "penalty": 3.402
+     "penalty": 3.674
     },
     {
-     "fwd": "CATTCGCCATAACAGCCAACCG",
+     "fwd": "AACCGCCCGAGTTCACTTATAACG",
      "rev": "TGATGGAGAACACAACAGAGGTGC",
      "left": [
-      550,
-      572
+      567,
+      591
      ],
      "right": [
       838,
       862
      ],
-     "penalty": 3.585
+     "penalty": 3.822
     },
     {
-     "fwd": "CATTCGCCATAACAGCCAACCG",
-     "rev": "TGGAGAACACAACAGAGGTGCC",
+     "fwd": "AACCGCCCGAGTTCACTTATAACG",
+     "rev": "TTGATGGAGAACACAACAGAGGTGC",
      "left": [
-      550,
-      572
+      567,
+      591
+     ],
+     "right": [
+      838,
+      863
+     ],
+     "penalty": 3.851
+    },
+    {
+     "fwd": "ACCGCCCGAGTTCACTTATAACG",
+     "rev": "ATGGAGAACACAACAGAGGTGCC",
+     "left": [
+      568,
+      591
      ],
      "right": [
       837,
-      859
+      860
      ],
-     "penalty": 3.694
-    },
-    {
-     "fwd": "CATTCGCCATAACAGCCAACCG",
-     "rev": "AGATGAATGCACATGGCAGTCAGAG",
-     "left": [
-      550,
-      572
-     ],
-     "right": [
-      941,
-      966
-     ],
-     "penalty": 3.785
-    },
-    {
-     "fwd": "ATAACAGCCAACCGCCCGAG",
-     "rev": "AACACAACAGAGGTGCCAGTGATG",
-     "left": [
-      558,
-      578
-     ],
-     "right": [
-      830,
-      854
-     ],
-     "penalty": 3.957
+     "penalty": 3.895
     }
    ]
   },
@@ -644,7 +644,7 @@
       687,
       713
      ],
-     "penalty": 2.954
+     "penalty": 3.599
     },
     {
      "fwd": "TTAGGGTTCGGGTAGCTTGTCTCTC",
@@ -657,7 +657,33 @@
       687,
       713
      ],
-     "penalty": 3.119
+     "penalty": 3.764
+    },
+    {
+     "fwd": "TAGGGTTCGGGTAGCTTGTCTCTC",
+     "rev": "GGTAACCCGCTATGATAAAGTCGCTG",
+     "left": [
+      178,
+      202
+     ],
+     "right": [
+      687,
+      713
+     ],
+     "penalty": 4.039
+    },
+    {
+     "fwd": "TTTAGGGTTCGGGTAGCTTGTCTCTC",
+     "rev": "GGTAACCCGCTATGATAAAGTCGCTG",
+     "left": [
+      176,
+      202
+     ],
+     "right": [
+      687,
+      713
+     ],
+     "penalty": 4.104
     },
     {
      "fwd": "GGTTCTTCGTTCCTTTAGGGTTCGG",
@@ -670,33 +696,7 @@
       687,
       713
      ],
-     "penalty": 3.22
-    },
-    {
-     "fwd": "TTAGGGTTCGGGTAGCTTGTCTCTC",
-     "rev": "ACCCGCTATGATAAAGTCGCTGC",
-     "left": [
-      177,
-      202
-     ],
-     "right": [
-      686,
-      709
-     ],
-     "penalty": 3.336
-    },
-    {
-     "fwd": "GTTCCTTTAGGGTTCGGGTAGCTTG",
-     "rev": "ACCCGCTATGATAAAGTCGCTGC",
-     "left": [
-      171,
-      196
-     ],
-     "right": [
-      686,
-      709
-     ],
-     "penalty": 3.353
+     "penalty": 4.171
     }
    ]
   },
@@ -704,69 +704,69 @@
    "name": "t10",
    "pairs": [
     {
-     "fwd": "TCGACGAGTTTATTGACCTGCCTG",
-     "rev": "CGTATCCCTCGCTTCGTCTCAC",
+     "fwd": "TGTGAAAACCTAGATGACGCCAGC",
+     "rev": "TCCATTAGTAGGCACTAAGCGTCCTC",
      "left": [
-      314,
-      338
+      281,
+      305
      ],
      "right": [
-      484,
-      506
+      628,
+      654
      ],
-     "penalty": 3.925
+     "penalty": 4.067
     },
     {
-     "fwd": "TGAAAACCTAGATGACGCCAGCTC",
-     "rev": "CGTATCCCTCGCTTCGTCTCAC",
+     "fwd": "TACCTGCCACTCTAGCCCCTC",
+     "rev": "CTGTCAATCAGGCTCTGTCGGTC",
      "left": [
-      283,
-      307
+      251,
+      272
      ],
      "right": [
-      484,
-      506
+      558,
+      581
      ],
-     "penalty": 3.932
+     "penalty": 4.242
     },
     {
-     "fwd": "TCGACGAGTTTATTGACCTGCCTG",
-     "rev": "GTATCCCTCGCTTCGTCTCACC",
+     "fwd": "AAAACCTAGATGACGCCAGCTCG",
+     "rev": "CTGTCAATCAGGCTCTGTCGGTC",
      "left": [
-      314,
-      338
+      285,
+      308
      ],
      "right": [
-      483,
-      505
+      558,
+      581
      ],
-     "penalty": 3.952
+     "penalty": 4.318
     },
     {
-     "fwd": "TGAAAACCTAGATGACGCCAGCTC",
-     "rev": "GTATCCCTCGCTTCGTCTCACC",
+     "fwd": "TAGCTACCTGCCACTCTAGCCC",
+     "rev": "CTGTCAATCAGGCTCTGTCGGTC",
      "left": [
-      283,
-      307
+      247,
+      269
      ],
      "right": [
-      483,
-      505
+      558,
+      581
      ],
-     "penalty": 3.952
+     "penalty": 4.338
     },
     {
-     "fwd": "TCGACGAGTTTATTGACCTGCCTG",
-     "rev": "TAGCGTGCCAAAGACCCCTG",
+     "fwd": "AAAACCTAGATGACGCCAGCTCG",
+     "rev": "TCCATTAGTAGGCACTAAGCGTCCTC",
      "left": [
-      314,
-      338
+      285,
+      308
      ],
      "right": [
-      524,
-      544
+      628,
+      654
      ],
-     "penalty": 4.015
+     "penalty": 4.363
     }
    ]
   },
@@ -774,17 +774,17 @@
    "name": "t11",
    "pairs": [
     {
-     "fwd": "TACACTCGGCGATTATGGGTACTACC",
-     "rev": "GAGTTCTACTTGAATAACCGGCGTGG",
+     "fwd": "AGATTGCTGTGCTTGAGACAGAGAG",
+     "rev": "CATGGTAAGGGTGATAATACACGAGCG",
      "left": [
-      459,
-      485
+      535,
+      560
      ],
      "right": [
-      763,
-      789
+      905,
+      932
      ],
-     "penalty": 5.934
+     "penalty": 5.498
     },
     {
      "fwd": "GTTGGCAAATAGATTGCTGTGCTTGAG",
@@ -797,46 +797,46 @@
       905,
       932
      ],
-     "penalty": 6.045
+     "penalty": 5.769
     },
     {
-     "fwd": "TACACTCGGCGATTATGGGTACTACC",
-     "rev": "GCTAGAGTTCTACTTGAATAACCGGCG",
+     "fwd": "CGGCGATTATGGGTACTACCATTCTC",
+     "rev": "AACCGGCGTGGTTCAACAAAG",
      "left": [
-      459,
-      485
+      465,
+      491
      ],
      "right": [
-      766,
-      793
+      753,
+      774
      ],
-     "penalty": 6.094
+     "penalty": 5.904
     },
     {
-     "fwd": "ATACACTCGGCGATTATGGGTACTACC",
-     "rev": "GAGTTCTACTTGAATAACCGGCGTGG",
+     "fwd": "GGCGATTATGGGTACTACCATTCTCG",
+     "rev": "AACCGGCGTGGTTCAACAAAG",
      "left": [
-      458,
-      485
+      466,
+      492
      ],
      "right": [
-      763,
-      789
+      753,
+      774
      ],
-     "penalty": 6.22
+     "penalty": 5.92
     },
     {
-     "fwd": "TACACTCGGCGATTATGGGTACTACC",
-     "rev": "AGTTCTACTTGAATAACCGGCGTGG",
+     "fwd": "AGATTGCTGTGCTTGAGACAGAGAG",
+     "rev": "TGGTAAGGGTGATAATACACGAGCG",
      "left": [
-      459,
-      485
+      535,
+      560
      ],
      "right": [
-      763,
-      788
+      905,
+      930
      ],
-     "penalty": 6.294
+     "penalty": 5.988
     }
    ]
   },
@@ -844,43 +844,30 @@
    "name": "t12",
    "pairs": [
     {
-     "fwd": "TTCCGGTCCTCAACACAATTCCC",
+     "fwd": "GTGTCAAGGTTTTGGAGGTAATGCC",
      "rev": "GCCGCCAGCTAAACGTATCATC",
      "left": [
-      778,
-      801
+      883,
+      908
      ],
      "right": [
       1232,
       1254
      ],
-     "penalty": 4.978
+     "penalty": 5.671
     },
     {
-     "fwd": "TCCGGTCCTCAACACAATTCCC",
+     "fwd": "TGTCAAGGTTTTGGAGGTAATGCCC",
      "rev": "GCCGCCAGCTAAACGTATCATC",
      "left": [
-      779,
-      801
+      884,
+      909
      ],
      "right": [
       1232,
       1254
      ],
-     "penalty": 5.115
-    },
-    {
-     "fwd": "CCGGTCCTCAACACAATTCCCTC",
-     "rev": "GCCGCCAGCTAAACGTATCATCA",
-     "left": [
-      780,
-      803
-     ],
-     "right": [
-      1231,
-      1254
-     ],
-     "penalty": 5.356
+     "penalty": 5.759
     },
     {
      "fwd": "ATTCCGGTCCTCAACACAATTCCC",
@@ -893,20 +880,33 @@
       1232,
       1254
      ],
-     "penalty": 5.361
+     "penalty": 5.798
     },
     {
-     "fwd": "GTGTCAAGGTTTTGGAGGTAATGCC",
+     "fwd": "CGTTCTTGTGTCAAGGTTTTGGAGG",
      "rev": "GCCGCCAGCTAAACGTATCATC",
      "left": [
-      883,
-      908
+      876,
+      901
      ],
      "right": [
       1232,
       1254
      ],
-     "penalty": 5.461
+     "penalty": 5.839
+    },
+    {
+     "fwd": "TGTCAAGGTTTTGGAGGTAATGCCC",
+     "rev": "CCGCCAGCTAAACGTATCATCAGAA",
+     "left": [
+      884,
+      909
+     ],
+     "right": [
+      1228,
+      1253
+     ],
+     "penalty": 5.854
     }
    ]
   },
@@ -924,46 +924,7 @@
       1036,
       1059
      ],
-     "penalty": 2.765
-    },
-    {
-     "fwd": "GTCTTCTTTCCATACTGTCGCCCC",
-     "rev": "ATAAACCCCAGTAGGACCGGATCAG",
-     "left": [
-      611,
-      635
-     ],
-     "right": [
-      930,
-      955
-     ],
-     "penalty": 3.349
-    },
-    {
-     "fwd": "GGTCTTCTTTCCATACTGTCGCCC",
-     "rev": "TGTGTTCCAGCTTTCCGATGTCC",
-     "left": [
-      610,
-      634
-     ],
-     "right": [
-      1036,
-      1059
-     ],
-     "penalty": 3.365
-    },
-    {
-     "fwd": "GTCTTCTTTCCATACTGTCGCCCC",
-     "rev": "GAGACCTCATTAGCGTTGGACGATTC",
-     "left": [
-      611,
-      635
-     ],
-     "right": [
-      1008,
-      1034
-     ],
-     "penalty": 3.461
+     "penalty": 3.41
     },
     {
      "fwd": "GTCTTCTTTCCATACTGTCGCCCC",
@@ -976,7 +937,46 @@
       1051,
       1077
      ],
-     "penalty": 3.534
+     "penalty": 3.528
+    },
+    {
+     "fwd": "GTCTTCTTTCCATACTGTCGCCCC",
+     "rev": "GCTCTTTCGTGTGTTCCAGCTTTC",
+     "left": [
+      611,
+      635
+     ],
+     "right": [
+      1044,
+      1068
+     ],
+     "penalty": 3.779
+    },
+    {
+     "fwd": "CTGGTCTTCTTTCCATACTGTCGCC",
+     "rev": "TGTGTTCCAGCTTTCCGATGTCC",
+     "left": [
+      608,
+      633
+     ],
+     "right": [
+      1036,
+      1059
+     ],
+     "penalty": 3.92
+    },
+    {
+     "fwd": "CTGGTCTTCTTTCCATACTGTCGCC",
+     "rev": "GCTCTTTCGTGTGTTCCAGCTTTC",
+     "left": [
+      608,
+      633
+     ],
+     "right": [
+      1044,
+      1068
+     ],
+     "penalty": 4.003
     }
    ]
   },
@@ -984,6 +984,19 @@
    "name": "t14",
    "pairs": [
     {
+     "fwd": "TCATACTTCTGAGCGATGACGGC",
+     "rev": "GTTCTTCGACTACTGACAGCATAACCC",
+     "left": [
+      189,
+      212
+     ],
+     "right": [
+      649,
+      676
+     ],
+     "penalty": 4.913
+    },
+    {
      "fwd": "ATACTTCTGAGCGATGACGGCG",
      "rev": "GTTCTTCGACTACTGACAGCATAACCC",
      "left": [
@@ -994,59 +1007,46 @@
       649,
       676
      ],
-     "penalty": 4.251
+     "penalty": 5.108
     },
     {
-     "fwd": "TACTTCTGAGCGATGACGGCG",
+     "fwd": "GGTCATACTTCTGAGCGATGACGG",
      "rev": "GTTCTTCGACTACTGACAGCATAACCC",
      "left": [
-      192,
-      213
+      187,
+      211
      ],
      "right": [
       649,
       676
      ],
-     "penalty": 4.461
+     "penalty": 5.122
     },
     {
-     "fwd": "ATACTTCTGAGCGATGACGGCG",
-     "rev": "TCTTCGACTACTGACAGCATAACCCTC",
+     "fwd": "TTTTCGTCAGGTCATACTTCTGAGCG",
+     "rev": "GTTCTTCGACTACTGACAGCATAACCC",
      "left": [
-      191,
-      213
+      178,
+      204
      ],
      "right": [
-      647,
-      674
+      649,
+      676
      ],
-     "penalty": 4.668
+     "penalty": 5.171
     },
     {
-     "fwd": "ATACTTCTGAGCGATGACGGCG",
-     "rev": "CTTCGACTACTGACAGCATAACCCTC",
+     "fwd": "CAGGTCATACTTCTGAGCGATGACG",
+     "rev": "GTTCTTCGACTACTGACAGCATAACCC",
      "left": [
-      191,
-      213
+      185,
+      210
      ],
      "right": [
-      647,
-      673
+      649,
+      676
      ],
-     "penalty": 4.961
-    },
-    {
-     "fwd": "TACTTCTGAGCGATGACGGCG",
-     "rev": "TCTTCGACTACTGACAGCATAACCCTC",
-     "left": [
-      192,
-      213
-     ],
-     "right": [
-      647,
-      674
-     ],
-     "penalty": 4.984
+     "penalty": 5.305
     }
    ]
   },
@@ -1064,20 +1064,7 @@
       1133,
       1156
      ],
-     "penalty": 5.741
-    },
-    {
-     "fwd": "CAAACTCGGCGCAACCTGTATG",
-     "rev": "CTAAACAAGAGAAAGCCCCTCTCCG",
-     "left": [
-      540,
-      562
-     ],
-     "right": [
-      1133,
-      1158
-     ],
-     "penalty": 5.844
+     "penalty": 4.882
     },
     {
      "fwd": "ACAGGTGTTCTACTCAAACTCGGC",
@@ -1090,33 +1077,46 @@
       1133,
       1158
      ],
-     "penalty": 5.858
+     "penalty": 4.999
     },
     {
-     "fwd": "AGGTGTTCTACTCAAACTCGGCG",
+     "fwd": "CGATACAGGTGTTCTACTCAAACTCGG",
      "rev": "AAACAAGAGAAAGCCCCTCTCCG",
      "left": [
-      528,
-      551
+      522,
+      549
      ],
      "right": [
       1133,
       1156
      ],
-     "penalty": 5.858
+     "penalty": 5.073
     },
     {
-     "fwd": "AGGTGTTCTACTCAAACTCGGCG",
+     "fwd": "CGATACAGGTGTTCTACTCAAACTCGG",
      "rev": "CTAAACAAGAGAAAGCCCCTCTCCG",
      "left": [
-      528,
-      551
+      522,
+      549
      ],
      "right": [
       1133,
       1158
      ],
-     "penalty": 5.893
+     "penalty": 5.155
+    },
+    {
+     "fwd": "GATACAGGTGTTCTACTCAAACTCGGC",
+     "rev": "CTAAACAAGAGAAAGCCCCTCTCCG",
+     "left": [
+      523,
+      550
+     ],
+     "right": [
+      1133,
+      1158
+     ],
+     "penalty": 5.215
     }
    ]
   },
@@ -1134,7 +1134,7 @@
       645,
       671
      ],
-     "penalty": 9.656
+     "penalty": 9.463
     },
     {
      "fwd": "GTTGCTACTCTCACATTCGTTCTCTAC",
@@ -1147,33 +1147,7 @@
       645,
       671
      ],
-     "penalty": 10.456
-    },
-    {
-     "fwd": "GCTACTCTCACATTCGTTCTCTACAC",
-     "rev": "GCATTTTAAATCTGGCAGCACTAAGC",
-     "left": [
-      250,
-      276
-     ],
-     "right": [
-      645,
-      671
-     ],
-     "penalty": 10.774
-    },
-    {
-     "fwd": "AAGTTGCTACTCTCACATTCGTTCTC",
-     "rev": "GCATTTTAAATCTGGCAGCACTAAGC",
-     "left": [
-      245,
-      271
-     ],
-     "right": [
-      645,
-      671
-     ],
-     "penalty": 11.191
+     "penalty": 10.263
     },
     {
      "fwd": "GCTACTCTCACATTCGTTCTCTACAC",
@@ -1186,7 +1160,33 @@
       582,
       609
      ],
-     "penalty": 11.505
+     "penalty": 10.366
+    },
+    {
+     "fwd": "AGTTGCTACTCTCACATTCGTTCTC",
+     "rev": "TGTTCTATCACTGACTGATCACATTGG",
+     "left": [
+      246,
+      271
+     ],
+     "right": [
+      582,
+      609
+     ],
+     "penalty": 10.404
+    },
+    {
+     "fwd": "GCTACTCTCACATTCGTTCTCTACAC",
+     "rev": "GCATTTTAAATCTGGCAGCACTAAGC",
+     "left": [
+      250,
+      276
+     ],
+     "right": [
+      645,
+      671
+     ],
+     "penalty": 10.564
     }
    ]
   },
@@ -1194,69 +1194,69 @@
    "name": "t17",
    "pairs": [
     {
-     "fwd": "ATCAGGTGACGGCATCAAGCAG",
-     "rev": "TGAGCGACGGAAGATAGCAAAGC",
-     "left": [
-      747,
-      769
-     ],
-     "right": [
-      1023,
-      1046
-     ],
-     "penalty": 3.536
-    },
-    {
-     "fwd": "TCAGGTGACGGCATCAAGCAG",
-     "rev": "TGAGCGACGGAAGATAGCAAAGC",
-     "left": [
-      748,
-      769
-     ],
-     "right": [
-      1023,
-      1046
-     ],
-     "penalty": 3.696
-    },
-    {
      "fwd": "CGTGGGCATAAGTTCCTCTGCTAATC",
-     "rev": "TGAGCGACGGAAGATAGCAAAGC",
+     "rev": "AGCTTGGACGCTTTCAGGACAG",
      "left": [
       718,
       744
      ],
      "right": [
-      1023,
-      1046
+      1004,
+      1026
      ],
-     "penalty": 3.782
+     "penalty": 4.202
     },
     {
-     "fwd": "TCATCAGGTGACGGCATCAAGC",
-     "rev": "TGAGCGACGGAAGATAGCAAAGC",
+     "fwd": "ATCAGGTGACGGCATCAAGCAG",
+     "rev": "AGCTTGGACGCTTTCAGGACAG",
      "left": [
-      745,
-      767
+      747,
+      769
      ],
      "right": [
-      1023,
-      1046
+      1004,
+      1026
      ],
-     "penalty": 3.836
+     "penalty": 4.397
     },
     {
-     "fwd": "TGCGTGGGCATAAGTTCCTCTG",
-     "rev": "TGAGCGACGGAAGATAGCAAAGC",
+     "fwd": "TCAGGTGACGGCATCAAGCAG",
+     "rev": "AGCTTGGACGCTTTCAGGACAG",
      "left": [
-      716,
-      738
+      748,
+      769
      ],
      "right": [
-      1023,
-      1046
+      1004,
+      1026
      ],
-     "penalty": 4.028
+     "penalty": 4.43
+    },
+    {
+     "fwd": "GTGGGCATAAGTTCCTCTGCTAATCG",
+     "rev": "AGCTTGGACGCTTTCAGGACAG",
+     "left": [
+      719,
+      745
+     ],
+     "right": [
+      1004,
+      1026
+     ],
+     "penalty": 4.502
+    },
+    {
+     "fwd": "CGTGGGCATAAGTTCCTCTGCTAATC",
+     "rev": "GTAAAGGACGTGAGTGGGCAGAC",
+     "left": [
+      718,
+      744
+     ],
+     "right": [
+      1048,
+      1071
+     ],
+     "penalty": 4.527
     }
    ]
   },
@@ -1274,20 +1274,7 @@
       720,
       742
      ],
-     "penalty": 4.157
-    },
-    {
-     "fwd": "CCTGAACCACAAAGACATTACCGACC",
-     "rev": "ATCCGTGGGGACTTCTGGAGAG",
-     "left": [
-      337,
-      363
-     ],
-     "right": [
-      720,
-      742
-     ],
-     "penalty": 4.263
+     "penalty": 4.437
     },
     {
      "fwd": "CCCACCTGAACCACAAAGACATTACC",
@@ -1300,52 +1287,52 @@
       720,
       741
      ],
-     "penalty": 4.338
+     "penalty": 4.475
+    },
+    {
+     "fwd": "TTGAATCCCACCTGAACCACAAAGAC",
+     "rev": "TCCGTGGGGACTTCTGGAGAG",
+     "left": [
+      327,
+      353
+     ],
+     "right": [
+      720,
+      741
+     ],
+     "penalty": 4.505
     },
     {
      "fwd": "TGAATCCCACCTGAACCACAAAGAC",
-     "rev": "ATCCGTGGGGACTTCTGGAGAG",
+     "rev": "TCCGTGGGGACTTCTGGAGAG",
      "left": [
       328,
       353
      ],
      "right": [
       720,
-      742
+      741
      ],
-     "penalty": 4.417
+     "penalty": 4.599
     },
     {
-     "fwd": "CCTGAACCACAAAGACATTACCGACC",
-     "rev": "TCCGTGGGGACTTCTGGAGAG",
+     "fwd": "TTGAATCCCACCTGAACCACAAAGAC",
+     "rev": "ATCCGTGGGGACTTCTGGAGAG",
      "left": [
-      337,
-      363
+      327,
+      353
      ],
      "right": [
       720,
-      741
+      742
      ],
-     "penalty": 4.444
+     "penalty": 4.603
     }
    ]
   },
   {
    "name": "t19",
    "pairs": [
-    {
-     "fwd": "GCTCACTGTTCCTGTCGCCATAG",
-     "rev": "CCAGGCACCGTTACTCCACTTG",
-     "left": [
-      386,
-      409
-     ],
-     "right": [
-      989,
-      1011
-     ],
-     "penalty": 4.494
-    },
     {
      "fwd": "AACGGCTCACTGTTCCTGTCG",
      "rev": "ACCGTTACTCCACTTGCTACCTAGTC",
@@ -1357,46 +1344,59 @@
       979,
       1005
      ],
-     "penalty": 4.533
+     "penalty": 4.043
     },
     {
-     "fwd": "TAGGTTCGGGATGGTGTAGGGAC",
-     "rev": "AGGCACCGTTACTCCACTTGC",
+     "fwd": "AGCAAACATGAATCTTGTCCCCTCC",
+     "rev": "ACCGTTACTCCACTTGCTACCTAGTC",
      "left": [
-      347,
-      370
+      292,
+      317
      ],
      "right": [
-      988,
-      1009
+      979,
+      1005
      ],
-     "penalty": 4.539
+     "penalty": 4.106
     },
     {
-     "fwd": "TAGGTTCGGGATGGTGTAGGGAC",
-     "rev": "TTCCTCGTATAACGCCCACGC",
-     "left": [
-      347,
-      370
-     ],
-     "right": [
-      903,
-      924
-     ],
-     "penalty": 4.61
-    },
-    {
-     "fwd": "GCTCACTGTTCCTGTCGCCATAG",
+     "fwd": "AGCAAACATGAATCTTGTCCCCTCC",
      "rev": "GTCTCGTGTTCCTCGTATAACGCC",
      "left": [
-      386,
-      409
+      292,
+      317
      ],
      "right": [
       908,
       932
      ],
-     "penalty": 4.634
+     "penalty": 4.115
+    },
+    {
+     "fwd": "GCTAACGGCTCACTGTTCCTGTC",
+     "rev": "ACCGTTACTCCACTTGCTACCTAGTC",
+     "left": [
+      379,
+      402
+     ],
+     "right": [
+      979,
+      1005
+     ],
+     "penalty": 4.189
+    },
+    {
+     "fwd": "TGCTAACGGCTCACTGTTCCTG",
+     "rev": "ACCGTTACTCCACTTGCTACCTAGTC",
+     "left": [
+      378,
+      400
+     ],
+     "right": [
+      979,
+      1005
+     ],
+     "penalty": 4.199
     }
    ]
   },
@@ -1404,43 +1404,30 @@
    "name": "t20",
    "pairs": [
     {
-     "fwd": "TCGGCGGCGTTTGTTATTGC",
-     "rev": "TTTTGCCGGTACGTTAGGTTCCC",
+     "fwd": "GCAACGGGAATGCAAGTTCGG",
+     "rev": "TACGTTAGGTTCCCCTGTACACTGG",
      "left": [
-      552,
-      572
+      570,
+      591
      ],
      "right": [
-      1180,
-      1203
+      1169,
+      1194
      ],
-     "penalty": 3.599
+     "penalty": 4.975
     },
     {
-     "fwd": "GGTCGGCGGCGTTTGTTATTG",
-     "rev": "TTTTGCCGGTACGTTAGGTTCCC",
+     "fwd": "GGATGGTGTCGGATTGTACGTGATTAG",
+     "rev": "TACGTTAGGTTCCCCTGTACACTGG",
      "left": [
-      550,
-      571
+      589,
+      616
      ],
      "right": [
-      1180,
-      1203
+      1169,
+      1194
      ],
-     "penalty": 3.716
-    },
-    {
-     "fwd": "TCGGCGGCGTTTGTTATTGC",
-     "rev": "TTTGCCGGTACGTTAGGTTCCC",
-     "left": [
-      552,
-      572
-     ],
-     "right": [
-      1180,
-      1202
-     ],
-     "penalty": 3.775
+     "penalty": 4.975
     },
     {
      "fwd": "GGATGGTGTCGGATTGTACGTGATTAG",
@@ -1453,7 +1440,20 @@
       1180,
       1203
      ],
-     "penalty": 4.103
+     "penalty": 5.04
+    },
+    {
+     "fwd": "TTCGGATGGTGTCGGATTGTACG",
+     "rev": "GGCCCTACAACTGTAAACTCTATGGC",
+     "left": [
+      586,
+      609
+     ],
+     "right": [
+      1088,
+      1114
+     ],
+     "penalty": 5.082
     },
     {
      "fwd": "GGATGGTGTCGGATTGTACGTGATTAG",
@@ -1466,7 +1466,7 @@
       1180,
       1202
      ],
-     "penalty": 4.16
+     "penalty": 5.097
     }
    ]
   },
@@ -1474,56 +1474,17 @@
    "name": "t21",
    "pairs": [
     {
-     "fwd": "AATTAGAGGGTACACGATATGCTGCG",
-     "rev": "CATGCAGATACGGTTACCCTCTGTC",
+     "fwd": "CCACACTCTGATCCAACTATCATGCG",
+     "rev": "CGTTGTACATGCAGATACGGTTACCC",
      "left": [
-      254,
-      280
+      216,
+      242
      ],
      "right": [
-      673,
-      698
+      679,
+      705
      ],
-     "penalty": 6.38
-    },
-    {
-     "fwd": "AGAGGGTACACGATATGCTGCG",
-     "rev": "CATGCAGATACGGTTACCCTCTGTC",
-     "left": [
-      258,
-      280
-     ],
-     "right": [
-      673,
-      698
-     ],
-     "penalty": 6.418
-    },
-    {
-     "fwd": "TTAGAGGGTACACGATATGCTGCG",
-     "rev": "CATGCAGATACGGTTACCCTCTGTC",
-     "left": [
-      256,
-      280
-     ],
-     "right": [
-      673,
-      698
-     ],
-     "penalty": 6.491
-    },
-    {
-     "fwd": "ATTAGAGGGTACACGATATGCTGCG",
-     "rev": "CATGCAGATACGGTTACCCTCTGTC",
-     "left": [
-      255,
-      280
-     ],
-     "right": [
-      673,
-      698
-     ],
-     "penalty": 6.602
+     "penalty": 5.039
     },
     {
      "fwd": "CCACACTCTGATCCAACTATCATGCG",
@@ -1536,7 +1497,46 @@
       673,
       700
      ],
-     "penalty": 6.614
+     "penalty": 5.158
+    },
+    {
+     "fwd": "CCACACTCTGATCCAACTATCATGCG",
+     "rev": "GTTGTACATGCAGATACGGTTACCCTC",
+     "left": [
+      216,
+      242
+     ],
+     "right": [
+      677,
+      704
+     ],
+     "penalty": 5.203
+    },
+    {
+     "fwd": "CCACACTCTGATCCAACTATCATGCG",
+     "rev": "CATGCAGATACGGTTACCCTCTGTC",
+     "left": [
+      216,
+      242
+     ],
+     "right": [
+      673,
+      698
+     ],
+     "penalty": 5.463
+    },
+    {
+     "fwd": "GTCCACACTCTGATCCAACTATCATGC",
+     "rev": "ACGGTTACCCTCTGTCTAGTACTCG",
+     "left": [
+      214,
+      241
+     ],
+     "right": [
+      664,
+      689
+     ],
+     "penalty": 5.475
     }
    ]
   },
@@ -1544,69 +1544,69 @@
    "name": "t22",
    "pairs": [
     {
-     "fwd": "GATGCTCGGAGTAGAACGCCTTTAAG",
-     "rev": "GCGGCTATCAACAGTGTTAAACGC",
-     "left": [
-      174,
-      200
-     ],
-     "right": [
-      758,
-      782
-     ],
-     "penalty": 4.912
-    },
-    {
      "fwd": "TAGAACGCCTTTAAGCCCGCC",
-     "rev": "CACTGGTACTGATAGCAGGTTTCAAGC",
+     "rev": "ACGTGGATAATATGGAACTCGCAACG",
      "left": [
       185,
       206
      ],
      "right": [
-      622,
-      649
+      656,
+      682
      ],
-     "penalty": 4.957
+     "penalty": 4.917
     },
     {
-     "fwd": "CTCGGAGTAGAACGCCTTTAAGCC",
-     "rev": "CGCTAAGCAAGCGATTCCATGTG",
+     "fwd": "TAACCGTTACAGCCCTCACGTTG",
+     "rev": "CATGCTTCACTGGTACTGATAGCAGG",
      "left": [
-      178,
+      306,
+      329
+     ],
+     "right": [
+      630,
+      656
+     ],
+     "penalty": 4.947
+    },
+    {
+     "fwd": "TCGGAGTAGAACGCCTTTAAGCC",
+     "rev": "GCTAAGCAAGCGATTCCATGTGTC",
+     "left": [
+      179,
       202
      ],
      "right": [
-      790,
-      813
+      788,
+      812
      ],
-     "penalty": 4.997
+     "penalty": 4.951
     },
     {
      "fwd": "TAGAACGCCTTTAAGCCCGCC",
-     "rev": "AACTCGCAACGCATGCTTCAC",
+     "rev": "GGTTGGTACAGTGTCAGGTGCAATC",
      "left": [
       185,
       206
      ],
      "right": [
-      646,
-      667
+      714,
+      739
      ],
-     "penalty": 5.007
+     "penalty": 4.968
     },
     {
-     "fwd": "TAGAACGCCTTTAAGCCCGCC",
-     "rev": "CGCTAAGCAAGCGATTCCATGTG",
+     "fwd": "TTAACCGTTACAGCCCTCACGTTG",
+     "rev": "GCTTCACTGGTACTGATAGCAGGTTTC",
      "left": [
-      185,
-      206
+      305,
+      329
      ],
      "right": [
-      790,
-      813
+      626,
+      653
      ],
-     "penalty": 5.064
+     "penalty": 4.983
     }
    ]
   },
@@ -1614,75 +1614,101 @@
    "name": "t23",
    "pairs": [
     {
-     "fwd": "CTCTACCTAAGGCAAAACACATAATCC",
-     "rev": "CTAGTTTCGTTTCCGCGTGG",
+     "fwd": "TGCAGTTCATCATTGAGTGATGCGT",
+     "rev": "TTACTAGTTTCGTTTCCGCGTGGG",
      "left": [
-      131,
-      158
-     ],
-     "right": [
-      614,
-      634
-     ],
-     "penalty": 11.629
-    },
-    {
-     "fwd": "CTCTACCTAAGGCAAAACACATAATCC",
-     "rev": "TAGTTTCGTTTCCGCGTGGG",
-     "left": [
-      131,
-      158
+      185,
+      210
      ],
      "right": [
       613,
-      633
+      637
      ],
-     "penalty": 11.629
+     "penalty": 8.165
     },
     {
-     "fwd": "CTCTACCTAAGGCAAAACACATAATCC",
-     "rev": "AGTTTCGTTTCCGCGTGGG",
+     "fwd": "TGCAGTTCATCATTGAGTGATGCGT",
+     "rev": "TACTAGTTTCGTTTCCGCGTGGG",
      "left": [
-      131,
-      158
+      185,
+      210
      ],
      "right": [
       613,
-      632
-     ],
-     "penalty": 12.019
-    },
-    {
-     "fwd": "CTCTACCTAAGGCAAAACACATAATCC",
-     "rev": "TACTAGTTTCGTTTCCGCGTGG",
-     "left": [
-      131,
-      158
-     ],
-     "right": [
-      614,
       636
      ],
-     "penalty": 12.129
+     "penalty": 8.443
     },
     {
-     "fwd": "CTCTACCTAAGGCAAAACACATAATCC",
-     "rev": "ACTAGTTTCGTTTCCGCGTGG",
+     "fwd": "TTGCAGTTCATCATTGAGTGATGCG",
+     "rev": "TACTAGTTTCGTTTCCGCGTGGG",
      "left": [
-      131,
-      158
+      184,
+      209
      ],
      "right": [
-      614,
-      635
+      613,
+      636
      ],
-     "penalty": 12.268
+     "penalty": 8.534
+    },
+    {
+     "fwd": "ATTGCAGTTCATCATTGAGTGATGCG",
+     "rev": "TACTAGTTTCGTTTCCGCGTGGG",
+     "left": [
+      183,
+      209
+     ],
+     "right": [
+      613,
+      636
+     ],
+     "penalty": 8.633
+    },
+    {
+     "fwd": "TTGCAGTTCATCATTGAGTGATGCG",
+     "rev": "TTACTAGTTTCGTTTCCGCGTGGG",
+     "left": [
+      184,
+      209
+     ],
+     "right": [
+      613,
+      637
+     ],
+     "penalty": 8.737
     }
    ]
   },
   {
    "name": "t24",
    "pairs": [
+    {
+     "fwd": "GGCCACGCTAATTATGCTGTAATCAG",
+     "rev": "CAATCAAAAGTCTCACCCTCGAAGTTG",
+     "left": [
+      1179,
+      1205
+     ],
+     "right": [
+      1400,
+      1427
+     ],
+     "penalty": 8.101
+    },
+    {
+     "fwd": "CCAACCTGAATCAATACACGTATGGC",
+     "rev": "CAATCAAAAGTCTCACCCTCGAAGTTG",
+     "left": [
+      1156,
+      1182
+     ],
+     "right": [
+      1400,
+      1427
+     ],
+     "penalty": 8.32
+    },
     {
      "fwd": "ACCTCAATAACTATCGCGCACAGAG",
      "rev": "CAATCAAAAGTCTCACCCTCGAAGTTG",
@@ -1694,59 +1720,33 @@
       1400,
       1427
      ],
-     "penalty": 8.431
+     "penalty": 8.501
     },
     {
-     "fwd": "CACGTATGGCCACGCTAATTATGC",
+     "fwd": "GGCCAACCTGAATCAATACACGTATG",
      "rev": "CAATCAAAAGTCTCACCCTCGAAGTTG",
      "left": [
-      1172,
-      1196
+      1154,
+      1180
      ],
      "right": [
       1400,
       1427
      ],
-     "penalty": 8.531
+     "penalty": 8.6
     },
     {
-     "fwd": "CGTATGGCCACGCTAATTATGCTG",
+     "fwd": "GCCAACCTGAATCAATACACGTATGG",
      "rev": "CAATCAAAAGTCTCACCCTCGAAGTTG",
      "left": [
-      1174,
-      1198
+      1155,
+      1181
      ],
      "right": [
       1400,
       1427
      ],
-     "penalty": 8.531
-    },
-    {
-     "fwd": "AACCTCAATAACTATCGCGCACAGAG",
-     "rev": "CAATCAAAAGTCTCACCCTCGAAGTTG",
-     "left": [
-      1046,
-      1072
-     ],
-     "right": [
-      1400,
-      1427
-     ],
-     "penalty": 8.716
-    },
-    {
-     "fwd": "ACCTCAATAACTATCGCGCACAG",
-     "rev": "AATCAATCAAAAGTCTCACCCTCGAAG",
-     "left": [
-      1047,
-      1070
-     ],
-     "right": [
-      1403,
-      1430
-     ],
-     "penalty": 8.8
+     "penalty": 8.62
     }
    ]
   },
@@ -1764,7 +1764,7 @@
       930,
       953
      ],
-     "penalty": 3.592
+     "penalty": 3.947
     },
     {
      "fwd": "CATTACGCCAATCACGCCCAAC",
@@ -1777,104 +1777,52 @@
       930,
       952
      ],
-     "penalty": 3.871
-    },
-    {
-     "fwd": "GCGAGACCGTTATGGATTGGGG",
-     "rev": "ATGGCATCTTGCGTGTGGTAGAG",
-     "left": [
-      467,
-      489
-     ],
-     "right": [
-      930,
-      953
-     ],
-     "penalty": 4.179
+     "penalty": 4.141
     },
     {
      "fwd": "CATTACGCCAATCACGCCCAAC",
-     "rev": "GGCCACCATAGAGCAGGGATAAC",
+     "rev": "TCGACACTACGTATGGCATCTTGC",
      "left": [
       491,
       513
      ],
      "right": [
-      1007,
-      1030
+      941,
+      965
      ],
-     "penalty": 4.304
+     "penalty": 4.441
     },
     {
      "fwd": "CATTACGCCAATCACGCCCAAC",
-     "rev": "GTATGGCATCTTGCGTGTGGTAGAG",
+     "rev": "AGTTCGCCAAGTACATTGTTAGGTCG",
      "left": [
       491,
       513
      ],
      "right": [
-      930,
-      955
+      906,
+      932
      ],
-     "penalty": 4.31
+     "penalty": 4.519
+    },
+    {
+     "fwd": "CATTACGCCAATCACGCCCAAC",
+     "rev": "TACGTATGGCATCTTGCGTGTGG",
+     "left": [
+      491,
+      513
+     ],
+     "right": [
+      935,
+      958
+     ],
+     "penalty": 4.542
     }
    ]
   },
   {
    "name": "t26",
    "pairs": [
-    {
-     "fwd": "GTGAGACCCTACGCCGTGAATC",
-     "rev": "AAAGGGTTCGTCCGTCGTCTG",
-     "left": [
-      1232,
-      1254
-     ],
-     "right": [
-      1562,
-      1583
-     ],
-     "penalty": 3.332
-    },
-    {
-     "fwd": "GTGAGACCCTACGCCGTGAATC",
-     "rev": "GTAAAGGGTTCGTCCGTCGTCTG",
-     "left": [
-      1232,
-      1254
-     ],
-     "right": [
-      1562,
-      1585
-     ],
-     "penalty": 3.504
-    },
-    {
-     "fwd": "GAGACCCTACGCCGTGAATCC",
-     "rev": "AAAGGGTTCGTCCGTCGTCTG",
-     "left": [
-      1234,
-      1255
-     ],
-     "right": [
-      1562,
-      1583
-     ],
-     "penalty": 3.577
-    },
-    {
-     "fwd": "GTGAGACCCTACGCCGTGAATC",
-     "rev": "ACATATCGCGTAAAGGGTTCGTCC",
-     "left": [
-      1232,
-      1254
-     ],
-     "right": [
-      1570,
-      1594
-     ],
-     "penalty": 3.759
-    },
     {
      "fwd": "GTGAGACCCTACGCCGTGAATC",
      "rev": "CCGAACCTACTATGCGGTGTCTTG",
@@ -1886,7 +1834,59 @@
       1636,
       1660
      ],
-     "penalty": 3.814
+     "penalty": 4.836
+    },
+    {
+     "fwd": "GTGAGACCCTACGCCGTGAATC",
+     "rev": "GAACCTACTATGCGGTGTCTTGTTGG",
+     "left": [
+      1232,
+      1254
+     ],
+     "right": [
+      1632,
+      1658
+     ],
+     "penalty": 5.042
+    },
+    {
+     "fwd": "GTGAGACCCTACGCCGTGAATC",
+     "rev": "CCTACTATGCGGTGTCTTGTTGGAC",
+     "left": [
+      1232,
+      1254
+     ],
+     "right": [
+      1630,
+      1655
+     ],
+     "penalty": 5.064
+    },
+    {
+     "fwd": "GTGAGACCCTACGCCGTGAATC",
+     "rev": "AAAGGGTTCGTCCGTCGTCTG",
+     "left": [
+      1232,
+      1254
+     ],
+     "right": [
+      1562,
+      1583
+     ],
+     "penalty": 5.088
+    },
+    {
+     "fwd": "GACCCTACGCCGTGAATCCC",
+     "rev": "CCGAACCTACTATGCGGTGTCTTG",
+     "left": [
+      1236,
+      1256
+     ],
+     "right": [
+      1636,
+      1660
+     ],
+     "penalty": 5.127
     }
    ]
   },
@@ -1894,43 +1894,17 @@
    "name": "t27",
    "pairs": [
     {
-     "fwd": "ACGCATTATCCTGAAGACCCGC",
+     "fwd": "GTTGGACGCATTATCCTGAAGACC",
      "rev": "AGTAGACTAACCCGATAAAAGTGCAGT",
      "left": [
-      299,
-      321
+      294,
+      318
      ],
      "right": [
       897,
       924
      ],
-     "penalty": 10.174
-    },
-    {
-     "fwd": "CGCATTATCCTGAAGACCCGC",
-     "rev": "AGTAGACTAACCCGATAAAAGTGCAGT",
-     "left": [
-      300,
-      321
-     ],
-     "right": [
-      897,
-      924
-     ],
-     "penalty": 10.266
-    },
-    {
-     "fwd": "GACGCATTATCCTGAAGACCCG",
-     "rev": "AGTAGACTAACCCGATAAAAGTGCAGT",
-     "left": [
-      298,
-      320
-     ],
-     "right": [
-      897,
-      924
-     ],
-     "penalty": 10.284
+     "penalty": 10.088
     },
     {
      "fwd": "TTGGACGCATTATCCTGAAGACCC",
@@ -1943,65 +1917,52 @@
       897,
       924
      ],
-     "penalty": 10.352
+     "penalty": 10.088
     },
     {
-     "fwd": "GTTGGACGCATTATCCTGAAGACC",
+     "fwd": "TGGACGCATTATCCTGAAGACCC",
      "rev": "AGTAGACTAACCCGATAAAAGTGCAGT",
      "left": [
-      294,
+      296,
+      319
+     ],
+     "right": [
+      897,
+      924
+     ],
+     "penalty": 10.206
+    },
+    {
+     "fwd": "GGTTGGTAGTTGGACGCATTATCC",
+     "rev": "AGTAGACTAACCCGATAAAAGTGCAG",
+     "left": [
+      286,
+      310
+     ],
+     "right": [
+      898,
+      924
+     ],
+     "penalty": 10.325
+    },
+    {
+     "fwd": "AGTTGGACGCATTATCCTGAAGACC",
+     "rev": "AGTAGACTAACCCGATAAAAGTGCAGT",
+     "left": [
+      293,
       318
      ],
      "right": [
       897,
       924
      ],
-     "penalty": 10.352
+     "penalty": 10.388
     }
    ]
   },
   {
    "name": "t28",
    "pairs": [
-    {
-     "fwd": "ACTAGCAGACGCCGCATAAATTG",
-     "rev": "AAGCTATTAGTCTCCGACTTTCTTGGG",
-     "left": [
-      701,
-      724
-     ],
-     "right": [
-      1262,
-      1289
-     ],
-     "penalty": 7.838
-    },
-    {
-     "fwd": "ACTAGCAGACGCCGCATAAATTG",
-     "rev": "AGCTATTAGTCTCCGACTTTCTTGGG",
-     "left": [
-      701,
-      724
-     ],
-     "right": [
-      1262,
-      1288
-     ],
-     "penalty": 7.989
-    },
-    {
-     "fwd": "AACTAGCAGACGCCGCATAAATTG",
-     "rev": "AAGCTATTAGTCTCCGACTTTCTTGGG",
-     "left": [
-      700,
-      724
-     ],
-     "right": [
-      1262,
-      1289
-     ],
-     "penalty": 8.015
-    },
     {
      "fwd": "AGCAGACGCCGCATAAATTGC",
      "rev": "AGCTATTAGTCTCCGACTTTCTTGGGT",
@@ -2013,7 +1974,7 @@
       1261,
       1288
      ],
-     "penalty": 8.145
+     "penalty": 7.018
     },
     {
      "fwd": "TAGCAGACGCCGCATAAATTGC",
@@ -2026,7 +1987,46 @@
       1157,
       1184
      ],
-     "penalty": 8.174
+     "penalty": 7.098
+    },
+    {
+     "fwd": "ACTAGCAGACGCCGCATAAATTG",
+     "rev": "AAGCTATTAGTCTCCGACTTTCTTGGG",
+     "left": [
+      701,
+      724
+     ],
+     "right": [
+      1262,
+      1289
+     ],
+     "penalty": 7.102
+    },
+    {
+     "fwd": "TAGCAGACGCCGCATAAATTGC",
+     "rev": "AAGCTATTAGTCTCCGACTTTCTTGGG",
+     "left": [
+      703,
+      725
+     ],
+     "right": [
+      1262,
+      1289
+     ],
+     "penalty": 7.122
+    },
+    {
+     "fwd": "CTAGCAGACGCCGCATAAATTGC",
+     "rev": "AGCTATTAGTCTCCGACTTTCTTGGGT",
+     "left": [
+      702,
+      725
+     ],
+     "right": [
+      1261,
+      1288
+     ],
+     "penalty": 7.197
     }
    ]
   },
@@ -2034,30 +2034,17 @@
    "name": "t29",
    "pairs": [
     {
-     "fwd": "AATGACGGTCTGCGTATTCACTGG",
-     "rev": "CAATATGGAAGGCCGGACCCC",
+     "fwd": "TTAGACCTGTTACTAGTCCGTGCCC",
+     "rev": "GGCGTCTCACGGGTATAAGCTG",
      "left": [
-      495,
-      519
+      410,
+      435
      ],
      "right": [
-      688,
-      709
+      662,
+      684
      ],
-     "penalty": 4.072
-    },
-    {
-     "fwd": "TCGTTCGCACCTGTTAGCCTAC",
-     "rev": "CAATATGGAAGGCCGGACCCC",
-     "left": [
-      363,
-      385
-     ],
-     "right": [
-      688,
-      709
-     ],
-     "penalty": 4.487
+     "penalty": 5.361
     },
     {
      "fwd": "AATGACGGTCTGCGTATTCACTGG",
@@ -2070,52 +2057,52 @@
       662,
       684
      ],
-     "penalty": 4.537
+     "penalty": 5.388
     },
     {
-     "fwd": "ATGACGGTCTGCGTATTCACTGG",
-     "rev": "CAATATGGAAGGCCGGACCCC",
+     "fwd": "TCGGTCGTTCGCACCTGTTAG",
+     "rev": "GGCGTCTCACGGGTATAAGCTG",
      "left": [
-      496,
-      519
+      359,
+      380
      ],
      "right": [
-      688,
-      709
+      662,
+      684
      ],
-     "penalty": 4.691
+     "penalty": 5.404
     },
     {
-     "fwd": "AATGACGGTCTGCGTATTCACTGG",
-     "rev": "GGGCGTCTCACGGGTATAAGC",
+     "fwd": "TCGGTCGTTCGCACCTGTTAG",
+     "rev": "CGGGCGTCTCACGGGTATAAG",
      "left": [
-      495,
-      519
+      359,
+      380
      ],
      "right": [
-      664,
-      685
+      665,
+      686
      ],
-     "penalty": 4.713
+     "penalty": 5.462
+    },
+    {
+     "fwd": "TTAGACCTGTTACTAGTCCGTGCCC",
+     "rev": "CTCACGGGTATAAGCTGACCGC",
+     "left": [
+      410,
+      435
+     ],
+     "right": [
+      657,
+      679
+     ],
+     "penalty": 5.479
     }
    ]
   },
   {
    "name": "t30",
    "pairs": [
-    {
-     "fwd": "CAGATAGGAAGAGTTTGGTTACCGCAC",
-     "rev": "AGCACTATTTGAAGCCAACTAACGGG",
-     "left": [
-      789,
-      816
-     ],
-     "right": [
-      1335,
-      1361
-     ],
-     "penalty": 4.288
-    },
     {
      "fwd": "ATTGGGAGAATCCGTAAGCGTTCG",
      "rev": "AGCACTATTTGAAGCCAACTAACGGG",
@@ -2127,20 +2114,7 @@
       1335,
       1361
      ],
-     "penalty": 4.303
-    },
-    {
-     "fwd": "AGCGTTCGTTTTAATGGCGCAG",
-     "rev": "AGCACTATTTGAAGCCAACTAACGGG",
-     "left": [
-      847,
-      869
-     ],
-     "right": [
-      1335,
-      1361
-     ],
-     "penalty": 4.353
+     "penalty": 4.373
     },
     {
      "fwd": "TTGGGAGAATCCGTAAGCGTTCG",
@@ -2153,20 +2127,46 @@
       1335,
       1361
      ],
-     "penalty": 4.463
+     "penalty": 4.533
     },
     {
      "fwd": "ATTGGGAGAATCCGTAAGCGTTCG",
-     "rev": "GCTCCCTGAGGAAGACACTGC",
+     "rev": "AGCGCTATGACCATAATTGCCCC",
      "left": [
       831,
       855
      ],
      "right": [
-      1231,
-      1252
+      1257,
+      1280
      ],
-     "penalty": 4.591
+     "penalty": 4.762
+    },
+    {
+     "fwd": "CCGTAAGCGTTCGTTTTAATGGCG",
+     "rev": "AGCACTATTTGAAGCCAACTAACGGG",
+     "left": [
+      842,
+      866
+     ],
+     "right": [
+      1335,
+      1361
+     ],
+     "penalty": 4.917
+    },
+    {
+     "fwd": "TTGGGAGAATCCGTAAGCGTTCG",
+     "rev": "AGCGCTATGACCATAATTGCCCC",
+     "left": [
+      832,
+      855
+     ],
+     "right": [
+      1257,
+      1280
+     ],
+     "penalty": 4.922
     }
    ]
   },
@@ -2174,69 +2174,69 @@
    "name": "t31",
    "pairs": [
     {
-     "fwd": "TACCGTATCGCTCAACAATCCGC",
-     "rev": "CCTTCCCACGGTGACCAATAACTC",
-     "left": [
-      467,
-      490
-     ],
-     "right": [
-      725,
-      749
-     ],
-     "penalty": 2.988
-    },
-    {
      "fwd": "AAGAACCGCATTACCGTATCGCTC",
-     "rev": "CCTTCCCACGGTGACCAATAACTC",
+     "rev": "TTGTGATTCATCATGGATCGGCTGG",
      "left": [
       456,
       480
      ],
      "right": [
-      725,
-      749
+      795,
+      820
      ],
-     "penalty": 3.174
+     "penalty": 3.858
     },
     {
      "fwd": "AGAACCGCATTACCGTATCGCTC",
-     "rev": "CCTTCCCACGGTGACCAATAACTC",
+     "rev": "TGTGATTCATCATGGATCGGCTGG",
      "left": [
       457,
       480
      ],
      "right": [
-      725,
-      749
+      795,
+      819
      ],
-     "penalty": 3.217
+     "penalty": 3.863
     },
     {
-     "fwd": "AGAACCGCATTACCGTATCGCTC",
-     "rev": "ATCAGGTTCTTCGTCCACAGCC",
+     "fwd": "AAGAACCGCATTACCGTATCGCTC",
+     "rev": "TGTGATTCATCATGGATCGGCTGG",
      "left": [
-      457,
+      456,
       480
      ],
      "right": [
-      747,
-      769
+      795,
+      819
      ],
-     "penalty": 3.311
+     "penalty": 3.951
     },
     {
-     "fwd": "TTACCGTATCGCTCAACAATCCGC",
-     "rev": "CCTTCCCACGGTGACCAATAACTC",
+     "fwd": "TACCGTATCGCTCAACAATCCGC",
+     "rev": "TTGTGATTCATCATGGATCGGCTGG",
      "left": [
-      466,
+      467,
       490
      ],
      "right": [
-      725,
-      749
+      795,
+      820
      ],
-     "penalty": 3.338
+     "penalty": 3.972
+    },
+    {
+     "fwd": "CGCATTACCGTATCGCTCAACAATC",
+     "rev": "AGGTTCTTCGTCCACAGCCTTC",
+     "left": [
+      462,
+      487
+     ],
+     "right": [
+      744,
+      766
+     ],
+     "penalty": 3.997
     }
    ]
   },
@@ -2244,30 +2244,17 @@
    "name": "t32",
    "pairs": [
     {
-     "fwd": "ACCTCCGACACACACACACAC",
-     "rev": "GGAAGGTCTTGCTCATCGGGG",
+     "fwd": "CACACACACACACACACACACC",
+     "rev": "TGGGACCACCAGAAGTAATTGCG",
      "left": [
-      387,
-      408
+      399,
+      421
      ],
      "right": [
-      1025,
-      1046
+      986,
+      1009
      ],
-     "penalty": 3.185
-    },
-    {
-     "fwd": "ACCTCCGACACACACACACAC",
-     "rev": "GGGAAGGTCTTGCTCATCGGG",
-     "left": [
-      387,
-      408
-     ],
-     "right": [
-      1026,
-      1047
-     ],
-     "penalty": 3.185
+     "penalty": 3.396
     },
     {
      "fwd": "ACACACACACACACACCTCCC",
@@ -2280,7 +2267,7 @@
       940,
       962
      ],
-     "penalty": 3.186
+     "penalty": 3.423
     },
     {
      "fwd": "ACACACACACACACACCTCCC",
@@ -2293,20 +2280,33 @@
       940,
       965
      ],
-     "penalty": 3.231
+     "penalty": 3.469
     },
     {
-     "fwd": "CACACACACACACACACACACC",
-     "rev": "ACCGAGCGACGCCTAATGAG",
+     "fwd": "ACACACACACACACACCTCCC",
+     "rev": "TTAAGGAGATACGTGGTGCTGTGC",
      "left": [
-      399,
-      421
+      404,
+      425
      ],
      "right": [
-      892,
-      912
+      940,
+      964
      ],
-     "penalty": 3.235
+     "penalty": 3.572
+    },
+    {
+     "fwd": "ACACACACACACACACACCTCC",
+     "rev": "TGGGACCACCAGAAGTAATTGCG",
+     "left": [
+      402,
+      424
+     ],
+     "right": [
+      986,
+      1009
+     ],
+     "penalty": 3.636
     }
    ]
   },
@@ -2314,69 +2314,69 @@
    "name": "t33",
    "pairs": [
     {
-     "fwd": "CCTTAGCTCCGTGACGTGTCC",
-     "rev": "CCAGCCTTCATCCCTACTTCGTG",
-     "left": [
-      285,
-      306
-     ],
-     "right": [
-      788,
-      811
-     ],
-     "penalty": 4.282
-    },
-    {
-     "fwd": "TGTCCGGGCCGTATGGTTTG",
+     "fwd": "CACTTAAGCACGTCCCTTAGCTCC",
      "rev": "TTGGTGTATCGACTGTGCGAGTTC",
      "left": [
-      301,
-      321
+      271,
+      295
      ],
      "right": [
       848,
       872
      ],
-     "penalty": 4.569
+     "penalty": 4.203
     },
     {
-     "fwd": "CCTTAGCTCCGTGACGTGTCC",
-     "rev": "CAGCCTTCATCCCTACTTCGTGG",
+     "fwd": "GGTTTGCGGGTATGTCAAAACCG",
+     "rev": "ACTAGTGGAGCCCTATTCAGTGGTC",
      "left": [
-      285,
-      306
+      315,
+      338
      ],
      "right": [
-      787,
-      810
+      877,
+      902
      ],
-     "penalty": 4.582
+     "penalty": 4.473
     },
     {
-     "fwd": "TAGTCCACGCCACACCTCAAC",
-     "rev": "CCCAGCCTTCATCCCTACTTCG",
-     "left": [
-      378,
-      399
-     ],
-     "right": [
-      790,
-      812
-     ],
-     "penalty": 4.622
-    },
-    {
-     "fwd": "CCTTAGCTCCGTGACGTGTCC",
+     "fwd": "GGTTTGCGGGTATGTCAAAACCG",
      "rev": "TTGGTGTATCGACTGTGCGAGTTC",
      "left": [
-      285,
-      306
+      315,
+      338
      ],
      "right": [
       848,
       872
      ],
-     "penalty": 4.634
+     "penalty": 4.473
+    },
+    {
+     "fwd": "CTTAAGCACGTCCCTTAGCTCCG",
+     "rev": "TTGGTGTATCGACTGTGCGAGTTC",
+     "left": [
+      273,
+      296
+     ],
+     "right": [
+      848,
+      872
+     ],
+     "penalty": 4.581
+    },
+    {
+     "fwd": "CTTAAGCACGTCCCTTAGCTCCG",
+     "rev": "ACTAGTGGAGCCCTATTCAGTGGTC",
+     "left": [
+      273,
+      296
+     ],
+     "right": [
+      877,
+      902
+     ],
+     "penalty": 4.583
     }
    ]
   },
@@ -2384,69 +2384,69 @@
    "name": "t34",
    "pairs": [
     {
-     "fwd": "TGGTTCGTAGGCACGCAGTC",
-     "rev": "GGCAAGCCTCACTGGTCTCTC",
+     "fwd": "GGCTAACGACCTTAAGTACGTGGTTC",
+     "rev": "AAGTTCTGTGCAGTCTCGTCCG",
      "left": [
-      387,
-      407
+      367,
+      393
      ],
      "right": [
-      815,
-      836
+      946,
+      968
      ],
-     "penalty": 4.229
+     "penalty": 4.796
+    },
+    {
+     "fwd": "GGCTAACGACCTTAAGTACGTGGTTC",
+     "rev": "CTTCCTCGAAGTTCTGTGCAGTCTC",
+     "left": [
+      367,
+      393
+     ],
+     "right": [
+      951,
+      976
+     ],
+     "penalty": 4.959
+    },
+    {
+     "fwd": "GGCTAACGACCTTAAGTACGTGGTTC",
+     "rev": "GCAAGCCTCACTGGTCTCTCC",
+     "left": [
+      367,
+      393
+     ],
+     "right": [
+      814,
+      835
+     ],
+     "penalty": 5.051
     },
     {
      "fwd": "CACGACCATCACGGACTCAGG",
-     "rev": "GGCAAGCCTCACTGGTCTCTC",
+     "rev": "TGTCACAGCGAACTCAGGCTC",
      "left": [
       260,
       281
      ],
      "right": [
-      815,
-      836
+      893,
+      914
      ],
-     "penalty": 4.394
+     "penalty": 5.074
     },
     {
      "fwd": "CCACGACCATCACGGACTCAG",
-     "rev": "GGCAAGCCTCACTGGTCTCTC",
+     "rev": "TGTCACAGCGAACTCAGGCTC",
      "left": [
       259,
       280
      ],
      "right": [
-      815,
-      836
+      893,
+      914
      ],
-     "penalty": 4.394
-    },
-    {
-     "fwd": "TGGTTCGTAGGCACGCAGTC",
-     "rev": "GGGCAAGCCTCACTGGTCTC",
-     "left": [
-      387,
-      407
-     ],
-     "right": [
-      817,
-      837
-     ],
-     "penalty": 4.426
-    },
-    {
-     "fwd": "CCCACGACCATCACGGACTC",
-     "rev": "GGCAAGCCTCACTGGTCTCTC",
-     "left": [
-      258,
-      278
-     ],
-     "right": [
-      815,
-      836
-     ],
-     "penalty": 4.504
+     "penalty": 5.074
     }
    ]
   },
@@ -2454,30 +2454,30 @@
    "name": "t35",
    "pairs": [
     {
-     "fwd": "TCTGCTTGCGGTGCTCATAACTC",
-     "rev": "TCCTGCTAAACCTAATGTCTCCCTCG",
+     "fwd": "TGTCAAAGAACAAGTCTCAGCGTCC",
+     "rev": "ACCCCACAACCCTTTAATGGCAG",
      "left": [
-      300,
-      323
+      273,
+      298
      ],
      "right": [
-      866,
-      892
+      733,
+      756
      ],
-     "penalty": 2.861
+     "penalty": 3.83
     },
     {
-     "fwd": "TCTGCTTGCGGTGCTCATAACTC",
-     "rev": "CTGTGTGTGTGTGTGTGTGCG",
+     "fwd": "TGTCAAAGAACAAGTCTCAGCGTCC",
+     "rev": "TGACCCCACAACCCTTTAATGGC",
      "left": [
-      300,
-      323
+      273,
+      298
      ],
      "right": [
-      827,
-      848
+      735,
+      758
      ],
-     "penalty": 3.075
+     "penalty": 3.83
     },
     {
      "fwd": "TGTCAAAGAACAAGTCTCAGCGTCC",
@@ -2490,33 +2490,33 @@
       827,
       848
      ],
-     "penalty": 3.409
+     "penalty": 3.855
     },
     {
-     "fwd": "TTGTGAACGGTAGAAGGCGTGG",
-     "rev": "CTGTGTGTGTGTGTGTGTGCG",
-     "left": [
-      180,
-      202
-     ],
-     "right": [
-      827,
-      848
-     ],
-     "penalty": 3.465
-    },
-    {
-     "fwd": "TTGTGAACGGTAGAAGGCGTGG",
+     "fwd": "TGTCAAAGAACAAGTCTCAGCGTCC",
      "rev": "TCCTGCTAAACCTAATGTCTCCCTCG",
      "left": [
-      180,
-      202
+      273,
+      298
      ],
      "right": [
       866,
       892
      ],
-     "penalty": 3.483
+     "penalty": 3.975
+    },
+    {
+     "fwd": "TCTGCTTGCGGTGCTCATAACTC",
+     "rev": "TCCTGCTAAACCTAATGTCTCCCTCG",
+     "left": [
+      300,
+      323
+     ],
+     "right": [
+      866,
+      892
+     ],
+     "penalty": 4.03
     }
    ]
   },
@@ -2524,30 +2524,17 @@
    "name": "t36",
    "pairs": [
     {
-     "fwd": "GACTAATCACTGAGCAACCCCGAAC",
-     "rev": "CCGAGGAATGGGAGCGAAGAC",
+     "fwd": "GTTCGGAGACTAATCACTGAGCAACC",
+     "rev": "GTTTTGCCCCTGTCCGTCTAGTATG",
      "left": [
-      458,
-      483
+      451,
+      477
      ],
      "right": [
-      886,
-      907
+      766,
+      791
      ],
-     "penalty": 3.123
-    },
-    {
-     "fwd": "ACTAATCACTGAGCAACCCCGAAC",
-     "rev": "CCGAGGAATGGGAGCGAAGAC",
-     "left": [
-      459,
-      483
-     ],
-     "right": [
-      886,
-      907
-     ],
-     "penalty": 3.195
+     "penalty": 3.669
     },
     {
      "fwd": "ACTAATCACTGAGCAACCCCGAAC",
@@ -2560,33 +2547,46 @@
       830,
       854
      ],
-     "penalty": 3.463
+     "penalty": 3.948
     },
     {
-     "fwd": "ACTAATCACTGAGCAACCCCGAAC",
-     "rev": "AAAAGGGACCAAGAGCCGAGG",
-     "left": [
-      459,
-      483
-     ],
-     "right": [
-      901,
-      922
-     ],
-     "penalty": 3.557
-    },
-    {
-     "fwd": "GTTCGGAGACTAATCACTGAGCAACC",
+     "fwd": "CTAATCACTGAGCAACCCCGAACTC",
      "rev": "GTTTTGCCCCTGTCCGTCTAGTATG",
      "left": [
-      451,
-      477
+      460,
+      485
      ],
      "right": [
       766,
       791
      ],
-     "penalty": 3.62
+     "penalty": 4.03
+    },
+    {
+     "fwd": "ATGTCAGATACACGAGGCTTGGC",
+     "rev": "CGACGAATAAGGGACTCTTGGTGG",
+     "left": [
+      526,
+      549
+     ],
+     "right": [
+      830,
+      854
+     ],
+     "penalty": 4.059
+    },
+    {
+     "fwd": "GACTAATCACTGAGCAACCCCGAAC",
+     "rev": "CCGAGGAATGGGAGCGAAGAC",
+     "left": [
+      458,
+      483
+     ],
+     "right": [
+      886,
+      907
+     ],
+     "penalty": 4.069
     }
    ]
   },
@@ -2594,17 +2594,17 @@
    "name": "t37",
    "pairs": [
     {
-     "fwd": "CAGTGCCCAAATGCCCCAAAG",
-     "rev": "TAGAGTGACTGTTGCTGCCGC",
+     "fwd": "GCCCAAATGCCCCAAAGCTTAC",
+     "rev": "TAACCTCCGCCCTAGAGTGACTG",
      "left": [
-      241,
-      262
+      245,
+      267
      ],
      "right": [
-      805,
-      826
+      815,
+      838
      ],
-     "penalty": 3.603
+     "penalty": 4.362
     },
     {
      "fwd": "CAGTGCCCAAATGCCCCAAAG",
@@ -2617,46 +2617,46 @@
       807,
       829
      ],
-     "penalty": 3.774
+     "penalty": 4.743
     },
     {
      "fwd": "CAGTGCCCAAATGCCCCAAAG",
-     "rev": "TGCTTACGCTCGTGACGGTAG",
+     "rev": "TAACCTCCGCCCTAGAGTGACTG",
      "left": [
       241,
       262
      ],
      "right": [
-      850,
-      871
+      815,
+      838
      ],
-     "penalty": 4.319
+     "penalty": 4.744
     },
     {
      "fwd": "CAGTGCCCAAATGCCCCAAAG",
-     "rev": "CGCCCTAGAGTGACTGTTGCTG",
+     "rev": "TGTAACCTCCGCCCTAGAGTGAC",
      "left": [
       241,
       262
      ],
      "right": [
-      809,
-      831
+      817,
+      840
      ],
-     "penalty": 4.523
+     "penalty": 4.748
     },
     {
-     "fwd": "CAGTGCCCAAATGCCCCAAAG",
-     "rev": "CCTAGAGTGACTGTTGCTGCCG",
+     "fwd": "GCCCAAATGCCCCAAAGCTTAC",
+     "rev": "CCCTAGAGTGACTGTTGCTGCC",
      "left": [
-      241,
-      262
+      245,
+      267
      ],
      "right": [
-      806,
-      828
+      807,
+      829
      ],
-     "penalty": 4.523
+     "penalty": 4.961
     }
    ]
   },
@@ -2674,7 +2674,7 @@
       1442,
       1468
      ],
-     "penalty": 2.221
+     "penalty": 2.667
     },
     {
      "fwd": "GCGACAAATGACAGTTACGGCAAG",
@@ -2687,20 +2687,7 @@
       1435,
       1461
      ],
-     "penalty": 2.821
-    },
-    {
-     "fwd": "AGTGGCGACAAATGACAGTTACGG",
-     "rev": "CGGGTTACAGAGATGAGTTTCAGCAG",
-     "left": [
-      1236,
-      1260
-     ],
-     "right": [
-      1442,
-      1468
-     ],
-     "penalty": 2.993
+     "penalty": 3.267
     },
     {
      "fwd": "GCGACAAATGACAGTTACGGCAAG",
@@ -2713,7 +2700,7 @@
       1533,
       1559
      ],
-     "penalty": 3.021
+     "penalty": 3.467
     },
     {
      "fwd": "GCGACAAATGACAGTTACGGCAAG",
@@ -2726,7 +2713,20 @@
       1434,
       1458
      ],
-     "penalty": 3.216
+     "penalty": 3.663
+    },
+    {
+     "fwd": "GCGACAAATGACAGTTACGGCAAG",
+     "rev": "GGGTTACAGAGATGAGTTTCAGCAGAG",
+     "left": [
+      1240,
+      1264
+     ],
+     "right": [
+      1440,
+      1467
+     ],
+     "penalty": 3.877
     }
    ]
   },
@@ -2734,30 +2734,17 @@
    "name": "t39",
    "pairs": [
     {
-     "fwd": "TCGAATCGCATGAGCACTCCC",
-     "rev": "CATTGACTGCCATAGGACGAGGAAAC",
+     "fwd": "CCCTTTTCGAATCGCATGAGCAC",
+     "rev": "CTGCCATAGGACGAGGAAACAGAC",
      "left": [
-      227,
-      248
+      221,
+      244
      ],
      "right": [
-      559,
-      585
+      555,
+      579
      ],
-     "penalty": 3.45
-    },
-    {
-     "fwd": "AATCGCATGAGCACTCCCGTAAG",
-     "rev": "CATTGACTGCCATAGGACGAGGAAAC",
-     "left": [
-      230,
-      253
-     ],
-     "right": [
-      559,
-      585
-     ],
-     "penalty": 3.453
+     "penalty": 4.06
     },
     {
      "fwd": "CCGTAAGTGTCCTCAACAACAGGTTC",
@@ -2770,33 +2757,46 @@
       559,
       585
      ],
-     "penalty": 3.643
+     "penalty": 4.088
     },
     {
-     "fwd": "AGTGTCCTCAACAACAGGTTCGC",
+     "fwd": "GGACGCTAGGTGACAAATCTCAGG",
+     "rev": "CTGCCATAGGACGAGGAAACAGAC",
+     "left": [
+      97,
+      121
+     ],
+     "right": [
+      555,
+      579
+     ],
+     "penalty": 4.144
+    },
+    {
+     "fwd": "TCGAATCGCATGAGCACTCCC",
      "rev": "CATTGACTGCCATAGGACGAGGAAAC",
      "left": [
-      251,
-      274
+      227,
+      248
      ],
      "right": [
       559,
       585
      ],
-     "penalty": 3.784
+     "penalty": 4.162
     },
     {
      "fwd": "AATCGCATGAGCACTCCCGTAAG",
-     "rev": "GCCATAGGACGAGGAAACAGACC",
+     "rev": "CATTGACTGCCATAGGACGAGGAAAC",
      "left": [
       230,
       253
      ],
      "right": [
-      554,
-      577
+      559,
+      585
      ],
-     "penalty": 3.885
+     "penalty": 4.166
     }
    ]
   }

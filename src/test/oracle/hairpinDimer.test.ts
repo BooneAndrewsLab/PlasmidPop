@@ -1,22 +1,20 @@
-import {
-  longestHairpinStem,
-  maxSelfComplementarity,
-  threePrimeComplementarity,
-} from '@/core/primers/thermo';
+import { dimerEnergy, hairpinEnergy, selfDimerEnergy } from '@/core/primers/structure';
+import { threePrimeComplementarity } from '@/core/primers/thermo';
 import { DEFAULT_PRIMER_CRITERIA as C } from '@/core/primers/criteria';
 
 import oracle from './hairpinDimer.json';
 
 /**
  * Hairpin and dimer checks against primer3-py (scripts/oracle/hairpindimer.py,
- * item 121, issue #336). Our checks are length heuristics at the designer's
- * defaults; Primer3's calc_hairpin, calc_homodimer and calc_heterodimer are
- * thermodynamic. A primer or pair is "flagged" by us when it breaks a
- * default criterion and by Primer3 when its dG is at or below a cutoff. The
- * gate is loose: the share of primers flagged the same way must stay above a
- * floor set just under what was measured. Where the two disagree the
- * deviation is recorded with its issue and capped at the measured count, so
- * it cannot grow unnoticed. Nothing here says which of the two is right.
+ * items 121 and 123, issues #336 and #339-#344). Our checks are the
+ * nearest-neighbour ΔG of `structure.ts` at the designer's cutoffs
+ * (`hairpinDg`, `dimerDg`); Primer3's calc_hairpin, calc_homodimer and
+ * calc_heterodimer give the reference ΔG. A primer or pair is "flagged" by
+ * both when its dG is at or below the cutoff. The gate is the share flagged
+ * the same way, held just under what was measured, with the disagreements
+ * capped at the measured counts so they cannot grow unnoticed. The loop
+ * terms of `structure.ts` were fitted to data of this kind, so this set is
+ * not independent of them: item 123 reports two held-out sets as well.
  */
 
 interface Row {
@@ -58,19 +56,28 @@ function matrix(cases: readonly Case[]) {
 }
 
 const hairpin = rows.map((r) => ({
-  ours: longestHairpinStem(r.seq) > C.maxHairpin,
+  ours: hairpinEnergy(r.seq) <= C.hairpinDg,
   primer3: r.hairpin.dg <= HAIRPIN_DG,
 }));
 const homodimer = rows.map((r) => ({
-  ours:
-    maxSelfComplementarity(r.seq) > C.maxSelfComplementarity ||
-    threePrimeComplementarity(r.seq, r.seq) > C.maxThreePrime,
+  ours: selfDimerEnergy(r.seq) <= C.dimerDg,
   primer3: r.homodimer.dg <= DIMER_DG,
 }));
 const heterodimer = pairs.map((p) => ({
+  ours: dimerEnergy(p.a, p.b) <= C.dimerDg,
+  primer3: p.dg <= DIMER_DG,
+}));
+// The designer also refuses a 3' match over `maxThreePrime`, by design a
+// separate rule (item 123). With it, "ours" flags more than Primer3's dG does.
+const homodimerWith3 = rows.map((r, i) => ({
+  ours: (homodimer[i]?.ours ?? false) || threePrimeComplementarity(r.seq, r.seq) > C.maxThreePrime,
+  primer3: r.homodimer.dg <= DIMER_DG,
+}));
+const heterodimerWith3 = pairs.map((p, i) => ({
   ours:
+    (heterodimer[i]?.ours ?? false) ||
     Math.max(threePrimeComplementarity(p.a, p.b), threePrimeComplementarity(p.b, p.a)) >
-    C.maxThreePrime,
+      C.maxThreePrime,
   primer3: p.dg <= DIMER_DG,
 }));
 
@@ -82,25 +89,40 @@ describe('hairpin and dimer checks against primer3-py', () => {
 
   it('hairpin: flagged the same way as Primer3 (dG <= -2 kcal/mol)', () => {
     const m = matrix(hairpin);
-    expect(m.agreement).toBeGreaterThanOrEqual(0.8); // measured 82.0 %
-    // Known deviations: #339 (ours only), #340 (Primer3 only).
-    expect(m.oursOnly).toBeLessThanOrEqual(35);
-    expect(m.primer3Only).toBeLessThanOrEqual(19);
+    expect(m.agreement).toBeGreaterThanOrEqual(0.94); // measured 94.7 %
+    // Remaining disagreements: ours only, Primer3 only.
+    expect(m.oursOnly).toBeLessThanOrEqual(4);
+    expect(m.primer3Only).toBeLessThanOrEqual(12);
   });
 
   it('self-dimer: flagged the same way as Primer3 (dG <= -6 kcal/mol)', () => {
     const m = matrix(homodimer);
-    expect(m.agreement).toBeGreaterThanOrEqual(0.78); // measured 79.7 %
-    // Known deviations: #341 (ours only), #342 (Primer3 only).
-    expect(m.oursOnly).toBeLessThanOrEqual(27);
-    expect(m.primer3Only).toBeLessThanOrEqual(34);
+    expect(m.agreement).toBeGreaterThanOrEqual(0.95); // measured 95.7 %
+    expect(m.oursOnly).toBeLessThanOrEqual(4);
+    expect(m.primer3Only).toBeLessThanOrEqual(9);
   });
 
   it('primer pair: flagged the same way as Primer3 (dG <= -6 kcal/mol)', () => {
     const m = matrix(heterodimer);
-    expect(m.agreement).toBeGreaterThanOrEqual(0.68); // measured 70.9 %
-    // Known deviations: #343 (ours only), #344 (Primer3 only).
-    expect(m.oursOnly).toBeLessThanOrEqual(35);
-    expect(m.primer3Only).toBeLessThanOrEqual(23);
+    expect(m.agreement).toBeGreaterThanOrEqual(0.95); // measured 95.5 %
+    expect(m.oursOnly).toBeLessThanOrEqual(6);
+    expect(m.primer3Only).toBeLessThanOrEqual(3);
+  });
+
+  // The 3' rule is a separate check by design: a few bases at a 3' end are
+  // extended whatever their dG, and Primer3's dG does not say so. What it
+  // flags beyond the dG is "ours only" here, and is expected.
+  it('self-dimer with the 3′ rule: the extra flags are the rule, not the dG', () => {
+    const m = matrix(homodimerWith3);
+    expect(m.agreement).toBeGreaterThanOrEqual(0.89); // measured 90.3 %
+    expect(m.oursOnly).toBeLessThanOrEqual(23);
+    expect(m.primer3Only).toBeLessThanOrEqual(6);
+  });
+
+  it('primer pair with the 3′ rule: the extra flags are the rule, not the dG', () => {
+    const m = matrix(heterodimerWith3);
+    expect(m.agreement).toBeGreaterThanOrEqual(0.78); // measured 79.4 %
+    expect(m.oursOnly).toBeLessThanOrEqual(39);
+    expect(m.primer3Only).toBeLessThanOrEqual(2);
   });
 });
