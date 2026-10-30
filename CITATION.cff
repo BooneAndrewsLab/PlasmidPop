@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: 'If you use PlasmidPop in your research, please cite it as below.'
 type: software
 title: 'PlasmidPop'
-abstract: 'A browser-based DNA sequence editor and plasmid viewer. Opens, edits and saves GenBank, FASTA and SnapGene files; shows linear and circular maps; finds restriction sites, ORFs and primers; runs pairwise alignments. All computation is client-side.'
+abstract: 'A browser-based DNA sequence editor and plasmid viewer. Opens, edits and saves GenBank, FASTA and SnapGene files; shows linear and circular maps; finds restriction sites, ORFs and primers; runs pairwise and multiple sequence alignments and assembles Sanger reads into a contig. All computation is client-side.'
 authors:
   - family-names: Usaj
     given-names: Matej
