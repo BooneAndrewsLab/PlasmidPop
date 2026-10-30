@@ -2,6 +2,10 @@
 # Runs the Biopython oracle in a pinned virtualenv (.venv-oracle, gitignored).
 #   scripts/oracle/run.sh generate   rewrite src/test/oracle/*.json (Biopython, primer3-py,
 #                                    pydna and seguid answers; needs Python 3.10+)
+#   scripts/oracle/run.sh primer-pairs
+#                                    rewrite src/test/oracle/primerPairs.json: Primer3's design
+#                                    for fixed templates and its verdict on the pairs our designer
+#                                    selects (exported from the TypeScript designer first)
 #   scripts/oracle/run.sh writer     have Biopython read every file our GenBank writer produces
 #   scripts/oracle/run.sh snapgene-writer
 #                                    have Biopython read every SnapGene file our writer produces
@@ -34,6 +38,12 @@ case "${1:-}" in
   generate)
     "$venv/bin/python" "$root/scripts/oracle/generate.py"
     ;;
+  primer-pairs)
+    rm -f "$root/src/test/oracle/primerPairsOurs.json"
+    (cd "$root/scripts/oracle" && "$venv/bin/python" primerpairs.py)
+    (cd "$root" && ORACLE_EXPORT_PAIRS=1 npx vitest run src/test/oracle/primerPairs.test.ts)
+    (cd "$root/scripts/oracle" && "$venv/bin/python" primerpairs.py)
+    ;;
   writer)
     out="$(mktemp -d)"
     trap 'rm -rf "$out"' EXIT
@@ -65,7 +75,7 @@ case "${1:-}" in
     "$venv/bin/python" "$root/scripts/oracle/ncbi_region.py"
     ;;
   *)
-    echo "usage: $0 generate|writer|snapgene-writer|snapgene-local [dir]|abif-local [dir...]|ncbi-region" >&2
+    echo "usage: $0 generate|primer-pairs|writer|snapgene-writer|snapgene-local [dir]|abif-local [dir...]|ncbi-region" >&2
     exit 2
     ;;
 esac

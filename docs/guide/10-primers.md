@@ -424,6 +424,19 @@ mismatched dimers pass that Primer3 finds stable. Treat a flag as a prompt
 to look, and check a primer you care about in Primer3 or your supplier's
 tool. The data and the full report are in design note 121.
 
+**How far to trust the pairs the designer picks.** On 40 fixed test
+templates, 200 of the designer's top pairs were handed to Primer3 with the
+same settings (primers of 18–27 nt, Tm 55–65 °C, GC 35–65 %). Every pair
+meets the Tm and GC limits by Primer3's numbers, and our Tm matches
+Primer3's to 0.005 °C. Primer3 accepts 88 % of the pairs outright; the other
+12 % each hold a primer whose hairpin it calls too stable, one the length
+rule above lets through. The designer's best pair is rarely the one
+Primer3 ranks first: the two choose the same sites in none of the 40
+templates and overlap in 7, though at least one of the five pairs overlaps
+one of Primer3's five in 18. Read the list as acceptable candidates, not as
+a ranking Primer3 would reproduce. The data and the full report are in
+design note 122.
+
 **Where to look** is measured from the selection's edges: the forward primer
 lies wholly between the two distances before the start, the reverse primer
 between the two after the end. A negative number reaches _into_ the

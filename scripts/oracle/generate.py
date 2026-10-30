@@ -55,6 +55,7 @@ import fastq
 import gateway
 import hairpindimer
 import pcr
+import primerpairs
 import thermo
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -504,6 +505,7 @@ def main():
     write('thermo.json', thermo.generate())
     write('hairpinDimer.json', hairpindimer.generate())
     write('pcr.json', pcr.generate())
+    write('primerPairs.json', primerpairs.generate())
     write('assembly.json', assembly.generate())
     write('digest.json', digest.generate())
     write('gateway.json', gateway.generate())
