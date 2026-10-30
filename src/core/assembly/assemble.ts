@@ -96,6 +96,28 @@ export interface Disagreement {
   }[];
 }
 
+/**
+ * Something about a contig the reads cannot settle (#347). A repeat longer
+ * than the reads cannot be resolved from them, so the layout may be wrong
+ * where it says so.
+ */
+export interface ContigWarning {
+  /**
+   * `ambiguous-join`: `read` fits the contig at more than one place (it lies
+   * in a sequence the contig has twice) and was put at the best.
+   * `possible-repeat-collapse`: the stretch is covered far deeper than the
+   * rest, as when reads from two copies of a repeat are laid on one, so the
+   * contig may lack what lies between the copies.
+   */
+  readonly kind: 'ambiguous-join' | 'possible-repeat-collapse';
+  /** The stretch of the consensus concerned, 0-based half-open. */
+  readonly start: number;
+  readonly end: number;
+  /** Index of the read, for `ambiguous-join`. */
+  readonly read?: number;
+  readonly message: string;
+}
+
 export interface Contig {
   /** Upper-case, with IUPAC codes where confident reads disagree. */
   readonly consensus: string;
@@ -106,6 +128,8 @@ export interface Contig {
   readonly disagreements: readonly Disagreement[];
   /** Reads covering each consensus position. */
   readonly depth: readonly number[];
+  /** Where the layout may be wrong because of a repeat; empty when nothing suggests it. */
+  readonly warnings: readonly ContigWarning[];
 }
 
 export interface Assembly {
@@ -146,6 +170,8 @@ interface Row {
 
 class Layout {
   rows: Row[] = [];
+  /** Reads placed while another place fitted them as well (indexes in the reads given). */
+  ambiguous: number[] = [];
 
   get columns(): number {
     return this.rows[0]?.cells.length ?? 0;
@@ -341,6 +367,210 @@ class Layout {
   }
 }
 
+interface Candidate {
+  readonly alignment: StrandedAlignment['alignment'];
+  readonly o: Oriented;
+  /** Whether it is an overlap at an end of the consensus, or the read lying inside it. */
+  readonly valid: boolean;
+}
+
+/**
+ * With the default gap costs a local alignment runs on past a repeat through
+ * unrelated sequence (a gap costs half a base to extend), which hides a short
+ * true overlap beside it, so places are searched with a gap that costs as
+ * much as a mismatch to extend.
+ */
+const PLACEMENT_ALIGN: AlignmentOptions = { mode: 'local', fast: true, gapExtend: -4 };
+
+/** Bases of an end of the consensus and of an end of a read that are aligned to look for an overlap. */
+const CORNER = 300;
+
+type PairAlignment = StrandedAlignment['alignment'];
+
+/**
+ * The stretch of an alignment that holds identity `minIdentity` or better
+ * with the most bases matched (a column that is not a match costs what the
+ * identity allows per match), or null when no column matches.
+ */
+function core(a: PairAlignment, minIdentity: number): PairAlignment | null {
+  const miss = minIdentity / (1 - minIdentity);
+  let best = 0;
+  let from = 0;
+  let to = 0;
+  let run = 0;
+  let begin = 0;
+  for (let c = 0; c < a.columns; c++) {
+    const mark = a.matchLine.charAt(c);
+    run += mark === '|' ? 1 : -miss;
+    if (run <= 0) {
+      run = 0;
+      begin = c + 1;
+    } else if (run > best) {
+      best = run;
+      from = begin;
+      to = c + 1;
+    }
+  }
+  if (to <= from) return null;
+  const line = a.matchLine.slice(from, to);
+  const sa = a.alignedA.slice(from, to);
+  const sb = a.alignedB.slice(from, to);
+  const used = (text: string): number => text.length - (text.match(/-/g)?.length ?? 0);
+  const startA = a.startA + used(a.alignedA.slice(0, from));
+  const startB = a.startB + used(a.alignedB.slice(0, from));
+  const identities = line.match(/\|/g)?.length ?? 0;
+  const ambiguous = line.match(/:/g)?.length ?? 0;
+  const gaps = (sa.match(/-/g)?.length ?? 0) + (sb.match(/-/g)?.length ?? 0);
+  return {
+    ...a,
+    alignedA: sa,
+    alignedB: sb,
+    matchLine: line,
+    startA,
+    endA: startA + used(sa),
+    startB,
+    endB: startB + used(sb),
+    identities,
+    ambiguous,
+    gaps,
+    columns: line.length,
+    identity: identities / line.length,
+    score: 5 * identities - 4 * (line.length - identities - gaps),
+  };
+}
+
+/**
+ * The best place a stretch `[from, to)` of the read, as given, fits the part
+ * `[lo, hi)` of the consensus: its local alignment with the overlap and
+ * identity asked for, in the coordinates of the whole consensus and of the
+ * whole read turned the way the alignment found it, or null.
+ */
+async function placeStretch(
+  cons: string,
+  [lo, hi]: readonly [number, number],
+  read: Prepared,
+  [from, to]: readonly [number, number],
+  align: AssemblyAlign,
+  minOverlap: number,
+  minIdentity: number,
+): Promise<(Candidate & { readonly used: readonly [number, number] }) | null> {
+  const piece = lo === 0 && hi === cons.length ? cons : cons.slice(lo, hi);
+  const best = await align(
+    piece,
+    from === 0 && to === read.bases.length ? read.bases : read.bases.slice(from, to),
+    PLACEMENT_ALIGN,
+  );
+  // A local alignment can run on past a repeat into unrelated sequence while
+  // that still adds score; what is left of it above the identity asked is
+  // the overlap.
+  const a =
+    best.alignment.identity < minIdentity ? core(best.alignment, minIdentity) : best.alignment;
+  if (a === null || a.endA - a.startA < minOverlap || a.identity < minIdentity) return null;
+  const n = read.bases.length;
+  // Bases of the whole read, turned as aligned, before the stretch.
+  const shift = best.strand === 'forward' ? from : n - to;
+  const alignment = {
+    ...a,
+    startA: a.startA + lo,
+    endA: a.endA + lo,
+    startB: a.startB + shift,
+    endB: a.endB + shift,
+  };
+  const o = orient(read, best.strand);
+  return {
+    alignment,
+    o,
+    valid:
+      planEnd(alignment.startA, alignment.startB).ok &&
+      planEnd(cons.length - alignment.endA, o.bases.length - alignment.endB).ok,
+    used:
+      best.strand === 'forward'
+        ? [alignment.startB, alignment.endB]
+        : [n - alignment.endB, n - alignment.startB],
+  };
+}
+
+/**
+ * Where the read joins the consensus (#348), best first, or nothing: its best
+ * local alignment to all of it and, when that is an alignment but no overlap, the best
+ * alignment of each end of the read to each end of the consensus, `CORNER`
+ * bases of each. A read that spans a repeat aligns best to a copy of the
+ * repeat inside the consensus, which is no overlap, and the shorter overlap
+ * that joins it would never be tried; an end of the consensus is short enough
+ * that it is not shadowed by a copy deeper in. A candidate is `valid` when it
+ * reaches an end of the consensus or the read lies inside it.
+ */
+async function findPlacements(
+  cons: string,
+  read: Prepared,
+  align: AssemblyAlign,
+  minOverlap: number,
+  minIdentity: number,
+): Promise<Candidate[]> {
+  const n = read.bases.length;
+  const whole = await placeStretch(
+    cons,
+    [0, cons.length],
+    read,
+    [0, n],
+    align,
+    minOverlap,
+    minIdentity,
+  );
+  if (whole === null) return [];
+  if (whole.valid) return [whole];
+  const out: Candidate[] = [whole];
+  const ends: [number, number][] = [
+    [0, Math.min(CORNER, cons.length)],
+    [Math.max(0, cons.length - CORNER), cons.length],
+  ];
+  const reads: [number, number][] = [
+    [0, Math.min(CORNER, n)],
+    [Math.max(0, n - CORNER), n],
+  ];
+  for (const span of ends) {
+    for (const stretch of reads) {
+      const found = await placeStretch(cons, span, read, stretch, align, minOverlap, minIdentity);
+      if (found !== null) out.push(found);
+    }
+  }
+  return out;
+}
+
+/**
+ * Whether the read, placed at `chosen`, fits the consensus as well somewhere
+ * else (#347): the whole read aligned to what is left of the consensus either
+ * side of the chosen place, valid there too. A read inside a sequence the
+ * consensus has twice does.
+ */
+async function fitsElsewhere(
+  cons: string,
+  read: Prepared,
+  chosen: Candidate,
+  align: AssemblyAlign,
+  minOverlap: number,
+  minIdentity: number,
+): Promise<boolean> {
+  const { startA, endA } = chosen.alignment;
+  for (const span of [
+    [0, startA],
+    [endA, cons.length],
+  ] as const) {
+    if (span[1] - span[0] < minOverlap) continue;
+    const other = await placeStretch(
+      cons,
+      span,
+      read,
+      [0, read.bases.length],
+      align,
+      minOverlap,
+      minIdentity,
+    );
+    if (other?.valid === true) return true;
+  }
+  return false;
+}
+
 interface Hit {
   readonly alignment: StrandedAlignment['alignment'];
   readonly consLength: number;
@@ -431,31 +661,71 @@ export async function assembleReads(
     const layout = Layout.seed(seed, orient(seed, 'forward'));
     done++;
     onProgress?.(done / total);
-    let placed = true;
-    while (placed && pool.length > 0) {
-      placed = false;
-      let cons = layout.consensus();
+    // The read with the best overlap joins first, not the first that fits: a
+    // repeat gives a short read an overlap as long as a true one, but a long
+    // true overlap elsewhere wins, and by the time the read is reached the
+    // contig has grown to where it belongs (#347).
+    // A read that fits nothing in the contig stays out of the rounds until a
+    // read that joins overlaps it (a rough test, but one that saves aligning
+    // every unrelated read to a growing consensus once per join).
+    const unrelated = new Set<Prepared>();
+    while (pool.length > 0) {
+      const cons = layout.consensus();
+      const picks: { read: Prepared; at: number; pick: Candidate }[] = [];
       for (let i = 0; i < pool.length; i++) {
         signal?.throwIfAborted();
         const read = pool[i];
-        if (read === undefined) continue;
-        const best = await align(cons.text, read.bases, { mode: 'local', fast: true });
-        const al = best.alignment;
-        const o = orient(read, best.strand);
-        const ok =
-          al.endA - al.startA >= minOverlap &&
-          al.identity >= minIdentity &&
-          planEnd(al.startA, al.startB).ok &&
-          planEnd(cons.text.length - al.endA, o.bases.length - al.endB).ok;
-        if (!ok) continue;
-        layout.add(read, o, { alignment: al, consLength: cons.text.length }, cons);
-        pool.splice(i, 1);
-        i--;
-        placed = true;
-        done++;
-        onProgress?.(done / total);
-        cons = layout.consensus();
+        if (read === undefined || unrelated.has(read)) continue;
+        const found = await findPlacements(cons.text, read, align, minOverlap, minIdentity);
+        if (found.length === 0) unrelated.add(read);
+        const pick = found
+          .filter((c) => c.valid)
+          .reduce<Candidate | undefined>(
+            (best, c) =>
+              best === undefined || c.alignment.score > best.alignment.score ? c : best,
+            undefined,
+          );
+        if (pick !== undefined) picks.push({ read, at: i, pick });
       }
+      if (picks.length === 0) break;
+      picks.sort((p, q) => q.pick.alignment.score - p.pick.alignment.score || p.at - q.at);
+      // One that fits at a second place waits for one that does not; if
+      // every one does, the best goes in, with a warning.
+      let chosen = picks[0];
+      let ambiguous = true;
+      for (const p of picks) {
+        const elsewhere = await fitsElsewhere(
+          cons.text,
+          p.read,
+          p.pick,
+          align,
+          minOverlap,
+          minIdentity,
+        );
+        if (!elsewhere) {
+          chosen = p;
+          ambiguous = false;
+          break;
+        }
+      }
+      if (chosen === undefined) break;
+      layout.add(
+        chosen.read,
+        chosen.pick.o,
+        { alignment: chosen.pick.alignment, consLength: cons.text.length },
+        cons,
+      );
+      if (ambiguous) layout.ambiguous.push(chosen.read.index);
+      pool.splice(chosen.at, 1);
+      for (const read of [...unrelated]) {
+        const hit = (await align(read.bases, chosen.read.bases, PLACEMENT_ALIGN)).alignment;
+        const a = hit.identity < minIdentity ? core(hit, minIdentity) : hit;
+        if (a !== null && a.endA - a.startA >= minOverlap && a.identity >= minIdentity) {
+          unrelated.delete(read);
+        }
+      }
+      done++;
+      onProgress?.(done / total);
     }
     layouts.push(layout);
   }
@@ -515,7 +785,76 @@ function finish(layout: Layout, confidentFrom: number): Contig {
     };
   });
   reads.sort((a, b) => a.start - b.start || a.index - b.index);
-  return { consensus, qualities, reads, disagreements, depth };
+  const warnings: ContigWarning[] = [];
+  for (const index of layout.ambiguous) {
+    const r = reads.find((x) => x.index === index);
+    if (r === undefined) continue;
+    warnings.push({
+      kind: 'ambiguous-join',
+      start: r.start,
+      end: r.end,
+      read: index,
+      message: `${r.name} fits this contig at more than one place, so it may belong to another copy of a repeat.`,
+    });
+  }
+  warnings.push(...collapseWarnings(depth, reads.length));
+  return { consensus, qualities, reads, disagreements, depth, warnings };
+}
+
+/** Reads at least a stretch of this depth is made of before it is told from an ordinary pile-up. */
+const COLLAPSE_DEPTH = 3;
+/** Bases a stretch of that depth must run for. */
+const COLLAPSE_WIDTH = 100;
+/** The deepest point in the stretch must reach this. */
+const COLLAPSE_PEAK = 4;
+/** How many times the contig's median depth the stretch must average. */
+const COLLAPSE_RATIO = 3;
+
+/**
+ * Where a contig is covered far deeper than it is anywhere else (#347):
+ * reads from two copies of a repeat laid on one copy pile up there, and the
+ * contig lacks what lay between the copies. Reads cannot tell the copies
+ * apart when none of them reaches out of the repeat on both sides, so this
+ * only says it may be so. It looks for a stretch of `COLLAPSE_WIDTH` bases
+ * or more at depth `COLLAPSE_DEPTH` or more, reaching `COLLAPSE_PEAK`, whose
+ * mean depth is `COLLAPSE_RATIO` times the contig's median, in a contig of
+ * four reads or more. Four or more reads piled on one region on purpose look
+ * the same.
+ */
+function collapseWarnings(depth: readonly number[], readCount: number): ContigWarning[] {
+  if (readCount < 4 || depth.length === 0) return [];
+  const median = [...depth].sort((p, q) => p - q)[depth.length >> 1] ?? 0;
+  const out: ContigWarning[] = [];
+  let from = -1;
+  const close = (to: number): void => {
+    if (from < 0) return;
+    const width = to - from;
+    if (width >= COLLAPSE_WIDTH) {
+      let sum = 0;
+      let peak = 0;
+      for (let i = from; i < to; i++) {
+        sum += depth[i] ?? 0;
+        peak = Math.max(peak, depth[i] ?? 0);
+      }
+      const mean = sum / width;
+      if (peak >= COLLAPSE_PEAK && mean >= COLLAPSE_RATIO * Math.max(1, median)) {
+        out.push({
+          kind: 'possible-repeat-collapse',
+          start: from,
+          end: to,
+          message: `${from + 1}–${to} is covered ${Math.round(mean * 10) / 10}× deep where the contig is ${median}× deep: reads from two copies of a repeat may have been laid on one, and the sequence between the copies may be missing.`,
+        });
+      }
+    }
+    from = -1;
+  };
+  depth.forEach((d, i) => {
+    if (d >= COLLAPSE_DEPTH) {
+      if (from < 0) from = i;
+    } else close(i);
+  });
+  close(depth.length);
+  return out;
 }
 
 const IUPAC_SETS: Readonly<Record<string, string>> = {

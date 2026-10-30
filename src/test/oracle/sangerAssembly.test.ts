@@ -37,9 +37,11 @@ import {
  * orientation) as built. Calibration (reported Phred against observed error)
  * is only reported, never gated: run with ORACLE_REPORT=1 to print the report.
  * A failure class that is a known deviation names its issue and may fail
- * in at most the replicates measured (#347 repeat misjoin, #348 a repeat
- * copy shadowing the true overlap, #349 thin noisy overlaps, #350 a lost
- * homopolymer base); no assembly code was changed for any of them.
+ * in at most the replicates measured (#349 thin noisy overlaps; #347 reads
+ * inside one copy of a repeat, which no read can place, and which must come
+ * with a warning). #348 and the dense-repeat part of #347 were fixed in item
+ * 123's second part. #350 (a lost homopolymer base) no longer shows in these
+ * seeds after that change but is not fixed.
  */
 
 const GATE_IDENTITY = 0.995;
@@ -65,6 +67,12 @@ interface Scenario {
   readonly contigs: number;
   /** A failure class recorded as a deviation: it may fail in at most `reps` replicates. */
   readonly known?: { readonly issue: number; readonly reps: number };
+  /**
+   * The data cannot settle the layout (reads inside a repeat copy join the
+   * copies into one): the contig may collapse, and must then say so (#347).
+   * Every other scenario must collapse nowhere and warn of nothing.
+   */
+  readonly ambiguous?: true;
 }
 
 interface Call {
@@ -149,6 +157,8 @@ interface Outcome {
   readonly length: number;
   /** Truth bases missing from the consensus in one stretch. */
   readonly longestMissing: number;
+  /** Warnings on the main contig, by kind. */
+  readonly warnings: readonly string[];
   readonly orderOk: boolean | null;
   readonly orientationOk: boolean | null;
   readonly calls: readonly Call[];
@@ -192,6 +202,7 @@ async function run(sc: Scenario, rep: number): Promise<Outcome> {
     errors: s?.errorsCovered ?? 0,
     longestMissing: s?.longestMissing ?? 0,
     length: s?.length ?? 0,
+    warnings: main?.warnings.map((w) => w.kind) ?? [],
     orderOk: sc.checkOrder && lay !== null ? lay.order : null,
     orientationOk: sc.checkOrder && lay !== null ? lay.orientation : null,
     calls: s?.calls ?? [],
@@ -269,7 +280,7 @@ const scenarios: Scenario[] = [
     truth: CONSTRUCT,
     contigs: 1,
     checkOrder: true,
-    known: { issue: 349, reps: 2 },
+    known: { issue: 349, reps: 1 },
     reads: (_, r) => tiled(CONSTRUCT, step(0, 1600, 400), NOISY, r, true),
   },
   {
@@ -300,7 +311,6 @@ const scenarios: Scenario[] = [
     truth: HOMO,
     contigs: 1,
     checkOrder: true,
-    known: { issue: 350, reps: 1 },
     reads: (_, r) => tiled(HOMO, step(0, 1300, 300), NOISY, r, true, [650, 850], 0.35),
   },
   {
@@ -308,7 +318,6 @@ const scenarios: Scenario[] = [
     truth: REPEATED,
     contigs: 1,
     checkOrder: true,
-    known: { issue: 347, reps: 1 },
     reads: (_, r) => tiled(REPEATED, step(0, 1400, 200), CLEAN, r, false, [750, 850]),
   },
   {
@@ -316,7 +325,6 @@ const scenarios: Scenario[] = [
     truth: REPEATED,
     contigs: 1,
     checkOrder: true,
-    known: { issue: 348, reps: 8 },
     // Each read reaches from unique sequence through a whole repeat copy into unique sequence.
     reads: (_, r) => tiled(REPEATED, [100, 800, 1000, 1600], CLEAN, r, false, [750, 850]),
   },
@@ -326,6 +334,7 @@ const scenarios: Scenario[] = [
     contigs: 1,
     checkOrder: false,
     known: { issue: 347, reps: 8 },
+    ambiguous: true,
     reads: (_, r) => [
       ...tiled(REPEATED, [0], CLEAN, r, false, [700, 760]),
       ...tiled(REPEATED, [1250], CLEAN, r, false, [500, 560]).map((s) => ({ ...s, name: 'tail' })),
@@ -355,6 +364,13 @@ describe('Sanger assembly against a known construct (simulated reads)', () => {
         );
         // A known deviation may fail in at most the replicates recorded; anything else may not fail.
         expect(bad.length).toBeLessThanOrEqual(sc.known?.reps ?? 0);
+        // A collapse is never silent (#347), and a layout the data settle has no warning.
+        const collapsed = rows.filter((o) => o.longestMissing >= COLLAPSE);
+        expect(collapsed.filter((o) => !o.warnings.includes('possible-repeat-collapse'))).toEqual(
+          [],
+        );
+        if (sc.ambiguous === undefined) expect(rows.flatMap((o) => o.warnings)).toEqual([]);
+        else expect(collapsed.length).toBeGreaterThan(0);
       },
       TIMEOUT,
     );
@@ -379,6 +395,7 @@ function report() {
       minIdentity: Math.min(...ids),
       errors: rows.map((o) => o.errors),
       longestMissing: rows.map((o) => o.longestMissing),
+      warnings: rows.map((o) => o.warnings.length),
       orderBad: rows.filter((o) => o.orderOk === false).length,
       orientationBad: rows.filter((o) => o.orientationOk === false).length,
     };
@@ -461,6 +478,7 @@ describe.skipIf(!haveLocal)('Sanger assembly with qualities of real local AB1 re
           o.orientationOk === false,
       );
       expect(bad.length).toBeLessThanOrEqual(realScenario.known?.reps ?? 0);
+      expect(rows.flatMap((o) => o.warnings)).toEqual([]);
     },
     TIMEOUT,
   );

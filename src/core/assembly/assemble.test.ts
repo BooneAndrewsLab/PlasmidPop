@@ -511,14 +511,16 @@ describe('assembleReads', () => {
           { align: spy, onProgress: (f) => progress.push(f) },
         );
         expect(out.contigs.map((c) => c.reads.length)).toEqual([3, 1]);
-        expect(calls.map((c) => c.b)).toEqual([r1, r2, x, x]);
-        expect(calls.map((c) => c.a)).toEqual([
-          s,
-          GENOME.slice(0, 520),
-          GENOME.slice(0, 520),
-          GENOME.slice(0, 520),
-        ]);
-        for (const c of calls) expect(c.options).toEqual({ mode: 'local', fast: true });
+        // Every read is tried against the seed, the unrelated one too; that one
+        // is not tried again, only against each read that joins.
+        const tried = new Set(calls.map((c) => c.b));
+        for (const read of [r1, r2, x]) expect(tried.has(read)).toBe(true);
+        expect(calls[0]?.a).toBe(s);
+        // A fast local alignment, with a gap that costs as much to extend as a
+        // mismatch so that it cannot run on through a repeat (#348).
+        for (const c of calls) {
+          expect(c.options).toEqual({ mode: 'local', fast: true, gapExtend: -4 });
+        }
         expect(progress).toEqual([0.25, 0.5, 0.75, 1]);
       },
       TIMEOUT,
@@ -1026,4 +1028,143 @@ describe('placing a read by an alignment', () => {
       ).toHaveLength(1);
     });
   });
+});
+
+/**
+ * Repeats (#347, #348): a 200 bp direct repeat R between unique stretches,
+ * U1 R U2 R U3, with reads cut from it as exact copies.
+ */
+describe('repeats', () => {
+  const U = [randomBases(300, 71), randomBases(200, 72), randomBases(300, 73)] as const;
+  const R = randomBases(200, 74);
+  const T = U[0] + R + U[1] + R + U[2]; // 1200 bp; the copies at 300-500 and 700-900
+  const cut = (name: string, from: number, to: number): AssemblyRead => ({
+    name,
+    sequence: T.slice(from, to),
+    qualities: flat(to - from, 40),
+  });
+  const layoutOf = (out: Awaited<ReturnType<typeof assembleReads>>) =>
+    out.contigs.map((c) => `${c.reads.length}:${c.consensus.length}`);
+
+  it(
+    'joins a read that spans a repeat to its neighbour though a copy fits it better (#348)',
+    async () => {
+      // r0 holds U1 and the whole first copy; the best local alignment of its R is the
+      // copy inside the rest, which is no overlap. The true overlap is the 40 bp of
+      // the first copy's end that r1 starts with.
+      const reads = [cut('r0', 0, 540), cut('r1', 460, 960), cut('r2', 800, 1200)];
+      const out = await assembleReads(reads, { align });
+      expect(layoutOf(out)).toEqual(['3:1200']);
+      expect(out.contigs[0]?.consensus).toBe(T);
+      expect(out.contigs[0]?.warnings).toEqual([]);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'lays a read that starts in the second copy where it belongs, not on the first (#347)',
+    async () => {
+      // r3 starts in the second copy and runs into U3; r0, the seed, ends inside the
+      // first copy, so r3 fits its end as a join through the repeat, which would
+      // lose U2 and a copy. r1 and r2, from unique sequence out of the first
+      // copy, overlap more and come first, and r3 then finds its own place.
+      const reads = [
+        cut('r0', 0, 480),
+        cut('r1', 250, 700),
+        cut('r2', 450, 880),
+        cut('r3', 700, 1160),
+        cut('r4', 850, 1200),
+      ];
+      const out = await assembleReads(reads, { align });
+      expect(layoutOf(out)).toEqual(['5:1200']);
+      expect(out.contigs[0]?.consensus).toBe(T);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'warns when a read fits at two places in the contig, and puts it at one',
+    async () => {
+      // The whole contig is known (U1 R U2 R U3); a read from inside a copy is at either.
+      const reads = [cut('whole', 0, 1200), cut('inside', 350, 450)];
+      const out = await assembleReads(reads, { align });
+      expect(layoutOf(out)).toEqual(['2:1200']);
+      const warning = out.contigs[0]?.warnings[0];
+      expect(warning?.kind).toBe('ambiguous-join');
+      expect(warning?.read).toBe(1);
+      expect(warning?.message).toMatch(/inside/);
+      expect(warning?.start).toBeGreaterThanOrEqual(300);
+      expect(warning?.end).toBeLessThanOrEqual(900);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'prefers a read that fits one place to one that fits two',
+    async () => {
+      const reads = [cut('whole', 0, 1200), cut('inside', 350, 450), cut('unique', 100, 250)];
+      const out = await assembleReads(reads, { align });
+      expect(out.contigs[0]?.warnings.map((w) => w.read)).toEqual([1]);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'warns of a possible collapse when reads from two copies pile onto one',
+    async () => {
+      // Reads inside either copy cannot say which: with U1+copy and copy+U3 they join
+      // through the repeat, giving U1 R U3, and the pile of four over R is the sign.
+      const reads = [
+        cut('left', 0, 440),
+        cut('right', 760, 1200),
+        cut('in1', 320, 480),
+        cut('in2', 720, 880),
+        cut('in3', 330, 470),
+        cut('in4', 730, 870),
+      ];
+      const out = await assembleReads(reads, { align });
+      expect(out.contigs).toHaveLength(1);
+      const w = out.contigs[0]?.warnings.filter((x) => x.kind === 'possible-repeat-collapse') ?? [];
+      expect(w).toHaveLength(1);
+      expect(w[0]?.message).toMatch(/two copies of a repeat/);
+      // The stretch is the repeat in the (collapsed) consensus: 300-500 of it.
+      expect(w[0]?.start).toBeGreaterThanOrEqual(280);
+      expect(w[0]?.end).toBeLessThanOrEqual(520);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'does not warn of a collapse over uneven but ordinary coverage',
+    async () => {
+      // Three reads piled over 150 bp, and an even tiling: neither is a repeat.
+      const g = randomBases(1500, 91);
+      const r = (name: string, a: number, b: number): AssemblyRead => ({
+        name,
+        sequence: g.slice(a, b),
+        qualities: flat(b - a, 40),
+      });
+      const piled = await assembleReads(
+        [r('a', 0, 600), r('b', 450, 1000), r('c', 460, 600), r('d', 900, 1500)],
+        { align },
+      );
+      expect(piled.contigs).toHaveLength(1);
+      expect(piled.contigs[0]?.warnings).toEqual([]);
+      const tiled = await assembleReads(
+        [0, 250, 500, 750, 1000].map((s) => r(`t${s}`, s, s + 500)),
+        { align },
+      );
+      expect(tiled.contigs[0]?.warnings).toEqual([]);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'has no warnings for reads that overlap in unique sequence only',
+    async () => {
+      const out = await assembleReads([read('a', 0, 300), read('b', 200, 500)], { align });
+      expect(out.contigs[0]?.warnings).toEqual([]);
+    },
+    TIMEOUT,
+  );
 });
