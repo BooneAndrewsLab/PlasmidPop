@@ -572,3 +572,10 @@ understate it). A threshold fails only when coverage is on, so CI's Test step
 and `npm run check` run `test:coverage`; `npm test` stays without coverage for
 quick local runs. The floors are global, not per file. Raise them when coverage
 rises; lowering one needs a reason in the commit.
+
+The principal scientific computations join the `mutate` list (#333):
+`src/core/alignment/pairwise.ts`, `banded.ts`, `quality.ts`, `msa.ts` and
+`src/core/primers/thermo.ts`. They have no baseline in the incremental file,
+so the first release run with them mutates them in full, which takes longer
+than an incremental run. `strands.ts` (picks the strand by k-mer counts and
+delegates the scoring) was left out as orchestration, not scoring.

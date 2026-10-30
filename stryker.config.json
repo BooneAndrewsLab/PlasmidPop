@@ -87,7 +87,12 @@
     "src/core/analysis/cutSiteSet.ts",
     "src/workers/analysisProtocol.ts",
     "src/workers/saveProtocol.ts",
-    "src/app/state/inputQuiet.ts"
+    "src/app/state/inputQuiet.ts",
+    "src/core/alignment/pairwise.ts",
+    "src/core/alignment/banded.ts",
+    "src/core/alignment/quality.ts",
+    "src/core/alignment/msa.ts",
+    "src/core/primers/thermo.ts"
   ],
   "reporters": ["html", "json", "clear-text", "progress"],
   "htmlReporter": {
