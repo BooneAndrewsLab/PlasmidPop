@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import 'fake-indexeddb/auto';
 
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { persistence } from '../state/persistence';
@@ -18,9 +18,15 @@ function rebase(hauII: string): File {
 async function importFile(f: File): Promise<void> {
   const input = document.querySelector('input[type="file"]');
   if (input === null) throw new Error('no file input');
-  await act(async () => {
+  act(() => {
     fireEvent.change(input, { target: { files: [f] } });
-    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  // The import settles in a promise chain (read, parse, IndexedDB write) whose
+  // last state update re-enables the button. waitFor lifts the act environment
+  // while it polls, so nothing lands after an act scope has closed, and it does
+  // not depend on how many ticks the chain takes.
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Choose file…' })).toBeTruthy();
   });
 }
 
