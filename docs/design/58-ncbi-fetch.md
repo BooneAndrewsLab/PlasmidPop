@@ -215,6 +215,31 @@ complement(7687000..7689000)`: NCBI's own record of what was fetched,
   cuts partial; the ACCESSION line is written in NCBI's own `REGION:` form.
   A record that does not place the gene (no `gene` feature with its
   symbol) falls back to the chromosome.
+- **Or the chromosome, when asked (#326).** A RefSeqGene record carries
+  only the gene's reference transcript (ACACA's NG_023295.2 has
+  NM_198834.3 alone); the other variants are annotated only on the
+  chromosome (NC_000017.11), so the transcript picker (#315, item 119) had
+  nothing to choose between. The Gene pane has **Use the chromosome record
+  (all transcripts)**, off by default so the curated record stays the
+  default. It is an explicit parameter of `fetchGeneFromNcbi` (`record:
+'refseqgene' | 'chromosome'`, default the former), not a module flag;
+  the dialog remembers the last choice in a module-level variable like its
+  mode and organism, set as the box is ticked. Asked for the chromosome,
+  the `elink` for a RefSeqGene record is not made at all, so less is sent,
+  never more; the window is the one `geneWindow` already gives the
+  fallback path, so flanks, strand, the 10 Mb check, NCBI's own partial
+  marks and the cut-short warning are exactly the no-RefSeqGene case. The
+  cost the hint names: the document is ranged after the chromosome, and
+  the RefSeqGene's curated gene coordinates are not used. For a gene with
+  no RefSeqGene record the box changes nothing; it is shown anyway rather
+  than hidden, since whether a record exists is only learnt at Open, and
+  its hint says what it overrides.
+- **Repeating a fetch.** `NcbiSource` for a gene carries the `region` the
+  window was cut from, `NG_…` or `NC_…`, so the record is named by its own
+  accession and no flag is needed in it: a chromosome window is a plain
+  region, the same one the Accession tab's range fetches. Nothing stores
+  the source (hosts read it when the fetch lands; documents keep the
+  ACCESSION line), so documents stored by 1.19 are unaffected.
 - **Ambiguity**: the suggestion list is the pick list. Open with nothing
   picked takes the one exact symbol match or the only hit; otherwise the
   list stays open and the error says how many match and to pick one.

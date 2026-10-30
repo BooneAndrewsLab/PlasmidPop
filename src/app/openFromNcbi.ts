@@ -120,6 +120,12 @@ export type NcbiSource =
   | { readonly kind: 'region'; readonly region: Region }
   | { readonly kind: 'gene'; readonly gene: GeneHit; readonly region: Region };
 
+/**
+ * Which record a gene is cut from: its RefSeqGene record where NCBI has one
+ * (else the chromosome), or the chromosome always (#326).
+ */
+export type GeneRecord = 'refseqgene' | 'chromosome';
+
 /** What a fetch gave: the documents to open, with the warnings to show on the last. */
 export interface NcbiFetched {
   readonly documents: readonly SeqDocument[];
@@ -322,11 +328,19 @@ function geneFeature(doc: SeqDocument, symbol: string): Feature | null {
  * document is named after the gene and its ACCESSION line carries the
  * record and the range (`NC_000017 REGION: complement(7667421..7688490)`),
  * so the fetch can be repeated.
+ *
+ * `record` 'chromosome' (#326) skips the RefSeqGene record, and the request
+ * that looks for one, and fetches the window from the chromosome: a
+ * RefSeqGene record carries only the gene's reference transcript, the
+ * chromosome every annotated variant, for the transcript picker to choose
+ * between. Either way `source.region` names the record the window was cut
+ * from, so the same fetch can be made again from it.
  */
 export async function fetchGeneFromNcbi(
   gene: GeneHit,
   flanks: Flanks,
   reverseComplement: boolean,
+  record: GeneRecord = 'refseqgene',
   options: FetchRecordsOptions = {},
 ): Promise<NcbiFetched> {
   const { location } = gene;
@@ -339,7 +353,8 @@ export async function fetchGeneFromNcbi(
   // Checked before anything is sent, with the chromosome's window; a
   // RefSeqGene record is smaller than its chromosome's stretch anyway.
   const chromosomal = geneWindow(location, flanks, reverseComplement);
-  const refSeqGene = await refSeqGeneUid(gene.id, options).catch(counted);
+  const refSeqGene =
+    record === 'chromosome' ? null : await refSeqGeneUid(gene.id, options).catch(counted);
   if (refSeqGene !== null) {
     const fromRefSeqGene = await fetchFromRefSeqGene(
       gene,

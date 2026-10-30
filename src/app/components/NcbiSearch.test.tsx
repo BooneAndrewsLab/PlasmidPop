@@ -33,13 +33,14 @@ vi.mock('../openFromNcbi', () => ({
     gene: GeneHit,
     flanks: unknown,
     rc: boolean,
+    record: string,
     opts: { signal: AbortSignal },
   ) => {
     fetchState.signal = opts.signal;
     return Promise.resolve({
       documents: [],
       warnings: [],
-      source: { kind: 'gene', gene, flanks, rc },
+      source: { kind: 'gene', gene, flanks, rc, record },
     });
   },
   fetchRegionFromNcbi: () => Promise.reject(new Error('not in these tests')),
@@ -286,6 +287,7 @@ describe('NcbiSearch, gene lookup (#299)', () => {
         gene: { symbol: 'TP53BP1' },
         flanks: { upstream: 1000, downstream: 250 },
         rc: true,
+        record: 'refseqgene',
       },
     });
   });
@@ -347,5 +349,41 @@ describe('NcbiSearch, gene lookup (#299)', () => {
     expect(onCancel).not.toHaveBeenCalled();
     fireEvent.keyDown(document.body, { key: 'Escape' });
     expect(onCancel).toHaveBeenCalledOnce();
+  });
+
+  it('offers the chromosome record, off by default, says what it changes, and remembers it across openings (#326)', async () => {
+    lookups.answer = () => ({ hits: [hit('ACACA')], count: 1 });
+    const first = render(<NcbiSearch onOpened={noop} onCancel={noop} />);
+    geneMode();
+    const option = screen.getByRole('checkbox', {
+      name: 'Use the chromosome record (all transcripts)',
+    });
+    expect(option).not.toBeChecked();
+    expect(option).toHaveAccessibleDescription(
+      /A gene with a RefSeqGene record is otherwise cut from it, which carries only its reference transcript\./,
+    );
+    fireEvent.click(option);
+    expect(option).toBeChecked();
+    // The strand option is its own, untouched.
+    expect(screen.getByRole('checkbox', { name: /Read a reverse-strand gene/ })).toBeChecked();
+    first.unmount();
+
+    render(<NcbiSearch onOpened={noop} onCancel={noop} />);
+    const gene = geneMode();
+    const again = screen.getByRole('checkbox', {
+      name: 'Use the chromosome record (all transcripts)',
+    });
+    expect(again).toBeChecked();
+    fireEvent.change(gene, { target: { value: 'ACACA' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(fetchState.fetched[0]).toMatchObject({
+      source: { gene: { symbol: 'ACACA' }, rc: true, record: 'chromosome' },
+    });
+    // Back to the default for the tests that follow.
+    fireEvent.click(again);
   });
 });

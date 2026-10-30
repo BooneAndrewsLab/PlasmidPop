@@ -238,6 +238,18 @@ alias instead of its accession.
 A flank cut short at a record end, and a feature cut by the window's edge,
 are handled as for a stretch of a record above.
 
+A RefSeqGene record carries only the gene's reference transcript. To pick
+between a gene's transcript variants, tick **Use the chromosome record (all
+transcripts)** (off by default; the dialog remembers it) before **Open**:
+the window, with the same flanks and on the same strand, is then cut from
+the chromosome, which annotates every variant, and then
+[**Format ▸ Transcripts**](05-features.md#showing-one-transcript) chooses
+one. The file name and ACCESSION line then give the chromosome and its range
+(`NC_000017 REGION: complement(…)`) rather than the `NG_` record's, so
+typing that range in **Accession** fetches the same stretch again. For a
+gene without a RefSeqGene record the option changes nothing: it comes from
+the chromosome either way.
+
 **What is sent.** This is the one feature that reaches a server other than
 the one the app is loaded from. By accession, nothing goes until you press
 **Open**, and then what goes to NCBI (`eutils.ncbi.nlm.nih.gov`) is the
@@ -246,7 +258,8 @@ accession numbers you typed, with a range if you gave one, and the name
 the gene search, what is in the **Gene** box and the organism go to NCBI as
 you type, to list the matching genes — the dialog says so before you type
 the first character — and **Open** then asks NCBI for the gene's record
-and its sequence. No document, sequence or file name goes, no cookies, and
+and its sequence (whether it has a RefSeqGene record, unless the chromosome
+is asked for, then that record or the chromosome's stretch). No document, sequence or file name goes, no cookies, and
 not the address of the page you are on; there is no API key and no e-mail
 address. NCBI sees the requests come from your network, as it would if you
 searched on its website. The usage statistics count that a record was

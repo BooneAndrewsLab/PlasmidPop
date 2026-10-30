@@ -3,7 +3,9 @@ import { readFileSync } from 'node:fs';
 
 import { act, configure, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
+import { firstQualifier } from '@/core';
 import {
+  type GeneHit,
   REQUEST_GAP_MS,
   efetchRegionUrl,
   efetchUrl,
@@ -15,7 +17,14 @@ import {
 import { getRepository } from '@/storage';
 
 import { App } from './App';
-import { checkAccessionInput, fetchAccessions, openFetched, openFromNcbi } from './openFromNcbi';
+import {
+  checkAccessionInput,
+  fetchAccessions,
+  fetchGeneFromNcbi,
+  fetchRegionFromNcbi,
+  openFetched,
+  openFromNcbi,
+} from './openFromNcbi';
 import { editorStore } from './state/editorStore';
 
 // waitFor and findBy default to 1 s. These tests render the whole App and parse
@@ -538,6 +547,10 @@ describe('Open from NCBI, a gene by name (#299)', () => {
     fireEvent.change(gene, { target: { value: 'TP53' } });
     flank(/Upstream/, '30');
     flank(/Downstream/, '30');
+    // Off by default (#326): the RefSeqGene record is preferred.
+    expect(
+      screen.getByRole('checkbox', { name: 'Use the chromosome record (all transcripts)' }),
+    ).not.toBeChecked();
     fireEvent.click(screen.getByRole('button', { name: 'Open' }));
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).toBeNull();
@@ -663,5 +676,163 @@ describe('Open from NCBI, a gene by name (#299)', () => {
     );
     expect(requests).toHaveLength(2);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('cuts a gene with a RefSeqGene record from its chromosome when asked, with every transcript, its flanks on its strand, and the record and range to fetch it again (#326)', async () => {
+    // A made-up minus-strand gene at chromosome 17 bases 11..110 (NCBI's
+    // 0-based chrstart/chrstop), so the 30 bp downstream flank runs into the
+    // chromosome's start and is cut to 10.
+    const acaca = {
+      esearch: { esearchresult: { count: '1', idlist: ['31'] } },
+      esummary: {
+        result: {
+          uids: ['31'],
+          '31': {
+            name: 'ACACA',
+            description: 'acetyl-CoA carboxylase alpha',
+            organism: { scientificname: 'Homo sapiens', taxid: 9606 },
+            chromosome: '17',
+            genomicinfo: [{ chraccver: 'NC_000017.11', chrstart: 109, chrstop: 10 }],
+          },
+        },
+      },
+    };
+    // Bases 1..140 of the minus strand, as NCBI sends it reverse-complemented:
+    // 30 bp upstream, the gene (31..130), 10 bp downstream.
+    const window = { accession: 'NC_000017.11', start: 1, stop: 140, strand: 'reverse' } as const;
+    const chromosome = [
+      'LOCUS       NC_000017                140 bp    DNA     linear   CON 10-JUL-2026',
+      'DEFINITION  Homo sapiens chromosome 17, GRCh38.p14 Primary Assembly.',
+      'ACCESSION   NC_000017 REGION: complement(1..140)',
+      'VERSION     NC_000017.11',
+      'FEATURES             Location/Qualifiers',
+      '     gene            31..130',
+      '                     /gene="ACACA"',
+      '     mRNA            join(31..60,81..130)',
+      '                     /gene="ACACA"',
+      '                     /transcript_id="NM_198834.3"',
+      '     mRNA            join(31..60,91..130)',
+      '                     /gene="ACACA"',
+      '                     /transcript_id="NM_198839.2"',
+      '     mRNA            join(31..50,91..>140)',
+      '                     /gene="ACACA"',
+      '                     /transcript_id="XM_011524638.3"',
+      'ORIGIN',
+      '        1 acgtacgtac acgtacgtac acgtacgtac acgtacgtac acgtacgtac acgtacgtac',
+      '       61 acgtacgtac acgtacgtac acgtacgtac acgtacgtac acgtacgtac acgtacgtac',
+      '      121 acgtacgtac acgtacgtac',
+      '//',
+      '',
+    ].join('\n');
+    answer = byEndpoint({
+      [esearchUrl('ACACA*[sym] AND txid9606[orgn] AND alive[prop]')]: () => json(acaca.esearch),
+      [esummaryUrl(['31'])]: () => json(acaca.esummary),
+      // ACACA has a RefSeqGene record; asked for the chromosome, it is not looked for.
+      [elinkRefSeqGeneUrl('31')]: () =>
+        json({
+          linksets: [
+            { linksetdbs: [{ linkname: 'gene_nuccore_refseqgene', links: ['300796998'] }] },
+          ],
+        }),
+      [efetchRegionUrl(window)]: () => new Response(chromosome),
+    });
+    render(<App />);
+    openDialog();
+    const gene = geneMode();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Organism' }), {
+      target: { value: '9606' },
+    });
+    fireEvent.change(gene, { target: { value: 'ACACA' } });
+    flank(/Upstream/, '30');
+    flank(/Downstream/, '30');
+    const option = screen.getByRole('checkbox', {
+      name: 'Use the chromosome record (all transcripts)',
+    });
+    fireEvent.click(option);
+    expect(
+      screen.getByRole('checkbox', { name: /Read a reverse-strand gene 5′→3′/ }),
+    ).toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+    // The gene's lookup and the stretch asked for, and nothing else.
+    expect(requests.map(([url]) => urlOf(url))).toEqual([
+      esearchUrl('ACACA*[sym] AND txid9606[orgn] AND alive[prop]'),
+      esummaryUrl(['31']),
+      efetchRegionUrl(window),
+    ]);
+    const state = editorStore.getState();
+    const doc = state.history?.present;
+    expect(doc?.name).toBe('ACACA');
+    expect(doc?.length).toBe(140);
+    expect(doc?.metadata.accession).toBe('NC_000017 REGION: complement(1..140)');
+    expect(doc?.metadata.version).toBe('NC_000017.11');
+    expect(state.fileName).toBe('ACACA_NC_000017.11:1-140.gb');
+    const mrnas = doc?.features.all().filter((f) => f.type === 'mRNA') ?? [];
+    expect(mrnas.map((f) => firstQualifier(f, 'transcript_id'))).toEqual([
+      'NM_198834.3',
+      'NM_198839.2',
+      'XM_011524638.3',
+    ]);
+    // NCBI's mark on the transcript it clipped at the window's edge stays.
+    expect(mrnas[2]?.segments.at(-1)).toMatchObject({ end: 140, partialEnd: true });
+    expect(state.warnings.map((w) => w.message)).toEqual([
+      'NC_000017.11 ends there: the downstream flank is 10 bp, not 30.',
+    ]);
+
+    // Remembered for the next opening; unticked again for the tests after.
+    fireEvent.click(screen.getByRole('button', { name: 'File' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Open from NCBI…' }));
+    geneMode();
+    const again = screen.getByRole('checkbox', {
+      name: 'Use the chromosome record (all transcripts)',
+    });
+    expect(again).toBeChecked();
+    fireEvent.click(again);
+  });
+
+  it('hands the chromosome window as the source, so the same stretch can be fetched again (#326)', async () => {
+    const window = { accession: 'NC_000017.11', start: 1, stop: 140, strand: 'reverse' } as const;
+    const gene: GeneHit = {
+      id: '31',
+      symbol: 'ACACA',
+      fullName: '',
+      organism: 'Homo sapiens',
+      taxId: 9606,
+      aliases: [],
+      chromosome: '17',
+      location: { accession: 'NC_000017.11', start: 10, end: 110, strand: 'reverse' },
+    };
+    const record = [
+      'LOCUS       NC_000017                140 bp    DNA     linear   CON 10-JUL-2026',
+      'ACCESSION   NC_000017 REGION: complement(1..140)',
+      'VERSION     NC_000017.11',
+      'ORIGIN',
+      '        1 acgtacgtac acgtacgtac acgtacgtac acgtacgtac acgtacgtac acgtacgtac',
+      '       61 acgtacgtac acgtacgtac acgtacgtac acgtacgtac acgtacgtac acgtacgtac',
+      '      121 acgtacgtac acgtacgtac',
+      '//',
+      '',
+    ].join('\n');
+    answer = byEndpoint({ [efetchRegionUrl(window)]: () => new Response(record) });
+    const fetched = await fetchGeneFromNcbi(
+      gene,
+      { upstream: 30, downstream: 30 },
+      true,
+      'chromosome',
+    );
+    expect(fetched.source).toEqual({ kind: 'gene', gene, region: window });
+    if (fetched.source.kind !== 'gene') throw new Error('not a gene');
+    // The region, as a range typed in the Accession tab, fetches the same stretch.
+    requests = [];
+    const { strand, ...asked } = fetched.source.region;
+    const again = await fetchRegionFromNcbi(
+      asked,
+      { upstream: 0, downstream: 0 },
+      strand === 'reverse',
+    );
+    expect(requests.map(([url]) => urlOf(url))).toEqual([efetchRegionUrl(window)]);
+    expect(again.documents[0]?.sequence.toString()).toBe(fetched.documents[0]?.sequence.toString());
   });
 });

@@ -38,6 +38,8 @@ let lastMode: NcbiMode = 'gene';
 let lastGene = '';
 let lastOrganism = ORGANISMS[0]?.taxId.toString() ?? '';
 let lastOtherOrganism = '';
+/** Gene mode: cut the gene from its chromosome even where it has a RefSeqGene record (#326). */
+let lastFromChromosome = false;
 
 /** The organism picker's value for free text. */
 const OTHER = 'other';
@@ -117,6 +119,8 @@ export function NcbiSearch({
   const [orientGene, setOrientGene] = useState(true);
   /** Accession mode: fetch the range's other strand (off by default: as NCBI shows it). */
   const [reverseRegion, setReverseRegion] = useState(false);
+  /** Gene mode: the chromosome record, with every transcript, over the RefSeqGene one (off by default). */
+  const [fromChromosome, setFromChromosome] = useState(lastFromChromosome);
   const reverseComplement = mode === 'gene' ? orientGene : reverseRegion;
   const setReverseComplement = mode === 'gene' ? setOrientGene : setReverseRegion;
   const [error, setError] = useState<string | null>(null);
@@ -345,7 +349,13 @@ export function NcbiSearch({
       setListOpen(false);
       run(async (signal) => {
         const hit = await resolveGene(signal);
-        return fetchGeneFromNcbi(hit, flank, reverseComplement, { signal, onProgress });
+        return fetchGeneFromNcbi(
+          hit,
+          flank,
+          reverseComplement,
+          fromChromosome ? 'chromosome' : 'refseqgene',
+          { signal, onProgress },
+        );
       });
       return;
     }
@@ -600,12 +610,32 @@ export function NcbiSearch({
                 <span className="ncbi-open__searching">{lookupError}</span>
               )}
             </div>
+            <div className="ncbi-open__record">
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  checked={fromChromosome}
+                  disabled={busy}
+                  aria-describedby="ncbi-record-hint"
+                  onChange={(e) => {
+                    lastFromChromosome = e.target.checked;
+                    setFromChromosome(e.target.checked);
+                  }}
+                />
+                Use the chromosome record (all transcripts)
+              </label>
+              <p id="ncbi-record-hint" className="ncbi-open__hint">
+                A gene with a RefSeqGene record is otherwise cut from it, which carries only its
+                reference transcript. Ticked, the document is ranged after the chromosome and has
+                every annotated transcript variant to choose between.
+              </p>
+            </div>
             <p id={mode === 'gene' ? 'ncbi-privacy' : undefined} className="ncbi-open__hint">
               As you type, what is in the Gene box and the organism go to NCBI
               (eutils.ncbi.nlm.nih.gov) to list the genes that match; nothing else leaves your
-              browser. Open fetches the gene's stretch of its chromosome (or its RefSeqGene record)
-              with the flanks below, every feature marked, and the document keeps the accession and
-              range.
+              browser. Open fetches the gene's stretch of its chromosome (or, unless the chromosome
+              is asked for, its RefSeqGene record) with the flanks below, every feature marked, and
+              the document keeps the accession and range.
             </p>
           </div>
         </div>

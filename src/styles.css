@@ -3170,6 +3170,21 @@ button {
   margin-top: 0.25em;
 }
 
+/* The record option and its hint, kept together under the gene fields (#326). */
+.ncbi-open__record {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+
+.ncbi-open__record > .toggle {
+  align-items: start;
+}
+
+.ncbi-open__record > .toggle > input {
+  margin-top: 0.25em;
+}
+
 @media (max-width: 420px) {
   .ncbi-open__flanks {
     grid-template-columns: 1fr 1fr;
