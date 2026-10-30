@@ -39,6 +39,28 @@ export interface StoredOrigin {
  */
 export type DocumentKind = 'file' | 'scratch';
 
+/**
+ * What the clone check (item 120, #327) knew about a product when it was
+ * stored, as plain data: the sidecar of a document's row, in no GenBank
+ * text, download or link. `checksum` is the molecule it was made for; a row
+ * whose document has since been edited holds none (`documentRow` leaves it
+ * out), and a loaded one is found only by a product with that checksum.
+ */
+export interface StoredCloneCheck {
+  readonly checksum: string;
+  readonly method: string;
+  /** The insert, 0-based half-open on the product, and the junction positions. */
+  readonly insert: { readonly start: number; readonly end: number };
+  readonly junctions: readonly number[];
+  /** The empty vector's name and bases (a circle), not a GenBank file; null when there is none. */
+  readonly empty: { readonly name: string; readonly sequence: string } | null;
+  readonly emptyNote: string | null;
+  readonly orientation: 'open' | 'fixed';
+  readonly orientationNote: string;
+  readonly primers: readonly { readonly name: string; readonly sequence: string }[];
+  readonly vector: { readonly name: string; readonly chosen: boolean } | null;
+}
+
 export interface StoredDocument {
   readonly id: string;
   readonly name: string;
@@ -83,6 +105,12 @@ export interface StoredDocument {
    */
   readonly parentChecksum?: string;
   readonly parentName?: string;
+  /**
+   * The clone check's context for this product (#327), so a reopened product
+   * keeps its insert, junctions and empty vector. Absent on every row from
+   * before it, and on a document with none. Not indexed, so no new version.
+   */
+  readonly cloneCheck?: StoredCloneCheck;
 }
 
 /**

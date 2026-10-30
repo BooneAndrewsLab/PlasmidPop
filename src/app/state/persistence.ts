@@ -39,6 +39,7 @@ import { analysisClient } from '@/workers/analysisClient';
 import { saveClient } from '@/workers/saveClient';
 
 import { analytics } from '../analytics';
+import { recallCloneCheck, restoreStoredCloneCheck, storedCloneCheck } from '../cloneCheck';
 import { downloadBlob, downloadText, fileNameFor, snapGeneFileName } from '../saveFile';
 import { documentChecksumLater } from './documentChecksum';
 import { type DocumentState, editorStore } from './editorStore';
@@ -449,7 +450,13 @@ export class PersistenceService {
       id,
       doc,
       d.fileName,
-      { origin, derived: d.derived, kind: d.scratch ? 'scratch' : 'file' },
+      {
+        origin,
+        derived: d.derived,
+        kind: d.scratch ? 'scratch' : 'file',
+        // The clone check's context for this very molecule, if it has one (#327).
+        cloneCheck: storedCloneCheck(doc, recallCloneCheck(doc)),
+      },
       { row, text, originText: origin === null ? null : (originText ?? null), now },
       () => this.isLatest(id, d),
     );
@@ -822,6 +829,8 @@ export class PersistenceService {
       derived: stored.derived,
       scratch: stored.kind === 'scratch',
     });
+    // The clone check's context stored with it, found again by checksum (#327).
+    restoreStoredCloneCheck(stored.cloneCheck);
     const state = editorStore.documentState(id);
     if (state !== null) this.autosaved.set(id, autosavedOf(state));
     // Rebuilding the states is the expensive part of opening a stored

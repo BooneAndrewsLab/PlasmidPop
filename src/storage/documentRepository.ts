@@ -22,6 +22,7 @@ import { parseGenBank, writeGenBank } from '@/io';
 import {
   type DocumentKind,
   type PlasmidPopDb,
+  type StoredCloneCheck,
   type StoredDocument,
   ENZYME_SET_ID,
   FIDELITY_TABLE_ID,
@@ -66,6 +67,13 @@ export interface DocumentProvenance {
    * kept whatever this says (`write`).
    */
   readonly kind?: DocumentKind;
+  /**
+   * What the clone check knew about the product (#327), kept on the row
+   * beside the text and never in it. Stored only while its checksum is the
+   * document's own, so a context an edit has outdated is dropped here
+   * rather than carried to a molecule it does not describe.
+   */
+  readonly cloneCheck?: StoredCloneCheck | null;
 }
 
 const NO_PROVENANCE: DocumentProvenance = { origin: null, derived: false };
@@ -275,6 +283,7 @@ export class DocumentRepository {
     const origin = provenance.origin;
     const checksum = documentChecksum(doc)?.text;
     const parent = lineageParent(doc.metadata.lineage);
+    const cloneCheck = provenance.cloneCheck;
     return {
       id,
       name: doc.name,
@@ -300,6 +309,7 @@ export class DocumentRepository {
             },
           }),
       ...(provenance.derived ? { derived: true } : {}),
+      ...(cloneCheck != null && cloneCheck.checksum === checksum ? { cloneCheck } : {}),
     };
   }
 
@@ -467,6 +477,7 @@ export class DocumentRepository {
       kind: stored.kind ?? 'file',
       origin,
       derived: stored.derived ?? false,
+      cloneCheck: stored.cloneCheck ?? null,
       history: () => restore().history,
       historyStatus: () => restore().historyStatus,
     };

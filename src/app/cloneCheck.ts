@@ -4,7 +4,7 @@ import {
   type Enzyme,
   type LineageNode,
   type PcrPrimer,
-  type SeqDocument,
+  SeqDocument,
   activeEnzymes,
   assemblyJunctions,
   cuttableSites,
@@ -16,6 +16,7 @@ import {
   locateInsert,
   partJunctions,
 } from '@/core';
+import type { StoredCloneCheck } from '@/storage';
 
 import { analytics } from './analytics';
 import { openPrimerWorkspace } from './primerWorkspace';
@@ -28,10 +29,12 @@ import { type OpenStorage, editorStore } from './state/editorStore';
  * insert could have gone in the other way, and the primers the method
  * designed, which the check can reuse.
  *
- * It is kept for the session only, by the product's checksum, so the
- * product opened by Simulate or Assemble finds it from its own tab; a
- * product reopened from storage, or edited, has none and the page falls
- * back to the selection as the insert.
+ * It is kept by the product's checksum, so the product opened by Simulate
+ * or Assemble finds it from its own tab. The autosave also writes it on the
+ * document's stored row (`storedCloneCheck`), and a reopened tab registers
+ * it again (`restoreStoredCloneCheck`), so a product reopened from storage
+ * keeps it (#327); an edited one has a different checksum, finds none, and
+ * the page falls back to the selection as the insert and says so.
  */
 export interface CloneCheckContext {
   /** The reaction, as the page names it: "Ligation", "Golden Gate"… */
@@ -68,6 +71,96 @@ export function registerCloneCheck(product: SeqDocument, context: CloneCheckCont
 export function recallCloneCheck(product: SeqDocument): CloneCheckContext | null {
   const key = keyOf(product);
   return key === null ? null : (contexts.get(key) ?? null);
+}
+
+/**
+ * The context as the document's stored row keeps it (#327): plain data, the
+ * empty vector as its bases only (the check designs on its sequence, and a
+ * GenBank text of it would carry features nobody reads), and the checksum of
+ * the product it describes. Null when there is none, or the product has no
+ * checksum (it is empty).
+ */
+export function storedCloneCheck(
+  product: SeqDocument,
+  context: CloneCheckContext | null,
+): StoredCloneCheck | null {
+  const checksum = keyOf(product);
+  if (context === null || checksum === null) return null;
+  return {
+    checksum,
+    method: context.method,
+    insert: { start: context.geometry.insert.start, end: context.geometry.insert.end },
+    junctions: [...context.geometry.junctions],
+    empty:
+      context.empty === null
+        ? null
+        : { name: context.empty.name, sequence: context.empty.sequence.toString() },
+    emptyNote: context.emptyNote,
+    orientation: context.orientation,
+    orientationNote: context.orientationNote,
+    primers: context.primers.map((p) => ({ name: p.name, sequence: p.sequence })),
+    vector: context.vector === null ? null : { ...context.vector },
+  };
+}
+
+function isNamedBases(v: unknown): boolean {
+  if (typeof v !== 'object' || v === null) return false;
+  const o = v as Record<string, unknown>;
+  return typeof o['name'] === 'string' && typeof o['sequence'] === 'string';
+}
+
+function isStoredCloneCheck(v: unknown): v is StoredCloneCheck {
+  if (typeof v !== 'object' || v === null) return false;
+  const o = v as Record<string, unknown>;
+  const insert = o['insert'] as Record<string, unknown> | null;
+  const vector = o['vector'] as Record<string, unknown> | null;
+  return (
+    typeof o['checksum'] === 'string' &&
+    typeof o['method'] === 'string' &&
+    typeof insert === 'object' &&
+    insert !== null &&
+    typeof insert['start'] === 'number' &&
+    typeof insert['end'] === 'number' &&
+    Array.isArray(o['junctions']) &&
+    o['junctions'].every((j) => typeof j === 'number') &&
+    (o['empty'] === null || isNamedBases(o['empty'])) &&
+    (o['emptyNote'] === null || typeof o['emptyNote'] === 'string') &&
+    (o['orientation'] === 'open' || o['orientation'] === 'fixed') &&
+    typeof o['orientationNote'] === 'string' &&
+    Array.isArray(o['primers']) &&
+    o['primers'].every(isNamedBases) &&
+    (vector === null ||
+      (typeof vector === 'object' &&
+        typeof vector['name'] === 'string' &&
+        typeof vector['chosen'] === 'boolean'))
+  );
+}
+
+/**
+ * Registers a stored row's context under the checksum it was made for, as a
+ * reopened tab does (#327). The checksum is the whole test of whether it
+ * still applies: a product that has been edited has another and finds
+ * nothing. A row that is not the stored form (a damaged backup) is ignored.
+ */
+export function restoreStoredCloneCheck(stored: unknown): void {
+  if (!isStoredCloneCheck(stored)) return;
+  contexts.set(stored.checksum, {
+    method: stored.method,
+    geometry: { insert: { ...stored.insert }, junctions: [...stored.junctions] },
+    empty:
+      stored.empty === null
+        ? null
+        : SeqDocument.create({
+            name: stored.empty.name,
+            sequence: stored.empty.sequence,
+            topology: 'circular',
+          }),
+    emptyNote: stored.emptyNote,
+    orientation: stored.orientation,
+    orientationNote: stored.orientationNote,
+    primers: stored.primers.map((p) => ({ name: p.name, sequence: p.sequence })),
+    vector: stored.vector === null ? null : { ...stored.vector },
+  });
 }
 
 /** Forgets every context, for tests. */

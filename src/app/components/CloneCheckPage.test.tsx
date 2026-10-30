@@ -98,6 +98,7 @@ describe('CloneCheckPage with a reaction’s context', () => {
     expect(screen.getByRole('heading', { name: 'Check a clone' })).toBeInTheDocument();
     expect(screen.getByText(/from Ligation/)).toBeInTheDocument();
     expect(screen.getByText(/closed on itself · 3,000 bp/)).toBeInTheDocument();
+    expect(screen.queryByText(/No cloning context is kept/)).not.toBeInTheDocument();
     expect(screen.getByText('Either way round.')).toBeInTheDocument();
     // The reaction's own primer is offered for reuse.
     const reuse = screen.getByRole('combobox', { name: 'Primer to reuse' });
@@ -176,6 +177,7 @@ describe('CloneCheckPage without a context', () => {
     });
     const { id } = openOn(product);
     expect(screen.getByText(/Select the insert on the map/)).toBeInTheDocument();
+    expect(screen.getByText(/No cloning context is kept for this document/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Design check primers' })).toBeDisabled();
     expect(screen.getByText('Select the insert first')).toBeInTheDocument();
     // The vector's tab is offered as the empty vector.

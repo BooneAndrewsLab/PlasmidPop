@@ -338,6 +338,16 @@ export function CloneCheckPage({ doc, state, layout }: Props) {
             </>
           )}
         </p>
+        {context === null && (
+          <>
+            <span className="ws__target-label">Context</span>
+            <p className="ws__target-value ws__target-value--none">
+              No cloning context is kept for this document, so the selection is the insert. A
+              product made here keeps its insert and junctions while its bases stay as they were;
+              one edited since, or made elsewhere, does not.
+            </p>
+          </>
+        )}
         {context?.vector != null && (
           <>
             <span className="ws__target-label">Vector</span>
