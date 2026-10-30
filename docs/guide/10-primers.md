@@ -449,13 +449,13 @@ same settings (primers of 18–27 nt, Tm 55–65 °C, GC 35–65 %). Every pair
 meets the Tm and GC limits by Primer3's numbers, and our Tm matches
 Primer3's to 0.005 °C. Primer3 accepts 90 % of the pairs outright; the other
 10 % each hold a primer whose hairpin it calls too stable by its own
-criterion (the melting temperature of the structure, not the free energy
-used here). The designer's best pair is rarely the one
-Primer3 ranks first: the two choose the same sites in none of the 40
-templates and overlap in 7, though at least one of the five pairs overlaps
-one of Primer3's five in 18. Read the list as acceptable candidates, not as
-a ranking Primer3 would reproduce. The data and the full report are in
-design note 122.
+criterion (the melting temperature of the structure), one our hairpin fold
+does not find. The designer's best pair is Primer3's best pair in 9 of the
+40 templates and overlaps it (both primers) in 20; at least one of our five
+pairs overlaps one of Primer3's five in 34. Scored by Primer3's own pair
+penalty, the median best pair of ours is 1.1 times Primer3's best. Read the
+list as acceptable candidates in nearly Primer3's order. The data and the
+full report are in design notes 122 and 125.
 
 **Where to look** is measured from the selection's edges: the forward primer
 lies wholly between the two distances before the start, the reverse primer
@@ -471,10 +471,15 @@ and **Where to look** rows are greyed out: the primers sit at the two ends of
 the insert, and the product is the insert plus the enzyme-site tails, so
 neither is a choice. The other settings still hold the annealing parts.
 
-Among the candidates that pass, pairs are ranked by a penalty that favours
-a Tm in the middle of the range, GC in the middle of its range, a GC clamp,
-a weak hairpin and self-dimer (the less negative their ΔG the better), a length near 21 nt and a small Tm
-difference.
+Among the candidates that pass, pairs are ranked by a penalty that is,
+first, Primer3's own: a point per °C a primer's Tm is from the middle of the
+range and a point per base its length is from 21 nt. Smaller terms break the
+ties: GC away from the middle of its range, a missing GC clamp (0.3), a
+weak hairpin and self-dimer (the less negative their ΔG the better), 3′
+self-pairing, and the Tm difference of the pair. The pair's product size does
+not count, as in Primer3's defaults, so a pair a little further from the
+target can rank above a nearer one: set **Forward** and **Reverse** to keep
+the primers close.
 
 ## Checking a primer
 

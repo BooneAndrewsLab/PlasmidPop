@@ -313,3 +313,5 @@ the Bench, item 49). The rest stand.
 123. [Sanger read assembly against a known construct](123-sanger-assembly-oracle.md)
 
 124. [Free-energy hairpin and dimer checks](124-thermodynamic-hairpin-dimer.md)
+
+125. [Primer3's hairpin criterion and ranking](125-primer3-hairpin-tm-and-ranking.md)

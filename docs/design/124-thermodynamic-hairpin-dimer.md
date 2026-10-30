@@ -154,6 +154,13 @@ template once; results are unchanged. Measurements in `docs/perf-notes.md`.
 
 ## Left open
 
-- #345 (Primer3's hairpin-Tm criterion) and #346 (ranking) stand.
+- #345 and #346: see item 125.
 - `longestHairpinStem`, `maxSelfComplementarity` stay in `thermo.ts`, with
   their tests, but nothing in the app calls them.
+
+## After item 125
+
+#345 (Primer3's hairpin-Tm criterion) and #346 (ranking) were taken up in
+item 125: `hairpinTm` is a new criterion (default 47 C) and the penalty
+follows Primer3's Tm and size distance. The pair-dimer weights above changed
+with it (self-dimer 0.025 per kcal/mol, pair cross-dimer 0.03 per base).

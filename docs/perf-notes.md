@@ -1628,3 +1628,12 @@ range of three runs, ms (limit 5000):
 
 The workspace test is jsdom and render, not the designer (about 0.2 s of its
 profile). What is left in `checkPrimers` is one `foldDimer` per rough pair.
+
+## Hairpin Tm (item 125)
+
+`hairpinTm` rides on the hairpin fold: a second array holds the ΔH of the
+helix of lowest ΔG, so the fold costs about 20-25 % more (6,000 primers of
+18-27 nt, memo bypassed: 100-144 ms before, 119-170 ms after, 0.02 ms a
+primer) and is still memoised by sequence. The designer tests keep their
+times (`matches a slow listing` 950-970 ms, the four-part Golden Gate 860-920 ms,
+load average 5-7).

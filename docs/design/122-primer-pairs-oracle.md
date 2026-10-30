@@ -88,3 +88,23 @@ pair is best.
 With the free-energy hairpin check, Primer3 accepts 181 of 200 selected pairs
 (90.5 %); 19 are refused, all for its hairpin-Tm criterion (#345). The top-pair
 overlaps are unchanged (#346). See item 124.
+
+## After item 125
+
+The hairpin-Tm criterion and a Tm-and-size ranking (#345, #346; item 125),
+re-exported and regenerated with `run.sh primer-pairs` (the script no longer
+deletes its own input):
+
+| Measure                                                 | Item 122 | Item 124 | Item 125 |
+| ------------------------------------------------------- | -------: | -------: | -------: |
+| Our pairs Primer3 accepts outright                      |  177/200 |  181/200 |  180/200 |
+| Our top pair equals Primer3's top pair                  |     0/40 |     0/40 |     9/40 |
+| Our top pair overlaps Primer3's top pair (both primers) |     7/40 |     7/40 |    20/40 |
+| Any of our 5 overlaps any of Primer3's 5                |    18/40 |    18/40 |    34/40 |
+| Our top pair's Primer3 penalty, median over its best    |      23x |      23x |    1.12x |
+
+The 95 % acceptance aim is still missed: the hairpin criterion alone reached
+191 of 200 under the old ranking, and the new ranking, which picks primers
+at the Tm and size optimum, meets more of the hairpins our fold cannot see
+(item 125). The gate holds 90 % and 20 refusals; the overlap floors are the
+measured 20 and 34, and a penalty-ratio gate is added.
