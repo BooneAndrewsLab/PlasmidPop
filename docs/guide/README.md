@@ -12,9 +12,9 @@ Step-by-step cloning exercises, with sample files to download, are the
 3. [Viewing and selecting](03-viewing.md): sequence view, circular map, GC content, selection, previews, on a phone
 4. [Editing the sequence](04-editing.md): typing, copy and paste, colouring and enlarging bases, reverse complement, origin, edit marks, undo
 5. [Features](05-features.md): the feature list and editor, detecting common features by their bases and by what they code for, and My parts, your own parts for it to look for
-6. [Find](06-find.md)
-7. [Restriction enzymes](07-enzymes.md)
-8. [Open reading frames](08-orfs.md)
+6. [Find](06-find.md): a sequence, an ambiguity code or a feature name, matches shown on the map and in the sequence view
+7. [Restriction enzymes](07-enzymes.md): the enzyme list and what to show, cut sites, a drawn gel and diagnostic digests, isoschizomers, importing REBASE, Dam/Dcm methylation, adding your own enzyme
+8. [Open reading frames](08-orfs.md): finding ORFs by minimum length and genetic code, copying the protein, adding one as a CDS feature
 9. [Translation](09-translate.md): under CDS features and in six frames, recoding a CDS for a host, residues numbered
 10. [Primers](10-primers.md): the slim tab and the primer workspace; design, preview and checking; My primers, a list kept in the browser, and finding where its primers bind
 11. [Alignment and assembly](11-align.md): pairwise alignment of a read or a batch of reads against the document, with qualities; reads assembled into a consensus; a plate of clone consensuses verified against the expected constructs; three to fifty sequences aligned together, with a consensus, exported as aligned FASTA or Clustal

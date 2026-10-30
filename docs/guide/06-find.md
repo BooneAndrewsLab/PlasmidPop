@@ -9,7 +9,9 @@ the views. What you type decides what is searched:
   query. Matches wrap around the origin of a circular sequence. `U` is read as `T`, so
   an RNA is searched with the letters it is drawn with.
 - **Anything else** searches feature names and types, case-insensitively,
-  so `tet` finds _tet_ and _tetR_, and `promoter` finds every promoter.
+  so `tet` finds _tet_ and _tetR_, and `promoter` finds every promoter. In a protein document a word of two or
+  more letters is looked for as residues as well as a feature name; see
+  [Proteins](16-proteins.md).
 
 The counter shows which match is current, how many there are, and whether a
 sequence match is on the forward or reverse strand. The current match is

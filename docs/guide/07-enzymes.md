@@ -151,7 +151,7 @@ in the same place — BamHI, BstI and a dozen others all cut `G^GATCC`. They
 give the same fragments with the same ends, so at the bench they are one
 choice whatever the label on the tube. With **Isoschizomers: share a row**
 ticked (the default), they are listed as one row: an imported REBASE table
-of about 1,550 enzymes becomes about 400 rows.
+of about 1,580 enzymes becomes about 400 rows.
 
 - The row carries the best-known name: an enzyme from the bundled table if
   there is one, otherwise the one sold by most companies. A name you

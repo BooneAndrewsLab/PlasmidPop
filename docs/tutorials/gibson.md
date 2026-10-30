@@ -142,7 +142,7 @@ The circle is made of three linear files, each one a few hundred to a thousand b
 
 The two inserts are two halves of one fused open reading frame: `synthDomainA` (150 residues, starting on an ATG), the linker (10 residues), `synthDomainB` (130 residues) and a stop. The vector carries the promoter before the first insert and the terminator after the second, plus `KanR` and `ori` stand-ins. You never type a sequence: the panel finds the overlaps itself.
 
-- **Overlap** (homology arm): a stretch of 15 to 40 bases that the end of one piece shares with the start of the next. The overlaps decide what joins what and in which order; there is nothing else to design.
+- **Overlap** (homology arm): a stretch of 15 or more bases (the panel's **Overlap** setting offers 12 to 40) that the end of one piece shares with the start of the next. The overlaps decide what joins what and in which order; there is nothing else to design.
 - **Linearised vector**: the backbone as a linear piece. Its two ends are the overlaps with the first and the last insert. Here it is a file; in the lab you would cut a plasmid or amplify it by inverse PCR.
 - **Exonuclease, polymerase, ligase**: the three enzymes of the mix. The exonuclease chews each 5′ end back so the overlaps become single strands that anneal; the polymerase fills the gaps and the ligase seals them.
 - **Tm of an overlap**: the melting temperature of the shared stretch. The reaction is held at 50 °C, so the panel marks a junction under 48 °C.

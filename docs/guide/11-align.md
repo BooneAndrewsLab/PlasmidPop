@@ -235,8 +235,8 @@ a read.
   Q10 or Q13. The count and the list follow it at once, without
   aligning again, and so does the status bar's share of good bases for an
   opened read. **Trim at** sets the error rate trimming keeps bases better
-  than: Q13 (5%) is phred's usual, Q20 (1%) or Q30 (0.1%) trim harder, Q10
-  (10%) keeps more of a noisy read; it applies the next time you align. Both
+  than: Q13 (5%) is phred's usual, Q17 (2%), Q20 (1%) or Q30 (0.1%) trim
+  harder, Q10 (10%) keeps more of a noisy read; it applies the next time you align. Both
   are remembered in this browser with the view preferences.
 
 The panel does not draw a read's poor bases or an AB1 trace; the large
@@ -652,7 +652,8 @@ An insertion in one sample opens gap columns in the document row and in
 every other sample, so the rows stay in register. This is each sample
 aligned to the document alone, laid side by side; it is not a multiple
 sequence alignment, and two samples are not aligned to each other (for
-that, see [Aligning several sequences together](#aligning-several-sequences-together)). The
+that, see [Aligning several sequences together](#aligning-several-sequences-together)).
+
 A read's bases below the confident quality sit on a grey block, faded, so a
 difference there is easy to discount. A read opened from an AB1 file has its
 chromatogram drawn under its row, each base's peak under its letter and the

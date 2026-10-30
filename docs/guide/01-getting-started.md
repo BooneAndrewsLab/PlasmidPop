@@ -84,13 +84,14 @@ goes after 30 days unless you keep it. See [Files and storage](02-files.md).
   **+** for a new one. Tabs can be dragged into another order.
 - **Edit bar** (under the tabs): Add feature, Delete selection (a bin icon),
   Reverse complement, Style, Case, Set origin here, Make circular / linear
-  and Find (a magnifier icon). On a narrow window Style, Case, Set origin
+  and Find (a magnifier icon), and on a sticky-ended fragment Blunt (fill in)
+  and Blunt (trim). On a narrow window Style, Case, Set origin
   here and Make circular / linear are behind a **More ▾** button. The hint at
   the right says "Insert bases…"; hover it for the typing and copy keys.
 - **Views**: the circular map on the left and the linear sequence view on the
   right. Both show the same selection and the same features.
 - **Sidebar** (right): tabs for Features, ORFs, Translate, Primers, Enzymes,
-  Cloning, Align and History (and Protein in front of a protein), in a narrow rail down the right-hand edge,
+  CRISPR, Cloning, Align and History (and Protein in front of a protein), in a narrow rail down the right-hand edge,
   each an icon above its label turned on its side. On a window too short for
   every label at full length, the labels all go and the rail shows icons
   alone; hover a tab for its name. On a narrow window the

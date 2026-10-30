@@ -68,7 +68,7 @@ screen. It is meant for the plasmid someone sent you as a link, read where the
 message arrived.
 
 - **Map**, **Sequence** and **Details** are the three panes. Details holds the
-  Features and Enzymes lists and the [Primers](10-primers.md) tab, whose
+  Features and Enzymes lists (and Protein, for a protein document) and the [Primers](10-primers.md) tab, whose
   **Design primers…** opens the primer workspace over the whole screen; the
   other sidebar tabs (alignment, cloning, ORFs, translation, history) are
   for making things and are not offered on a phone.
@@ -258,6 +258,9 @@ Today these use it:
 - [Find](06-find.md), which draws every match at once while the bar is open;
 - the [ORFs](08-orfs.md) tab, which draws every open reading frame it lists;
   click one on the map or in the sequence view to select it;
+- the [CRISPR](17-crispr.md) tab, which draws every guide it lists as an
+  arrow on its own strand, labelled with its PAM;
+- the [Align](11-align.md) tab, which marks the span under the pointer;
 - the [Cloning](12-cloning.md) tab, which draws the pieces a digest would
   give, each with a tick where its cuts fall, and draws the one under the
   pointer as a solid arrow. These can be clicked, which puts that fragment

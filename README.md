@@ -23,10 +23,12 @@ no account, no upload and no server round-trip. Works offline once loaded.
 
 - **Open** GenBank (`.gb`, `.gbk`, `.ape`, …), FASTA, SnapGene `.dna`,
   GenPept and protein FASTA, sequencing reads (AB1 with their traces, FASTQ,
-  gzipped or not), or a record from NCBI by accession;
-  **download** GenBank (the file you opened is never written to), export
-  FASTA or FASTQ, export the map or the sequence view as SVG, export a
-  selection with its features.
+  gzipped or not), a ZIP of sequence files, or a record from NCBI by
+  accession or a gene by name;
+  **download** GenBank or SnapGene `.dna`/`.rna`/`.prot` (the file you opened
+  is never written to), export FASTA or FASTQ, export the map or the sequence
+  view as SVG, PNG or PDF, export a selection with its features; **back up
+  and restore** every document at once.
 - **View** a linear sequence with complement, ruler, feature lanes and amino
   acids under CDS features — numbered, if you like — next to a zoomable
   circular map with labels spread around crowding, cut sites and a second
@@ -40,28 +42,36 @@ no account, no upload and no server round-trip. Works offline once loaded.
   `complement`, wrapping the origin, partial ends) and qualifiers, and
   **Detect features** — a bundled library of common parts, fluorescent
   proteins and tags, matched on both strands, through the origin, and in the
-  six translations for the parts every vector spells its own way.
+  six translations for the parts every vector spells its own way — plus
+  **My parts**, a library of your own.
 - **Analyse**: restriction sites for about 130 bundled enzymes — or the
   whole of REBASE, imported from your own download — with fragment sizes, a
   drawn gel and diagnostic-digest ranking, open reading frames, six-frame
   translation, primer design and checking, a collection of **My primers**
   searched against any document, pairwise alignment (global and local), and
   protein properties for a protein document.
+- **Design and edit CRISPR guides**: guide sites for SpCas9, SaCas9, Cas12a
+  or a custom PAM, off-targets in the open documents, base-editing windows,
+  pegRNAs and paired nickases, added as features or as cloning oligos.
+  **Back-translate and recode** a CDS for a host's codon usage, and show a
+  GC content track.
 - **Align and assemble**: a progressive **multiple sequence alignment** of 3
   to about 50 nucleotide or protein sequences, with a consensus row and
   conservation shading, exported as aligned FASTA or Clustal. **Sanger
   sequencing reads**, one or a plate, aligned against the expected construct
   with their qualities and traces, or **assembled into a contig** with no
   reference: a quality-weighted consensus with disagreements flagged,
-  saved as a document.
+  saved as a document. **Verify clones** checks a plate of clone consensuses
+  against the constructs they should be.
 - **Clone in silico** on the **Bench**: digest (complete or partial) with
   chosen enzymes, collect fragments from several documents on a shelf, and
   ligate, assemble by Golden Gate, Gibson, In-Fusion or NEBuilder, or
-  recombine by Gateway — every junction checked, with host methylation,
+  recombine by Gateway, fuse pieces by overlap-extension PCR, or plan a
+  combinatorial modular (MoClo or Yeast Toolkit) assembly — every junction checked, with host methylation,
   dephosphorylation and misligation warnings. PCR with Taq or a
   proofreading polymerase, site-directed mutagenesis (Q5 or QuikChange), and
   a check digest of the product beside the empty vector before you pick
-  colonies.
+  colonies, and colony-PCR check primers for the product.
 - **Made from**: every product records how it was made, kept in the GenBank
   file it is saved to, and a SnapGene file's own history is read into the
   same tree.
@@ -106,17 +116,20 @@ npm install
 npm run dev
 ```
 
-| Command                 | What it does                                 |
-| ----------------------- | -------------------------------------------- |
-| `npm run dev`           | Vite dev server with HMR                     |
-| `npm run build`         | Typecheck, then production build to `dist/`  |
-| `npm run test`          | Run the Vitest suite once                    |
-| `npm run test:watch`    | Vitest in watch mode                         |
-| `npm run test:coverage` | Tests with V8 coverage report in `coverage/` |
-| `npm run typecheck`     | `tsc -b --noEmit` across all project configs |
-| `npm run lint`          | ESLint (type-aware, strict)                  |
-| `npm run format`        | Prettier, write mode                         |
-| `npm run check`         | Typecheck + lint + format check + tests (CI) |
+| Command                 | What it does                                    |
+| ----------------------- | ----------------------------------------------- |
+| `npm run dev`           | Vite dev server with HMR                        |
+| `npm run build`         | Typecheck, then production build to `dist/`     |
+| `npm run test`          | Run the Vitest suite once                       |
+| `npm run test:watch`    | Vitest in watch mode                            |
+| `npm run test:coverage` | Tests with V8 coverage report in `coverage/`    |
+| `npm run typecheck`     | `tsc -b --noEmit` across all project configs    |
+| `npm run lint`          | ESLint (type-aware, strict)                     |
+| `npm run format`        | Prettier, write mode                            |
+| `npm run check`         | Typecheck + lint + format check + tests (CI)    |
+| `npm run mutate`        | Stryker mutation testing, before a release      |
+| `npm run bench`         | Build, then the open-and-scan benchmark         |
+| `npm run oracle:*`      | Regenerate or run the independent-oracle checks |
 
 ## Building and deploying
 
@@ -153,10 +166,13 @@ src/
     assembly/   Sanger read assembly: overlap layout, quality-weighted consensus
     lineage/    "Made from": how a product was made, as a tree
     checksum/   SEGUID v2 checksums of a document
+    verify/     Clone verification: a plate of consensuses against constructs
   view/         Canvas rendering (pure; no React)
     linear/     Row layout, feature lane assignment, linear view renderer
     circular/   Plasmid map geometry, label placement, map renderer
+    ribbon/     The ribbon renderer
     svg/        The same renderers against an SVG context, for the exports
+  pwa/          Share target for the installed app
   workers/      Analysis Web Worker + client (inline fallback where Workers are missing)
   storage/      Dexie (IndexedDB) document store, history codec, file pickers
   io/           File formats behind one interface (parseSequenceFile)
@@ -164,13 +180,14 @@ src/
     fasta/      FASTA parser + writer
     fastq/      FASTQ reader and writer, gzip-aware
     abif/       AB1 chromatograms: bases, qualities and the trace
-    snapgene/   SnapGene .dna reader (packets, XML, its history tree)
+    snapgene/   SnapGene .dna/.rna/.prot reader and writer (packets, XML, its history tree)
     rebase/     Reader for a REBASE withrefm file the user imports
     ncbi/       Fetching a record by accession (the one third-party request)
     share/      A document packed into a URL fragment
     fixtures/   Public NCBI records used by round-trip tests
   test/         Vitest setup and shared test helpers
-scripts/        Build-time tools: the feature database, icons, genetic codes
+scripts/        Build-time tools (feature database, icons, genetic codes), the
+                oracle generators, benchmarks and mutation testing
 fixtures/local/ Private test files (gitignored); tests use them when present
 docs/
   guide/        The user guide, also rendered in the app
@@ -193,9 +210,12 @@ offline.
 
 Open from NCBI (`src/io/ncbi/`, `src/app/openFromNcbi.ts`) is the one
 request the editor makes to a third party, and only when the user presses
-Open: E-utilities `efetch` answers browsers directly (CORS), and what it is
-sent is the accession numbers and `tool=PlasmidPop` — no cookies, no
-referrer, no API key or e-mail address.
+Open: E-utilities `efetch` (and, for a gene typed by name, `esearch` and
+`esummary`) answers browsers directly (CORS), and what it is sent is the
+accession numbers, or the gene name and organism as typed, and
+`tool=PlasmidPop` — no cookies, no referrer, no API key or e-mail address. A
+**Primer-BLAST** link carries a pair's primers, and the template's accession
+and organism when it has them, but only in the link the user opens.
 
 Usage statistics: `src/app/analytics.ts` talks to a self-hosted Matomo
 instance when `VITE_MATOMO_URL` and `VITE_MATOMO_SITE_ID` are set at build

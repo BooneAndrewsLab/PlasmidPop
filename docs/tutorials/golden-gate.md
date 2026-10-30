@@ -18,7 +18,7 @@ Before you click anything, close every tab you do not need: the Golden Gate simu
 
 2. Click the **pGG-Expression** tab so it is in front.
 
-3. Choose **Primers ▸ Design**.
+3. Open the **Primers** tab in the sidebar and click **Design primers…**.
 4. Under **Mode**, click **Clone an insert into this plasmid**.
 
 5. In step 3 of the panel, next to **Ends**, click **Golden Gate part**.
@@ -86,7 +86,7 @@ The record is third-party data, so you fetch it; nothing in this folder contains
    > [!WARNING]
    > If instead you see other tabs, close them: the vector is the destination and stays in front, and the simulation takes other tabs into the tube.
 
-2. Choose **Primers ▸ Design**.
+2. Open the **Primers** tab in the sidebar and click **Design primers…**.
 3. Click **Mode: Clone an insert into this plasmid**.
 4. In step 3 of the panel, next to **Ends**, click **Golden Gate part**.
 

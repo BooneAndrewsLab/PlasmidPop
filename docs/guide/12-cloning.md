@@ -855,8 +855,9 @@ that no longer reads is kept as an ordinary comment. The tree keeps at most
 64 molecules; beyond that, the oldest steps are replaced by a line saying
 how many earlier molecules were left out.
 
-SnapGene keeps a history of its own in its `.dna` files, which PlasmidPop
-does not read yet.
+A SnapGene `.dna` file's own history is read as well: it shows in the same
+tree (see [Made from](13-history.md#made-from)), with no checksums, so every
+molecule in it says _not in this browser_.
 
 ## Protocol for a product
 

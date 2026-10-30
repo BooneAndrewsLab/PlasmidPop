@@ -46,7 +46,7 @@ only while the keyboard is inside it (an open **Settings** folds first). Its
 then offers the last design to come back to, with everything as it was
 left. On a window narrower than about 1000 px the workspace takes the whole
 area under the toolbar; on a phone it fills the screen, with the pages as
-tabs across the top, and **Primers** is a fourth tab under **Details**. In
+tabs across the top, and **Primers** is one of the tabs under **Details**. In
 both of those the map cannot be beside the workspace, so a **Map** strip
 across its top draws the whole document as one ribbon — the features, the
 selection and whatever the page is previewing — and follows every click;
@@ -299,7 +299,7 @@ and under a [Golden Gate part](#golden-gate-ends-primers-that-make-the-insert-a-
 [Bench](12-cloning.md#the-bench) product (Ligation, Golden Gate, Gibson,
 Gateway), **Check primers…** beside a Modular product, an In-Fusion or
 NEBuilder design and an Overlap PCR fusion, and the Primers tab of such a
-product offers **Check a clone ›**. The page
+product offers **Check a clone · … product ›**. The page
 then names the product, the **insert** (and the junctions inside it for a
 build of several parts), the **empty vector** — the vector as it went in,
 or the cut vector closed on itself; when it cannot close, or is a PCR
@@ -380,7 +380,7 @@ checked** for every pair: the answer stays on NCBI's page for now.
 **Settings**, under the target on the Design page, sets what a designed
 primer has to be. It is folded by default; its row says **changed** once any
 setting is off its default and then sums the main rules up (`18–27 nt, Tm
-58–65 °C, GC 35–65 %, within 0–200 bp of the target`). Open it to see and
+55–62 °C, GC 35–65 %, within 0–200 bp of the target`). Open it to see and
 change them all. Every candidate that breaks one of them is refused, and the
 same numbers are what **Check a primer** warns about, so a pasted primer is
 judged by the rules the designed ones had to pass. They are remembered in

@@ -149,8 +149,8 @@ Optional extra, a miniprep check digest: repeat the steps above without **−P**
 Accession **`NM_000207`** (`NM_000207.3`, human insulin, mRNA, 465 bp; its CDS is 333 bp, the 110 residue preproinsulin plus the stop codon). It has no EcoRI or BamHI site in the CDS (checked), which is why EcoRI + BamHI will work.
 
 1. Open `pLig-Vector.gb` and leave it in front.
-2. Open the **Primers** tab (sidebar).
-3. Switch the mode at the top to **Clone an insert into this plasmid**.
+2. Open the **Primers** tab (sidebar) and click **Design primers…**.
+3. In the workspace, switch **Mode** to **Clone an insert into this plasmid**.
 
    > [!NOTE]
    > You see **Where on the vector**: with nothing selected, it takes the feature named `MCS`.

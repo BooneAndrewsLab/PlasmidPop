@@ -69,7 +69,7 @@ piece of work needs its reasoning written down, with the next free number.
 55. [Thinner introns, and a thickness per feature](55-feature-thickness.md)
 56. [A primer collection, and finding where its primers bind](56-primer-collection.md)
 57. [Protein documents](57-protein-documents.md)
-58. [Open a GenBank record from NCBI by accession, a range of one, or a gene by name](58-ncbi-fetch.md)
+58. [Open a GenBank record from NCBI by accession](58-ncbi-fetch.md)
 59. [Detect common features](59-detect-features.md)
 60. [Numbered residues](60-numbered-residues.md)
 61. [Configurable key bindings](61-configurable-keys.md)
@@ -95,6 +95,43 @@ piece of work needs its reasoning written down, with the next free number.
 81. [CRISPR base-editing windows and pegRNAs](81-crispr-editing.md)
 82. [CRISPR paired nickases](82-crispr-paired-nickases.md)
 83. [CRISPR guides as features](83-crispr-guides-as-features.md)
+84. [Back-translate and recode a CDS](84-codon-recoding.md)
+85. [Multiple sequence alignment](85-multiple-alignment.md)
+86. [My parts](86-my-parts.md)
+87. [Open a ZIP of sequence files](87-zip-import.md)
+88. [Back up and restore all documents](88-backup-restore.md)
+89. [Export the map as PNG, with figure options](89-map-png-export.md)
+90. [Write SnapGene files](90-snapgene-writer.md)
+91. [Search and link-preview metadata](91-seo-metadata.md)
+92. [The Format menu as a settings list](92-format-menu.md)
+93. [The Primers tab as three groups and a denser candidate list](93-primers-panel.md)
+94. [One Export figure dialog for the map and the sequence view](94-export-figure-dialog.md)
+95. [The app's own tooltip in place of the browser's `title`](95-custom-tooltip.md)
+96. [The scroll hitch at 300 kb was the autosave](96-autosave-hitch.md)
+97. [The checksum of a large document is taken in the analysis worker](97-seguid-worker.md)
+98. [The enzyme list's digest is taken in the analysis worker](98-enzyme-digest-worker.md)
+99. [The enzyme list does not wait for the ORFs](99-scans-apart.md)
+100. [Every recognition site in one pass](100-one-pass-scan.md)
+101. [The restriction scan goes before the checksum](101-scan-before-checksum.md)
+102. [A faster SHA-1](102-sha1-loop.md)
+103. [The autosave's GenBank text in a worker](103-autosave-worker.md)
+104. [The open's last long task, the autosave in the first scroll, and the heap](104-open-long-task.md)
+105. [The cut sites kept packed](105-packed-sites.md)
+106. [Short and narrow laptop windows](106-short-and-narrow-windows.md)
+107. [Primer workspace and one shared NCBI search](107-primer-workspace.md)
+108. [Restriction-cloning ends: the engine](108-cloning-ends.md)
+109. [Per-type feature visibility](109-feature-type-visibility.md)
+110. [Scratch documents](110-scratch-documents.md)
+111. [Browse all files, grouped products, Undo for Remove](111-file-browser.md)
+112. [Cloning products open with the enzymes the reaction used](112-product-enzymes.md)
+113. [Golden Gate ends in the primer workspace](113-golden-gate-primers.md)
+114. [Tutorials as a standalone site section](114-tutorials-site.md)
+115. [Grouped features in the views](115-feature-grouping.md)
+116. [React `act(...)` warnings in the tests](116-act-warnings.md)
+117. [Removing features by type or by variant](117-remove-features-in-bulk.md)
+118. [Marking the gap between the pieces of a join](118-join-gaps.md)
+119. [Showing one transcript of a gene](119-transcript-pick.md)
+120. [Check primers for a clone](120-check-primers.md)
 
 ## Changelog to 1.1.0
 
@@ -270,77 +307,3 @@ the Bench, item 49). The rest stand.
   there. If it grows a third use it wants a place of its own (item 3). A PCR
   product is the obvious third thing to put on it and deliberately is not:
   it opens as a tab, which the tube already takes (item 36).
-
-98. [Back-translate and recode a CDS](84-codon-recoding.md)
-
-99. [Multiple sequence alignment](85-multiple-alignment.md)
-
-100.  [My parts for Detect features](86-my-parts.md)
-
-101.  [Open a ZIP of sequence files](87-zip-import.md)
-
-102.  [Back up and restore all documents](88-backup-restore.md)
-
-103.  [Export the map as PNG](89-map-png-export.md)
-
-104.  [Write SnapGene files](90-snapgene-writer.md)
-
-105.  [Search and link-preview metadata](91-seo-metadata.md)
-
-106.  [The Format menu as a settings list](92-format-menu.md)
-
-107.  [The Primers tab as three groups and a denser candidate list](93-primers-panel.md)
-
-108.  [One Export figure dialog for the map and the sequence view; pages as one ZIP or PDF; exports off the main thread, with progress and Cancel](94-export-figure-dialog.md)
-
-109.  [The app's own tooltip in place of the browser's `title`](95-custom-tooltip.md)
-
-110.  [The scroll hitch at 300 kb was the autosave](96-autosave-hitch.md)
-
-111.  [The checksum of a large document is taken in the analysis worker](97-seguid-worker.md)
-
-112.  [The enzyme list's digest is taken in the analysis worker](98-enzyme-digest-worker.md)
-
-113.  [The enzyme list does not wait for the ORFs](99-scans-apart.md)
-
-114.  [Every recognition site in one pass](100-one-pass-scan.md)
-
-115.  [The restriction scan goes before the checksum](101-scan-before-checksum.md)
-
-116.  [A faster SHA-1](102-sha1-loop.md)
-
-117.  [The autosave's GenBank text in a worker](103-autosave-worker.md)
-
-118.  [The open's last long task, the autosave in the first scroll, and the heap](104-open-long-task.md)
-
-119.  [The cut sites kept packed](105-packed-sites.md)
-
-120.  [Short and narrow windows](106-short-and-narrow-windows.md)
-
-121.  [Primer workspace and one shared NCBI search](107-primer-workspace.md)
-
-122.  [Restriction-cloning ends: the engine](108-cloning-ends.md)
-
-123.  [Per-type feature visibility](109-feature-type-visibility.md)
-
-124.  [Scratch documents](110-scratch-documents.md)
-
-125.  [Browse all files, grouped products, Undo for Remove](111-file-browser.md)
-
-126.  [Cloning products open with the enzymes the reaction used](112-product-enzymes.md)
-
-127.  [Golden Gate ends in the primer workspace](113-golden-gate-primers.md)
-
-128.  [Tutorials as a standalone site section](114-tutorials-site.md)
-
-129.  [Grouped features in the views](115-feature-grouping.md)
-
-130.  [React act(...) warnings in the tests](116-act-warnings.md)
-
-131.  [Removing features by type or by variant](117-remove-features-in-bulk.md)
-
-132.  [Marking the gap between the pieces of a join](118-join-gaps.md)
-
-133.  [Showing one transcript of a gene](119-transcript-pick.md)
-
-134.  [Check primers for a clone](120-check-primers.md)

@@ -114,7 +114,7 @@ The layout of a Golden Gate primer, which the workspace follows:
 
 2. Click the **pGG-Destination** tab so it is in front: it is the destination, and the workspace designs against the document in front.
 
-3. Choose **Primers ▸ Design** (the primer workspace).
+3. Open the **Primers** tab in the sidebar and click **Design primers…** (the primer workspace).
 
 4. Under **Mode**, click **Clone an insert into this plasmid**.
 
@@ -162,7 +162,7 @@ The layout of a Golden Gate primer, which the workspace follows:
     - [ ] The product is 2,848 bp, circular, with `KanR`, `ori`, `synthetic promoter`, `INS` and the insulin chain features, `synthTag`, `synthetic terminator`, and **BsaI** ticked in its **Enzymes** tab.
 
     > [!WARNING]
-    > If not, check that the destination was in front when you chose **Primers ▸ Design** (the workspace designs against the document in front) and that **Include the stop codon** is unticked.
+    > If not, check that the destination was in front when you opened the primer workspace (the workspace designs against the document in front) and that **Include the stop codon** is unticked.
 
 12. Optional: translate from the INS start codon (the sidebar's **Translate** tab). The result is `MALWMRLLPLLALLALWGPDPAAAFVNQHLCGSHLVEALYLVCGERGFFYTPKTRREAEDLQVGQVELGGGPGAGSLQPLALEGSLQKRGIVEQCCTSICSLYQLENYCNFGGSGGHHHH*`: preproinsulin, then the linker and His tag from the tag part, one frame, one stop.
 

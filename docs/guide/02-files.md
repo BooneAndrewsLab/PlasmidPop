@@ -118,7 +118,7 @@ single- or double-stranded, so nothing here does either, and it opens linear.
 
 ## Opening several files, or a ZIP
 
-**File ▸ Open** takes several files at once (select them in the picker), and
+**File ▸ Open file…** takes several files at once (select them in the picker), and
 so does dropping them on the window. Each sequence opens in a tab of its own,
 and one summary says how many documents opened, which files were skipped and
 why, and any warnings the reader had about each record.
@@ -682,7 +682,7 @@ From the **File** menu:
 - **Export read as FASTQ**, for a document opened from an AB1 or FASTQ
   file: the bases with their qualities. Offered only while the bases are
   the read's; see [Downloading a read](15-reads.md#downloading-a-read).
-- **Export selection as GenBank** or **as FASTA**: just the selected bases,
+- **Export selection as GenBank** (**GenPept** for a protein) or **as FASTA**: just the selected bases,
   with the features that fall inside them trimmed to the selection. The
   selection may wrap the origin of a circular sequence; a site feature (a
   point between two bases) at the origin is kept when the selection runs
@@ -900,7 +900,7 @@ app** or **Add to Home screen**), PlasmidPop appears in the **Share** sheet of
 other apps. To open a GenBank file someone mailed you, share the attachment
 from the mail app (or a file from the Files app, or a chat) and pick
 PlasmidPop: it opens with the file in a tab of its own, as if you had picked
-it with **File ▸ Open**. Every format in the table above works, and several
+it with **File ▸ Open file…**. Every format in the table above works, and several
 files shared at once open in a tab each. Mail apps often label a `.gb` file as
 plain text or as unknown data, so PlasmidPop is offered for those too and
 decides from the file itself; a file it cannot read is reported in the status

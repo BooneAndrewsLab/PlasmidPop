@@ -369,7 +369,8 @@ until you turn it on, and remembered in this browser.
 
 ### Where the parts come from
 
-The bundled list holds over two hundred parts: origins of replication,
+The bundled list holds about three hundred parts, 203 curated ones and
+about 100 fluorescent proteins from FPbase: origins of replication,
 resistance and auxotrophic markers, promoters, terminators, tags and fusion
 partners, operators and recombination sites, reporters, and the usual
 sequencing-primer sites, the parts of binary and viral vectors, plus common

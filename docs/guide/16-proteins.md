@@ -47,8 +47,8 @@ and `B`, `Z` and `J` either of the two they stand for.
 Everything that reads DNA is gone rather than greyed out: the map and the
 view switcher, the Complement, Translations and Cut sites toggles and their
 keys, Reverse complement and Make circular, and the Enzymes, ORFs, Translate,
-Primers and Cloning tabs, and **Detect features**, whose parts are
-DNA. A protein is not offered as a template,
+Primers, CRISPR and Cloning tabs, the GC content track, sticky ends and
+dam/dcm methylation, and **Detect features**, whose parts are DNA. A protein is not offered as a template,
 insert or vector on the Bench. Typing takes residues only, and residues do
 not paste into DNA, nor bases into a protein: translate DNA first.
 
