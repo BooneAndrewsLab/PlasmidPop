@@ -5,7 +5,7 @@ import { IUPAC_SETS } from './codons';
 
 const BASE_BITS: Readonly<Record<string, number>> = { A: 1, C: 2, G: 4, T: 8 };
 
-export function codeMask(code: string): number {
+function lookupMask(code: string): number {
   let mask = 0;
   // Stryker disable next-line ArrayDeclaration: a fallback holding a non-base string adds no bits, the same as an empty one
   for (const b of IUPAC_SETS[code.toUpperCase()] ?? []) mask |= BASE_BITS[b] ?? 0;
@@ -13,7 +13,16 @@ export function codeMask(code: string): number {
 }
 
 /** `codeMask` of every ASCII character, by its code. */
-const ASCII_MASKS = Uint8Array.from({ length: 128 }, (_, c) => codeMask(String.fromCharCode(c)));
+const ASCII_MASKS = Uint8Array.from({ length: 128 }, (_, c) => lookupMask(String.fromCharCode(c)));
+
+/** The bases a code stands for, as a bitmask; a single ASCII character is a table lookup. */
+export function codeMask(code: string): number {
+  if (code.length === 1) {
+    const c = code.charCodeAt(0);
+    if (c < 128) return ASCII_MASKS[c] ?? 0;
+  }
+  return lookupMask(code);
+}
 
 /**
  * Bitmask per position of the sequence; unknown characters match nothing.

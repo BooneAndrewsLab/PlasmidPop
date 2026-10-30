@@ -1595,3 +1595,36 @@ which the Primers tab's designer gains too. What is left is `analyzePrimer`
 at about 45 µs a candidate and `pcr` at 4–5 ms a template at 3.5 kb; both
 grow with the product, so the design runs in the analysis worker
 (`checkPrimers` request) and the page says it is designing.
+
+## Designer after the free-energy checks (#352)
+
+The nearest-neighbour ΔG hairpin and dimer (item 124) and the `pcr`-rule
+specificity (#351) pushed four designer tests to 5-8 s on a CI runner.
+Profiled single-threaded (`node --cpu-prof`), the time was `dimerEnergy` and
+`loopEnergy` (one dimer per candidate pair), then `codeMask` under the
+specificity scans (`findPrimerBindingSites`, `pairsWithCode`), then
+`hairpinEnergy`. Three changes, none altering a result:
+
+- `hairpinEnergy` and `dimerEnergy` remember their answer by sequence (pair)
+  for the default parameters, bounded at 50,000 entries: a primer is asked
+  about in every pair it sits in, and a redesign asks the same pairs again
+  (the mutation test's reference listing and `designPrimers` share them).
+  The plain stack, the commonest loop, is inlined in both DPs.
+- `codeMask` of a single ASCII character is a table lookup (the table was
+  already there for `sequenceMasks`), which `pairsWithCode` hits per template
+  base.
+- `annealsElsewhere` builds the `AnnealIndex` once per template and gives it
+  to `findAnnealingSites`, rather than walking the whole template per primer.
+
+Node 24, this workstation at load 13-20 (noisy), each test alone, best-of and
+range of three runs, ms (limit 5000):
+
+| Test                                             | Before     | After     |
+| ------------------------------------------------ | ---------- | --------- |
+| `primerDesign.mutation` "matches a slow listing" | 906-1983   | 816-1235  |
+| `checkPrimers` "four-part Golden Gate: a pair"   | 1390-2460  | 1251-1419 |
+| `primerDesign` "refuses a primer ... elsewhere"  | 1545-1807  | 510-628   |
+| `PrimerWorkspace` "commits a typed number"       | ~1100-1200 | 926-2109  |
+
+The workspace test is jsdom and render, not the designer (about 0.2 s of its
+profile). What is left in `checkPrimers` is one `foldDimer` per rough pair.

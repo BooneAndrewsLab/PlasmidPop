@@ -2,7 +2,13 @@ import { type Strand } from '../features';
 import { type Range, type Topology, rangePieces } from '../range';
 import { reverseComplement } from '../sequence';
 import { IUPAC_SETS } from '../analysis/codons';
-import { cleanPrimer, findAnnealingSites, pairsWithCode } from './anneal';
+import {
+  type AnnealIndex,
+  buildAnnealIndex,
+  cleanPrimer,
+  findAnnealingSites,
+  pairsWithCode,
+} from './anneal';
 import { DEFAULT_PRIMER_CRITERIA, type PrimerCriteria } from './criteria';
 import {
   gcFraction,
@@ -242,6 +248,16 @@ const SHORTLIST = 40;
  */
 const MAX_SPECIFICITY_CHECKS = 400;
 
+/** The last template `annealsElsewhere` indexed: a design asks about hundreds of primers on one. */
+let indexed: AnnealIndex | null = null;
+
+function annealIndex(sequence: string, topology: Topology): AnnealIndex | null {
+  if (indexed?.sequence !== sequence || indexed.topology !== topology) {
+    indexed = buildAnnealIndex(sequence, topology);
+  }
+  return indexed;
+}
+
 /**
  * Whether a primer anneals anywhere but at `own` on `strand`: by the whole
  * -primer rule (`findPrimerBindingSites`) or by the rule `pcr` primes with
@@ -266,7 +282,7 @@ export function annealsElsewhere(
     (b) => b.strand !== strand || threePrime(b.range, b.strand) !== ownEnd,
   );
   if (wholeElsewhere) return true;
-  return findAnnealingSites(sequence, topology, primer).some(
+  return findAnnealingSites(sequence, topology, primer, {}, annealIndex(sequence, topology)).some(
     (b) => b.strand !== strand || threePrime(b.range, b.strand) !== ownEnd,
   );
 }

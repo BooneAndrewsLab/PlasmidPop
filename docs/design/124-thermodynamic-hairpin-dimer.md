@@ -147,6 +147,11 @@ clone-check designer use it, and `checkPrimers.test.ts` is back to asserting
 one band per pair. The warnings in the cloning-end designers (`notSpecific`)
 still count whole-annealing-part sites only; they are advice, not selection.
 
+## Speed (#352)
+
+The ΔG scans are memoised by sequence and the specificity scan indexes the
+template once; results are unchanged. Measurements in `docs/perf-notes.md`.
+
 ## Left open
 
 - #345 (Primer3's hairpin-Tm criterion) and #346 (ranking) stand.

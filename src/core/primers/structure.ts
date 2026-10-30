@@ -82,6 +82,25 @@ const LOOP_GROWTH = 1.75 * 0.001987 * BODY_TEMPERATURE;
 const MAX_LOOP = 4;
 const INF = 1e9;
 
+/**
+ * Answers remembered by sequence, for the default parameters: the designer
+ * asks again for a primer in every pair it sits in and for the same pair on
+ * every redesign (docs/perf-notes.md, item 124). Bounded, and dropped whole
+ * when full, since a session's working set is far smaller.
+ */
+const MEMO_LIMIT = 50_000;
+const HAIRPINS = new Map<string, number>();
+const DIMERS = new Map<string, number>();
+
+function remembered(memo: Map<string, number>, key: string, compute: () => number): number {
+  const seen = memo.get(key);
+  if (seen !== undefined) return seen;
+  const value = compute();
+  if (memo.size >= MEMO_LIMIT) memo.clear();
+  memo.set(key, value);
+  return value;
+}
+
 /** 0 A, 1 C, 2 G, 3 T, 4 anything else. */
 function codes(seq: string): Uint8Array {
   const out = new Uint8Array(seq.length);
@@ -202,6 +221,11 @@ export function hairpinEnergy(
   p: StructureParams = STRUCTURE_PARAMS,
   maxLoop = MAX_LOOP,
 ): number {
+  if (p !== STRUCTURE_PARAMS || maxLoop !== MAX_LOOP) return foldHairpin(sequence, p, maxLoop);
+  return remembered(HAIRPINS, sequence, () => foldHairpin(sequence, p, maxLoop));
+}
+
+function foldHairpin(sequence: string, p: StructureParams, maxLoop: number): number {
   const x = codes(sequence);
   const n = x.length;
   if (n < 6) return 0;
@@ -231,19 +255,22 @@ export function hairpinEnergy(
           const down = j - 1 - b;
           const inner = v[a * width + b] ?? INF;
           if (inner >= INF) continue;
+          const xa = x[a] ?? 4;
           const c =
             inner +
-            loopEnergy(
-              p,
-              xi,
-              x[a] ?? 4,
-              up,
-              down,
-              x[i + 1] ?? 4,
-              x[j - 1] ?? 4,
-              x[a - 1] ?? 4,
-              x[b + 1] ?? 4,
-            );
+            (up === 0 && down === 0
+              ? (STACK[xi * 4 + xa] ?? 0) + p.stackSalt
+              : loopEnergy(
+                  p,
+                  xi,
+                  xa,
+                  up,
+                  down,
+                  x[i + 1] ?? 4,
+                  x[j - 1] ?? 4,
+                  x[a - 1] ?? 4,
+                  x[b + 1] ?? 4,
+                ));
           if (c < e) e = c;
         }
       }
@@ -270,6 +297,11 @@ export function dimerEnergy(
   p: StructureParams = STRUCTURE_PARAMS,
   maxLoop = MAX_LOOP,
 ): number {
+  if (p !== STRUCTURE_PARAMS || maxLoop !== MAX_LOOP) return foldDimer(a, b, p, maxLoop);
+  return remembered(DIMERS, `${a}\n${b}`, () => foldDimer(a, b, p, maxLoop));
+}
+
+function foldDimer(a: string, b: string, p: StructureParams, maxLoop: number): number {
   const x = codes(a);
   // b read 3'→5', so that x[i] pairs with y[j] when they are complementary
   // and the helix runs through both with i and j increasing.
@@ -290,19 +322,23 @@ export function dimerEnergy(
         for (let pj = j - 1; pj >= 0 && pj >= j - 1 - maxLoop; pj--) {
           const prev = f[pi * m + pj] ?? INF;
           if (prev >= INF) continue;
+          const down = j - 1 - pj;
+          const xp = x[pi] ?? 4;
           const c =
             prev +
-            loopEnergy(
-              p,
-              x[pi] ?? 4,
-              xi,
-              up,
-              j - 1 - pj,
-              x[pi + 1] ?? 4,
-              y[pj + 1] ?? 4,
-              x[i - 1] ?? 4,
-              y[j - 1] ?? 4,
-            );
+            (up === 0 && down === 0
+              ? (STACK[xp * 4 + xi] ?? 0) + p.stackSalt
+              : loopEnergy(
+                  p,
+                  xp,
+                  xi,
+                  up,
+                  down,
+                  x[pi + 1] ?? 4,
+                  y[pj + 1] ?? 4,
+                  x[i - 1] ?? 4,
+                  y[j - 1] ?? 4,
+                ));
           if (c < e) e = c;
         }
       }
