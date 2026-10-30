@@ -555,3 +555,20 @@ plain` shortcut (`() => undefined`, `''`, `true`/`false`, `!==`). Each only
 through `scripts/with-tmp.mjs`, which gives each run its own
 `node_modules/.vitest-tmp/<pid>` as `TMPDIR`, removes it at exit and prunes
 those of dead processes at the next start.
+
+## Score and coverage floors (#334)
+
+The mutation score has a floor: `thresholds.break` in `stryker.config.json` is
+90, so `npm run mutate` exits non-zero below it. Only that pre-release run
+checks it; CI never runs Stryker. The last full run scored 95.0% over 81
+files. Equivalent survivors stay under the survivor policy above, so the floor
+sits below the score rather than at it.
+
+Coverage has a floor too: `test.coverage.thresholds` in `vite.config.ts`,
+statements 90, branches 82, functions 89, lines 92, each about 2 points under
+what `npm run test:coverage` measured on 2026-10-30 (92.8, 84.99, 91.86,
+94.66; the run had a few load-flaky timing tests failing, which can only
+understate it). A threshold fails only when coverage is on, so CI's Test step
+and `npm run check` run `test:coverage`; `npm test` stays without coverage for
+quick local runs. The floors are global, not per file. Raise them when coverage
+rises; lowering one needs a reason in the commit.

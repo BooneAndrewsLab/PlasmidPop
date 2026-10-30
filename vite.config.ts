@@ -322,6 +322,10 @@ export default defineConfig({
       reporter: ['text', 'html', 'lcov'],
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/**/*.{test,spec}.{ts,tsx}', 'src/test/**', 'src/main.tsx', 'src/**/*.d.ts'],
+      // Floors, about 2 points under the figures measured 2026-10-30
+      // (statements 92.8, branches 84.99, functions 91.86, lines 94.66). They
+      // only fail when coverage is on: CI and `npm run check`, not `npm test`.
+      thresholds: { statements: 90, branches: 82, functions: 89, lines: 92 },
     },
   },
 });

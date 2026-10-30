@@ -26,7 +26,7 @@
     "oracle:snapgene": "scripts/oracle/run.sh snapgene-local",
     "oracle:abif": "scripts/oracle/run.sh abif-local",
     "oracle:msa": "python3 scripts/oracle/msa.py",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test:coverage",
     "mutate": "node scripts/patch-stryker-vitest.mjs && PLASMIDPOP_MUTATION=1 node scripts/with-tmp.mjs stryker run",
     "mutate:changed": "node scripts/with-tmp.mjs node scripts/mutate-changed.mjs",
     "bench": "npm run build && node scripts/bench/open-scan.ts"
