@@ -7,6 +7,7 @@ import {
   type PrimerReport,
   analyzePrimer,
   candidatePenalty,
+  dimerEnergy,
   cleanPrimer,
   findAnnealingSites,
   findPrimerBindingSites,
@@ -309,6 +310,8 @@ export interface CheckPair {
   readonly productLength: number;
   readonly tmDifference: number;
   readonly crossDimer: number;
+  /** ΔG of the best dimer the two primers make, kcal/mol, 0 or less. */
+  readonly crossDimerDg: number;
   /** The designer's; lower is better. */
   readonly penalty: number;
   readonly bands: CheckBands;
@@ -419,6 +422,7 @@ interface Paired {
   readonly productLength: number;
   readonly tmDifference: number;
   readonly crossDimer: number;
+  readonly crossDimerDg: number;
   readonly penalty: number;
 }
 
@@ -526,10 +530,12 @@ function pairUp(
     if (seen.has(key)) continue;
     const crossDimer = dimer(p.forward.report.sequence, p.reverse.report.sequence);
     if (crossDimer > c.maxThreePrime) continue;
+    const crossDimerDg = dimerEnergy(p.forward.report.sequence, p.reverse.report.sequence);
+    if (crossDimerDg <= c.dimerDg) continue;
     if (fixed !== 'forward' && !specificity.specific(p.forward, 'forward')) continue;
     if (fixed !== 'reverse' && !specificity.specific(p.reverse, 'reverse')) continue;
     seen.add(key);
-    const full: Paired = { ...p, crossDimer, penalty: p.penalty + crossDimer * 0.3 };
+    const full: Paired = { ...p, crossDimer, crossDimerDg, penalty: p.penalty + crossDimer * 0.3 };
     const at = out.findIndex((q) => q.penalty > full.penalty);
     out.splice(at === -1 ? out.length : at, 0, full);
     if (out.length > maxPairs) out.pop();
@@ -675,6 +681,7 @@ export function designCheckPrimers(
       productLength: p.productLength,
       tmDifference: p.tmDifference,
       crossDimer: p.crossDimer,
+      crossDimerDg: p.crossDimerDg,
       penalty: p.penalty,
       bands,
       problems,

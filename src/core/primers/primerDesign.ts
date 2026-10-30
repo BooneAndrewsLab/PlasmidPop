@@ -6,12 +6,11 @@ import { cleanPrimer, pairsWithCode } from './anneal';
 import { DEFAULT_PRIMER_CRITERIA, type PrimerCriteria } from './criteria';
 import {
   gcFraction,
-  longestHairpinStem,
   longestHomopolymer,
-  maxSelfComplementarity,
   meltingTemperature,
   threePrimeComplementarity,
 } from './thermo';
+import { dimerEnergy, hairpinEnergy, selfDimerEnergy } from './structure';
 
 export interface PrimerReport {
   readonly sequence: string;
@@ -19,9 +18,10 @@ export interface PrimerReport {
   readonly tm: number;
   readonly gc: number;
   readonly homopolymer: number;
-  readonly selfComplementarity: number;
-  /** Longest stem it can fold into (`longestHairpinStem`). */
-  readonly hairpin: number;
+  /** ΔG of its best self-dimer, kcal/mol, 0 or less (`selfDimerEnergy`). */
+  readonly selfDimerDg: number;
+  /** ΔG of its best hairpin, kcal/mol, 0 or less (`hairpinEnergy`). */
+  readonly hairpinDg: number;
   /** Bases at its 3′ end that pair with itself (`threePrimeComplementarity`). */
   readonly threePrimeSelf: number;
   /** Ends in G or C (a "GC clamp"). */
@@ -56,6 +56,12 @@ function molecules(seq: string, limit: number): string[] | null {
     out = out.flatMap((prefix) => bases.map((b) => prefix + b));
   }
   return out;
+}
+
+/** A ΔG as the reports show it: one decimal, a true minus sign. */
+export function formatDg(x: number): string {
+  const r = Math.round(x * 10) / 10;
+  return r === 0 ? '0.0' : r.toFixed(1).replace('-', '−');
 }
 
 function pct(x: number): string {
@@ -97,8 +103,8 @@ export function analyzePrimer(
               .length / seq.length,
         };
   const homopolymer = longestHomopolymer(seq);
-  const selfComplementarity = maxSelfComplementarity(seq);
-  const hairpin = longestHairpinStem(seq);
+  const selfDimerDg = selfDimerEnergy(seq);
+  const hairpinDg = hairpinEnergy(seq);
   const threePrimeSelf = threePrimeComplementarity(seq, seq);
   const last = seq.charAt(seq.length - 1);
   // S is G or C, so a clamp whichever molecule of the mix it is.
@@ -127,10 +133,8 @@ export function analyzePrimer(
     warnings.push(`Part of the mix has GC content above ${pct(c.maxGc)}`);
   }
   if (homopolymer > c.maxHomopolymer) warnings.push(`Run of ${homopolymer} identical bases`);
-  if (hairpin > c.maxHairpin) warnings.push(`Hairpin with a ${hairpin} bp stem`);
-  if (selfComplementarity > c.maxSelfComplementarity) {
-    warnings.push(`Self-complementary stretch of ${selfComplementarity} bases`);
-  }
+  if (hairpinDg <= c.hairpinDg) warnings.push(`Hairpin, ΔG ${formatDg(hairpinDg)} kcal/mol`);
+  if (selfDimerDg <= c.dimerDg) warnings.push(`Self-dimer, ΔG ${formatDg(selfDimerDg)} kcal/mol`);
   if (threePrimeSelf > c.maxThreePrime) {
     warnings.push(`3′ end pairs with itself over ${threePrimeSelf} bases`);
   }
@@ -141,8 +145,8 @@ export function analyzePrimer(
     tm,
     gc,
     homopolymer,
-    selfComplementarity,
-    hairpin,
+    selfDimerDg,
+    hairpinDg,
     threePrimeSelf,
     gcClamp,
     degenerate,
@@ -167,6 +171,8 @@ export interface PrimerPair {
   readonly tmDifference: number;
   /** Longest stretch at either primer's 3′ end that pairs with the other one. */
   readonly crossDimer: number;
+  /** ΔG of the best dimer the two primers make, kcal/mol, 0 or less. */
+  readonly crossDimerDg: number;
   /** Lower is better. */
   readonly penalty: number;
 }
@@ -192,8 +198,8 @@ export function candidatePenalty(report: PrimerReport, c: PrimerCriteria): numbe
   if (Number.isNaN(report.tm) || report.tm < c.minTm || report.tm > c.maxTm) return null;
   if (report.gc < c.minGc || report.gc > c.maxGc) return null;
   if (report.homopolymer > c.maxHomopolymer) return null;
-  if (report.hairpin > c.maxHairpin) return null;
-  if (report.selfComplementarity > c.maxSelfComplementarity) return null;
+  if (report.hairpinDg <= c.hairpinDg) return null;
+  if (report.selfDimerDg <= c.dimerDg) return null;
   if (report.threePrimeSelf > c.maxThreePrime) return null;
   if (c.requireGcClamp && !report.gcClamp) return null;
   const idealTm = (c.minTm + c.maxTm) / 2;
@@ -202,11 +208,28 @@ export function candidatePenalty(report: PrimerReport, c: PrimerCriteria): numbe
   let penalty = Math.abs(report.tm - idealTm);
   penalty += Math.abs(report.gc - idealGc) * 10;
   if (!report.gcClamp) penalty += 1.5;
-  penalty += Math.max(0, report.selfComplementarity - 3) * 0.5;
-  penalty += Math.max(0, report.hairpin - 2) * 0.5;
+  // Half a point per kcal/mol of hairpin and a quarter per kcal/mol of
+  // self-dimer: a primer at its limit costs what a 4 bp stem (-2) or a
+  // 6 bp self-complementary stretch (-6) did under the stem heuristics.
+  penalty += -report.selfDimerDg * 0.25;
+  penalty += -report.hairpinDg * 0.5;
   penalty += report.threePrimeSelf * 0.3;
   penalty += Math.abs(report.length - idealLength) * 0.1;
   return penalty;
+}
+
+/**
+ * Whether a stretch already breaks Tm, GC or the base run, which is cheap to
+ * tell and rules most of a window out before the free-energy scans (item
+ * 123) are paid for. The same tests as `candidatePenalty`'s first lines.
+ */
+function failsBasics(bases: string, c: PrimerCriteria): boolean {
+  const seq = cleanPrimer(bases);
+  const gc = gcFraction(seq);
+  if (gc < c.minGc || gc > c.maxGc) return true;
+  if (longestHomopolymer(seq) > c.maxHomopolymer) return true;
+  const tm = meltingTemperature(seq);
+  return !(tm >= c.minTm && tm <= c.maxTm);
 }
 
 /** How many of each primer, best first, go on to be paired. */
@@ -284,7 +307,9 @@ export function designPrimers(
       const s = e - len;
       if (s < fLo || (!circular && s < 0)) break;
       const site = { start: norm(s), end: norm(s) + len };
-      const report = analyzePrimer(basesAt(text, site, L), c);
+      const bases = basesAt(text, site, L);
+      if (failsBasics(bases, c)) continue;
+      const report = analyzePrimer(bases, c);
       const penalty = candidatePenalty(report, c);
       if (penalty !== null) forwards.push({ report, site, penalty });
     }
@@ -299,7 +324,9 @@ export function designPrimers(
     for (let len = c.minLength; len <= c.maxLength; len++) {
       if (s + len > rHi || (!circular && s + len > L)) break;
       const site = { start: norm(s), end: norm(s) + len };
-      const report = analyzePrimer(reverseComplement(basesAt(text, site, L)), c);
+      const bases = reverseComplement(basesAt(text, site, L));
+      if (failsBasics(bases, c)) continue;
+      const report = analyzePrimer(bases, c);
       const penalty = candidatePenalty(report, c);
       if (penalty !== null) reverses.push({ report, site, penalty });
     }
@@ -325,6 +352,8 @@ export function designPrimers(
         threePrimeComplementarity(r.report.sequence, f.report.sequence),
       );
       if (crossDimer > c.maxThreePrime) continue;
+      const crossDimerDg = dimerEnergy(f.report.sequence, r.report.sequence);
+      if (crossDimerDg <= c.dimerDg) continue;
       pairs.push({
         forward: f.report,
         reverse: r.report,
@@ -333,6 +362,7 @@ export function designPrimers(
         productLength,
         tmDifference,
         crossDimer,
+        crossDimerDg,
         penalty: f.penalty + r.penalty + tmDifference + crossDimer * 0.3,
       });
     }
@@ -363,6 +393,8 @@ export interface AnchoredPair {
   readonly reverse: PrimerReport;
   readonly tmDifference: number;
   readonly crossDimer: number;
+  /** As `PrimerPair.crossDimerDg`. */
+  readonly crossDimerDg: number;
   /** As `PrimerPair.penalty`; meaningless when `withinCriteria` is false. */
   readonly penalty: number;
   /**
@@ -419,6 +451,8 @@ export function designAnchoredPrimers(
       if (tmDifference > c.maxTmDifference) continue;
       const crossDimer = dimer(f.report, r.report);
       if (crossDimer > c.maxThreePrime) continue;
+      const crossDimerDg = dimerEnergy(f.report.sequence, r.report.sequence);
+      if (crossDimerDg <= c.dimerDg) continue;
       const penalty = f.penalty + r.penalty + tmDifference + crossDimer * 0.3;
       if (best === null || penalty < best.penalty) {
         best = {
@@ -426,6 +460,7 @@ export function designAnchoredPrimers(
           reverse: r.report,
           tmDifference,
           crossDimer,
+          crossDimerDg,
           penalty,
           withinCriteria: true,
         };
@@ -455,6 +490,7 @@ export function designAnchoredPrimers(
     reverse,
     tmDifference: Math.abs(forward.tm - reverse.tm),
     crossDimer: dimer(forward, reverse),
+    crossDimerDg: dimerEnergy(forward.sequence, reverse.sequence),
     penalty: Infinity,
     withinCriteria: false,
   };

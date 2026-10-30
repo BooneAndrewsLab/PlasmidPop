@@ -93,7 +93,7 @@ describe('dimerEnergy', () => {
 
   it('agrees with Primer3 across the oracle within the measured error', () => {
     const self = errors(rows.map((r) => [selfDimerEnergy(r.seq), r.homodimer.dg]));
-    // Measured: mean 0.69, max 4.69 kcal/mol over 300 primers.
+    // Measured: mean 0.70, max 4.31 kcal/mol over 300 primers.
     expect(self.mean).toBeLessThan(0.8);
     expect(self.max).toBeLessThan(5);
     const pair = errors(pairs.map((p) => [dimerEnergy(p.a, p.b), p.dg]));

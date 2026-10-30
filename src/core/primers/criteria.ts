@@ -26,13 +26,21 @@ export interface PrimerCriteria {
   readonly reverseRegion: PrimerRegion;
   /** Longest run of one base allowed (`GGGG` is 4). */
   readonly maxHomopolymer: number;
-  /** Longest stem a primer may fold into (`longestHairpinStem`). */
-  readonly maxHairpin: number;
-  /** Longest self-complementary stretch anywhere (`maxSelfComplementarity`). */
-  readonly maxSelfComplementarity: number;
+  /**
+   * Hairpin free energy, kcal/mol (`hairpinEnergy`): a primer whose best
+   * hairpin is at or below this is refused. Less negative is more lenient.
+   */
+  readonly hairpinDg: number;
+  /**
+   * Dimer free energy, kcal/mol (`dimerEnergy`): a primer that pairs with
+   * itself, or a pair that pairs with each other, at or below this is refused.
+   */
+  readonly dimerDg: number;
   /**
    * Longest 3′-end complementarity, to itself and to the other primer of the
    * pair (`threePrimeComplementarity`): the dimer a polymerase can extend.
+   * Kept beside the free energy on purpose: a 3′ match of a few bases is
+   * extended whatever its ΔG, which a mid-primer dimer is not.
    */
   readonly maxThreePrime: number;
   /** Refuse a primer that does not end in G or C, rather than only preferring one. */
@@ -53,6 +61,16 @@ export interface PrimerRegion {
   readonly far: number;
 }
 
+/**
+ * The free-energy cutoffs, kcal/mol, at 37 °C, 50 mM Na+. A hairpin at or
+ * below -2 and a dimer at or below -6 are the conventional limits for a PCR
+ * primer (Primer3's own defaults for its hairpin and dimer checks are on the
+ * same scale, as ΔG at the annealing temperature), and the two that agreed
+ * best with Primer3's flags when swept (design notes 121 and 123).
+ */
+export const DEFAULT_HAIRPIN_DG = -2;
+export const DEFAULT_DIMER_DG = -6;
+
 export const DEFAULT_PRIMER_CRITERIA: PrimerCriteria = {
   minLength: 18,
   maxLength: 27,
@@ -64,8 +82,8 @@ export const DEFAULT_PRIMER_CRITERIA: PrimerCriteria = {
   forwardRegion: { near: 0, far: 200 },
   reverseRegion: { near: 0, far: 200 },
   maxHomopolymer: 4,
-  maxHairpin: 4,
-  maxSelfComplementarity: 6,
+  hairpinDg: DEFAULT_HAIRPIN_DG,
+  dimerDg: DEFAULT_DIMER_DG,
   maxThreePrime: 4,
   requireGcClamp: false,
   minProduct: 0,
@@ -132,8 +150,8 @@ export function normalizePrimerCriteria(input: unknown): PrimerCriteria {
     forwardRegion: region(r['forwardRegion'], d.forwardRegion),
     reverseRegion: region(r['reverseRegion'], d.reverseRegion),
     maxHomopolymer: num(r['maxHomopolymer'], d.maxHomopolymer, 1, lenHi),
-    maxHairpin: num(r['maxHairpin'], d.maxHairpin, 0, lenHi),
-    maxSelfComplementarity: num(r['maxSelfComplementarity'], d.maxSelfComplementarity, 0, lenHi),
+    hairpinDg: num(r['hairpinDg'], d.hairpinDg, -50, 0, false),
+    dimerDg: num(r['dimerDg'], d.dimerDg, -100, 0, false),
     maxThreePrime: num(r['maxThreePrime'], d.maxThreePrime, 0, lenHi),
     requireGcClamp:
       typeof r['requireGcClamp'] === 'boolean' ? r['requireGcClamp'] : d.requireGcClamp,

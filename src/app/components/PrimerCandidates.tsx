@@ -1,6 +1,6 @@
 import { type KeyboardEvent, useMemo, useRef, useState } from 'react';
 
-import { type PrimerPair, type PrimerReport, type Range, type SeqDocument } from '@/core';
+import { type PrimerPair, type PrimerReport, type Range, type SeqDocument, formatDg } from '@/core';
 
 import { copyText } from '../clipboard';
 import { PRIMER_BLAST_SENDS } from '../primerBlast';
@@ -139,6 +139,7 @@ function PairDetail({ doc, design, row, onSaid }: DetailProps) {
   const checks = useMemo(() => pairChecks(pair, doc), [pair, doc]);
   const product = productRange(pair, doc.length);
   const two = (a: number, b: number): string => `${a} · ${b}`;
+  const twoDg = (a: number, b: number): string => `${formatDg(a)} · ${formatDg(b)}`;
   return (
     <aside className="detail" aria-label={`Pair ${rank}`}>
       <div className="detail__head">
@@ -175,11 +176,14 @@ function PairDetail({ doc, design, row, onSaid }: DetailProps) {
         </tbody>
       </table>
       <div className="detail__checks">
-        <span data-tip="Longest hairpin stem, forward · reverse, bp">
-          hairpin {two(...checks.hairpin)}
+        <span data-tip="Free energy of the best hairpin, forward · reverse, kcal/mol; more negative is more stable">
+          hairpin ΔG {twoDg(...checks.hairpin)}
         </span>
-        <span data-tip="Longest self-complementary stretch, forward · reverse, bp">
-          self-dimer {two(...checks.selfDimer)}
+        <span data-tip="Free energy of the best self-dimer, forward · reverse, kcal/mol">
+          self-dimer ΔG {twoDg(...checks.selfDimer)}
+        </span>
+        <span data-tip="Free energy of the best dimer between the two primers, kcal/mol">
+          cross-dimer ΔG {formatDg(checks.crossDimerDg)}
         </span>
         <span data-tip="3′ end pairing with itself, forward · reverse, and between the two, bp">
           3′ dimer {two(...checks.threePrimeSelf)} · cross {checks.crossDimer}
@@ -371,7 +375,11 @@ export function PrimerCandidates({ doc, design, layout }: Props) {
         />
         {chip('closeTm', 'ΔTm ≤ 1', 'Pairs whose primers differ by 1 °C or less')}
         {chip('clampBoth', 'GC clamp both', 'Both primers end in G or C')}
-        {chip('noHairpin', 'No hairpin', 'Neither primer folds into a hairpin')}
+        {chip(
+          'noHairpin',
+          'No hairpin',
+          'Neither primer folds into a hairpin with a ΔG below −1 kcal/mol',
+        )}
         <span className="dnote" role="status">
           {visible.length} of {pairs.length}
         </span>

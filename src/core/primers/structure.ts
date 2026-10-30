@@ -79,7 +79,7 @@ const BODY_TEMPERATURE = 310.15;
 /** 1.75 RT at 37 °C: how a loop's cost grows with its size past the table. */
 const LOOP_GROWTH = 1.75 * 0.001987 * BODY_TEMPERATURE;
 /** Unpaired bases allowed on either side of an interior loop or bulge. */
-const MAX_LOOP = 6;
+const MAX_LOOP = 4;
 const INF = 1e9;
 
 /** 0 A, 1 C, 2 G, 3 T, 4 anything else. */

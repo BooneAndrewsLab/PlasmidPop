@@ -279,7 +279,7 @@ describe('primer settings', () => {
       'Save both',
       'Copy',
     ]);
-    expect(detail.getByText(/^hairpin \d · \d$/)).toBeInTheDocument();
+    expect(detail.getByText(/^hairpin ΔG [−\d.]+ · [−\d.]+$/)).toBeInTheDocument();
     expect(detail.getByText(/^elsewhere /)).toBeInTheDocument();
   });
 });
@@ -322,7 +322,7 @@ describe('checking a degenerate primer (#76)', () => {
       /^22 ntTm \d+\.\d °CGC \d+%(clamp)?$/,
     );
     expect(screen.queryByText(/mix of/)).toBeNull();
-    expect(screen.getByText(/^No hairpin|^Hairpin \d/)).toBeInTheDocument();
+    expect(screen.getByText(/^No hairpin|^Hairpin ΔG/)).toBeInTheDocument();
   });
 });
 

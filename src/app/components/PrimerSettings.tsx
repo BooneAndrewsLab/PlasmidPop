@@ -308,11 +308,13 @@ export function PrimerSettings({ criteria: c, cloning }: Props) {
         </span>
         <span className="panel__form-label">Hairpin</span>
         <span className="panel__form-range">
-          stem ≤ {field('maxHairpin', 'Longest hairpin stem')} bp
+          ΔG &gt; {field('hairpinDg', 'Weakest hairpin free energy refused, kcal/mol', 0.5)}{' '}
+          kcal/mol
         </span>
-        <span className="panel__form-label">Self-dimer</span>
+        <span className="panel__form-label">Dimer</span>
         <span className="panel__form-range">
-          ≤ {field('maxSelfComplementarity', 'Longest self-complementary stretch')} bp anywhere
+          ΔG &gt; {field('dimerDg', 'Weakest dimer free energy refused, kcal/mol', 0.5)} kcal/mol,
+          self or pair
         </span>
         <span className="panel__form-label">3′ dimer</span>
         <span className="panel__form-range">

@@ -109,6 +109,9 @@ export function rowMatches(row: ResultRow, query: string, seqLength: number): bo
   return row.pair.forward.sequence.includes(bases) || row.pair.reverse.sequence.includes(bases);
 }
 
+/** kcal/mol: a hairpin weaker than this does not count as one for the "No hairpin" filter. */
+export const NO_HAIRPIN_DG = -1;
+
 export function filterRows(
   rows: readonly ResultRow[],
   filter: ResultsFilter,
@@ -117,21 +120,28 @@ export function filterRows(
   return rows.filter(({ index, pair }) => {
     if (filter.closeTm && pair.tmDifference > 1) return false;
     if (filter.clampBoth && !(pair.forward.gcClamp && pair.reverse.gcClamp)) return false;
-    if (filter.noHairpin && (pair.forward.hairpin > 0 || pair.reverse.hairpin > 0)) return false;
+    if (
+      filter.noHairpin &&
+      (pair.forward.hairpinDg <= NO_HAIRPIN_DG || pair.reverse.hairpinDg <= NO_HAIRPIN_DG)
+    ) {
+      return false;
+    }
     return rowMatches({ index, pair }, filter.query, seqLength);
   });
 }
 
 /** The detail pane's checks for a pair, forward and reverse. */
 export interface PairChecks {
-  /** Longest hairpin stem, bp. */
+  /** ΔG of the best hairpin, kcal/mol. */
   readonly hairpin: readonly [number, number];
-  /** Longest self-complementary stretch, bp. */
+  /** ΔG of the best self-dimer, kcal/mol. */
   readonly selfDimer: readonly [number, number];
   /** Longest 3′-end pairing with itself, bp. */
   readonly threePrimeSelf: readonly [number, number];
   /** Longest 3′-end pairing between the two, bp. */
   readonly crossDimer: number;
+  /** ΔG of the best dimer between the two, kcal/mol. */
+  readonly crossDimerDg: number;
   /** Where else on the document each primer would also anneal (its own site not counted). */
   readonly elsewhere: readonly [number, number];
 }
@@ -141,10 +151,11 @@ export function pairChecks(pair: PrimerPair, doc: SeqDocument): PairChecks {
   const elsewhere = (primer: string): number =>
     Math.max(0, findPrimerBindingSites(template, doc.topology, primer).length - 1);
   return {
-    hairpin: [pair.forward.hairpin, pair.reverse.hairpin],
-    selfDimer: [pair.forward.selfComplementarity, pair.reverse.selfComplementarity],
+    hairpin: [pair.forward.hairpinDg, pair.reverse.hairpinDg],
+    selfDimer: [pair.forward.selfDimerDg, pair.reverse.selfDimerDg],
     threePrimeSelf: [pair.forward.threePrimeSelf, pair.reverse.threePrimeSelf],
     crossDimer: pair.crossDimer,
+    crossDimerDg: pair.crossDimerDg,
     elsewhere: [elsewhere(pair.forward.sequence), elsewhere(pair.reverse.sequence)],
   };
 }

@@ -24,8 +24,8 @@ function report(
     tm,
     gc,
     homopolymer: 2,
-    selfComplementarity: 3,
-    hairpin: 0,
+    selfDimerDg: 0,
+    hairpinDg: 0,
     threePrimeSelf: 1,
     gcClamp: /[GC]$/.test(sequence),
     degenerate: 0,
@@ -54,6 +54,7 @@ function pair(
     productLength: product,
     tmDifference: Math.abs(tmF - tmR),
     crossDimer: 2,
+    crossDimerDg: -1,
     penalty: 1,
     ...extra,
   };
@@ -119,7 +120,7 @@ describe('the Results table (item 107)', () => {
       {
         index: 3,
         pair: pair('ACGTACGTACGTACGTACGG', 'TTGCAAGGCCTTGGAACCTC', 400, 100, 60, 60, {
-          forward: report('ACGTACGTACGTACGTACGG', 60, 0.5, { hairpin: 4 }),
+          forward: report('ACGTACGTACGTACGTACGG', 60, 0.5, { hairpinDg: -2.5 }),
         }),
       },
     ];
@@ -142,6 +143,7 @@ describe('the Results table (item 107)', () => {
     expect(checks.elsewhere).toEqual([0, 0]);
     expect(checks.hairpin).toEqual([0, 0]);
     expect(checks.crossDimer).toBe(2);
+    expect(checks.crossDimerDg).toBe(-1);
     const twice = SeqDocument.create({ sequence: `${once.sequence.toString()}${site}` });
     expect(pairChecks(p, twice).elsewhere[0]).toBe(1);
   });

@@ -10,6 +10,7 @@ import {
   designPrimers,
   findPrimerBindingSites,
 } from './primerDesign';
+import { dimerEnergy } from './structure';
 import { threePrimeComplementarity } from './thermo';
 
 /**
@@ -42,8 +43,8 @@ function loose(): PrimerCriteria {
     maxGc: 1,
     maxTmDifference: 100,
     maxHomopolymer: 100,
-    maxHairpin: 100,
-    maxSelfComplementarity: 100,
+    hairpinDg: -100,
+    dimerDg: -100,
     maxThreePrime: 100,
     requireGcClamp: false,
     minProduct: 0,
@@ -60,8 +61,7 @@ describe('analyzePrimer at the edges of its criteria', () => {
       length: 20,
       gc: 0.55,
       homopolymer: 3,
-      selfComplementarity: 6,
-      hairpin: 2,
+      hairpinDg: 0,
       threePrimeSelf: 2,
       gcClamp: true,
       degenerate: 0,
@@ -70,6 +70,7 @@ describe('analyzePrimer at the edges of its criteria', () => {
       gcRange: { min: 0.55, max: 0.55 },
       warnings: [],
     });
+    expect(r.selfDimerDg).toBeCloseTo(-5.455, 2);
     expect(r.tm).toBeCloseTo(56.0156, 4);
     const onEveryBound = analyzePrimer(primer, {
       ...DEFAULT_PRIMER_CRITERIA,
@@ -80,8 +81,8 @@ describe('analyzePrimer at the edges of its criteria', () => {
       minGc: r.gc,
       maxGc: r.gc,
       maxHomopolymer: 3,
-      maxHairpin: 2,
-      maxSelfComplementarity: 6,
+      hairpinDg: r.hairpinDg - 0.001,
+      dimerDg: r.selfDimerDg - 0.001,
       maxThreePrime: 2,
     });
     expect(onEveryBound.warnings).toEqual([]);
@@ -94,8 +95,8 @@ describe('analyzePrimer at the edges of its criteria', () => {
       minTm: 57,
       minGc: 0.6,
       maxHomopolymer: 2,
-      maxHairpin: 1,
-      maxSelfComplementarity: 5,
+      hairpinDg: 0,
+      dimerDg: -3,
       maxThreePrime: 1,
     });
     expect(r.warnings).toEqual([
@@ -103,8 +104,8 @@ describe('analyzePrimer at the edges of its criteria', () => {
       'Tm below 57 °C',
       'GC content below 60%',
       'Run of 3 identical bases',
-      'Hairpin with a 2 bp stem',
-      'Self-complementary stretch of 6 bases',
+      'Hairpin, ΔG 0.0 kcal/mol',
+      'Self-dimer, ΔG −5.5 kcal/mol',
       '3′ end pairs with itself over 2 bases',
     ]);
   });
@@ -204,8 +205,8 @@ function primerPenalty(r: PrimerReport, c: PrimerCriteria): number {
     Math.abs(r.tm - (c.minTm + c.maxTm) / 2) +
     Math.abs(r.gc - (c.minGc + c.maxGc) / 2) * 10 +
     (r.gcClamp ? 0 : 1.5) +
-    Math.max(0, r.selfComplementarity - 3) * 0.5 +
-    Math.max(0, r.hairpin - 2) * 0.5 +
+    -r.selfDimerDg * 0.25 +
+    -r.hairpinDg * 0.5 +
     r.threePrimeSelf * 0.3 +
     Math.abs(r.length - idealLength) * 0.1
   );
@@ -219,8 +220,8 @@ function meets(r: PrimerReport, c: PrimerCriteria): boolean {
     r.gc >= c.minGc &&
     r.gc <= c.maxGc &&
     r.homopolymer <= c.maxHomopolymer &&
-    r.hairpin <= c.maxHairpin &&
-    r.selfComplementarity <= c.maxSelfComplementarity &&
+    r.hairpinDg > c.hairpinDg &&
+    r.selfDimerDg > c.dimerDg &&
     r.threePrimeSelf <= c.maxThreePrime &&
     (!c.requireGcClamp || r.gcClamp)
   );
@@ -301,6 +302,7 @@ function allPairs(
         threePrimeComplementarity(r.report.sequence, f.report.sequence),
       );
       if (crossDimer > c.maxThreePrime) continue;
+      if (dimerEnergy(f.report.sequence, r.report.sequence) <= c.dimerDg) continue;
       const penalty = f.penalty + r.penalty + tmDifference + crossDimer * 0.3;
       const key = `${f.site.start}-${r.site.end}`;
       const pair = { penalty, productLength, tmDifference, crossDimer };
@@ -374,8 +376,8 @@ describe('designPrimers against every pair its rules allow', () => {
         minGc: fc.constantFrom(0, 0.2, 0.3, 0.4),
         gcWidth: fc.constantFrom(0.2, 0.3, 0.4, 0.6, 1),
         maxHomopolymer: fc.oneof(fc.integer({ min: 3, max: 8 }), fc.constant(100)),
-        maxHairpin: fc.oneof(fc.integer({ min: 2, max: 10 }), fc.constant(100)),
-        maxSelfComplementarity: fc.oneof(fc.integer({ min: 4, max: 14 }), fc.constant(100)),
+        hairpinDg: fc.constantFrom(-0.5, -1, -2, -3, -100),
+        dimerDg: fc.constantFrom(-2, -4, -6, -100),
         maxThreePrime: fc.oneof(fc.integer({ min: 2, max: 25 }), fc.constant(100)),
         requireGcClamp: fc.boolean(),
         maxTmDifference: fc.oneof(fc.integer({ min: 2, max: 40 }), fc.constant(100)),
@@ -403,8 +405,8 @@ describe('designPrimers against every pair its rules allow', () => {
           forwardRegion: { near: s.fNear, far: s.fNear + minLength + s.fWidth },
           reverseRegion: { near: s.rNear, far: s.rNear + minLength + s.rWidth },
           maxHomopolymer: s.maxHomopolymer,
-          maxHairpin: s.maxHairpin,
-          maxSelfComplementarity: s.maxSelfComplementarity,
+          hairpinDg: s.hairpinDg,
+          dimerDg: s.dimerDg,
           maxThreePrime: s.maxThreePrime,
           requireGcClamp: s.requireGcClamp,
           maxTmDifference: s.maxTmDifference,
@@ -514,20 +516,20 @@ describe('designPrimers on the fixed template', () => {
     expect(pairs).toHaveLength(3);
     expect(pairs.map((p) => [p.forwardSite, p.reverseSite, p.productLength, p.crossDimer])).toEqual(
       [
-        [{ start: 57, end: 79 }, { start: 351, end: 373 }, 316, 2],
-        [{ start: 56, end: 79 }, { start: 351, end: 375 }, 319, 2],
-        [{ start: 88, end: 114 }, { start: 351, end: 375 }, 287, 3],
+        [{ start: 169, end: 194 }, { start: 351, end: 375 }, 206, 2],
+        [{ start: 169, end: 194 }, { start: 351, end: 373 }, 204, 2],
+        [{ start: 164, end: 189 }, { start: 442, end: 466 }, 302, 1],
       ],
     );
     expect(pairs.map((p) => p.penalty)).toEqual([
-      expect.closeTo(3.819201847907706, 9),
-      expect.closeTo(3.856521134770743, 9),
-      expect.closeTo(3.9026343004093635, 9),
+      expect.closeTo(4.396641800409364, 9),
+      expect.closeTo(4.469748806438231, 9),
+      expect.closeTo(4.4811224212682195, 9),
     ]);
     expect(pairs.map((p) => p.tmDifference)).toEqual([
-      expect.closeTo(0.26272037452315544, 9),
-      expect.closeTo(0.018247765006776717, 9),
-      expect.closeTo(0.10376395755417889, 9),
+      expect.closeTo(0.09071922425829371, 9),
+      expect.closeTo(0.10554245653798944, 9),
+      expect.closeTo(0.032833562476241696, 9),
     ]);
   });
 
@@ -546,8 +548,8 @@ describe('designPrimers on the fixed template', () => {
       minGc: Math.min(f.gc, r.gc),
       maxGc: Math.max(f.gc, r.gc),
       maxHomopolymer: Math.max(f.homopolymer, r.homopolymer),
-      maxHairpin: Math.max(f.hairpin, r.hairpin),
-      maxSelfComplementarity: Math.max(f.selfComplementarity, r.selfComplementarity),
+      hairpinDg: Math.min(f.hairpinDg, r.hairpinDg) - 0.001,
+      dimerDg: Math.min(f.selfDimerDg, r.selfDimerDg, best.crossDimerDg) - 0.001,
       maxThreePrime: Math.max(f.threePrimeSelf, r.threePrimeSelf, best.crossDimer),
       maxTmDifference: best.tmDifference,
       minProduct: best.productLength,

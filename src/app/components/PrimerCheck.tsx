@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { type PrimerReport, type SeqDocument } from '@/core';
+import { type PrimerReport, type SeqDocument, formatDg } from '@/core';
 
 import { addFeaturesAsOneStep } from '../state/featureSteps';
 import { savePrimers } from '../state/primerCollection';
@@ -89,10 +89,10 @@ export function PrimerCheck({ doc, probe }: Props) {
               ))}
               <li
                 className="warns__ok"
-                data-tip="Longest hairpin stem, self-complementary stretch and 3′-end self-pairing, bp"
+                data-tip="Free energy of the best hairpin and self-dimer, kcal/mol (more negative is more stable), and the 3′-end self-pairing, bp"
               >
-                {report.hairpin === 0 ? 'No hairpin' : `Hairpin ${report.hairpin} bp`}, self-dimer{' '}
-                {report.selfComplementarity} bp, 3′ dimer {report.threePrimeSelf} bp
+                {report.hairpinDg === 0 ? 'No hairpin' : `Hairpin ΔG ${formatDg(report.hairpinDg)}`}
+                , self-dimer ΔG {formatDg(report.selfDimerDg)}, 3′ dimer {report.threePrimeSelf} bp
               </li>
             </ul>
             <div className="actions">

@@ -6,6 +6,7 @@ import { randomDna, seededRandom } from '@/test/random';
 import { reverseComplement } from '../sequence';
 import { DEFAULT_PRIMER_CRITERIA, type PrimerCriteria } from './criteria';
 import { analyzePrimer, designAnchoredPrimers, type PrimerReport } from './primerDesign';
+import { dimerEnergy } from './structure';
 import { threePrimeComplementarity } from './thermo';
 
 /**
@@ -71,8 +72,8 @@ describe('designAnchoredPrimers', () => {
 function penaltyOf(r: PrimerReport, c: PrimerCriteria): number | null {
   if (Number.isNaN(r.tm) || r.tm < c.minTm || r.tm > c.maxTm) return null;
   if (r.gc < c.minGc || r.gc > c.maxGc) return null;
-  if (r.homopolymer > c.maxHomopolymer || r.hairpin > c.maxHairpin) return null;
-  if (r.selfComplementarity > c.maxSelfComplementarity) return null;
+  if (r.homopolymer > c.maxHomopolymer || r.hairpinDg <= c.hairpinDg) return null;
+  if (r.selfDimerDg <= c.dimerDg) return null;
   if (r.threePrimeSelf > c.maxThreePrime) return null;
   if (c.requireGcClamp && !r.gcClamp) return null;
   const idealLength = Math.min(c.maxLength, Math.max(c.minLength, 21));
@@ -80,8 +81,8 @@ function penaltyOf(r: PrimerReport, c: PrimerCriteria): number | null {
     Math.abs(r.tm - (c.minTm + c.maxTm) / 2) +
     Math.abs(r.gc - (c.minGc + c.maxGc) / 2) * 10 +
     (r.gcClamp ? 0 : 1.5) +
-    Math.max(0, r.selfComplementarity - 3) * 0.5 +
-    Math.max(0, r.hairpin - 2) * 0.5 +
+    -r.selfDimerDg * 0.25 +
+    -r.hairpinDg * 0.5 +
     r.threePrimeSelf * 0.3 +
     Math.abs(r.length - idealLength) * 0.1
   );
@@ -128,6 +129,7 @@ describe('designAnchoredPrimers against the slow way', () => {
             const diff = Math.abs(a.tm - b.tm);
             const dimer = dimerOf(a, b);
             if (diff > c.maxTmDifference || dimer > c.maxThreePrime) continue;
+            if (dimerEnergy(a.sequence, b.sequence) <= c.dimerDg) continue;
             const penalty = pa + pb + diff + dimer * 0.3;
             if (want === null || penalty < want.penalty) want = { f: a, r: b, penalty };
           }

@@ -137,26 +137,31 @@ describe('designPrimers with criteria', () => {
 
   it('refuses hairpins, dimers and missing clamps when told to', () => {
     const loose = designPrimers(seq, 'linear', target, {
-      maxHairpin: 60,
-      maxSelfComplementarity: 60,
+      hairpinDg: -100,
+      dimerDg: -100,
       maxThreePrime: 60,
       maxPairs: 50,
     });
     const strict = designPrimers(seq, 'linear', target, {
-      maxHairpin: 3,
+      hairpinDg: -0.5,
+      dimerDg: -4,
       maxThreePrime: 2,
       requireGcClamp: true,
       maxPairs: 50,
     });
     expect(strict.length).toBeGreaterThan(0);
-    expect(loose.some((p) => p.forward.hairpin > 3 || p.reverse.hairpin > 3)).toBe(true);
+    expect(loose.some((p) => p.forward.hairpinDg <= -0.5 || p.reverse.hairpinDg <= -0.5)).toBe(
+      true,
+    );
     for (const p of strict) {
       for (const r of [p.forward, p.reverse]) {
-        expect(r.hairpin).toBeLessThanOrEqual(3);
+        expect(r.hairpinDg).toBeGreaterThan(-0.5);
+        expect(r.selfDimerDg).toBeGreaterThan(-4);
         expect(r.threePrimeSelf).toBeLessThanOrEqual(2);
         expect(r.gcClamp).toBe(true);
       }
       expect(p.crossDimer).toBeLessThanOrEqual(2);
+      expect(p.crossDimerDg).toBeGreaterThan(-4);
     }
   });
 
@@ -201,7 +206,9 @@ describe('designPrimers with criteria', () => {
   it('judges a pasted primer by the same criteria', () => {
     const c = { ...DEFAULT_PRIMER_CRITERIA, minLength: 10, minGc: 0.2 };
     expect(analyzePrimer('ATATATATATAT', c).warnings).not.toContain('Shorter than 10 bases');
-    expect(analyzePrimer('GAATTCAAAAAAGAATTC').warnings.join()).toMatch(/Hairpin|Self/);
+    expect(analyzePrimer('GGATCCTTTTGGATCC', c).warnings.join()).toMatch(
+      /Hairpin, ΔG|Self-dimer, ΔG/,
+    );
   });
 });
 
