@@ -634,7 +634,7 @@ describe('designCheckPrimers: multi-part builds', () => {
       expect(p.bands.empty).toHaveLength(1);
       expect(p.bands.empty).not.toEqual(p.bands.clone);
     }
-  });
+  }, 30_000); // five junctions on a 3 kb product: about 1.3 s here, 7 s on a shared CI runner
 
   it('a Gateway LR clone: junction pairs are silent on the destination vector', () => {
     const dest = tut('GW-pDEST');
