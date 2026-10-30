@@ -82,3 +82,9 @@ commit.
 difference in ranking, not in acceptability: both programs agree on what an
 acceptable primer is (Tm and GC identical) and differ on which acceptable
 pair is best.
+
+## After item 124
+
+With the free-energy hairpin check, Primer3 accepts 181 of 200 selected pairs
+(90.5 %); 19 are refused, all for its hairpin-Tm criterion (#345). The top-pair
+overlaps are unchanged (#346). See item 124.

@@ -87,3 +87,12 @@ it.
 
 Not covered, as the issue also proposed: comparing the pairs the designer
 selects against Primer3's own design output on fixed templates.
+
+## Result of the fix
+
+Issues #339-#344 were fixed in 1.21.0 by replacing the length heuristics with
+a free-energy calculation (item 124). Same dataset and cutoffs, agreement
+with Primer3 after: hairpin 94.7 % (was 82.0), self-dimer 95.7 % (was 79.7),
+pair dimer 95.5 % (was 70.9). The gate now holds those floors and the
+disagreement counts in item 124. The tables above are the measurement that
+motivated the change.

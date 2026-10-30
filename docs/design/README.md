@@ -311,3 +311,5 @@ the Bench, item 49). The rest stand.
   it opens as a tab, which the tube already takes (item 36).
 
 123. [Sanger read assembly against a known construct](123-sanger-assembly-oracle.md)
+
+124. [Free-energy hairpin and dimer checks](124-thermodynamic-hairpin-dimer.md)
