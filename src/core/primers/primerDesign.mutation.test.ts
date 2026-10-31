@@ -434,9 +434,11 @@ describe('designPrimers against every pair its rules allow', () => {
       }),
       { numRuns: 600 },
     );
-    // Not a vacuous agreement on nothing.
-    expect(designed).toBeGreaterThan(80);
-  });
+    // Not a vacuous agreement on nothing. The count is random (about 80 to
+    // 100 of 600 here) and an earlier bound of 80 failed CI on a value of 80.
+    expect(designed).toBeGreaterThan(40);
+    // 600 runs of a slow listing: 4-5 s here, past 5 s on a CI runner.
+  }, 60_000);
 
   it('pairs primers that lie on top of each other, but not past each other', () => {
     const seq = template();
