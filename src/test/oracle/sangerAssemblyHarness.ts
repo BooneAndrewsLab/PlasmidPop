@@ -58,8 +58,12 @@ function must<T>(value: T | undefined): T {
 
 const align: AssemblyAlign = (a, b, options) => Promise.resolve(alignEitherStrand(a, b, options));
 
+/** Which of the four test files runs it: they are balanced to take about as long as each other. */
+type Group = 1 | 2 | 3 | 4;
+
 interface Scenario {
   readonly name: string;
+  readonly group: Group;
   readonly truth: string;
   /** Reads for replicate `rep`; the true layout is in their truth coordinates. */
   readonly reads: (rep: number, r: Rng) => readonly SimRead[];
@@ -254,9 +258,10 @@ const step = (from: number, to: number, by: number): number[] => {
   return out;
 };
 
-const scenarios: Scenario[] = [
+const scenarios: readonly Scenario[] = [
   {
     name: 'tiling, forward reads, clean',
+    group: 2,
     truth: CONSTRUCT,
     contigs: 1,
     checkOrder: true,
@@ -264,6 +269,7 @@ const scenarios: Scenario[] = [
   },
   {
     name: 'tiling, alternating strands, clean',
+    group: 3,
     truth: CONSTRUCT,
     contigs: 1,
     checkOrder: true,
@@ -271,6 +277,7 @@ const scenarios: Scenario[] = [
   },
   {
     name: 'tiling, alternating strands, noisy',
+    group: 3,
     truth: CONSTRUCT,
     contigs: 1,
     checkOrder: true,
@@ -278,6 +285,7 @@ const scenarios: Scenario[] = [
   },
   {
     name: 'tiling, alternating strands, noisy, thin overlaps',
+    group: 3,
     truth: CONSTRUCT,
     contigs: 1,
     checkOrder: true,
@@ -286,6 +294,7 @@ const scenarios: Scenario[] = [
   },
   {
     name: 'deep, 14 reads at jittered starts, both strands',
+    group: 1,
     truth: CONSTRUCT,
     contigs: 1,
     checkOrder: false,
@@ -309,6 +318,7 @@ const scenarios: Scenario[] = [
   },
   {
     name: 'homopolymer-rich construct, indel-heavy errors',
+    group: 4,
     truth: HOMO,
     contigs: 1,
     checkOrder: true,
@@ -316,6 +326,7 @@ const scenarios: Scenario[] = [
   },
   {
     name: 'repeat, dense spanning reads',
+    group: 2,
     truth: REPEATED,
     contigs: 1,
     checkOrder: true,
@@ -323,6 +334,7 @@ const scenarios: Scenario[] = [
   },
   {
     name: 'repeat, sparse spanning reads',
+    group: 4,
     truth: REPEATED,
     contigs: 1,
     checkOrder: true,
@@ -331,6 +343,7 @@ const scenarios: Scenario[] = [
   },
   {
     name: 'repeat, reads inside a copy plus flanking reads',
+    group: 4,
     truth: REPEATED,
     contigs: 1,
     checkOrder: false,
@@ -348,40 +361,28 @@ const scenarios: Scenario[] = [
   },
 ];
 
-describe('Sanger assembly against a known construct (simulated reads)', () => {
-  for (const sc of scenarios) {
-    it(
-      sc.name,
-      async () => {
-        const rows: Outcome[] = [];
-        for (let rep = 0; rep < REPLICATES; rep++) rows.push(await run(sc, rep));
-        const bad = rows.filter(
-          (o) =>
-            o.contigs !== sc.contigs ||
-            o.identity < GATE_IDENTITY ||
-            o.longestMissing >= COLLAPSE ||
-            o.orderOk === false ||
-            o.orientationOk === false,
-        );
-        // A known deviation may fail in at most the replicates recorded; anything else may not fail.
-        expect(bad.length).toBeLessThanOrEqual(sc.known?.reps ?? 0);
-        // A collapse is never silent (#347), and a layout the data settle has no warning.
-        const collapsed = rows.filter((o) => o.longestMissing >= COLLAPSE);
-        expect(collapsed.filter((o) => !o.warnings.includes('possible-repeat-collapse'))).toEqual(
-          [],
-        );
-        if (sc.ambiguous === undefined) expect(rows.flatMap((o) => o.warnings)).toEqual([]);
-        else expect(collapsed.length).toBeGreaterThan(0);
-      },
-      TIMEOUT,
-    );
-  }
-});
+// Real quality profiles (local files only) ----------------------------------
 
-afterAll(() => {
-  if (process.env['ORACLE_REPORT'] === undefined) return;
-  process.stdout.write(`\nREPORT ${JSON.stringify(report())}\n`);
-});
+const localDir = join(process.cwd(), 'fixtures', 'local', 'abif');
+const haveLocal = existsSync(localDir);
+const profiles: number[][] = [];
+const REAL_TRUTH = randomBases(2200, rng(341));
+
+const realScenario: Scenario = {
+  name: 'walking primers along a 2.2 kb insert, qualities of real reads',
+  group: 4,
+  truth: REAL_TRUTH,
+  contigs: 1,
+  checkOrder: true,
+  reads: (_, r) => {
+    const pick = () => must(profiles[Math.floor(r() * profiles.length)]);
+    // Forward primers every 500 bases, a reverse primer 700 bases on from each.
+    return [0, 500, 1000, 1500].flatMap((at, i) => [
+      simulateRead(`fwd${i}`, REAL_TRUTH, at, pick(), false, r),
+      simulateRead(`rev${i}`, REAL_TRUTH, Math.min(REAL_TRUTH.length, at + 700), pick(), true, r),
+    ]);
+  },
+};
 
 function report() {
   const perScenario = (haveLocal ? [...scenarios, realScenario] : scenarios).map((sc) => {
@@ -431,56 +432,74 @@ function report() {
   return { perScenario, calibration };
 }
 
-// Real quality profiles (local files only) ----------------------------------
-
-const localDir = join(process.cwd(), 'fixtures', 'local', 'abif');
-const haveLocal = existsSync(localDir);
-const profiles: number[][] = [];
-const REAL_TRUTH = randomBases(2200, rng(341));
-
-const realScenario: Scenario = {
-  name: 'walking primers along a 2.2 kb insert, qualities of real reads',
-  truth: REAL_TRUTH,
-  contigs: 1,
-  checkOrder: true,
-  reads: (_, r) => {
-    const pick = () => must(profiles[Math.floor(r() * profiles.length)]);
-    // Forward primers every 500 bases, a reverse primer 700 bases on from each.
-    return [0, 500, 1000, 1500].flatMap((at, i) => [
-      simulateRead(`fwd${i}`, REAL_TRUTH, at, pick(), false, r),
-      simulateRead(`rev${i}`, REAL_TRUTH, Math.min(REAL_TRUTH.length, at + 700), pick(), true, r),
-    ]);
-  },
-};
-
-describe.skipIf(!haveLocal)('Sanger assembly with qualities of real local AB1 reads', () => {
-  beforeAll(() => {
-    for (const f of readdirSync(localDir).filter((n) => n.endsWith('.ab1'))) {
-      const doc = parseAbif(new Uint8Array(readFileSync(join(localDir, f))), f).documents[0];
-      const q = [...(doc?.read?.qualities ?? [])];
-      const mean = q.reduce((a, b) => a + b, 0) / Math.max(1, q.length);
-      // A file with no qualities (all zero) says nothing about a profile.
-      if (q.length >= 400 && mean >= 10) profiles.push(q);
+export function defineSuite(group: Group): void {
+  describe(`Sanger assembly against a known construct (simulated reads), part ${group}`, () => {
+    for (const sc of scenarios.filter((s) => s.group === group)) {
+      it(
+        sc.name,
+        async () => {
+          const rows: Outcome[] = [];
+          for (let rep = 0; rep < REPLICATES; rep++) rows.push(await run(sc, rep));
+          const bad = rows.filter(
+            (o) =>
+              o.contigs !== sc.contigs ||
+              o.identity < GATE_IDENTITY ||
+              o.longestMissing >= COLLAPSE ||
+              o.orderOk === false ||
+              o.orientationOk === false,
+          );
+          // A known deviation may fail in at most the replicates recorded; anything else may not fail.
+          expect(bad.length).toBeLessThanOrEqual(sc.known?.reps ?? 0);
+          // A collapse is never silent (#347), and a layout the data settle has no warning.
+          const collapsed = rows.filter((o) => o.longestMissing >= COLLAPSE);
+          expect(collapsed.filter((o) => !o.warnings.includes('possible-repeat-collapse'))).toEqual(
+            [],
+          );
+          if (sc.ambiguous === undefined) expect(rows.flatMap((o) => o.warnings)).toEqual([]);
+          else expect(collapsed.length).toBeGreaterThan(0);
+        },
+        TIMEOUT,
+      );
     }
   });
 
-  it(
-    realScenario.name,
-    async () => {
-      expect(profiles.length).toBeGreaterThan(0);
-      const rows: Outcome[] = [];
-      for (let rep = 0; rep < REPLICATES; rep++) rows.push(await run(realScenario, rep));
-      const bad = rows.filter(
-        (o) =>
-          o.contigs !== 1 ||
-          o.identity < GATE_IDENTITY ||
-          o.longestMissing >= COLLAPSE ||
-          o.orderOk === false ||
-          o.orientationOk === false,
+  afterAll(() => {
+    if (process.env['ORACLE_REPORT'] === undefined) return;
+    process.stdout.write(`\nREPORT ${JSON.stringify(report())}\n`);
+  });
+
+  describe.skipIf(!haveLocal || group !== realScenario.group)(
+    'Sanger assembly with qualities of real local AB1 reads',
+    () => {
+      beforeAll(() => {
+        for (const f of readdirSync(localDir).filter((n) => n.endsWith('.ab1'))) {
+          const doc = parseAbif(new Uint8Array(readFileSync(join(localDir, f))), f).documents[0];
+          const q = [...(doc?.read?.qualities ?? [])];
+          const mean = q.reduce((a, b) => a + b, 0) / Math.max(1, q.length);
+          // A file with no qualities (all zero) says nothing about a profile.
+          if (q.length >= 400 && mean >= 10) profiles.push(q);
+        }
+      });
+
+      it(
+        realScenario.name,
+        async () => {
+          expect(profiles.length).toBeGreaterThan(0);
+          const rows: Outcome[] = [];
+          for (let rep = 0; rep < REPLICATES; rep++) rows.push(await run(realScenario, rep));
+          const bad = rows.filter(
+            (o) =>
+              o.contigs !== 1 ||
+              o.identity < GATE_IDENTITY ||
+              o.longestMissing >= COLLAPSE ||
+              o.orderOk === false ||
+              o.orientationOk === false,
+          );
+          expect(bad.length).toBeLessThanOrEqual(realScenario.known?.reps ?? 0);
+          expect(rows.flatMap((o) => o.warnings)).toEqual([]);
+        },
+        TIMEOUT,
       );
-      expect(bad.length).toBeLessThanOrEqual(realScenario.known?.reps ?? 0);
-      expect(rows.flatMap((o) => o.warnings)).toEqual([]);
     },
-    TIMEOUT,
   );
-});
+}

@@ -8,6 +8,7 @@ import {
 import { reverseComplement } from '../sequence/alphabet';
 
 import { type ColumnVote, callColumn } from './consensus';
+import { OverlapScreen } from './overlapBound';
 
 /**
  * Assembling Sanger reads into contigs with no reference (#208): greedy
@@ -799,7 +800,11 @@ export async function assembleReads(
       );
       if (ambiguous) layout.ambiguous.push(chosen.read.index);
       pool.splice(chosen.at, 1);
+      // A read that shares too little with the one just placed to hold any
+      // overlap is not aligned to it (`OverlapScreen`, exact; #353).
+      const joined = unrelated.size > 0 ? new OverlapScreen(chosen.read.bases) : null;
       for (const read of [...unrelated]) {
+        if (joined?.mayOverlap(read.bases, minOverlap, minIdentity) === false) continue;
         const hit = (await align(read.bases, chosen.read.bases, PLACEMENT_ALIGN)).alignment;
         const a = hit.identity < minIdentity ? core(hit, minIdentity) : hit;
         if (a !== null && a.endA - a.startA >= minOverlap && a.identity >= minIdentity) {

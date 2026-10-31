@@ -1637,3 +1637,42 @@ helix of lowest ΔG, so the fold costs about 20-25 % more (6,000 primers of
 primer) and is still memoised by sequence. The designer tests keep their
 times (`matches a slow listing` 950-970 ms, the four-part Golden Gate 860-920 ms,
 load average 5-7).
+
+## Read assembly (item 76, #353)
+
+After the best-overlap and repeat handling (#347-#350) assembly was about 2x
+slower. A CPU profile of 32 reads of a 5 kb region plus 8 unrelated reads put
+84 % in the affine alignment fill, and 650 of its ~900 calls were the check
+that a read left out of the rounds ("unrelated") still overlaps nothing, made
+against every read that joins: two full 700 x 700 fills (both strands, no
+shared words to band around, ~25 ns a cell on random sequence) per pair.
+`OverlapScreen` (`overlapBound.ts`) now answers that with a plain one-state
+local score (+1 a match, -2 for anything else), which is an upper bound on
+what an overlap of 25 columns at 90 % can score; a pair that falls short is
+not aligned. It is exact (a property test against the aligner is in
+`overlapBound.test.ts`), and contigs, layouts, consensus, qualities and
+warnings are identical on every oracle scenario and on the 32 + 8 case
+(compared as JSON before and after).
+
+Not worth it, measured: caching alignments between rounds (the consensus
+text differed in all but 8 of ~800 calls), a branch-free `fillBand` (slower
+under V8), a 6-mer diagonal filter (kept 45 % of unrelated pairs: at 90 %
+identity over 25 columns the q-gram bound is as weak as a 12-base chance
+run), screening `fitsElsewhere`'s spans (the 80 % floor leaves no bar above
+what random sequence reaches). What is left is one whole-consensus alignment
+per unplaced read per round, ~10 ms each, most of it the check region of a
+partial overlap.
+
+Node 24, this workstation at load 0.3-1.3, minimum of three runs:
+
+| Case                                           | Before               | After   |
+| ---------------------------------------------- | -------------------- | ------- |
+| 32 reads of 5 kb + 8 unrelated, one assembly   | 18.55 s              | 9.53 s  |
+| oracle "deep, 14 reads" scenario, 8 replicates | 14.04 s              | 11.03 s |
+| oracle file, serial (11 scenarios + the 32+8)  | 70.0 s               | 55.3 s  |
+| oracle as four parallel files, wall clock      | (single file, ~48 s) | 16.4 s  |
+
+On CI the oracle ran under coverage on a shared runner (291 s); it is now four
+files (`sangerAssembly1-4.test.ts` over `sangerAssemblyHarness.ts`) of about
+equal weight, so the runner's cores share it. Same scenarios, same 8
+replicates, same gates.

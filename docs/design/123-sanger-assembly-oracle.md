@@ -7,10 +7,10 @@ qualities, over layouts that include repeats and noisy ends, and whether the
 reported consensus qualities mean what they say.
 
 Code: `src/test/oracle/sangerSim.ts` (the simulator), `src/test/oracle/
-sangerAssembly.test.ts` (scenarios, gate, report). No data file is committed
+sangerAssemblyHarness.ts` (scenarios, gate, report; run by `sangerAssembly1-4.test.ts`, #353). No data file is committed
 and no reference assembler was used: the truth is the construct the reads
 were cut from, so the comparison is exact. `ORACLE_REPORT=1 npx vitest run
-src/test/oracle/sangerAssembly.test.ts` prints the report below as JSON.
+src/test/oracle/sangerAssembly` prints the report below as JSON.
 
 ## Simulated reads are less realistic than real ones
 
@@ -329,3 +329,17 @@ Q20 or more, so a gap whose neighbours are Q25 or worse is no longer one
   the homopolymer test above.
 - `sangerAssembly.test.ts`: the comment names what is left of #349 and that
   #350 is fixed; the counts are unchanged (thin overlaps 1).
+
+## Speed (#353)
+
+Assembly got about 2x slower with #347-#350 and the oracle took 291 s on a CI
+runner (under coverage). Most of the time was the "unrelated" recheck (every
+read left out of the rounds aligned to each read that joins), now screened by
+an exact bound (`overlapBound.ts`, numbers in `docs/perf-notes.md`): the 32 + 8
+reads case went from 18.6 s to 9.5 s with identical output on every oracle
+scenario. The oracle is split into four test files (`sangerAssembly1-4.test.ts`,
+shared code in `sangerAssemblyHarness.ts`, each scenario has a `group`) so
+vitest runs them in parallel: 16 s wall locally against ~48 s. Nothing was
+trimmed: 8 replicates everywhere, no `CI` switch. `ORACLE_REPORT=1` prints one
+report per file now (each covers its own scenarios). No aligner-call-order test
+changed.
