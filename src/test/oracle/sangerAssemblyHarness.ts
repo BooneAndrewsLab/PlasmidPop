@@ -49,7 +49,8 @@ const GATE_IDENTITY = 0.995;
 const REPLICATES = 8;
 /** A stretch of the truth this long missing from the consensus is a collapse, not an error. */
 const COLLAPSE = 20;
-const TIMEOUT = 120_000;
+// The deep scenario is about 11 s here and ran past 120 s under coverage on a shared CI runner.
+const TIMEOUT = 360_000;
 
 function must<T>(value: T | undefined): T {
   if (value === undefined) throw new Error('missing element');
