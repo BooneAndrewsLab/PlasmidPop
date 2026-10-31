@@ -725,13 +725,56 @@ function prepare(
   return { prepared, skipped };
 }
 
+/**
+ * How many times the trim's error rate the second pass allows (#349), and the
+ * most it reaches. A true overlap between two noisy reads often lies in the
+ * tails the trim took off: at Q13 the trimmed ends of adjacent reads can stop
+ * 34 bases apart, or share fewer than 25, with nothing for any identity rule
+ * to join. Keeping the tails for every read costs the consensus its quality
+ * at the contig ends, so the tails are kept only when the trimmed reads
+ * leave more than one contig. Over 200 thin-overlap replicates, trimming at
+ * 0.1 and 0.2 left 1 split each; 0.4 left 3.
+ */
+const TAIL_FACTOR = 2;
+const TAIL_CEILING = 0.2;
+
+/**
+ * Assembles the reads trimmed at `trimCutoff`. When that leaves more than one
+ * contig, the reads are assembled again with the tails of their poor ends
+ * kept (twice the error rate), and that is the result if it has fewer
+ * contigs: whatever joined before still joins, since a longer read only adds
+ * to the overlap it had, and the rule for what is an overlap is the same.
+ * Consensus calls are weighted by quality, so a kept tail base only decides
+ * a column nothing better covers.
+ */
 export async function assembleReads(
   reads: readonly AssemblyRead[],
   options: AssemblyOptions,
 ): Promise<Assembly> {
+  const { trimCutoff = TRIM_CUTOFF } = options;
+  const first = await assembleWith(reads, options, trimCutoff);
+  if (
+    trimCutoff === null ||
+    first.contigs.length < 2 ||
+    !first.hasQualities ||
+    trimCutoff >= TAIL_CEILING
+  ) {
+    return first;
+  }
+  const looser = Math.min(TAIL_CEILING, trimCutoff * TAIL_FACTOR);
+  // Not reported as progress: the first pass already reached the end of the bar.
+  const { onProgress: _quiet, ...quiet } = options;
+  const second = await assembleWith(reads, quiet, looser);
+  return second.contigs.length < first.contigs.length ? second : first;
+}
+
+async function assembleWith(
+  reads: readonly AssemblyRead[],
+  options: AssemblyOptions,
+  trimCutoff: number | null,
+): Promise<Assembly> {
   const {
     align,
-    trimCutoff = TRIM_CUTOFF,
     minOverlap = 25,
     minIdentity = 0.9,
     confidentFrom = CONFIDENT_QUALITY,

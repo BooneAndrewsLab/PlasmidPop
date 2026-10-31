@@ -330,6 +330,59 @@ Q20 or more, so a gap whose neighbours are Q25 or worse is no longer one
 - `sangerAssembly.test.ts`: the comment names what is left of #349 and that
   #350 is fixed; the counts are unchanged (thin overlaps 1).
 
+## Keeping the trimmed tails (#349, fourth part)
+
+Maintainer decision 2026-10-30: keep more of the trimmed tails. Code:
+`assembleReads` in `src/core/assembly/assemble.ts` (now a wrapper over
+`assembleWith`).
+
+**Method.** Trim as before and assemble. If that gives more than one contig
+(and the reads have qualities and a trim), assemble again with the trim at
+`TAIL_FACTOR` (2) times its error rate, at most `TAIL_CEILING` (0.2), and keep
+the second result if it has fewer contigs. The overlap rules, the quality
+explanation and the quality-weighted consensus are untouched, so a kept tail
+base is called at the quality it states and cannot outvote a better base.
+Every input that already assembled to one contig gives the same output as
+before, bit for bit; only inputs left in pieces cost a second pass.
+`overlapBound.ts` needed no change: it bounds what is screened, which is
+still the bases of the reads handed to the aligner, whatever the trim; its
+exactness argument does not mention the trim.
+
+**Why not a per-read window.** Extending only the read being placed does not
+help when both ends are poor: the contig's own end is trimmed too. The
+tried alternative was a looser trim everywhere. Sweeping 200 thin-overlap
+replicates (my own seeds, so the baseline is 10 of 200, not the 7 recorded
+above) at trim 0.05 (default), 0.1, 0.2, 0.4 left 10, 1, 1 and 3 splits. A
+looser default would move the ends of every contig into poor sequence and
+changes the setting the user chose; the second pass spends that only where
+the first left pieces.
+
+| 200 thin-overlap replicates | splits | wall (sweep) |
+| --------------------------- | ------ | ------------ |
+| Before (trim 0.05)          | 10     | 84 s         |
+| After (two passes)          | 0      | 89 s         |
+
+False joins: 600 pairs of unrelated 900-base reads (GC 30, 50, 65 %; Q-profiles
+NOISY, plateau Q20, plateau Q14 with 400-base tails; either strand) gave 0
+joins after the change. The oracle gates are unchanged and pass: the thin-
+overlap scenario's allowance (`known`, 1 of 8) is removed, so it must now be
+8 of 8; repeat scenarios (dense 8/8, sparse 1 contig 8/8, collapsed flagged
+8/8) pass as before. The oracle files took 24.6 s wall now against 23.5 s
+before on a loaded machine.
+
+**Not fixed:** the alignment that stops 9 bases short of a read's end and the
+true 25-base overlap placed elsewhere were not among the sweep's failures
+after the change (the sweep's own seeds did not produce them), so they were
+neither reproduced nor changed.
+
+### Tests
+
+`assemble.test.ts` ("overlaps in the tails the trim took off"): a join whose
+only overlap is in Q12 tails; the same with the trim off or at 0.1; the
+consensus keeps a Q40 base against a Q12 base that disagrees; unrelated reads
+with poor ends stay apart and keep the stricter trim; reads whose tails state
+Q12 but share nothing stay apart.
+
 ## Speed (#353)
 
 Assembly got about 2x slower with #347-#350 and the oracle took 291 s on a CI

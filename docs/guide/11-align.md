@@ -135,6 +135,13 @@ ends); of the reads that fit, the one with the best overlap goes first. A read m
 strand: those turned over to fit are paler in the layout. Reads that join
 nothing start contigs of their own, listed in the **Contig** picker, biggest
 first. A read with nothing left after trimming is counted as **left out**.
+When the trimmed reads leave more than one contig, the reads are assembled
+once more keeping more of their poor ends (twice the error rate **Trim at**
+sets, at most 20%), because two reads whose only overlap lies in the ends the
+trim took off cannot join otherwise; that result is used if it has fewer
+contigs. Such bases are called at the quality they state, so a poor end never
+outvotes a good base of another read, but the contig's ends may then run
+further into poor sequence: look at the qualities there.
 
 The **Assembly** group shows the picked contig: its length, depth, a
 layout with a bar for each read and a red mark at each disagreement, and the
@@ -189,9 +196,10 @@ and with four reads that each span a copy. When all the reads that touch a
 repeat lie inside it (a read from the start and one from the far end, plus two
 reads wholly in a copy) the contig joins the copies and is about 1,050 bp where the construct is
 2,100: that came out in all 8 replicates, each with the possible-collapse warning. Reads whose
-trimmed ends no longer overlap, or only briefly, in poor-quality ends do not
-join (1 of 8 simulated replicates with 400 bp spacing gave two contigs, the
-trimmed reads sharing no bases; 7 of 200 in a larger run). **The consensus qualities are a model, not calibrated
+overlap lies in poor-quality ends the trim took off join through the second
+pass described above (with 400 bp spacing, 0 of 200 simulated replicates gave
+two contigs, against 10 of 200 with the trimmed reads alone; 0 of 600 pairs of unrelated
+reads with poor ends joined). **The consensus qualities are a model, not calibrated
 measurements:** on simulated reads whose errors follow their qualities, a
 reported Q10 to Q29 base was wrong somewhat less often than stated, and
 where only one read covers a base the quality is just that read's. Check

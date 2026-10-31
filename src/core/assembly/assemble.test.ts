@@ -1251,4 +1251,116 @@ describe('repeats', () => {
     },
     TIMEOUT,
   );
+  describe('overlaps in the tails the trim took off (#349)', () => {
+    /** Read `[start, end)` of GENOME at Q40, with `[poor, end)` at Q12 and the bases at `flips` changed. */
+    function noisy(
+      name: string,
+      start: number,
+      end: number,
+      poor: [number, number],
+      flips: readonly number[],
+    ): AssemblyRead {
+      const bases = Array.from(GENOME.slice(start, end));
+      for (const g of flips) {
+        const k = g - start;
+        bases[k] = bases[k] === 'A' ? 'C' : 'A';
+      }
+      return {
+        name,
+        sequence: bases.join(''),
+        qualities: Array.from({ length: end - start }, (_, k) =>
+          start + k >= poor[0] && start + k < poor[1] ? 12 : 40,
+        ),
+      };
+    }
+
+    // A's last 60 bases and B's first 60 are Q12 (the trim takes them off at
+    // Q13) and each has a few of the errors that quality states; they
+    // overlap over 230-300, and the trimmed reads (0-240 and 290-550) do not.
+    const a = noisy('a', 0, 300, [240, 300], [262, 281]);
+    const b = noisy('b', 230, 550, [230, 290], [233, 245, 270]);
+
+    it(
+      'joins two reads whose only overlap lies in the poor ends',
+      async () => {
+        const out = await assembleReads([a, b], { align });
+        expect(out.contigs).toHaveLength(1);
+        expect(out.contigs[0]?.reads.map((r) => r.name).sort()).toEqual(['a', 'b']);
+        // The stretch is the whole of both reads' good parts at least.
+        expect(out.contigs[0]?.consensus.length).toBeGreaterThanOrEqual(540);
+        expect(out.contigs[0]?.consensus.length).toBeLessThanOrEqual(552);
+      },
+      TIMEOUT,
+    );
+
+    it(
+      'joins them as well with the trim switched off or already loose',
+      async () => {
+        // Nothing is trimmed, so the tails are in the one pass.
+        const none = await assembleReads([a, b], { align, trimCutoff: null });
+        expect(none.contigs).toHaveLength(1);
+        // At Q10 (0.1) the tails are kept in the first pass already.
+        const loose = await assembleReads([a, b], { align, trimCutoff: 0.1 });
+        expect(loose.contigs).toHaveLength(1);
+      },
+      TIMEOUT,
+    );
+
+    it(
+      'does not let a poor tail base outvote a good base of the other read',
+      async () => {
+        const out = await assembleReads([a, b], { align });
+        const c = out.contigs[0];
+        expect(c).toBeDefined();
+        if (c === undefined) return;
+        // Where one read is Q40 the consensus is the truth: the whole start, the whole end and the
+        // base B got wrong at 233, which A has at Q40.
+        const truthAt = (from: number, to: number): string => GENOME.slice(from, to);
+        const cons = c.consensus;
+        const forward = cons.startsWith(truthAt(0, 20));
+        const text = forward ? cons : reverseComplement(cons);
+        expect(text.slice(0, 240)).toBe(truthAt(0, 240));
+        expect(text.slice(text.length - 250)).toBe(truthAt(300, 550));
+        expect(text.charAt(233)).toBe(GENOME.charAt(233));
+        // The tails' own errors are flagged as low quality, not called confidently.
+        for (const q of c.qualities.slice(245, 285)) expect(q).toBeLessThan(40);
+      },
+      TIMEOUT,
+    );
+
+    it(
+      'keeps unrelated reads with poor ends apart, and trims them as before',
+      async () => {
+        const other = randomBases(600, 777);
+        const x = a;
+        const y: AssemblyRead = {
+          name: 'y',
+          sequence: other.slice(230, 550),
+          qualities: Array.from({ length: 320 }, (_, k) => (k < 60 ? 12 : 40)),
+        };
+        const out = await assembleReads([x, y], { align });
+        expect(out.contigs).toHaveLength(2);
+        // The second pass was not taken: both reads keep the stricter trim.
+        const trimmedA = out.contigs.flatMap((c) => c.reads).find((r) => r.name === 'a');
+        expect(trimmedA?.trimmed.end).toBeLessThan(260);
+      },
+      TIMEOUT,
+    );
+
+    it(
+      'does not join reads whose tails agree no better than chance, whatever qualities they state',
+      async () => {
+        // The tails claim Q12 but share nothing: the same stretch, scrambled.
+        const scrambled = randomBases(70, 4242);
+        const junkB: AssemblyRead = {
+          name: 'b',
+          sequence: scrambled + GENOME.slice(300, 550),
+          qualities: Array.from({ length: 320 }, (_, k) => (k < 60 ? 12 : 40)),
+        };
+        const out = await assembleReads([a, junkB], { align });
+        expect(out.contigs).toHaveLength(2);
+      },
+      TIMEOUT,
+    );
+  });
 });

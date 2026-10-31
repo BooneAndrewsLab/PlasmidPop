@@ -62,3 +62,10 @@ as bars, not bases, and no trace view of a read that is not the document);
 bases only a minority of reads have, in columns the consensus drops, are not
 shown in the stack; no repeat resolution (a possible repeat is warned of, item 123) or paired ends; no quality-weighted
 choice among several contigs a read fits. Each is an issue if users ask.
+
+**Tails kept when it helps (#349, item 123).** Reads are trimmed as above, and
+when that leaves more than one contig the assembly runs again at twice the
+trim's error rate (at most 0.2) and keeps that result if it has fewer contigs.
+The first pass is unchanged, so anything that joined still does; the overlap
+rules (25 bases, 90 %, or 80 % where the stated qualities explain the
+differences) are the same.
