@@ -38,10 +38,14 @@ function overlaps(a: string, b: string, minOverlap: number, minIdentity: number)
 }
 
 describe('OverlapScreen (#353)', () => {
+  // 100 real alignments; a mutation run's instrumented code is about 150 times
+  // slower and runs this for every mutant, so it takes 10 there.
+  const TRIALS = process.env['PLASMIDPOP_MUTATION'] === '1' ? 10 : 100;
+
   it('never refuses a pair that has an overlap, on either strand, at any error rate', () => {
     const r = rng(353);
     let overlapping = 0;
-    for (let t = 0; t < 100; t++) {
+    for (let t = 0; t < TRIALS; t++) {
       const left = bases(300 + Math.floor(r() * 300), r);
       const shared = bases(20 + Math.floor(r() * 150), r);
       const right = bases(300 + Math.floor(r() * 300), r);
@@ -54,7 +58,7 @@ describe('OverlapScreen (#353)', () => {
       expect(new OverlapScreen(b).mayOverlap(a, 25, 0.9)).toBe(true);
     }
     // The generator has to produce overlaps for this to say anything.
-    expect(overlapping).toBeGreaterThan(30);
+    expect(overlapping).toBeGreaterThan(TRIALS * 0.3);
     // 100 real alignments: about 1.4 s here, over 5 s under coverage on a shared CI runner.
   }, 60_000);
 

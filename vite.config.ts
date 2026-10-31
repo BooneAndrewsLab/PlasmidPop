@@ -48,6 +48,12 @@ const DOM_TESTS = ALL_TESTS.filter((f) =>
 // mutated files are mostly not UI.
 const UNIT_ONLY = process.env['PLASMIDPOP_MUTATION_UNIT'] === '1';
 
+// The Sanger assembly oracle (#335) runs about 20 s here and 5-11 minutes in
+// an instrumented sandbox, per file; perTest coverage would run it for every
+// mutant of the assembler. A mutation run leaves it out; the assembler's unit
+// tests (assemble.test.ts and the rest) are what kills its mutants.
+const MUTATION_SKIP = ['src/test/oracle/sangerAssembly[0-9]*.test.ts'];
+
 const ISOLATED_TESTS = ALL_TESTS.filter((f) => {
   const text = readFileSync(f, 'utf8');
   return text.includes('vi.mock(') || text.includes('@vitest-environment jsdom');
@@ -297,7 +303,7 @@ export default defineConfig({
               test: {
                 name: 'shared',
                 include: TESTS,
-                exclude: [...ISOLATED_TESTS, ...(UNIT_ONLY ? DOM_TESTS : [])],
+                exclude: [...ISOLATED_TESTS, ...MUTATION_SKIP, ...(UNIT_ONLY ? DOM_TESTS : [])],
                 isolate: false,
               },
             },
