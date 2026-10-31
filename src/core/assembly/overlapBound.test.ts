@@ -55,7 +55,8 @@ describe('OverlapScreen (#353)', () => {
     }
     // The generator has to produce overlaps for this to say anything.
     expect(overlapping).toBeGreaterThan(30);
-  });
+    // 100 real alignments: about 1.4 s here, over 5 s under coverage on a shared CI runner.
+  }, 60_000);
 
   it('keeps a pair with the shortest overlap allowed, two substitutions in 25 columns', () => {
     const r = rng(7);
