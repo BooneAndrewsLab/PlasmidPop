@@ -7,7 +7,8 @@
  * and Hicks 2004 loop initiations; terminal mismatches and dangling ends),
  * written for one temperature and with the loop terms reduced from Primer3's
  * per-nucleotide tables to a handful of scalars, so it is ours, small and
- * fast. Wobble (G·T) pairs, the special tri- and tetraloop bonuses and
+ * fast. The special tri- and tetraloop increments are the paper's
+ * (`hairpinLoops.ts`). Wobble (G·T) pairs and
  * multibranch structures are left out, as they are in `thal`'s duplex
  * search. The scalars were fitted to Primer3's output (see item 123 for
  * how well they agree).
@@ -15,6 +16,7 @@
  * Energies are never positive: a structure that costs more than it gives is
  * not formed, and the answer is 0.
  */
+import { TETRALOOP_BONUS, TRILOOP_BONUS, type LoopBonus } from './hairpinLoops';
 import { NN_PARAMS, threePrimeComplementarity } from './thermo';
 
 /** Free energy, kcal/mol, of a thermodynamic term. */
@@ -35,7 +37,17 @@ export interface StructureParams {
   readonly hairpinLoop: readonly (readonly [number, number])[];
   /** Added to a loop of three closed by an A·T pair (their Equation 8, p. 428). */
   readonly triloopAtClose: number;
-  /** Terminal mismatch beside a hairpin loop, by the closing pair. */
+  /**
+   * Sequence-specific increments [ΔG, ΔH] of loops of three and four bases,
+   * by the loop with its closing pair (their Equations 8 and 9, Supplementary
+   * Table S1; see `hairpinLoops.ts`).
+   */
+  readonly triloops: Readonly<Record<string, LoopBonus>>;
+  readonly tetraloops: Readonly<Record<string, LoopBonus>>;
+  /**
+   * Terminal mismatch beside a hairpin loop, by the closing pair. Not in the
+   * paper (Equations 9 and 10 cite an unpublished table): fitted to Primer3.
+   */
   readonly hairpinMismatchGc: number;
   readonly hairpinMismatchAt: number;
   /** Bulge of 1..10 bases (index 0 is size 1). */
@@ -113,6 +125,8 @@ export const STRUCTURE_PARAMS: StructureParams = {
     [30, 6.3],
   ],
   triloopAtClose: 0.5,
+  triloops: TRILOOP_BONUS,
+  tetraloops: TETRALOOP_BONUS,
   hairpinMismatchGc: -0.8,
   hairpinMismatchAt: -0.6,
   bulge: [3.8, 3.5, 3.7, 3.7, 4.0, 4.2, 4.6, 4.7, 4.8, 4.9],
@@ -366,6 +380,7 @@ function foldHairpin(
 ): readonly [number, number] {
   const h = p.enthalpy;
   const x = codes(sequence);
+  const word = sequence.toUpperCase().replace(/U/g, 'T');
   const n = x.length;
   if (n < 6) return [0, 0];
   const width = n + 1;
@@ -381,9 +396,18 @@ function foldHairpin(
       const xi = x[i] ?? 4;
       if (!pairs(xi, x[j] ?? 4)) continue;
       const loop = j - i - 1;
-      let eh = h.hairpinLoop + (loop === 3 ? 0 : h.hairpinMismatch);
+      // Equations 8 and 9: a triloop or tetraloop of the supplement's list
+      // adds its increment, ΔG and ΔH, to the loop (Table S1).
+      const special =
+        loop === 3
+          ? p.triloops[word.slice(i, j + 1)]
+          : loop === 4
+            ? p.tetraloops[word.slice(i, j + 1)]
+            : undefined;
+      let eh = h.hairpinLoop + (loop === 3 ? 0 : h.hairpinMismatch) + (special?.[1] ?? 0);
       let e =
         hairpinLoopEnergy(p, loop) +
+        (special?.[0] ?? 0) +
         (loop === 3
           ? isGc(xi)
             ? 0

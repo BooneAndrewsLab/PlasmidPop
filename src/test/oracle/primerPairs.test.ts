@@ -117,18 +117,15 @@ describe('selected primer pairs against primer3-py', () => {
 
   it("Primer3's own verdict: accepted share holds the measured floor", () => {
     const accepted = all.filter(({ o }) => o.primer3.passes).length;
-    // The aim was 95 % and is not met: measured 182 of 200 = 91 % (180
-    // before the hairpin loops of SantaLucia and Hicks 2004, 95.5 % under the
-    // previous ranking, 88.5 % before the free-energy hairpin check; items
-    // 124 and 125). Ranking by Primer3's own Tm and size distance (#346)
-    // prefers primers at the optimum whatever their hairpin; what is left
-    // is a stem of two G/C pairs closed by three or four bases, which
-    // Primer3 scores with tri- and tetraloop bonuses the paper does not give.
-    expect(accepted / all.length).toBeGreaterThanOrEqual(0.905);
+    // The aim of 95 % is met: measured 197 of 200 = 98.5 % (182 with the
+    // hairpin loops of SantaLucia and Hicks 2004 alone, 180 before them,
+    // 88.5 % before the free-energy hairpin check; items 124 and 125). What
+    // is left is a hairpin Primer3 finds too stable by its own criterion.
+    expect(accepted / all.length).toBeGreaterThanOrEqual(0.97);
     // What is left of #345: a hairpin Primer3 finds too stable by its own
     // criterion, the Tm of the structure (at most 47 C).
     const refused = all.filter(({ o }) => !o.primer3.passes);
-    expect(refused.length).toBeLessThanOrEqual(19);
+    expect(refused.length).toBeLessThanOrEqual(6);
     for (const { o } of refused) {
       const e = o.primer3.explain;
       const reasons = [e?.left, e?.right, e?.pair].join(' ');
@@ -157,15 +154,15 @@ describe('selected primer pairs against primer3-py', () => {
         anyOverlap++;
       }
     }
-    expect(equal).toBeGreaterThanOrEqual(9); // measured 9 of 40 (10 before item 125, 0 before #346)
-    expect(overlap).toBeGreaterThanOrEqual(19); // measured 19 of 40 (21, 7)
-    expect(anyOverlap).toBeGreaterThanOrEqual(34); // measured 34 of 40 (35, 18)
+    expect(equal).toBeGreaterThanOrEqual(10); // measured 10 of 40 (9 with the paper's loops alone, 0 before #346)
+    expect(overlap).toBeGreaterThanOrEqual(20); // measured 20 of 40 (19, 7)
+    expect(anyOverlap).toBeGreaterThanOrEqual(35); // measured 36 of 40 (34, 18)
   });
 
   it("our top pair's Primer3 penalty is close to Primer3's best", () => {
     // Primer3 scores a pair by its primers' Tm and size distance from 60 C
-    // and 21 nt. Measured: median 1.11 times its best (23 times before #346), and
-    // 17 of 40 templates worse than all five of its pairs (39 of 40 before #346).
+    // and 21 nt. Measured: median 1.20 times its best (23 times before #346), and
+    // 18 of 40 templates worse than all five of its pairs (39 of 40 before #346).
     const ratios: number[] = [];
     let worse = 0;
     let scored = 0;
@@ -178,7 +175,7 @@ describe('selected primer pairs against primer3-py', () => {
       if (t.primer3.pairs.every((p) => pen > p.penalty)) worse++;
     }
     ratios.sort((a, b) => a - b);
-    expect(ratios[Math.floor(ratios.length / 2)]).toBeLessThanOrEqual(1.3);
-    expect(worse / scored).toBeLessThanOrEqual(0.5);
+    expect(ratios[Math.floor(ratios.length / 2)]).toBeLessThanOrEqual(1.25);
+    expect(worse / scored).toBeLessThanOrEqual(0.475);
   });
 });

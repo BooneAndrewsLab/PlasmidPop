@@ -9,6 +9,7 @@ import {
   threePrimeDimer,
   threePrimeDuplexEnergy,
 } from './structure';
+import { TETRALOOP_BONUS, TRILOOP_BONUS } from './hairpinLoops';
 import { threePrimeComplementarity } from './thermo';
 
 /**
@@ -95,6 +96,8 @@ describe('hairpin loops (SantaLucia and Hicks 2004)', () => {
   const long = (n: number): string => `GCGCGCGC${'A'.repeat(n)}GCGCGCGC`;
   const LONG = 4 * GC + 3 * CG + 7 * 0.34 + 0.2;
   const MISMATCH = -0.8;
+  /** The parameters without the supplement's tri- and tetraloop increments. */
+  const PLAIN = { ...STRUCTURE_PARAMS, triloops: {}, tetraloops: {} };
   /** 2.44 RT at 37 °C, Equation 7. */
   const GROWTH = 2.44 * 0.001987 * 310.15;
 
@@ -103,8 +106,9 @@ describe('hairpin loops (SantaLucia and Hicks 2004)', () => {
   });
 
   it('a loop of four takes the terminal mismatch, a loop of three does not', () => {
-    expect(hairpinEnergy(stem(4))).toBeCloseTo(STEM + 3.5 + MISMATCH, 3); // about -2.71
-    expect(hairpinEnergy(stem(4))).toBeLessThan(hairpinEnergy(stem(3)) - 0.7);
+    // No special loops here (the bonuses are tested below): GCGC AAAA GCGC would be CAAAAG.
+    expect(hairpinEnergy(stem(4), PLAIN)).toBeCloseTo(STEM + 3.5 + MISMATCH, 3); // about -2.71
+    expect(hairpinEnergy(stem(4), PLAIN)).toBeLessThan(hairpinEnergy(stem(3), PLAIN) - 0.7);
   });
 
   it('uses every size of Table 4 up to ten', () => {
@@ -178,8 +182,12 @@ describe('hairpin loops (SantaLucia and Hicks 2004)', () => {
 
   it('the A·T penalty is for a loop of three only: four takes the A·T terminal mismatch', () => {
     const big = { ...STRUCTURE_PARAMS, triloopAtClose: 1.5 };
-    expect(hairpinEnergy(atStem('AAAA'))).toBeCloseTo(STACKS + 3.5 - 0.6, 3); // about -7.34
-    expect(hairpinEnergy(atStem('AAAA'), big)).toBeCloseTo(hairpinEnergy(atStem('AAAA')), 6);
+    const plain = PLAIN;
+    expect(hairpinEnergy(atStem('AAAA'), plain)).toBeCloseTo(STACKS + 3.5 - 0.6, 3); // about -7.34
+    expect(hairpinEnergy(atStem('AAAA'), { ...big, ...plain })).toBeCloseTo(
+      hairpinEnergy(atStem('AAAA'), plain),
+      6,
+    );
   });
 
   it('does not charge a triloop closed by G·C the A·T penalty', () => {
@@ -206,6 +214,169 @@ describe('hairpin loops (SantaLucia and Hicks 2004)', () => {
   });
 });
 
+describe('special tri- and tetraloops (SantaLucia and Hicks 2004, Table S1, Equations 8 and 9)', () => {
+  const stack = (dH: number, dS: number): number => dH - (310.15 * dS) / 1000;
+  const GC = stack(-9.8, -24.4);
+  const CG = stack(-10.6, -27.2);
+  const CA = stack(-8.5, -22.7);
+  const PLAIN = { ...STRUCTURE_PARAMS, triloops: {}, tetraloops: {} };
+  /** GCGC, the loop, GCGC: three stacks, their salt, the initiation. */
+  const stem = (loop: string): string => `GCGC${loop}GCGC`;
+  const STEM = 2 * GC + CG + 3 * 0.34 + 0.2;
+  /** GCGCGC, an A·T pair, the loop, the T and GCGCGC: the loop is closed by A·T. */
+  const atStem = (loop: string): string => `GCGCGCA${loop}TGCGCGC`;
+  const STACKS = 3 * GC + 2 * CG + CA + 6 * 0.34 + 0.2;
+  /** Every loop past four dear, so the fold keeps a short loop's closing pair. */
+  const DEAR = [...STRUCTURE_PARAMS.hairpinLoop.slice(0, 2), [5, 30]] as const;
+  const MISMATCH = -0.8;
+  const MISMATCH_AT = -0.6;
+
+  it('has all 16 triloops and 115 tetraloops of the supplement, and their sums', () => {
+    expect(Object.keys(TRILOOP_BONUS)).toHaveLength(16);
+    expect(Object.keys(TETRALOOP_BONUS)).toHaveLength(115);
+    const sum = (t: Record<string, readonly [number, number]>, k: 0 | 1): number =>
+      Object.values(t).reduce((a, v) => a + v[k], 0);
+    expect(sum(TRILOOP_BONUS, 0)).toBeCloseTo(-28.0, 6);
+    expect(sum(TRILOOP_BONUS, 1)).toBeCloseTo(-28.0, 6);
+    expect(sum(TETRALOOP_BONUS, 0)).toBeCloseTo(-79.9, 6);
+    expect(sum(TETRALOOP_BONUS, 1)).toBeCloseTo(-53.5, 6);
+  });
+
+  it('keeps the values of the supplement for the entries checked by hand', () => {
+    // First, middle and last rows of each list, and the ones with ΔG different from ΔH.
+    expect(TRILOOP_BONUS['AGAAT']).toEqual([-1.5, -1.5]);
+    expect(TRILOOP_BONUS['CGAAG']).toEqual([-2.0, -2.0]);
+    expect(TRILOOP_BONUS['GGTAC']).toEqual([-2.0, -2.0]);
+    expect(TRILOOP_BONUS['TGTAA']).toEqual([-1.5, -1.5]);
+    expect(TETRALOOP_BONUS['AAAAAT']).toEqual([0.7, 0.5]);
+    expect(TETRALOOP_BONUS['ACTTGT']).toEqual([-1.3, 0]);
+    expect(TETRALOOP_BONUS['AGCAAT']).toEqual([-2.1, -1.6]);
+    expect(TETRALOOP_BONUS['CAAAAG']).toEqual([0.9, 0.5]);
+    expect(TETRALOOP_BONUS['CGCAAG']).toEqual([-1.6, -1.6]); // the paper's own example (p. 428)
+    expect(TETRALOOP_BONUS['GAAAAC']).toEqual([1.5, 0.5]);
+    expect(TETRALOOP_BONUS['GGGGGC']).toEqual([0.8, 0.5]);
+    expect(TETRALOOP_BONUS['GTTTGT']).toEqual([-0.4, -0.4]);
+    expect(TETRALOOP_BONUS['TGATAA']).toEqual([-2.1, -1.6]);
+    expect(TETRALOOP_BONUS['TGTTCA']).toEqual([0.3, 0.8]);
+    expect(TETRALOOP_BONUS['TTTTTG']).toEqual([-1, -0.5]);
+  });
+
+  it('every triloop is GNA closed by a Watson-Crick pair (the GNA rule)', () => {
+    const wc: Record<string, string> = { A: 'T', T: 'A', C: 'G', G: 'C' };
+    for (const [key, [g, h]] of Object.entries(TRILOOP_BONUS)) {
+      expect(key.slice(1, 4)).toMatch(/^G.A$/);
+      expect(key[4]).toBe(wc[key[0] ?? '']);
+      expect(g).toBe(h);
+      // 1.5 when the pair is A·T/T·A, 2.0 when it is C·G or G·C
+      expect(g).toBe(key.startsWith('A') || key.startsWith('T') ? -1.5 : -2.0);
+    }
+  });
+
+  it('a GNA triloop closed by C·G takes its 2.0, a plain triloop of the same stem does not', () => {
+    // GCGC GAA GCGC: the loop is CGAAG, -2.0. Equation 8: 3.5 + bonus, no terminal mismatch.
+    expect(hairpinEnergy(stem('GAA'), PLAIN)).toBeCloseTo(STEM + 3.5, 3);
+    expect(hairpinEnergy(stem('GAA'))).toBeCloseTo(STEM + 3.5 - 2.0, 3);
+    // N is any base; the third base must be A: GNA only.
+    for (const loop of ['GAA', 'GCA', 'GGA', 'GTA']) {
+      expect(hairpinEnergy(stem(loop))).toBeCloseTo(STEM + 3.5 - 2.0, 3);
+    }
+    expect(hairpinEnergy(stem('GAT'))).toBeCloseTo(STEM + 3.5, 3);
+    expect(hairpinEnergy(stem('AAA'))).toBeCloseTo(STEM + 3.5, 3);
+  });
+
+  it('a GNA triloop closed by A·T gets its 1.5 and still pays the 0.5 of the A·T closing', () => {
+    const p = { ...STRUCTURE_PARAMS, hairpinLoop: DEAR };
+    // AGAAT: Equation 8 is 3.5 - 1.5 + 0.5.
+    expect(hairpinEnergy(atStem('GAA'), p)).toBeCloseTo(STACKS + 3.5 - 1.5 + 0.5, 3);
+    expect(hairpinEnergy(atStem('GAA'), { ...p, triloops: {} })).toBeCloseTo(STACKS + 3.5 + 0.5, 3);
+    expect(hairpinEnergy(atStem('GAA'), { ...p, triloopAtClose: 0 })).toBeCloseTo(
+      STACKS + 3.5 - 1.5,
+      3,
+    );
+    // the same loop with no G at 5' has no entry
+    expect(hairpinEnergy(atStem('AAA'), p)).toBeCloseTo(STACKS + 3.5 + 0.5, 3);
+  });
+
+  it('a triloop takes no terminal mismatch whatever its bonus', () => {
+    const odd = { ...STRUCTURE_PARAMS, hairpinMismatchGc: 5, hairpinMismatchAt: 5 };
+    expect(hairpinEnergy(stem('GAA'), odd)).toBeCloseTo(hairpinEnergy(stem('GAA')), 6);
+  });
+
+  it('a tetraloop takes its bonus and the terminal mismatch (Equation 9)', () => {
+    // GCGC AAAA GCGC is CAAAAG: +0.9, a tetraloop that is worse than none.
+    expect(hairpinEnergy(stem('AAAA'), PLAIN)).toBeCloseTo(STEM + 3.5 + MISMATCH, 3);
+    expect(hairpinEnergy(stem('AAAA'))).toBeCloseTo(STEM + 3.5 + MISMATCH + 0.9, 3);
+    // CGCAAG: -1.6, the paper's own example: 3.5 - 1.6 plus the mismatch.
+    expect(hairpinEnergy(stem('GCAA'))).toBeCloseTo(STEM + 3.5 - 1.6 + MISMATCH, 3);
+    expect(hairpinEnergy(stem('GCAA'), PLAIN)).toBeCloseTo(STEM + 3.5 + MISMATCH, 3);
+    // GNRA, a GNRA tetraloop closed by C·G: GGAA ... CGGAAG -1.1
+    expect(hairpinEnergy(stem('GGAA'))).toBeCloseTo(STEM + 3.5 - 1.1 + MISMATCH, 3);
+  });
+
+  it('a tetraloop closed by A·T has its bonus and the A·T terminal mismatch', () => {
+    const p = { ...STRUCTURE_PARAMS, hairpinLoop: DEAR };
+    // A AGCA... AGCAAT is -2.1: A, GCAA, T
+    expect(hairpinEnergy(atStem('GCAA'), p)).toBeCloseTo(STACKS + 3.5 - 2.1 + MISMATCH_AT, 3);
+    // AAAAAT is +0.7
+    expect(hairpinEnergy(atStem('AAAA'), p)).toBeCloseTo(STACKS + 3.5 + 0.7 + MISMATCH_AT, 3);
+    expect(hairpinEnergy(atStem('AAAA'), { ...p, tetraloops: {} })).toBeCloseTo(
+      STACKS + 3.5 + MISMATCH_AT,
+      3,
+    );
+  });
+
+  it('applies the terminal mismatch of loops of four and five by the closing pair, C·G G·C A·T T·A', () => {
+    // Each stem is closed by a different pair and the loop is five A (no bonus). Changing
+    // the fitted mismatch for G/C changes the first two and not the last two, and vice versa.
+    const closings = [
+      ['C·G', 'GCGCAAAAAGCGC', true],
+      ['G·C', 'CGCGAAAAACGCG', true],
+      ['A·T', 'GCGCGCAAAAAATGCGCGC', false],
+      ['T·A', 'GCGCGCTAAAAAAGCGCGC', false],
+    ] as const;
+    for (const [name, seq, gc] of closings) {
+      const base = hairpinEnergy(seq);
+      const moreGc = hairpinEnergy(seq, { ...STRUCTURE_PARAMS, hairpinMismatchGc: -0.8 + 1 });
+      const moreAt = hairpinEnergy(seq, { ...STRUCTURE_PARAMS, hairpinMismatchAt: -0.6 + 1 });
+      expect(moreGc - base, `${name} gc`).toBeCloseTo(gc ? 1 : 0, 6);
+      expect(moreAt - base, `${name} at`).toBeCloseTo(gc ? 0 : 1, 6);
+    }
+  });
+
+  it('the bonus is for the loop sizes: triloops at 3, tetraloops at 4, neither at 5', () => {
+    // A made-up bonus on the loop of each stem: it shows only for the matching size.
+    const p = {
+      ...STRUCTURE_PARAMS,
+      triloops: { CAAAG: [-5, -5], CAAAAG: [-6, -6], CAAAAAG: [-7, -7] } as const,
+      tetraloops: { CAAAG: [-8, -8], CAAAAG: [-9, -9], CAAAAAG: [-10, -10] } as const,
+    };
+    const base = (s: string): number => hairpinEnergy(s, PLAIN);
+    expect(hairpinEnergy(stem('AAA'), p) - base(stem('AAA'))).toBeCloseTo(-5, 3);
+    expect(hairpinEnergy(stem('AAAA'), p) - base(stem('AAAA'))).toBeCloseTo(-9, 3);
+    expect(hairpinEnergy(stem('AAAAA'), p)).toBeCloseTo(base(stem('AAAAA')), 6);
+    expect(hairpinEnergy(stem('AAAAAA'), p)).toBeCloseTo(base(stem('AAAAAA')), 6);
+  });
+
+  it('adds the bonus enthalpy to the Tm: a triloop and a tetraloop (Equation 11)', () => {
+    const offset = STRUCTURE_PARAMS.hairpinTmOffset;
+    const hs = 2 * -9.8 + -10.6;
+    const tm = (h: number, g: number): number => (h * 310.15) / (h - g) - 273.15 + offset;
+    // CGAAG: ΔG and ΔH -2.0, no terminal mismatch, loop enthalpy 0.
+    expect(hairpinTm(stem('GAA'))).toBeCloseTo(tm(hs - 2.0, STEM + 3.5 - 2.0), 2);
+    // CAAAAG: ΔG +0.9, ΔH +0.5; the terminal mismatch has its own enthalpy.
+    const hm = STRUCTURE_PARAMS.enthalpy.hairpinMismatch;
+    expect(hairpinTm(stem('AAAA'))).toBeCloseTo(tm(hs + 0.5 + hm, STEM + 3.5 + 0.9 + MISMATCH), 2);
+    // the bonus raises the Tm of the triloop above the plain one
+    expect(hairpinTm(stem('GAA'))).toBeGreaterThan(hairpinTm(stem('GAA'), PLAIN) + 5);
+  });
+
+  it('finds a hairpin the plain loops miss: 3 bp of G/C closing a GNA triloop', () => {
+    // Without the bonus the stem is too weak for the -2 kcal/mol the designer flags.
+    expect(hairpinEnergy('ACGCGAAGCGTA', PLAIN)).toBeGreaterThan(-2);
+    expect(hairpinEnergy('ACGCGAAGCGTA')).toBeLessThanOrEqual(-2);
+  });
+});
+
 describe('hairpinTm (#345)', () => {
   const sample = tmOracle.rows as readonly { seq: string; dg: number; tm: number }[];
   /** Primer3's limit, PRIMER_MAX_HAIRPIN_TH. */
@@ -228,8 +399,10 @@ describe('hairpinTm (#345)', () => {
     // 800 primers inside the designer's Tm and GC limits (hairpinTm.json,
     // primer3-py 2.2.0). The enthalpy terms were fitted on the even rows
     // and the 300 of hairpinDimer.json, the offset on all 800, so this is
-    // the fit's own sample, not an independent one. Measured: 135 flagged
-    // by both, 94 by us only, 27 by Primer3 only, 542 by neither (item 125).
+    // the fit's own sample, not an independent one. With the supplement's
+    // tri- and tetraloop increments: 157 flagged by both, 97 by us only,
+    // 7 by Primer3 only, 539 by neither (item 125). Two held-out sets of 800
+    // (not committed): recall 98.1 and 98.7 %, ours only 12.8 and 15.3 %.
     let both = 0;
     let ours = 0;
     let theirs = 0;
@@ -241,9 +414,9 @@ describe('hairpinTm (#345)', () => {
       else if (b) theirs++;
     }
     // Recall: the share of what Primer3 refuses that we refuse too.
-    expect(both / (both + theirs)).toBeGreaterThanOrEqual(0.82); // measured 83.5 %
+    expect(both / (both + theirs)).toBeGreaterThanOrEqual(0.94); // measured 95.7 %
     // The price of the offset: refusals Primer3 would not make.
-    expect(ours / sample.length).toBeLessThanOrEqual(0.12); // measured 11.75 %
+    expect(ours / sample.length).toBeLessThanOrEqual(0.125); // measured 12.1 %
   });
 });
 
