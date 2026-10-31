@@ -10,6 +10,8 @@ import {
   meltingTemperature,
   rangeSegment,
   reverseComplement,
+  threePrimeComplementarity,
+  threePrimeDuplexEnergy,
 } from '@/core';
 import { randomDna, seededRandom } from '@/test/random';
 
@@ -461,7 +463,7 @@ describe('PcrPanel, PCR II', () => {
     type('Reverse primer', REV);
     expect(screen.queryByRole('list', { name: 'Primer dimers' })).toBeNull();
     // A 3′ end that is its own reverse complement pairs with a copy of itself.
-    type('Forward primer', `${FWD}GAATTC`);
+    type('Forward primer', `${FWD}GCGCGC`);
     const list = () => within(screen.getByRole('list', { name: 'Primer dimers' }));
     expect(
       list().getByText(
@@ -469,9 +471,25 @@ describe('PcrPanel, PCR II', () => {
       ),
     ).toBeInTheDocument();
     type('Forward primer', FWD);
-    type('Reverse primer', REV + reverseComplement(FWD.slice(-7)));
+    // The shortest stretch of the forward primer's end whose duplex is stable
+    // enough (-5 kcal/mol): a weaker one is not reported (#343).
+    const stretch = must(
+      Array.from({ length: 18 }, (_, i) => i + 5).find((k) => {
+        const tail = reverseComplement(FWD.slice(-k));
+        return (
+          threePrimeDuplexEnergy(REV + tail, FWD) <= -5 &&
+          threePrimeComplementarity(REV + tail, FWD) === k
+        );
+      }),
+      'a stretch',
+    );
+    type('Reverse primer', REV + reverseComplement(FWD.slice(-stretch)));
     expect(
-      list().getByText(/^The last 7 bases of the reverse primer pair with the forward primer,/),
+      list().getByText(
+        new RegExp(
+          `^The last ${stretch} bases of the reverse primer pair with the forward primer,`,
+        ),
+      ),
     ).toBeInTheDocument();
     type('Reverse primer', REV);
     expect(screen.queryByRole('list', { name: 'Primer dimers' })).toBeNull();

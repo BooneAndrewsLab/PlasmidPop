@@ -6,6 +6,7 @@ import {
   meltingTemperature,
   reverseComplement,
   threePrimeComplementarity,
+  threePrimeDuplexEnergy,
 } from '@/core';
 import { randomDna, seededRandom } from '@/test/random';
 
@@ -377,7 +378,16 @@ describe('primerDimers', () => {
               if (bases > max) want.push({ primer: `P${i}`, partner: `P${j}`, bases });
             });
           });
-          expect(primerDimers(primers, max)).toEqual(want);
+          // A cutoff of 0 kcal/mol takes every match: the length alone.
+          expect(primerDimers(primers, max, 0)).toEqual(want);
+          // The default cutoff keeps those whose 3′ duplex is stable, and only those.
+          expect(primerDimers(primers, max)).toEqual(
+            want.filter((d) => {
+              const a = clean[Number(d.primer.slice(1))] ?? '';
+              const b = clean[Number(d.partner.slice(1))] ?? '';
+              return threePrimeDuplexEnergy(a, b) <= -5;
+            }),
+          );
           for (const a of clean)
             for (const b of clean) {
               expect(threePrimeComplementarity(a, b)).toBe(dimerOracle(a, b));
@@ -388,14 +398,16 @@ describe('primerDimers', () => {
     );
   });
 
-  it('counts 4 paired bases as no dimer and 5 as one, by default', () => {
+  it('counts 4 paired bases as no dimer and 5 as one, by length alone', () => {
+    // A cutoff of 0 kcal/mol takes every match: the length alone.
+    const byLength = (primers: readonly PcrPrimer[]) => primerDimers(primers, 4, 0);
     // GACC's reverse complement GGTC is in the partner, TGACC's GGTCA is not.
-    const four = primerDimers([
+    const four = byLength([
       { name: 'Forward', sequence: 'TTTTTTTTTGACC' },
       { name: 'Reverse', sequence: 'CCCCGGTCCCCC' },
     ]);
     expect(four).toEqual([]);
-    const five = primerDimers([
+    const five = byLength([
       { name: 'Forward', sequence: 'TTTTTTTTTGACC' },
       { name: 'Reverse', sequence: 'CCCCGGTCACCC' },
     ]);
@@ -403,17 +415,17 @@ describe('primerDimers', () => {
     // Reported from the primer whose 3′ end pairs, so swapping the order of
     // the two changes the order of the list, not its entries.
     expect(
-      primerDimers([
+      byLength([
         { name: 'Reverse', sequence: 'CCCCGGTCACCC' },
         { name: 'Forward', sequence: 'TTTTTTTTTGACC' },
       ]),
     ).toEqual([{ primer: 'Forward', partner: 'Reverse', bases: 5 }]);
     // A palindrome at the 3′ end pairs with a second copy of itself.
-    expect(primerDimers([{ name: 'Solo', sequence: 'ttttGAATTC' }])).toEqual([
+    expect(byLength([{ name: 'Solo', sequence: 'ttttGAATTC' }])).toEqual([
       { primer: 'Solo', partner: 'Solo', bases: 6 },
     ]);
-    expect(primerDimers([])).toEqual([]);
-    expect(primerDimers([{ name: 'Empty', sequence: 'NNNN' }])).toEqual([]);
+    expect(byLength([])).toEqual([]);
+    expect(byLength([{ name: 'Empty', sequence: 'NNNN' }])).toEqual([]);
   });
 });
 

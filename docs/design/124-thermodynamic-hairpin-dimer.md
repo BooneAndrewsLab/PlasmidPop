@@ -7,7 +7,7 @@ in 1.21.0 rather than tracked. This item replaces the heuristics with a
 nearest-neighbour free-energy calculation.
 
 Code: `src/core/primers/structure.ts` (the model),
-`structure.test.ts`, `criteria.ts` (`hairpinDg`, `dimerDg`),
+`structure.test.ts`, `criteria.ts` (`hairpinDg`, `dimerDg`, `threePrimeDg`),
 `primerDesign.ts` (reports, penalty, pair check), `checkPrimers.ts`
 (clone-check pairs). Gate: `src/test/oracle/hairpinDimer.test.ts`.
 
@@ -67,25 +67,65 @@ were not used in the fit: hairpin 94.7 % and 91.3 %, self-dimer 92.0 % and
 90.7 %, pair dimer 97.5 % and 97.0 %. The fit generalises, with a loss of up
 to five points on self-dimers.
 
-## The 3' rule, kept on purpose
+## The 3' rule, weighted by ΔG (#343)
 
-`maxThreePrime` (default 4) still refuses a primer whose 3' end pairs with
-itself, and a pair whose 3' end pairs with the other, over more bases than
-that. It is a separate check: a few bases at a 3' end are extended by the
-polymerase whatever their ΔG, which is not what ΔG measures. Against
-Primer3's dimer dG alone it therefore flags more, and the test keeps those
-counts apart as "ours only":
+`maxThreePrime` (default 4) refuses a primer whose 3' end pairs with itself,
+and a pair whose 3' end pairs with the other, over more bases than that.
+It was first kept as a separate check by length alone, on the argument
+that a few bases at a 3' end are extended whatever their ΔG. Against
+Primer3's dimer dG that flagged 39 pairs and 22 self-dimers Primer3 finds
+weak (5-8 bp A/T-rich matches), so the maintainer decided on 2026-10-30 to
+weight it: a 3' match over `maxThreePrime` is refused only when the duplex
+of the matched bases alone (`threePrimeDuplexEnergy`, the same model as
+the dimer ΔG, helix of the longest 3' match with its initiation and end
+terms) is at or below `threePrimeDg`. That keeps the rule's purpose, a
+stable duplex anchored at the 3' end that a polymerase can extend, and
+drops the weak ones, which melt at the annealing step. The pair is refused
+if either primer's 3' end qualifies (`threePrimeDimer`); the match length
+still enters the pair penalty. No code or table of Primer3 was used; its
+output is only compared.
 
-| Rule                     | Agreement | Ours only | Primer3 only |
-| ------------------------ | --------: | --------: | -----------: |
-| Self-dimer, ΔG + 3' rule |    90.7 % |        22 |            6 |
-| Pair dimer, ΔG + 3' rule |    79.4 % |        39 |            2 |
+**Threshold.** Swept on the committed oracle (300 primers, 199 pairs) and
+three further sets from the same script with other seeds (777, 4242,
+31337; not committed), each flagged "ours" = ΔG check or weighted 3' rule
+against Primer3 dG <= -6 kcal/mol. Pair and self-dimer agreement:
 
-The pair figure is the price of the rule, not an error in the ΔG. It is
-the same rule that made #343 (35 ours-only flags); it is now documented as
-intended, and #344 (internal G/C cross-dimers the 3'-only rule missed) is
-closed by the pair ΔG check, which refuses a pair at or below `dimerDg`
-wherever the duplex is.
+| `threePrimeDg` | committed pair | self | 777 pair | self | 4242 pair | self | 31337 pair | self |
+| -------------- | -------------: | ---: | -------: | ---: | --------: | ---: | ---------: | ---: |
+| none (length)  |         79.4 % | 90.7 |   84.3 % | 90.0 |    86.0 % | 87.3 |     80.0 % | 87.3 |
+| -3             |           90.5 | 95.7 |     92.9 | 91.3 |      93.0 | 88.7 |       89.0 | 92.0 |
+| -4             |           94.5 | 96.0 |     97.0 | 92.0 |      95.0 | 89.7 |       93.5 | 93.7 |
+| -4.5           |           95.5 | 96.0 |     97.0 | 92.0 |      96.5 | 90.3 |       94.0 | 93.3 |
+| **-5**         |       **95.5** | 95.7 |     97.5 | 92.0 |      97.0 | 90.3 |       95.0 | 93.3 |
+| -6 (ΔG only)   |           95.5 | 95.7 |     97.5 | 92.0 |      97.0 | 90.7 |       95.5 | 93.7 |
+
+Below -4.5 the rule flags matches Primer3 finds weak; from -5 the ΔG of a
+3' stretch on its own rarely goes below the whole-dimer cutoff, and by -5.5
+the rule adds nothing the dimer ΔG check does not refuse already. -5 is the
+weakest cutoff at which the pair figure is at its ceiling on every set,
+and it still flags 6-8 bp G/C-rich 3' matches (CGCGC is -5.2, GCCGCA -6.0)
+that the whole-dimer check can miss when the rest of the primers does not
+pair. The self-dimer figure moves by under a point either way.
+
+Measured on the committed oracle, before and after (`hairpinDimer.test.ts`):
+
+| Rule                     |        Agreement | Ours only | Primer3 only |
+| ------------------------ | ---------------: | --------: | -----------: |
+| Self-dimer, ΔG + 3' rule | 90.7 % -> 95.7 % |   22 -> 6 |       6 -> 7 |
+| Pair dimer, ΔG + 3' rule | 79.4 % -> 95.5 % |   39 -> 6 |       2 -> 3 |
+
+(The pair dimer ΔG check alone is 95.5 %, so the weighted rule costs no
+agreement.) The primer-pair oracle (item 122) was regenerated, since the
+designer's selection changed: Primer3 still accepts 180 of 200 pairs; the
+top pair equals Primer3's in 10 of 40 templates (9 before), overlaps it in
+21 (20), and at least one of five overlaps in 35 (34); the median penalty
+ratio is 1.11 (1.12). #344 (internal G/C cross-dimers the 3'-only rule
+missed) is closed by the pair ΔG check, which refuses a pair at or below
+`dimerDg` wherever the duplex is.
+
+Not changed: the PCR panel's own primer-dimer warning (`primerDimers` in
+`pcr.ts`, 3' pairing over `maxThreePrime`) keeps its length rule, a
+separate report on primers the user supplied.
 
 ## Where it shows
 

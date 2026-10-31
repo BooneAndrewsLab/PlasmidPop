@@ -1,6 +1,7 @@
 import { reverseComplement } from '../sequence';
 import { DEFAULT_PRIMER_CRITERIA, normalizePrimerCriteria } from './criteria';
 import { analyzePrimer, designPrimers, findPrimerBindingSites } from './primerDesign';
+import { threePrimeDimer, threePrimeDuplexEnergy } from './structure';
 import { longestHairpinStem, threePrimeComplementarity } from './thermo';
 
 // A pseudo-random but fixed 600-bp template with balanced composition.
@@ -162,6 +163,7 @@ describe('designPrimers with criteria', () => {
       hairpinDg: -0.5,
       dimerDg: -4,
       maxThreePrime: 2,
+      threePrimeDg: 0,
       requireGcClamp: true,
       maxPairs: 50,
     });
@@ -326,5 +328,83 @@ describe('analyzePrimer hairpin melting temperature (#345)', () => {
   it('is 0 for a primer with no hairpin', () => {
     expect(analyzePrimer('ACGTTGCAACGTTGCAACGT').hairpinTm).toBeGreaterThanOrEqual(0);
     expect(analyzePrimer('AAAAAAAAAAAAAAAAAAAA').hairpinTm).toBe(0);
+  });
+});
+
+describe('the 3′ rule weighted by ΔG (#343)', () => {
+  const seq = template();
+  const target = { start: 250, end: 350 };
+  // Pairs with itself over five bases at the 3′ end (CGGCC on GGCCG): a
+  // match longer than the default 4, but a duplex of only -4.49 kcal/mol.
+  const weak = 'ATTGCAGGCCGATAAGTACCGGCC';
+  // Six bases, -7.06 kcal/mol.
+  const strong = 'ATTGCCGCGCAGATAAGTACGCGCG';
+  const threePrimeWarning = (w: readonly string[]): string[] =>
+    w.filter((x) => x.startsWith('3′ end pairs'));
+
+  it('lets a short, weak 3′ match through the default rule', () => {
+    expect(threePrimeComplementarity(weak, weak)).toBe(5);
+    expect(threePrimeDuplexEnergy(weak, weak)).toBeCloseTo(-4.492, 3);
+    const r = analyzePrimer(weak);
+    expect(r.threePrimeSelf).toBe(5);
+    expect(threePrimeWarning(r.warnings)).toEqual([]);
+  });
+
+  it('refuses a strong 3′ match by the default rule', () => {
+    expect(threePrimeWarning(analyzePrimer(strong).warnings)).toEqual([
+      '3′ end pairs with itself over 6 bases',
+    ]);
+  });
+
+  it('flags the weak match exactly when the cutoff reaches its ΔG', () => {
+    const dg = threePrimeDuplexEnergy(weak, weak);
+    expect(
+      threePrimeWarning(
+        analyzePrimer(weak, { ...DEFAULT_PRIMER_CRITERIA, threePrimeDg: dg }).warnings,
+      ),
+    ).toEqual(['3′ end pairs with itself over 5 bases']);
+    expect(
+      threePrimeWarning(
+        analyzePrimer(weak, { ...DEFAULT_PRIMER_CRITERIA, threePrimeDg: dg - 0.001 }).warnings,
+      ),
+    ).toEqual([]);
+  });
+
+  it('flags the weak match only when it is longer than the length limit', () => {
+    const at = (maxThreePrime: number): string[] =>
+      threePrimeWarning(
+        analyzePrimer(weak, { ...DEFAULT_PRIMER_CRITERIA, threePrimeDg: 0, maxThreePrime })
+          .warnings,
+      );
+    expect(at(4)).toHaveLength(1);
+    expect(at(5)).toEqual([]);
+  });
+
+  it('refuses a pair by its 3′ duplex, not by the match length alone', () => {
+    const base = { maxThreePrime: 1, maxPairs: 100_000, maxTmDifference: 100 };
+    const weighted = designPrimers(seq, 'linear', target, base);
+    const lengthOnly = designPrimers(seq, 'linear', target, { ...base, threePrimeDg: 0 });
+    // The weighted rule gives pairs whose 3′ match is longer than the limit,
+    // the length-only rule none.
+    expect(weighted.some((p) => p.crossDimer > 1)).toBe(true);
+    expect(lengthOnly.every((p) => p.crossDimer <= 1)).toBe(true);
+    // Each pair it gives passes the ΔG test.
+    for (const p of weighted) {
+      expect(
+        threePrimeDimer(
+          p.forward.sequence,
+          p.reverse.sequence,
+          1,
+          DEFAULT_PRIMER_CRITERIA.threePrimeDg,
+        ),
+      ).toBe(false);
+    }
+  });
+
+  it('reads the cutoff from a stored preference, and falls back to the default', () => {
+    expect(normalizePrimerCriteria({ threePrimeDg: -3.5 }).threePrimeDg).toBe(-3.5);
+    expect(normalizePrimerCriteria({}).threePrimeDg).toBe(-5);
+    expect(normalizePrimerCriteria({ threePrimeDg: 'x' }).threePrimeDg).toBe(-5);
+    expect(normalizePrimerCriteria({ threePrimeDg: 2 }).threePrimeDg).toBe(0);
   });
 });

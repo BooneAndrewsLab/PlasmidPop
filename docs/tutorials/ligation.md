@@ -170,7 +170,7 @@ Accession **`NM_000207`** (`NM_000207.3`, human insulin, mRNA, 465 bp; its CDS i
 
    ```
    INS-F-EcoRI  5′ gttctggaattcATGGCCCTGTGGATGCGC 3′              (annealing part 18 nt, Tm 60.9 °C)
-   INS-R-BamHI  5′ ctaataggatccCTAGTTGCAGTAGTTCTCCAGC 3′           (annealing part 22 nt, Tm 55.6 °C)
+   INS-R-BamHI  5′ ctaataggatccCTAGTTGCAGTAGTTCTCCAGCTG 3′         (annealing part 24 nt, Tm 57.7 °C)
    ```
 
    > [!TIP]

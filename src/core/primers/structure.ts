@@ -15,7 +15,7 @@
  * Energies are never positive: a structure that costs more than it gives is
  * not formed, and the answer is 0.
  */
-import { NN_PARAMS } from './thermo';
+import { NN_PARAMS, threePrimeComplementarity } from './thermo';
 
 /** Free energy, kcal/mol, of a thermodynamic term. */
 export interface StructureParams {
@@ -475,4 +475,35 @@ function foldDimer(a: string, b: string, p: StructureParams, maxLoop: number): n
 /** `dimerEnergy` of a primer with itself. */
 export function selfDimerEnergy(sequence: string): number {
   return dimerEnergy(sequence, sequence);
+}
+
+const PAIR_BASE: Readonly<Record<string, string>> = { A: 'T', C: 'G', G: 'C', T: 'A' };
+
+/**
+ * ΔG, kcal/mol (0 or negative), of the 3′ duplex of `a` on `b`: the helix
+ * that the longest 3′ match (`threePrimeComplementarity`) forms by itself,
+ * with its initiation and terminal terms. It is what holds the 3′ end down
+ * for a polymerase, and it is weaker than the whole-dimer `dimerEnergy`
+ * because only the matched bases count. 0 when the 3′ end pairs nowhere.
+ */
+export function threePrimeDuplexEnergy(a: string, b: string): number {
+  const k = threePrimeComplementarity(a, b);
+  if (k === 0) return 0;
+  const tail = a.toUpperCase().slice(-k);
+  let partner = '';
+  for (let i = tail.length - 1; i >= 0; i--) partner += PAIR_BASE[tail.charAt(i)] ?? 'N';
+  return dimerEnergy(tail, partner);
+}
+
+/**
+ * Whether the 3′ end of either primer would anchor an extendable dimer on
+ * the other (pass one primer twice for a self-dimer): a 3′ match longer than
+ * `maxLength` bases whose duplex (`threePrimeDuplexEnergy`) is at or below
+ * `maxDg`. A match that long but weak (a few A·T pairs) melts at the
+ * annealing step and is not flagged (#343).
+ */
+export function threePrimeDimer(a: string, b: string, maxLength: number, maxDg: number): boolean {
+  const flagged = (x: string, y: string): boolean =>
+    threePrimeComplementarity(x, y) > maxLength && threePrimeDuplexEnergy(x, y) <= maxDg;
+  return flagged(a, b) || flagged(b, a);
 }

@@ -46,10 +46,17 @@ export interface PrimerCriteria {
   /**
    * Longest 3′-end complementarity, to itself and to the other primer of the
    * pair (`threePrimeComplementarity`): the dimer a polymerase can extend.
-   * Kept beside the free energy on purpose: a 3′ match of a few bases is
-   * extended whatever its ΔG, which a mid-primer dimer is not.
+   * Kept beside the free energy on purpose: a 3′ end anchored by a stable
+   * duplex is extended, which a mid-primer dimer is not. A match this long
+   * is refused only when its duplex is also at or below `threePrimeDg`.
    */
   readonly maxThreePrime: number;
+  /**
+   * Free energy of the 3′ duplex, kcal/mol (`threePrimeDuplexEnergy`): a
+   * match longer than `maxThreePrime` is refused only at or below this, so
+   * a short A/T-rich 3′ match that melts at the annealing step passes (#343).
+   */
+  readonly threePrimeDg: number;
   /** Refuse a primer that does not end in G or C, rather than only preferring one. */
   readonly requireGcClamp: boolean;
   /** Shortest and longest product a pair may give, bp. */
@@ -77,6 +84,13 @@ export interface PrimerRegion {
  */
 export const DEFAULT_HAIRPIN_DG = -2;
 export const DEFAULT_DIMER_DG = -6;
+/**
+ * The 3′ duplex cutoff, kcal/mol. Swept against Primer3's pair and self-dimer
+ * verdicts on four sets (design note 124): from -5 down the rule adds nothing
+ * the whole-dimer check does not already refuse; weaker than -4 it flags
+ * matches Primer3 finds weak.
+ */
+export const DEFAULT_THREE_PRIME_DG = -5;
 /** Primer3's `PRIMER_MAX_HAIRPIN_TH`, °C. */
 export const DEFAULT_HAIRPIN_TM = 47;
 
@@ -95,6 +109,7 @@ export const DEFAULT_PRIMER_CRITERIA: PrimerCriteria = {
   hairpinTm: DEFAULT_HAIRPIN_TM,
   dimerDg: DEFAULT_DIMER_DG,
   maxThreePrime: 4,
+  threePrimeDg: DEFAULT_THREE_PRIME_DG,
   requireGcClamp: false,
   minProduct: 0,
   // The PCR reaction's own ceiling (`src/core/cloning/pcr.ts`).
@@ -164,6 +179,7 @@ export function normalizePrimerCriteria(input: unknown): PrimerCriteria {
     hairpinTm: num(r['hairpinTm'], d.hairpinTm, 0, 150, false),
     dimerDg: num(r['dimerDg'], d.dimerDg, -100, 0, false),
     maxThreePrime: num(r['maxThreePrime'], d.maxThreePrime, 0, lenHi),
+    threePrimeDg: num(r['threePrimeDg'], d.threePrimeDg, -100, 0, false),
     requireGcClamp:
       typeof r['requireGcClamp'] === 'boolean' ? r['requireGcClamp'] : d.requireGcClamp,
     minProduct,

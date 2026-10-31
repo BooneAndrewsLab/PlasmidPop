@@ -1,6 +1,14 @@
 import oracle from '../../test/oracle/hairpinDimer.json';
 import tmOracle from '../../test/oracle/hairpinTm.json';
-import { dimerEnergy, hairpinEnergy, hairpinTm, selfDimerEnergy } from './structure';
+import {
+  dimerEnergy,
+  hairpinEnergy,
+  hairpinTm,
+  selfDimerEnergy,
+  threePrimeDimer,
+  threePrimeDuplexEnergy,
+} from './structure';
+import { threePrimeComplementarity } from './thermo';
 
 /**
  * The ΔG model against Primer3's `calc_hairpin`, `calc_homodimer` and
@@ -142,5 +150,69 @@ describe('dimerEnergy', () => {
     // Measured: mean 0.48, max 5.20 kcal/mol over 199 pairs.
     expect(pair.mean).toBeLessThan(0.6);
     expect(pair.max).toBeLessThan(5.5);
+  });
+});
+
+describe('the 3′ duplex (#343)', () => {
+  // The 3′ end of each `a` pairs with `b` over exactly five bases (checked
+  // below), the weak one through C·G and G·C pairs only at the very end.
+  const weakA = 'ATATCATATCGGCC';
+  const weakB = 'TTATGGCCGTTAT';
+  const strongA = 'ATATCATATGCGCG';
+  const strongB = 'TTATCGCGCTTAT';
+
+  it('is the ΔG of the matched bases alone, 0 where the 3′ end pairs nowhere', () => {
+    expect(threePrimeComplementarity(weakA, weakB)).toBe(5);
+    expect(threePrimeComplementarity(strongA, strongB)).toBe(5);
+    expect(threePrimeDuplexEnergy(weakA, weakB)).toBeCloseTo(dimerEnergy('CGGCC', 'GGCCG'), 9);
+    expect(threePrimeDuplexEnergy(weakA, weakB)).toBeCloseTo(-4.492, 3);
+    expect(threePrimeDuplexEnergy(strongA, strongB)).toBeCloseTo(-5.233, 3);
+    // Not the whole dimer: the rest of `a` and `b` may pair as well.
+    expect(threePrimeDuplexEnergy(weakA, weakB)).toBeGreaterThan(dimerEnergy(weakA, weakB));
+    expect(threePrimeDuplexEnergy('GGGGGGGG', 'GGGGGGGG')).toBe(0);
+  });
+
+  it('is weak for a run of A and T, strong for G and C, at the same length', () => {
+    const at = threePrimeDuplexEnergy('GGGGCAAATT', 'TTTAATTTT');
+    expect(threePrimeComplementarity('GGGGCAAATT', 'TTTAATTTT')).toBe(5);
+    expect(at).toBeGreaterThan(-1.5);
+    expect(at).toBeLessThan(0);
+    expect(threePrimeDuplexEnergy(strongA, strongB)).toBeLessThan(-5);
+  });
+
+  it('flags a match at or below the ΔG cutoff and not above it', () => {
+    const dg = threePrimeDuplexEnergy(strongA, strongB);
+    expect(threePrimeDimer(strongA, strongB, 4, dg)).toBe(true);
+    expect(threePrimeDimer(strongA, strongB, 4, dg - 0.001)).toBe(false);
+    const weak = threePrimeDuplexEnergy(weakA, weakB);
+    expect(threePrimeDimer(weakA, weakB, 4, weak)).toBe(true);
+    expect(threePrimeDimer(weakA, weakB, 4, weak - 0.001)).toBe(false);
+    // The default cutoff, -5, lets the weak one through and stops the strong one.
+    expect(threePrimeDimer(weakA, weakB, 4, -5)).toBe(false);
+    expect(threePrimeDimer(strongA, strongB, 4, -5)).toBe(true);
+  });
+
+  it('flags only a match longer than the length limit', () => {
+    expect(threePrimeDimer(strongA, strongB, 4, 0)).toBe(true);
+    expect(threePrimeDimer(strongA, strongB, 5, 0)).toBe(false);
+    expect(threePrimeDimer(strongA, strongB, 6, 0)).toBe(false);
+    expect(threePrimeDimer(strongA, strongB, 0, 0)).toBe(true);
+    // No 3′ pairing at all is never a dimer, whatever the cutoff.
+    expect(threePrimeDimer('GGGGGGGG', 'GGGGGGGG', 0, 0)).toBe(false);
+  });
+
+  it('looks at both primers’ 3′ ends, in either order', () => {
+    // Only b's 3′ end pairs with a.
+    const a = strongB;
+    const b = strongA;
+    expect(threePrimeComplementarity(a, b)).toBe(3);
+    expect(threePrimeComplementarity(b, a)).toBe(5);
+    expect(threePrimeDimer(a, b, 4, -5)).toBe(true);
+    expect(threePrimeDimer(b, a, 4, -5)).toBe(true);
+  });
+
+  it('flags a self-dimer when one primer is passed twice', () => {
+    expect(threePrimeDimer('ACGTACGTACGTTGCGCGC', 'ACGTACGTACGTTGCGCGC', 4, -5)).toBe(true);
+    expect(threePrimeDimer('AAAAAAAAAAAAAAAAAAAA', 'AAAAAAAAAAAAAAAAAAAA', 4, -5)).toBe(false);
   });
 });

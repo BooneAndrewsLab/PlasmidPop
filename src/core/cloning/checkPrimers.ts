@@ -17,6 +17,7 @@ import {
   longestHomopolymer,
   meltingTemperature,
   threePrimeComplementarity,
+  threePrimeDimer,
 } from '../primers';
 import { type Range, rangePieces } from '../range';
 import { reverseComplement } from '../sequence';
@@ -533,8 +534,10 @@ function pairUp(
     const key = `${p.forward.site.start}-${p.reverse.site.end}`;
     if (seen.has(key)) continue;
     const crossDimer = dimer(p.forward.report.sequence, p.reverse.report.sequence);
-    if (crossDimer > c.maxThreePrime) continue;
-    const crossDimerDg = dimerEnergy(p.forward.report.sequence, p.reverse.report.sequence);
+    const forwardSeq = p.forward.report.sequence;
+    const reverseSeq = p.reverse.report.sequence;
+    if (threePrimeDimer(forwardSeq, reverseSeq, c.maxThreePrime, c.threePrimeDg)) continue;
+    const crossDimerDg = dimerEnergy(forwardSeq, reverseSeq);
     if (crossDimerDg <= c.dimerDg) continue;
     if (fixed !== 'forward' && !specificity.specific(p.forward, 'forward')) continue;
     if (fixed !== 'reverse' && !specificity.specific(p.reverse, 'reverse')) continue;

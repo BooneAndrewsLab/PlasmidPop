@@ -156,15 +156,15 @@ describe('selected primer pairs against primer3-py', () => {
         anyOverlap++;
       }
     }
-    expect(equal).toBeGreaterThanOrEqual(9); // measured 9 of 40 (0 before)
-    expect(overlap).toBeGreaterThanOrEqual(20); // measured 20 of 40 (7 before)
-    expect(anyOverlap).toBeGreaterThanOrEqual(34); // measured 34 of 40 (18 before)
+    expect(equal).toBeGreaterThanOrEqual(10); // measured 10 of 40 (9 before #343, 0 before #346)
+    expect(overlap).toBeGreaterThanOrEqual(21); // measured 21 of 40 (20, 7)
+    expect(anyOverlap).toBeGreaterThanOrEqual(35); // measured 35 of 40 (34, 18)
   });
 
   it("our top pair's Primer3 penalty is close to Primer3's best", () => {
     // Primer3 scores a pair by its primers' Tm and size distance from 60 C
-    // and 21 nt. Measured: median 1.12 times its best (23 times before), and
-    // 18 of 40 templates worse than all five of its pairs (39 of 40 before).
+    // and 21 nt. Measured: median 1.11 times its best (23 times before #346), and
+    // 17 of 40 templates worse than all five of its pairs (39 of 40 before #346).
     const ratios: number[] = [];
     let worse = 0;
     let scored = 0;

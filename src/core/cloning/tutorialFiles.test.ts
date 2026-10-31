@@ -581,7 +581,7 @@ describe.skipIf(!existsSync(NCBI_FILE))('NCBI gene: INS, NM_000207', () => {
     const d = designCloningEnds(ctx, { forward: 'EcoRI', reverse: 'BamHI' });
     expect(d.problem).toBeNull();
     expect(d.forward.sequence).toBe('gttctggaattcATGGCCCTGTGGATGCGC');
-    expect(d.reverse.sequence).toBe('ctaataggatccCTAGTTGCAGTAGTTCTCCAGC');
+    expect(d.reverse.sequence).toBe('ctaataggatccCTAGTTGCAGTAGTTCTCCAGCTG');
     expect(d.warnings.map((w) => `${w.severity} ${w.kind}`)).toEqual(['caution annealing']);
     expect(d.productLength).toBe(357);
     const sim = d.simulate();

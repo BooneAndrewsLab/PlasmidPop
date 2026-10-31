@@ -1,5 +1,9 @@
-import { dimerEnergy, hairpinEnergy, selfDimerEnergy } from '@/core/primers/structure';
-import { threePrimeComplementarity } from '@/core/primers/thermo';
+import {
+  dimerEnergy,
+  hairpinEnergy,
+  selfDimerEnergy,
+  threePrimeDimer,
+} from '@/core/primers/structure';
 import { DEFAULT_PRIMER_CRITERIA as C } from '@/core/primers/criteria';
 
 import oracle from './hairpinDimer.json';
@@ -67,17 +71,16 @@ const heterodimer = pairs.map((p) => ({
   ours: dimerEnergy(p.a, p.b) <= C.dimerDg,
   primer3: p.dg <= DIMER_DG,
 }));
-// The designer also refuses a 3' match over `maxThreePrime`, by design a
-// separate rule (item 123). With it, "ours" flags more than Primer3's dG does.
+// The designer also refuses a 3' match over `maxThreePrime` whose duplex is at
+// or below `threePrimeDg` (item 124, #343): the ΔG-weighted 3' rule.
 const homodimerWith3 = rows.map((r, i) => ({
-  ours: (homodimer[i]?.ours ?? false) || threePrimeComplementarity(r.seq, r.seq) > C.maxThreePrime,
+  ours:
+    (homodimer[i]?.ours ?? false) || threePrimeDimer(r.seq, r.seq, C.maxThreePrime, C.threePrimeDg),
   primer3: r.homodimer.dg <= DIMER_DG,
 }));
 const heterodimerWith3 = pairs.map((p, i) => ({
   ours:
-    (heterodimer[i]?.ours ?? false) ||
-    Math.max(threePrimeComplementarity(p.a, p.b), threePrimeComplementarity(p.b, p.a)) >
-      C.maxThreePrime,
+    (heterodimer[i]?.ours ?? false) || threePrimeDimer(p.a, p.b, C.maxThreePrime, C.threePrimeDg),
   primer3: p.dg <= DIMER_DG,
 }));
 
@@ -109,20 +112,22 @@ describe('hairpin and dimer checks against primer3-py', () => {
     expect(m.primer3Only).toBeLessThanOrEqual(3);
   });
 
-  // The 3' rule is a separate check by design: a few bases at a 3' end are
-  // extended whatever their dG, and Primer3's dG does not say so. What it
-  // flags beyond the dG is "ours only" here, and is expected.
-  it('self-dimer with the 3′ rule: the extra flags are the rule, not the dG', () => {
+  // The 3' rule adds to the dG check, weighted by the dG of the 3' duplex
+  // (#343): it flags a match over `maxThreePrime` only when that duplex is at
+  // or below `threePrimeDg`. Before, the length alone decided, and it flagged
+  // 39 pairs Primer3 does not (79.4 % agreement). Now it is no worse than the
+  // dG check alone, and the self-dimer figure is a little better.
+  it('self-dimer with the 3′ rule: flagged the same way as Primer3', () => {
     const m = matrix(homodimerWith3);
-    expect(m.agreement).toBeGreaterThanOrEqual(0.9); // measured 90.7 %
-    expect(m.oursOnly).toBeLessThanOrEqual(22);
-    expect(m.primer3Only).toBeLessThanOrEqual(6);
+    expect(m.agreement).toBeGreaterThanOrEqual(0.95); // measured 95.7 %
+    expect(m.oursOnly).toBeLessThanOrEqual(6);
+    expect(m.primer3Only).toBeLessThanOrEqual(7);
   });
 
-  it('primer pair with the 3′ rule: the extra flags are the rule, not the dG', () => {
+  it('primer pair with the 3′ rule: flagged the same way as Primer3', () => {
     const m = matrix(heterodimerWith3);
-    expect(m.agreement).toBeGreaterThanOrEqual(0.78); // measured 79.4 %
-    expect(m.oursOnly).toBeLessThanOrEqual(39);
-    expect(m.primer3Only).toBeLessThanOrEqual(2);
+    expect(m.agreement).toBeGreaterThanOrEqual(0.95); // measured 95.5 %
+    expect(m.oursOnly).toBeLessThanOrEqual(6);
+    expect(m.primer3Only).toBeLessThanOrEqual(3);
   });
 });

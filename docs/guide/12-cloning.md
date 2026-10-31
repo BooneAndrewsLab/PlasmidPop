@@ -243,8 +243,11 @@ shelved product is marked dephosphorylated (see
 dephosphorylated vector — as on the bench.
 
 **Primer dimers.** When the 3′ end of one primer pairs with the other, or
-with a second copy of itself, over more than 4 bases, the panel says so:
-a polymerase can extend the pair into a short product of its own.
+with a second copy of itself, over more than 4 bases, and that 3′ duplex is
+stable (a free energy of −5 kcal/mol or lower, the same cutoff as the primer
+designer's **3′ dimer** setting), the panel says so: a polymerase can extend
+the pair into a short product of its own. A longer match of a few A/T pairs,
+which melts at the annealing step, is not reported.
 
 ## The Bench
 

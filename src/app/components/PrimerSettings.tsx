@@ -323,7 +323,9 @@ export function PrimerSettings({ criteria: c, cloning }: Props) {
         </span>
         <span className="panel__form-label">3′ dimer</span>
         <span className="panel__form-range">
-          ≤ {field('maxThreePrime', 'Longest 3′-end complementarity')} bp, self or pair
+          ≤ {field('maxThreePrime', 'Longest 3′-end complementarity')} bp, or ΔG &gt;{' '}
+          {field('threePrimeDg', 'Weakest 3′ duplex free energy refused, kcal/mol', 0.5)} kcal/mol,
+          self or pair
         </span>
         <span className="panel__form-label">GC clamp</span>
         <span className="panel__form-range">

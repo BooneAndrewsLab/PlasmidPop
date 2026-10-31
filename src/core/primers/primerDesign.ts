@@ -16,7 +16,13 @@ import {
   meltingTemperature,
   threePrimeComplementarity,
 } from './thermo';
-import { dimerEnergy, hairpinEnergy, hairpinTm, selfDimerEnergy } from './structure';
+import {
+  dimerEnergy,
+  hairpinEnergy,
+  hairpinTm,
+  selfDimerEnergy,
+  threePrimeDimer,
+} from './structure';
 
 export interface PrimerReport {
   readonly sequence: string;
@@ -147,7 +153,7 @@ export function analyzePrimer(
     warnings.push(`Hairpin melts at ${Math.round(hairpinMelt)} °C, above ${c.hairpinTm} °C`);
   }
   if (selfDimerDg <= c.dimerDg) warnings.push(`Self-dimer, ΔG ${formatDg(selfDimerDg)} kcal/mol`);
-  if (threePrimeSelf > c.maxThreePrime) {
+  if (threePrimeDimer(seq, seq, c.maxThreePrime, c.threePrimeDg)) {
     warnings.push(`3′ end pairs with itself over ${threePrimeSelf} bases`);
   }
   if (!gcClamp) warnings.push('No GC clamp at the 3′ end');
@@ -258,7 +264,9 @@ export function candidatePenalty(report: PrimerReport, c: PrimerCriteria): numbe
   if (report.hairpinDg <= c.hairpinDg) return null;
   if (report.hairpinTm > c.hairpinTm) return null;
   if (report.selfDimerDg <= c.dimerDg) return null;
-  if (report.threePrimeSelf > c.maxThreePrime) return null;
+  if (threePrimeDimer(report.sequence, report.sequence, c.maxThreePrime, c.threePrimeDg)) {
+    return null;
+  }
   if (c.requireGcClamp && !report.gcClamp) return null;
   const idealTm = (c.minTm + c.maxTm) / 2;
   const idealGc = (c.minGc + c.maxGc) / 2;
@@ -445,7 +453,9 @@ export function designPrimers(
         threePrimeComplementarity(f.report.sequence, r.report.sequence),
         threePrimeComplementarity(r.report.sequence, f.report.sequence),
       );
-      if (crossDimer > c.maxThreePrime) continue;
+      if (threePrimeDimer(f.report.sequence, r.report.sequence, c.maxThreePrime, c.threePrimeDg)) {
+        continue;
+      }
       const crossDimerDg = dimerEnergy(f.report.sequence, r.report.sequence);
       if (crossDimerDg <= c.dimerDg) continue;
       pairs.push({
@@ -544,7 +554,9 @@ export function designAnchoredPrimers(
       const tmDifference = Math.abs(f.report.tm - r.report.tm);
       if (tmDifference > c.maxTmDifference) continue;
       const crossDimer = dimer(f.report, r.report);
-      if (crossDimer > c.maxThreePrime) continue;
+      if (threePrimeDimer(f.report.sequence, r.report.sequence, c.maxThreePrime, c.threePrimeDg)) {
+        continue;
+      }
       const crossDimerDg = dimerEnergy(f.report.sequence, r.report.sequence);
       if (crossDimerDg <= c.dimerDg) continue;
       const penalty = pairPenalty(f.penalty, r.penalty, tmDifference, crossDimer);

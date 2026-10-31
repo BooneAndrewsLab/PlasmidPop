@@ -7,7 +7,9 @@ import {
   type AnnealingSite,
   cleanPrimer,
   findAnnealingSites,
+  DEFAULT_THREE_PRIME_DG,
   threePrimeComplementarity,
+  threePrimeDuplexEnergy,
 } from '../primers';
 import { type Range } from '../range';
 import { reverseComplement } from '../sequence';
@@ -409,11 +411,17 @@ export interface PrimerDimer {
 /**
  * Primer dimers a polymerase could extend (#14): the 3′ end of one oligo
  * pairing with the other, or with a second copy of itself, over more than
- * `max` bases — the primer designer's own limit (`maxThreePrime`). Each
- * dimer is reported from the primer whose 3′ end is paired, since that is
+ * `max` bases — the primer designer's own limit (`maxThreePrime`) — and
+ * that 3′ duplex is at or below `maxDg` kcal/mol (`threePrimeDuplexEnergy`;
+ * the designer's `threePrimeDg`, so a weak A/T match is not reported, #343).
+ * Each dimer is reported from the primer whose 3′ end is paired, since that is
  * the one extended.
  */
-export function primerDimers(primers: readonly PcrPrimer[], max = 4): PrimerDimer[] {
+export function primerDimers(
+  primers: readonly PcrPrimer[],
+  max = 4,
+  maxDg = DEFAULT_THREE_PRIME_DG,
+): PrimerDimer[] {
   const clean = primers.map((p) => ({
     name: p.name,
     // Codes kept in place: dropping one would join its neighbours (#75).
@@ -424,7 +432,9 @@ export function primerDimers(primers: readonly PcrPrimer[], max = 4): PrimerDime
     for (const b of clean) {
       if (a.bases === '' || b.bases === '') continue;
       const bases = threePrimeComplementarity(a.bases, b.bases);
-      if (bases > max) out.push({ primer: a.name, partner: b.name, bases });
+      if (bases > max && threePrimeDuplexEnergy(a.bases, b.bases) <= maxDg) {
+        out.push({ primer: a.name, partner: b.name, bases });
+      }
     }
   }
   return out;

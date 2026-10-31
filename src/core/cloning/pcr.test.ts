@@ -406,10 +406,10 @@ describe('pcr II (#14)', () => {
 
 describe('primerDimers', () => {
   it('finds 3′ ends that pair with the partner or with a copy of themselves', () => {
-    // GAATTC is its own reverse complement, so a primer ending in it pairs
+    // GCGCGC is its own reverse complement, so a primer ending in it pairs
     // with itself over six bases.
     const dimers = primerDimers([
-      { name: 'Forward', sequence: 'ACGTTGCAAAGAATTC' },
+      { name: 'Forward', sequence: 'ACGTTGCAAAGCGCGC' },
       { name: 'Reverse', sequence: 'CCCCCCCCCCCCCCCC' },
     ]);
     expect(dimers).toEqual([{ primer: 'Forward', partner: 'Forward', bases: 6 }]);
@@ -421,5 +421,29 @@ describe('primerDimers', () => {
     ]);
     expect(pair.map((d) => [d.primer, d.partner])).toContainEqual(['Reverse', 'Forward']);
     expect(primerDimers([{ name: 'Forward', sequence: fwd(100, 122).sequence }])).toEqual([]);
+  });
+
+  it('reports a 3′ match over the length only when its duplex is stable (#343)', () => {
+    // Forward's 3′ end CGGCC pairs with Reverse over five bases, a duplex of
+    // -4.49 kcal/mol; Reverse's own 3′ end pairs over three, under the limit.
+    const weak = [
+      { name: 'Forward', sequence: 'ATATCATATCGGCC' },
+      { name: 'Reverse', sequence: 'TTATGGCCGTTAT' },
+    ];
+    expect(primerDimers(weak)).toEqual([]);
+    // At the cutoff it is reported, a hair under it it is not.
+    expect(primerDimers(weak, 4, -4.492)).toEqual([
+      { primer: 'Forward', partner: 'Reverse', bases: 5 },
+    ]);
+    expect(primerDimers(weak, 4, -4.493)).toEqual([]);
+    // The same length, G/C-rich enough for -5.23 kcal/mol, is reported.
+    expect(
+      primerDimers([
+        { name: 'Forward', sequence: 'ATATCATATGCGCG' },
+        { name: 'Reverse', sequence: 'TTATCGCGCTTAT' },
+      ]),
+    ).toEqual([{ primer: 'Forward', partner: 'Reverse', bases: 5 }]);
+    // Five bases is not over a limit of five, however strong.
+    expect(primerDimers(weak, 5, 0)).toEqual([]);
   });
 });

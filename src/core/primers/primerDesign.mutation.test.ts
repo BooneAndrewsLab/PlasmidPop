@@ -10,7 +10,7 @@ import {
   designPrimers,
   findPrimerBindingSites,
 } from './primerDesign';
-import { dimerEnergy } from './structure';
+import { dimerEnergy, threePrimeDimer } from './structure';
 import { threePrimeComplementarity } from './thermo';
 
 /**
@@ -99,6 +99,7 @@ describe('analyzePrimer at the edges of its criteria', () => {
       hairpinDg: 0,
       dimerDg: -3,
       maxThreePrime: 1,
+      threePrimeDg: 0,
     });
     expect(r.warnings).toEqual([
       'Shorter than 21 bases',
@@ -224,7 +225,7 @@ function meets(r: PrimerReport, c: PrimerCriteria): boolean {
     r.hairpinDg > c.hairpinDg &&
     r.hairpinTm <= c.hairpinTm &&
     r.selfDimerDg > c.dimerDg &&
-    r.threePrimeSelf <= c.maxThreePrime &&
+    !threePrimeDimer(r.sequence, r.sequence, c.maxThreePrime, c.threePrimeDg) &&
     (!c.requireGcClamp || r.gcClamp)
   );
 }
@@ -303,7 +304,9 @@ function allPairs(
         threePrimeComplementarity(f.report.sequence, r.report.sequence),
         threePrimeComplementarity(r.report.sequence, f.report.sequence),
       );
-      if (crossDimer > c.maxThreePrime) continue;
+      if (threePrimeDimer(f.report.sequence, r.report.sequence, c.maxThreePrime, c.threePrimeDg)) {
+        continue;
+      }
       if (dimerEnergy(f.report.sequence, r.report.sequence) <= c.dimerDg) continue;
       const penalty = f.penalty + r.penalty + tmDifference * 0.25 + crossDimer * 0.03;
       const key = `${f.site.start}-${r.site.end}`;
@@ -382,6 +385,7 @@ describe('designPrimers against every pair its rules allow', () => {
         hairpinTm: fc.constantFrom(30, 40, 47, 150),
         dimerDg: fc.constantFrom(-2, -4, -6, -100),
         maxThreePrime: fc.oneof(fc.integer({ min: 2, max: 25 }), fc.constant(100)),
+        threePrimeDg: fc.constantFrom(0, -2, -3.5, -5, -7),
         requireGcClamp: fc.boolean(),
         maxTmDifference: fc.oneof(fc.integer({ min: 2, max: 40 }), fc.constant(100)),
         minProduct: fc.integer({ min: 0, max: 30 }),
@@ -412,6 +416,7 @@ describe('designPrimers against every pair its rules allow', () => {
           hairpinTm: s.hairpinTm,
           dimerDg: s.dimerDg,
           maxThreePrime: s.maxThreePrime,
+          threePrimeDg: s.threePrimeDg,
           requireGcClamp: s.requireGcClamp,
           maxTmDifference: s.maxTmDifference,
           minProduct: s.minProduct,

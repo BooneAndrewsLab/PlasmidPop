@@ -6,7 +6,7 @@ import { randomDna, seededRandom } from '@/test/random';
 import { reverseComplement } from '../sequence';
 import { DEFAULT_PRIMER_CRITERIA, type PrimerCriteria } from './criteria';
 import { analyzePrimer, designAnchoredPrimers, type PrimerReport } from './primerDesign';
-import { dimerEnergy } from './structure';
+import { dimerEnergy, threePrimeDimer } from './structure';
 import { threePrimeComplementarity } from './thermo';
 
 /**
@@ -40,7 +40,14 @@ describe('designAnchoredPrimers', () => {
             expect(broken(pair.forward.warnings)).toEqual([]);
             expect(broken(pair.reverse.warnings)).toEqual([]);
             expect(pair.tmDifference).toBeLessThanOrEqual(c.maxTmDifference);
-            expect(pair.crossDimer).toBeLessThanOrEqual(c.maxThreePrime);
+            expect(
+              threePrimeDimer(
+                pair.forward.sequence,
+                pair.reverse.sequence,
+                c.maxThreePrime,
+                c.threePrimeDg,
+              ),
+            ).toBe(false);
             expect(Number.isFinite(pair.penalty)).toBe(true);
           } else {
             expect(pair.penalty).toBe(Infinity);
@@ -75,7 +82,7 @@ function penaltyOf(r: PrimerReport, c: PrimerCriteria): number | null {
   if (r.homopolymer > c.maxHomopolymer || r.hairpinDg <= c.hairpinDg || r.hairpinTm > c.hairpinTm)
     return null;
   if (r.selfDimerDg <= c.dimerDg) return null;
-  if (r.threePrimeSelf > c.maxThreePrime) return null;
+  if (threePrimeDimer(r.sequence, r.sequence, c.maxThreePrime, c.threePrimeDg)) return null;
   if (c.requireGcClamp && !r.gcClamp) return null;
   const idealLength = Math.min(c.maxLength, Math.max(c.minLength, 21));
   return (
@@ -129,7 +136,8 @@ describe('designAnchoredPrimers against the slow way', () => {
             if (pa === null || pb === null) continue;
             const diff = Math.abs(a.tm - b.tm);
             const dimer = dimerOf(a, b);
-            if (diff > c.maxTmDifference || dimer > c.maxThreePrime) continue;
+            if (diff > c.maxTmDifference) continue;
+            if (threePrimeDimer(a.sequence, b.sequence, c.maxThreePrime, c.threePrimeDg)) continue;
             if (dimerEnergy(a.sequence, b.sequence) <= c.dimerDg) continue;
             const penalty = pa + pb + diff * 0.25 + dimer * 0.03;
             if (want === null || penalty < want.penalty) want = { f: a, r: b, penalty };
