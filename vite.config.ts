@@ -52,7 +52,22 @@ const UNIT_ONLY = process.env['PLASMIDPOP_MUTATION_UNIT'] === '1';
 // an instrumented sandbox, per file; perTest coverage would run it for every
 // mutant of the assembler. A mutation run leaves it out; the assembler's unit
 // tests (assemble.test.ts and the rest) are what kills its mutants.
-const MUTATION_SKIP = ['src/test/oracle/sangerAssembly[0-9]*.test.ts'];
+// The alignment suites that take minutes per test instrumented (the Biopython
+// oracle, banded, strands, the origin and read-alignment batches, the MSA
+// oracle) go the same way: the dry run runs every test once on one worker and
+// their sum alone passes the 45-minute limit. Their cheaper unit tests stay.
+const MUTATION_SKIP = [
+  'src/test/oracle/sangerAssembly[0-9]*.test.ts',
+  'src/test/oracle/alignment.test.ts',
+  'src/test/oracle/msa.test.ts',
+  'src/core/alignment/banded.test.ts',
+  'src/core/alignment/strands.test.ts',
+  'src/app/readAlignment.mapping.test.ts',
+  'src/app/readBatch.timing.test.ts',
+  'src/app/alignmentOriginIndel.test.ts',
+  'src/core/cloning/mutagenesis.property.test.ts',
+  'src/core/cloning/overlapPrimers.property.test.ts',
+];
 
 const ISOLATED_TESTS = ALL_TESTS.filter((f) => {
   const text = readFileSync(f, 'utf8');
