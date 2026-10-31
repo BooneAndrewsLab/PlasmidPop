@@ -421,15 +421,16 @@ nearest-neighbour free-energy calculations (SantaLucia's stacking energies
 with loop, mismatch and dangling-end terms, a small version of what
 Primer3's `thal` does), not counts of base pairs, so a G/C stem weighs more
 than an A/T one and a dimer with a mismatch or two short runs is found. The
-hairpin loop energies are SantaLucia and Hicks's (2004); the other loop terms
-were fitted to Primer3's output, so the agreement below is partly by
-construction. Against Primer3's calculations on a fixed set of
+hairpin loop energies, including the extra stability of triloops and
+tetraloops such as GNA, GNRA, are SantaLucia and Hicks's (2004, with its
+supplement); the other loop terms were fitted to Primer3's output, so the
+agreement below is partly by construction. Against Primer3's calculations on a fixed set of
 300 primers and 199 pairs (rich in hairpins and dimers), the same primers
 were flagged 95 % of the time for hairpins (Primer3 dG at or below
 −2 kcal/mol), 96 % for self-dimers and 96 % for primer pairs (dG at or
 below −6 kcal/mol); the mean ΔG differs from Primer3's by 0.3 kcal/mol for
-hairpins and 0.5–0.7 for dimers. Two further sets of the same kind, not used
-for the fit, gave 91–95 % for hairpins and 91–98 % for dimers. The
+hairpins and 0.5–0.7 for dimers. Five further sets of the same kind, not used
+for the fit, gave 93–96 % for hairpins and 91–98 % for dimers. The
 separate **3′ dimer** setting adds to them: a stable duplex at a 3′ end can
 be extended wherever the rest of the primer sits, so a match over the length
 is also refused when the free energy of the matched bases alone is at or
@@ -439,13 +440,11 @@ the pair check agreed with Primer3 79 % of the time, 95 % with the cutoff
 (self-dimers 91 % and 96 %). The **Hairpin
 Tm** limit is an estimate from the same model, with a hairpin loop that adds
 entropy and no enthalpy (as in SantaLucia and Hicks), and the Tm is steep in ΔG:
-on 800 primers inside the designer's Tm and GC limits, it flags 84 % of the ones
-Primer3 refuses at 47 °C (87–89 % on two other sets), and 12 % of all
-primers it flags where Primer3 would not (the estimate is raised by 3 °C on
-purpose, since a miss lets through what Primer3 would refuse and a false flag
-only costs a candidate). What it still misses is a stem of two G/C pairs
-closed by three or four bases, which Primer3 rates with special tri- and
-tetraloop bonuses that are not in the published paper.
+on 800 primers inside the designer's Tm and GC limits, it flags 96 % of the ones
+Primer3 refuses at 47 °C (98–99 % on two other sets), and 12 % of all
+primers it flags where Primer3 would not (13–15 % on the other sets; the
+estimate is raised by 3 °C on purpose, since a miss lets through what Primer3
+would refuse and a false flag only costs a candidate).
 Check a
 primer you care about in Primer3 or your supplier's tool. The data and the
 full report are in design notes 121 and 124.
@@ -454,13 +453,13 @@ full report are in design notes 121 and 124.
 templates, 200 of the designer's top pairs were handed to Primer3 with the
 same settings (primers of 18–27 nt, Tm 55–65 °C, GC 35–65 %). Every pair
 meets the Tm and GC limits by Primer3's numbers, and our Tm matches
-Primer3's to 0.005 °C. Primer3 accepts 91 % of the pairs outright; the other
-9 % each hold a primer whose hairpin it calls too stable by its own
+Primer3's to 0.005 °C. Primer3 accepts 98.5 % of the pairs outright; the other
+1.5 % (3 pairs) each hold a primer whose hairpin it calls too stable by its own
 criterion (the melting temperature of the structure), one our hairpin fold
-does not find. The designer's best pair is Primer3's best pair in 9 of the
-40 templates and overlaps it (both primers) in 19; at least one of our five
-pairs overlaps one of Primer3's five in 34. Scored by Primer3's own pair
-penalty, the median best pair of ours is 1.1 times Primer3's best. Read the
+rates a little lower. The designer's best pair is Primer3's best pair in 10 of the
+40 templates and overlaps it (both primers) in 20; at least one of our five
+pairs overlaps one of Primer3's five in 36. Scored by Primer3's own pair
+penalty, the median best pair of ours is 1.2 times Primer3's best. Read the
 list as acceptable candidates in nearly Primer3's order. The data and the
 full report are in design notes 122 and 125.
 
