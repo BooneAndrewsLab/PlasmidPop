@@ -37,11 +37,12 @@ import {
  * orientation) as built. Calibration (reported Phred against observed error)
  * is only reported, never gated: run with ORACLE_REPORT=1 to print the report.
  * A failure class that is a known deviation names its issue and may fail
- * in at most the replicates measured (#349 thin noisy overlaps; #347 reads
+ * in at most the replicates measured (#349 thin noisy overlaps, where the
+ * replicate that is left has no overlap after Q17 trimming; #347 reads
  * inside one copy of a repeat, which no read can place, and which must come
  * with a warning). #348 and the dense-repeat part of #347 were fixed in item
- * 123's second part. #350 (a lost homopolymer base) no longer shows in these
- * seeds after that change but is not fixed.
+ * 123's second part; #350 (a lost homopolymer base, the gap's quality) and
+ * the identity part of #349 in its third.
  */
 
 const GATE_IDENTITY = 0.995;

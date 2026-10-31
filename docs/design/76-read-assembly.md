@@ -36,7 +36,10 @@ insert not known yet, or one consensus from overlapping reads.
   (a base, `-` inside its stretch, a space outside) so each column is called
   from all the reads and a read's insertion becomes a column of its own, in
   which the other reads have a gap where they span it. A gap's quality is the
-  lower of the bases either side in its row, as `columnQualities` does.
+  lower of the bases either side in its row, as `columnQualities` does, less
+  6 (item 123, #350: a read loses a base where it was poorest). An overlap
+  under 90 % identity also passes when the qualities explain what differs
+  (item 123, #349).
 - **Alignment is injected** (`AssemblyAlign`): the panel passes
   `analysisClient.alignEitherStrand`, so the work is in the worker and the
   main thread only waits; tests run it inline. Cancel aborts the running

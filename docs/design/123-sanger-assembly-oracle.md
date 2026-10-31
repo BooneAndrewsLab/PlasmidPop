@@ -230,3 +230,102 @@ and the known allowance stays at 8 of 8.
   and sparse (8) repeat scenarios and for the homopolymer one (1) are gone;
   the thin-overlap one is 1 (was 2). Every collapse must carry the warning;
   every other scenario must have no warning (also the local real-quality one).
+
+## Result of the thin-overlap and gap fixes (#349, #350)
+
+Maintainer decision 2026-10-30: fix both in 1.21.0. Code:
+`src/core/assembly/assemble.ts`. The 90 % over 25 bases floor, the Q17 trim
+and the 0.8 consensus call were not touched.
+
+### #349: why the true overlap was rejected
+
+The oracle's failing replicate was a miss of a different kind from the one
+the issue describes. Sweeping 200 replicates of the thin-overlap scenario
+(more than the oracle's 8), 9 gave two contigs, and for each the adjacent
+pair that failed was looked at after Mott trimming, against the truth:
+
+- **5 of 9: the trimmed reads do not overlap.** Their poor tails overlapped
+  untrimmed; at Q17 the trimmed ends stop 34 bases apart, or share 9 bases,
+  fewer than the 25 an overlap needs. The oracle's own failing replicate (3)
+  is one of these. Nothing about identity can join them; only keeping more
+  of the tails could, and the trim is kept. These are now the whole of the
+  oracle's known deviation for #349 (1 of 8), and 5 in 200 is the rate of
+  the class.
+- **2 of 9: identity just under 90 % because both ends were poor** (88.7 %
+  over 71 bases; 88.8 % over 289). This is the issue as written, and is fixed.
+- **1 of 9: the alignment stopped 9 bases short of a read's end** (the slack
+  is 8), where the last bases of both reads are poor and the consensus there
+  is Q7-14. An attempt to pair those bases off with a gap-allowed extension
+  failed (6 of 10 differed against about 1.6 expected), so it is not fixed.
+- **1 of 9: a true overlap of 25 bases**, found in the wrong place. Not fixed.
+
+The fix is quality-aware, not a lower floor. An overlap below 90 % identity
+passes when its identity is at least 80 % and the columns that differ are no
+more than the two bases' stated error rates lead to expect (each column's
+chance is the sum of the two bases' error chances, a gap column's the chance of
+the base that is there; allowed is that sum plus three standard deviations and
+one). Over the true overlaps of the sweep, mismatches were 0.93 times the
+expected number overall, so the stated qualities are good enough to
+use as the model; three standard deviations of a Poisson count leave well under 1 %
+of true overlaps rejected on their numbers. Reads that are good where they differ (the copies
+of a diverged repeat: 8 differences in 60 bases at Q40) have next to nothing
+expected and still need 90 %; below 80 % nothing joins, however poor the
+bases. Plain-sequence reads without qualities assume Q20, so for them
+nothing changes in practice.
+
+False joins: 4500 pairs of unrelated 700-850 base reads (random, homopolymer-
+rich and AT-rich constructs; the noisy and clean profiles and flat Q10, Q14
+and Q20; forward and reverse) gave 0 joins. The oracle's repeat scenarios
+(which have to refuse a join) are unchanged, and the diverged-repeat unit
+test is in `assemble.test.ts`.
+
+| 200 replicates, thin overlaps (400 bp step) | Two contigs before | after |
+| ------------------------------------------- | ------------------ | ----- |
+| Trimmed reads do not overlap                | 5                  | 5     |
+| Identity just under 90 % (fixed)            | 2                  | 0     |
+| Alignment stops over 8 bases short          | 1                  | 1     |
+| True overlap of 25 bases                    | 1                  | 1     |
+| Total                                       | 9                  | 7     |
+
+The oracle's thin-overlap scenario is still 1 of 8 (its replicate is the
+no-overlap kind), so its allowance stays at 1, and #349 is not closed by this
+change: what is left is the trim, which is the maintainer's call.
+
+### #350: the cause was the gap's quality, confirmed
+
+The failure reproduced: not in the oracle's 8 seeds, but in 1 of 120
+replicates of the homopolymer scenario (99.48 %). Over those 120, 315 consensus
+errors at depth 2 or more, 214 of them a base the consensus lacks. A read
+loses a base where its peak was poorest, but its gap took the lower
+neighbouring quality (item 76), which is usually good, so at depth 2 it
+outweighed the other read's base of slightly lower quality. A gap is now
+Q6 below the poorer neighbour (`GAP_PENALTY`). Sweeping the penalty:
+
+| Gap penalty | Errors at depth 2 or more | Missing bases | Wrong bases | Replicates under 99.5 % |
+| ----------- | ------------------------- | ------------- | ----------- | ----------------------- |
+| 0 (before)  | 315                       | 214           | 101         | 1 of 120                |
+| 3           | 257                       | 147           | 110         | 1                       |
+| 6 (chosen)  | 225                       | 111           | 114         | 0                       |
+| 10          | 217                       | 90            | 127         | 0                       |
+
+More penalty trades missing bases for wrong ones (a lone inserted base then
+beats the gap), so 6 is the knee, not a fitted optimum. Across the oracle,
+depth 2 or more errors went down or stayed (noisy 12 to 11, homopolymer 23 to
+17, thin overlaps 8 to 7); overall identity including depth 1 moved by 0.0005
+or less. The oracle's homopolymer scenario now has a mean of 99.82 % (min
+99.66 %) where it had 99.71 % (99.42 % in the original run).
+
+The test that fails before: two reads over a 7-base run, one lacking a base,
+qualities Q33 and Q35. A disagreement is listed when a dissenting vote is at
+Q20 or more, so a gap whose neighbours are Q25 or worse is no longer one
+(the gap is Q19 or less).
+
+### Tests that changed
+
+- `assemble.test.ts` "gives its gap the lower quality of the bases either
+  side": neighbours are 31 and 35 now, the gap's quality 25; the insertion
+  column test's gap votes are 24 where they were 30.
+- New: four tests in "an overlap that differs where the reads are poor", and
+  the homopolymer test above.
+- `sangerAssembly.test.ts`: the comment names what is left of #349 and that
+  #350 is fixed; the counts are unchanged (thin overlaps 1).

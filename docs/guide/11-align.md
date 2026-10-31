@@ -129,8 +129,9 @@ document; the document is not used at all.
 Each read is first trimmed by its qualities (**Trim poor ends**, in the
 Reads group, as for an alignment). The longest read starts a contig, and
 every other read is joined to it if it overlaps an end, or lies inside it,
-by at least 25 bases at 90% identity or better; of the reads that fit, the one
-with the best overlap goes first. A read may be on either
+by at least 25 bases at 90% identity or better (or at least 80% where the
+differences are in bases the reads give poor qualities, as in two poor read
+ends); of the reads that fit, the one with the best overlap goes first. A read may be on either
 strand: those turned over to fit are paler in the layout. Reads that join
 nothing start contigs of their own, listed in the **Contig** picker, biggest
 first. A read with nothing left after trimming is counted as **left out**.
@@ -187,9 +188,10 @@ came out in 8 of 8 simulated replicates both with reads placed every 200 bp
 and with four reads that each span a copy. When all the reads that touch a
 repeat lie inside it (a read from the start and one from the far end, plus two
 reads wholly in a copy) the contig joins the copies and is about 1,050 bp where the construct is
-2,100: that came out in all 8 replicates, each with the possible-collapse warning. Reads that
-overlap only briefly in poor-quality ends may not join (1 of 8 simulated
-replicates with 400 bp spacing gave two contigs). **The consensus qualities are a model, not calibrated
+2,100: that came out in all 8 replicates, each with the possible-collapse warning. Reads whose
+trimmed ends no longer overlap, or only briefly, in poor-quality ends do not
+join (1 of 8 simulated replicates with 400 bp spacing gave two contigs, the
+trimmed reads sharing no bases; 7 of 200 in a larger run). **The consensus qualities are a model, not calibrated
 measurements:** on simulated reads whose errors follow their qualities, a
 reported Q10 to Q29 base was wrong somewhat less often than stated, and
 where only one read covers a base the quality is just that read's. Check
