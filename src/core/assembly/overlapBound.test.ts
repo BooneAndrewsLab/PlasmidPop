@@ -77,7 +77,9 @@ describe('OverlapScreen (#353)', () => {
       if (new OverlapScreen(bases(700, r)).mayOverlap(bases(700, r), 25, 0.9)) kept++;
     }
     expect(kept).toBeLessThanOrEqual(2);
-  });
+    // Forty pairs of 700 bases: well under a second here, past 5 s on a
+    // shared CI runner under coverage.
+  }, 30_000);
 
   it('treats an ambiguity code as a difference, so it only ever makes a pair easier to keep', () => {
     const r = rng(13);
