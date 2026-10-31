@@ -921,25 +921,35 @@ describe('overlapLength', () => {
   });
 });
 
+// Loaded at collection time so each part can be its own test (#338).
+const bundled = await loadFeatureLibrary();
+
 describe('the bundled library', () => {
-  it('loads, and each part is found in a copy of itself, exactly', async () => {
+  it('loads with parts from the fpbase source', async () => {
     const lib = await loadFeatureLibrary();
     expect(lib.parts.length).toBeGreaterThan(0);
     expect(lib.parts.some((p) => p.source === 'fpbase')).toBe(true);
-    for (const [i, p] of lib.parts.entries()) {
-      // A part kept only as a protein (#93) has no bases to look for it in;
-      // the protein test below covers those.
-      if (p.sequence === '') continue;
-      const hits = detectFeatures(p.sequence, 'linear', lib);
-      const self = hits.find((h) => h.part === i);
-      // A part may be displaced by a longer one of its type that contains it.
-      const covered =
-        self !== undefined ||
-        hits.some((h) => lib.parts[h.part]?.type === p.type && h.identity === 1);
-      expect(covered, p.name).toBe(true);
-      if (self !== undefined) expect(self.identity, p.name).toBe(1);
-    }
-  }, 30_000);
+  });
+
+  // A part kept only as a protein (#93) has no bases to look for it in; the
+  // protein test below covers those.
+  // One test per part (#338): the whole loop in one test outgrew the
+  // default timeout on a slow CI runner, while each part alone is quick.
+  describe.each(bundled.parts.flatMap((p, i) => (p.sequence === '' ? [] : [{ i, p }])))(
+    'part $p.name (#$i)',
+    ({ i, p }) => {
+      it('is found in a copy of itself, exactly', () => {
+        const hits = detectFeatures(p.sequence, 'linear', bundled);
+        const self = hits.find((h) => h.part === i);
+        // A part may be displaced by a longer one of its type that contains it.
+        const covered =
+          self !== undefined ||
+          hits.some((h) => bundled.parts[h.part]?.type === p.type && h.identity === 1);
+        expect(covered, p.name).toBe(true);
+        if (self !== undefined) expect(self.identity, p.name).toBe(1);
+      });
+    },
+  );
 
   it('finds every part that carries a protein in a sequence coding for it (#93)', async () => {
     const lib = await loadFeatureLibrary();
