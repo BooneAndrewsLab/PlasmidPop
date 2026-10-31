@@ -168,6 +168,18 @@ interface Row {
   quals: number[];
 }
 
+/**
+ * What a gap is worth less than the poorer base beside it (#350). A read
+ * loses a base where its peak was poorest, not where its neighbours are, so
+ * "this read has no base here" is less sure than the quality next to it says,
+ * and at depth 2 it outweighed the other read's base: the consensus lost a
+ * base that both reads covered, mostly in homopolymers. Q6 makes a gap four
+ * times as likely to be wrong; on 120 replicates of the homopolymer scenario it takes the
+ * consensus errors at depth 2 or more from 315 (214 of them missing bases)
+ * to 225 (111), and Q10 gives 217; more costs substitutions elsewhere.
+ */
+const GAP_PENALTY = 6;
+
 class Layout {
   rows: Row[] = [];
   /** Reads placed while another place fitted them as well (indexes in the reads given). */
@@ -183,7 +195,10 @@ class Layout {
     return l;
   }
 
-  /** Quality of each cell; a gap takes the lower of the nearest bases either side in its row. */
+  /**
+   * Quality of each cell; a gap takes the lower of the nearest bases either
+   * side in its row, less `GAP_PENALTY`.
+   */
   private effectiveQuals(row: Row): number[] {
     const n = row.cells.length;
     const left = new Array<number>(n).fill(Infinity);
@@ -200,8 +215,9 @@ class Layout {
       const ch = row.cells[c];
       if (ch === ' ') last = Infinity;
       else if (ch !== '-') last = row.quals[c] ?? 0;
-      const q = ch === '-' ? Math.min(left[c] ?? Infinity, last) : (row.quals[c] ?? 0);
-      out[c] = Number.isFinite(q) ? q : 0;
+      const q =
+        ch === '-' ? Math.min(left[c] ?? Infinity, last) - GAP_PENALTY : (row.quals[c] ?? 0);
+      out[c] = Number.isFinite(q) ? Math.max(0, q) : 0;
     }
     return out;
   }

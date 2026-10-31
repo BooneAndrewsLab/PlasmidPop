@@ -606,11 +606,11 @@ describe('assembleReads', () => {
     }
 
     it(
-      'gives its gap the lower quality of the bases either side, whichever side that is',
+      'gives its gap the lower quality of the bases either side, whichever side that is, less 6',
       async () => {
         for (const [leftQ, rightQ] of [
-          [25, 35],
-          [35, 25],
+          [31, 35],
+          [35, 31],
         ] as const) {
           const { at, contig } = await lacking(leftQ, rightQ);
           expect(contig?.consensus).toBe(GENOME.slice(0, 420));
@@ -625,6 +625,28 @@ describe('assembleReads', () => {
           expect(contig?.depth[at]).toBe(2);
           expect(contig?.depth[at - 1]).toBe(3);
         }
+      },
+      TIMEOUT,
+    );
+
+    // A read that lost a base of a homopolymer run (#350): at depth 2 its gap,
+    // at the quality of the bases beside it, used to outweigh the other read's
+    // slightly poorer base and the consensus was a base short.
+    it(
+      'keeps a homopolymer base that one of two reads lost, when the other has it',
+      async () => {
+        const run = 'G'.repeat(7);
+        const truth = GENOME.slice(0, 140) + run + GENOME.slice(147, 300);
+        const lost = truth.slice(100, 143) + truth.slice(144, 300);
+        const out = await assembleReads(
+          [
+            { name: 'a', sequence: truth.slice(0, 200), qualities: flat(200, 33) },
+            { name: 'b', sequence: lost, qualities: flat(lost.length, 35) },
+          ],
+          { align, trimCutoff: null },
+        );
+        expect(out.contigs).toHaveLength(1);
+        expect(out.contigs[0]?.consensus).toBe(truth);
       },
       TIMEOUT,
     );
@@ -717,7 +739,7 @@ describe('placing a read by an alignment', () => {
         110,
         'T',
         [
-          { read: 1, base: '-', quality: 30 },
+          { read: 1, base: '-', quality: 24 },
           { read: 2, base: 'T', quality: 33 },
         ],
       ],
@@ -725,7 +747,7 @@ describe('placing a read by an alignment', () => {
         111,
         'G',
         [
-          { read: 1, base: '-', quality: 30 },
+          { read: 1, base: '-', quality: 24 },
           { read: 2, base: 'G', quality: 37 },
         ],
       ],
