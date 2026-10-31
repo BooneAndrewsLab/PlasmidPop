@@ -460,7 +460,11 @@ rates a little lower. The designer's best pair is Primer3's best pair in 10 of t
 40 templates and overlaps it (both primers) in 20; at least one of our five
 pairs overlaps one of Primer3's five in 36. Scored by Primer3's own pair
 penalty, the median best pair of ours is 1.2 times Primer3's best. Read the
-list as acceptable candidates in nearly Primer3's order. The data and the
+list as acceptable candidates in nearly Primer3's order. Where our best pair
+scores worse by Primer3's penalty, it is mostly because our rules are
+stricter (a hairpin that melts a few degrees high, a stronger self-dimer, a
+primer that anneals elsewhere), or because we also prefer a GC clamp and
+balanced GC, which Primer3 does not weigh by default. The data and the
 full report are in design notes 122 and 125.
 
 **Where to look** is measured from the selection's edges: the forward primer

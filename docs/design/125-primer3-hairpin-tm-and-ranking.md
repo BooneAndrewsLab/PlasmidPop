@@ -264,6 +264,34 @@ run through Primer3. What the sweep showed:
   weights 0.5 to 8 left it at 176-183 of 200): the primers it refuses
   that we pick have, in our fold, no hairpin to speak of.
 
+## Why our best pair can score worse than Primer3's (#346, closed by design)
+
+On the 40 templates, 18 have a best pair that scores worse by Primer3's own
+penalty than all five of Primer3's. Replaying Primer3's five pairs through our
+own rules for each of the 18 gave:
+
+- **12 are our rules rejecting every one of Primer3's pairs**, not ranking.
+  Hairpin Tm: our fold puts a primer Primer3 accepts at 48-58 C against the
+  47 C limit (6 templates; the +3 C offset above is the price of catching what
+  Primer3 refuses). Self-dimer: our limit is -6 kcal/mol, Primer3's is a Tm
+  (4). Specificity: a primer that anneals elsewhere on the template, which
+  Primer3 does not check in this setup (2, and part of two more).
+- **6 are ranking.** We accept Primer3's pair and rank another first, because
+  our soft terms (a missing GC clamp 0.3, GC balance, structure) outweigh
+  the small Tm and size difference. A GC clamp and balanced GC are ordinary
+  primer-design practice; weights of zero would reproduce Primer3's order but
+  rank clamp-less pairs equal to clamped ones.
+- **0 are candidate generation**: every pair Primer3 gives was in our
+  shortlist.
+
+Scratch measurement (not committed): with every soft weight at 0, 12 templates
+are worse than all five of Primer3's, our top pair is Primer3's top in 18 of
+40 and the median ratio is 1.00; with the weights at a tenth, 12, 15 and 1.04.
+That would need Primer3's acceptance re-measured. Decision (maintainer,
+2026-10-31): keep the weights. The pairs are valid (Primer3 accepts 98.5 %)
+and nearly in its order; the gap is the cost of the checks Primer3 does not
+make. The stricter hairpin Tm and self-dimer limits are likewise kept.
+
 ## Result
 
 Primer-pairs oracle (`primerPairs.json`, 40 templates, 200 pairs):
