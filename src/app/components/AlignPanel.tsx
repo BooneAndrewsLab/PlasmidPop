@@ -1136,7 +1136,11 @@ export function AlignPanel({ doc }: Props) {
       {assembly !== null && (
         <fieldset className="panel__group">
           <legend>Assembly</legend>
-          <AssemblyResult assembly={assembly.assembly} readNames={assembly.names} />
+          <AssemblyResult
+            assembly={assembly.assembly}
+            readNames={assembly.names}
+            reference={doc.length === 0 ? null : { name: doc.name, busy, onAlign: runAll }}
+          />
         </fieldset>
       )}
       {(showBatch || result !== null) && (

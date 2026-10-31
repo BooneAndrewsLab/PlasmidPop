@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { type Assembly, alignEitherStrand, assembleReads } from '@/core';
 
@@ -92,5 +92,74 @@ describe('AssemblyResult warnings (#347)', () => {
     fireEvent.change(picker, { target: { value: '1' } });
     expect(screen.queryByRole('list', { name: 'Contig warnings' })).not.toBeInTheDocument();
     expect(screen.queryByText(/A repeat may have fooled/)).not.toBeInTheDocument();
+  });
+
+  describe('the way out: align to a reference', () => {
+    const collapse = () =>
+      assemble(repeated, [
+        [0, 440],
+        [760, 1200],
+        [320, 480],
+        [720, 880],
+        [330, 470],
+        [730, 870],
+      ]);
+
+    it('offers the batch against the open document with a warning, and runs it on click', async () => {
+      const { assembly, names } = await collapse();
+      const onAlign = vi.fn();
+      render(
+        <AssemblyResult
+          assembly={assembly}
+          readNames={names}
+          reference={{ name: 'pTest', busy: false, onAlign }}
+        />,
+      );
+      const button = screen.getByRole('button', { name: 'Align these reads to pTest' });
+      expect(button).toBeEnabled();
+      expect(onAlign).not.toHaveBeenCalled();
+      fireEvent.click(button);
+      expect(onAlign).toHaveBeenCalledTimes(1);
+    });
+
+    it('disables the button while a batch runs', async () => {
+      const { assembly, names } = await collapse();
+      render(
+        <AssemblyResult
+          assembly={assembly}
+          readNames={names}
+          reference={{ name: 'pTest', busy: true, onAlign: vi.fn() }}
+        />,
+      );
+      expect(screen.getByRole('button', { name: 'Align these reads to pTest' })).toBeDisabled();
+    });
+
+    it('tells the user to open a reference when there is none', async () => {
+      const { assembly, names } = await collapse();
+      render(<AssemblyResult assembly={assembly} readNames={names} />);
+      expect(screen.getByText(/open the plasmid or reference they came from/)).toBeVisible();
+      expect(
+        screen.queryByRole('button', { name: /Align these reads to/ }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('offers nothing without a warning', async () => {
+      const clean = await assemble(randomBases(500, 5), [
+        [0, 300],
+        [200, 500],
+      ]);
+      expect(clean.assembly.contigs[0]?.warnings).toEqual([]);
+      render(
+        <AssemblyResult
+          assembly={clean.assembly}
+          readNames={clean.names}
+          reference={{ name: 'pTest', busy: false, onAlign: vi.fn() }}
+        />,
+      );
+      expect(
+        screen.queryByRole('button', { name: /Align these reads to/ }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/open the plasmid or reference/)).not.toBeInTheDocument();
+    });
   });
 });

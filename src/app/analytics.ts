@@ -281,6 +281,7 @@ export const EVENTS = {
     'batch',
     'assemble',
     'assemble-save',
+    'assemble-to-reference',
     'msa',
     'msa-export',
   ],

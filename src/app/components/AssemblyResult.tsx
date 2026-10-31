@@ -20,10 +20,21 @@ const ROW_HEIGHT = 6;
 export function AssemblyResult({
   assembly,
   readNames,
+  reference = null,
 }: {
   assembly: Assembly;
   /** The names of the reads as given, by index. */
   readNames: readonly string[];
+  /**
+   * What the repeat warning offers as the way out (#347): the reads aligned
+   * to the open document, which is the reference. `null` when none is open,
+   * and the warning then says to open one.
+   */
+  reference?: {
+    readonly name: string;
+    readonly busy: boolean;
+    readonly onAlign: () => void;
+  } | null;
 }) {
   const [picked, setPicked] = useState(0);
   const contig = assembly.contigs[Math.min(picked, assembly.contigs.length - 1)];
@@ -94,6 +105,27 @@ export function AssemblyResult({
               <li key={i}>{w.message}</li>
             ))}
           </ul>
+          {reference === null ? (
+            <p className="panel__note">
+              To place these reads without guessing, open the plasmid or reference they came from
+              and align them to it.
+            </p>
+          ) : (
+            <p className="panel__controls">
+              <button
+                type="button"
+                className="button button--small"
+                disabled={reference.busy}
+                data-tip="Align every read to the open document instead: a reference tells the copies of a repeat apart"
+                onClick={() => {
+                  analytics.track('align', 'assemble-to-reference');
+                  reference.onAlign();
+                }}
+              >
+                {`Align these reads to ${reference.name}`}
+              </button>
+            </p>
+          )}
         </>
       )}
       <svg

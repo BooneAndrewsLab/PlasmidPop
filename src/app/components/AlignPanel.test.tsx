@@ -747,6 +747,44 @@ describe('AlignPanel', () => {
     });
   }, 60_000);
 
+  it('offers to align the assembled reads to the open document when a repeat warning shows (#347)', async () => {
+    let x = 99991;
+    const bases = (n: number): string => {
+      let out = '';
+      for (let i = 0; i < n; i++) {
+        x ^= x << 13;
+        x >>>= 0;
+        x ^= x >>> 17;
+        x ^= x << 5;
+        x >>>= 0;
+        out += 'ACGT'.charAt((x >>> 8) % 4);
+      }
+      return out;
+    };
+    const repeat = bases(200);
+    const truth = bases(300) + repeat + bases(200) + repeat + bases(300);
+    const spans = [
+      [0, 440],
+      [760, 1200],
+      [320, 480],
+      [720, 880],
+      [330, 470],
+      [730, 870],
+    ] as const;
+    const fasta = spans.map(([a, b], i) => `>r${i + 1}\n${truth.slice(a, b)}\n`).join('');
+    render(<AlignPanel doc={SeqDocument.create({ name: 'pTruth', sequence: truth })} />);
+    fireEvent.drop(box(), fileDrop(new File([fasta], 'reads.fa')));
+    fireEvent.click(await screen.findByRole('button', { name: 'Assemble reads' }));
+    const offer = await screen.findByRole(
+      'button',
+      { name: 'Align these reads to pTruth' },
+      { timeout: 30_000 },
+    );
+    expect(screen.queryByRole('group', { name: 'Results' })).not.toBeInTheDocument();
+    fireEvent.click(offer);
+    await screen.findByText('Results', { selector: 'legend' }, { timeout: 30_000 });
+  }, 90_000);
+
   it('keeps the readable files and names one that cannot be read', async () => {
     render(<AlignPanel doc={SeqDocument.create({ name: 'pRef', sequence: 'ACGTACGTAC' })} />);
     fireEvent.drop(
