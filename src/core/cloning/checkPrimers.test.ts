@@ -622,9 +622,12 @@ describe('designCheckPrimers: multi-part builds', () => {
     const d = designCheckPrimers(product, geometry, { empty: dest, orientation: 'fixed' });
     const covered = new Set(d.pairs.filter((p) => p.kind === 'junction').map((p) => p.junction));
     // The 33 bp tag is too short to hold a primer 50 bp from either of its
-    // junctions, so those two are said to have no pair; the rest are covered.
-    expect(covered).toEqual(new Set([0, 1, 2]));
-    expect(d.notes.filter((n) => n.startsWith('No pair across the junction'))).toHaveLength(2);
+    // junctions, so those two are said to have no pair. The middle junction
+    // is left with one forward primer whose hairpin Primer3 puts at 50 °C
+    // (limit 47); the fold of SantaLucia and Hicks's loops sees it too, and
+    // the junction goes without a pair (item 125).
+    expect(covered).toEqual(new Set([0, 2]));
+    expect(d.notes.filter((n) => n.startsWith('No pair across the junction'))).toHaveLength(3);
     for (const p of d.pairs) {
       expect(p.bands.clone).toEqual([p.productLength]);
       expect(p.productLength).toBe(sliceLength(p, product.length, true));

@@ -60,6 +60,94 @@ Tm"), a primer above it is refused by `candidatePenalty` and warned by
 Primer3 accepts 191 of 200 selected pairs with this alone (181 before),
 95.5 %, with the old ranking.
 
+## Hairpin loops from the paper (#345, second step)
+
+The 95 % aim was missed (180 of 200), and the cause named was that our hairpin
+fold had only fitted scalar loop terms. The maintainer supplied SantaLucia and
+Hicks 2004, "The thermodynamics of DNA structural motifs", Annu Rev Biophys
+Biomol Struct 33:415-440 (the numbers below are from it and from nowhere
+else; Primer3's own parameter files were not read, only run through
+primer3-py for comparison numbers).
+
+What the paper gives, and what `structure.ts` now uses:
+
+| Term                                              | Value                                                                 | Source                          |
+| ------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------- |
+| Hairpin loop ΔG°37, sizes 3, 4, 5, 6, 7, 8, 9, 10 | 3.5, 3.5, 3.3, 4.0, 4.2, 4.3, 4.5, 4.6                                | Table 4, hairpin column, p. 427 |
+| Sizes 12, 14, 16, 18, 20, 25, 30                  | 5.0, 5.1, 5.3, 5.5, 5.7, 6.1, 6.3                                     | Table 4, p. 427                 |
+| Any other size n                                  | ΔG(x) + 2.44 R (310.15) ln(n/x), x the largest tabulated size below n | Equation 7, p. 427              |
+| Loops shorter than 3                              | barred                                                                | Hairpin Loops, p. 428           |
+| Loop of 3 closed by A·T                           | +0.5, and no terminal mismatch                                        | Equation 8, p. 428              |
+| Loop ΔH                                           | 0, so ΔS = -ΔG/310.15                                                 | Table 4, footnote a, p. 427     |
+
+The loop's entropy is the only temperature dependence the paper gives it, so
+the hairpin's ΔH is the stacks' alone and `enthalpy.hairpinLoop` is now 0
+(it was a fitted -4.5, absorbing what the fitted loops got wrong); the
+triloop's A·T penalty also carries no ΔH (the paper does not say; its rule
+for loops is zero). The paper's footnote writes ΔS = +ΔG × 1000/310.15; the
+sign that makes ΔG = ΔH - TΔS is minus, which is what the code uses.
+
+Not in the paper, and therefore not added:
+
+- The tri- and tetraloop bonuses (it says they are in the supplementary
+  material, the "known special stability of GNA" and GNRA/GNAB tetraloops).
+  No number was invented for them.
+- The terminal mismatch in hairpin loops (Equations 9 and 10): the text
+  cites an unpublished database, no table. The fitted scalars
+  `hairpinMismatchGc`/`hairpinMismatchAt` (-0.8, -0.6) and the fitted
+  `enthalpy.hairpinMismatch` stay, for the loops of four and more.
+- The paper does give internal single mismatches (Table 2, p. 424, with
+  G·T wobble mismatches) and dangling ends (Table 3, p. 426); they would
+  replace more fitted scalars but were out of the brief and are not used.
+
+The only change to the temperature offset: with the loop enthalpy at 0 the
+unshifted Tm of a hairpin rises, so the old +6 C turned into a much larger
+price (17.5 % of primers flagged that Primer3 would not, from 10.5 %). The
+offset is re-fitted to the same rule as before (false flags at about 12 %):
++3 C. The hairpin ΔG cutoff (-2 kcal/mol) was swept from -1 to -3 on three
+sets and -2 is still the best or within 1 point of it (95.3, 93.0, 95.3 %).
+
+Measured, hairpin flagged the same way as Primer3 (ΔG at or below -2), first
+the committed set, then three held-out sets of the same kind (other
+seeds, kept out of the repository, `hairpindimer.py` with SEED 31415 and
+27182):
+
+| Set                        | Before   | After  |
+| -------------------------- | -------- | ------ |
+| hairpinDimer.json (300)    | 94.7 %   | 95.3 % |
+| held-out 31415 (300)       | 92.3 %   | 93.0 % |
+| held-out 27182 (300)       | 95.7 %   | 95.3 % |
+| hairpinTm.json (800), mean | ΔG error |        | 0.254 | 0.242 |
+| held-out 20271101 (800)    | 97.5 %   | 97.5 % |
+| held-out 20281101 (800)    | 96.1 %   | 96.9 % |
+
+Hairpin Tm at 47 C (recall of what Primer3 refuses / our flags Primer3 would
+not make, share of 800), with +6 before and +3 after; "paper loops, +6" is
+the intermediate step:
+
+| Set               | Before          | Paper loops, +6 | After (+3)      |
+| ----------------- | --------------- | --------------- | --------------- |
+| hairpinTm.json    | 82.3 % / 10.5 % | 87.8 % / 17.5 % | 83.5 % / 11.8 % |
+| held-out 20271101 | 83.9 % / 12.0 % | 91.3 % / 18.6 % | 87.0 % / 12.1 % |
+| held-out 20281101 | 89.3 % / 11.3 % | 92.6 % / 19.6 % | 88.6 % / 13.4 % |
+
+Primer3's acceptance of our selected pairs (`primerPairs.json`, regenerated):
+**182 of 200 (91 %)**, from 180 (184 with +6 and a worse Tm price). The 95 %
+aim is **not met**. Every one of the 18 refusals is a hairpin Primer3
+calls too stable by its Tm. Of the 9 distinct primers inspected (at +6, before the
+re-fit), our fold found no hairpin at all in 7; the structures Primer3
+reports for them are stems of two G/C pairs closed by three or four bases
+(one is `GGCGAAGC`-like, a GAA loop), which is what the bonuses of the
+supplementary material are for. What remains is
+therefore that data, or a bonus fitted to Primer3's output (not done: the
+brief was the paper only).
+
+Side effects: the overlap with Primer3's top pair slipped from 10, 21, 35 to
+9, 19, 34 of 40 (equal, both primers, any of five); the four-part Golden Gate
+check (`checkPrimers.test.ts`) lost its pair at the middle junction, whose one
+forward primer (`CTTTGCGTTTAGCGTAACACATC`) Primer3 gives a hairpin Tm of 50 C
+(limit 47), so that is the better answer.
+
 ## Ranking (#346)
 
 Primer3's pair penalty with default weights is, exactly (checked on the 400
@@ -122,7 +210,8 @@ Left as it is (item 124: a documented rule, "ours only" 39 pairs).
 
 ## Left open
 
-- The hairpin-Tm recall (82 %) and the 95 % acceptance of #345.
+- The hairpin-Tm recall (84 %) and the 95 % acceptance of #345 (91 %): the
+  tri- and tetraloop bonuses.
 - `hairpinTm` is estimated for hairpins only; Primer3's dimer-Tm criteria
   (`PRIMER_*_COMPL_*_TH`, also 47 C) are not modelled, and no pair was refused
   for them in the oracle.

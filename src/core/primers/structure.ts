@@ -27,8 +27,14 @@ export interface StructureParams {
   readonly hairpinInit: number;
   /** Extra for an A·T pair at the end of a helix or beside a loop. */
   readonly atClose: number;
-  /** Hairpin loop of 3..10 bases (index 0 is size 3). */
-  readonly hairpinLoop: readonly number[];
+  /**
+   * Hairpin loop initiation ΔG°37 by size, ascending [size, kcal/mol]:
+   * SantaLucia and Hicks 2004, Table 4 (p. 427). A size between two rows
+   * is extrapolated from the one below with their Equation 7.
+   */
+  readonly hairpinLoop: readonly (readonly [number, number])[];
+  /** Added to a loop of three closed by an A·T pair (their Equation 8, p. 428). */
+  readonly triloopAtClose: number;
   /** Terminal mismatch beside a hairpin loop, by the closing pair. */
   readonly hairpinMismatchGc: number;
   readonly hairpinMismatchAt: number;
@@ -88,7 +94,25 @@ export const STRUCTURE_PARAMS: StructureParams = {
   duplexInit: 2.2,
   hairpinInit: 0.2,
   atClose: 0.05,
-  hairpinLoop: [3.5, 3.5, 3.7, 4.1, 4.2, 4.4, 4.5, 4.7],
+  // SantaLucia and Hicks 2004, Table 4 (p. 427), hairpin loops column.
+  hairpinLoop: [
+    [3, 3.5],
+    [4, 3.5],
+    [5, 3.3],
+    [6, 4.0],
+    [7, 4.2],
+    [8, 4.3],
+    [9, 4.5],
+    [10, 4.6],
+    [12, 5.0],
+    [14, 5.1],
+    [16, 5.3],
+    [18, 5.5],
+    [20, 5.7],
+    [25, 6.1],
+    [30, 6.3],
+  ],
+  triloopAtClose: 0.5,
   hairpinMismatchGc: -0.8,
   hairpinMismatchAt: -0.6,
   bulge: [3.8, 3.5, 3.7, 3.7, 4.0, 4.2, 4.6, 4.7, 4.8, 4.9],
@@ -101,9 +125,9 @@ export const STRUCTURE_PARAMS: StructureParams = {
   endMismatchAt: -0.6,
   danglingGc: -0.7,
   danglingAt: -0.3,
-  hairpinTmOffset: 6,
+  hairpinTmOffset: 3,
   enthalpy: {
-    hairpinLoop: -4.5,
+    hairpinLoop: 0,
     hairpinMismatch: -0.75,
     bulge: 21.5,
     interior: -9.5,
@@ -115,6 +139,8 @@ export const STRUCTURE_PARAMS: StructureParams = {
 
 const BODY_TEMPERATURE = 310.15;
 /** 1.75 RT at 37 °C: how a loop's cost grows with its size past the table. */
+/** 2.44 RT at 37 °C: Equation 7 of SantaLucia and Hicks 2004 (p. 427), for hairpin loops. */
+const HAIRPIN_LOOP_GROWTH = 2.44 * 0.001987 * BODY_TEMPERATURE;
 const LOOP_GROWTH = 1.75 * 0.001987 * BODY_TEMPERATURE;
 /** Unpaired bases allowed on either side of an interior loop or bulge. */
 const MAX_LOOP = 4;
@@ -197,11 +223,19 @@ function mismatchEnergy(p: StructureParams, a: number, u: number, w: number): nu
   return (isGc(a) ? p.mismatchGc[k] : p.mismatchAt[k]) ?? 0;
 }
 
+/**
+ * ΔG°37 of closing a hairpin loop of `size` bases (SantaLucia and Hicks 2004,
+ * Table 4 and Equation 7); a loop of fewer than three is sterically barred.
+ */
 function hairpinLoopEnergy(p: StructureParams, size: number): number {
-  const t = p.hairpinLoop;
-  const last = t.length + 2;
-  if (size <= last) return t[size - 3] ?? INF;
-  return (t[t.length - 1] ?? 0) + LOOP_GROWTH * Math.log(size / last);
+  let below: readonly [number, number] | undefined;
+  for (const row of p.hairpinLoop) {
+    if (row[0] > size) break;
+    below = row;
+  }
+  if (!below) return INF;
+  if (below[0] === size) return below[1];
+  return below[1] + HAIRPIN_LOOP_GROWTH * Math.log(size / below[0]);
 }
 
 /**
@@ -347,13 +381,13 @@ function foldHairpin(
       const xi = x[i] ?? 4;
       if (!pairs(xi, x[j] ?? 4)) continue;
       const loop = j - i - 1;
-      let eh = h.hairpinLoop + (loop === 3 ? (isGc(xi) ? 0 : h.atClose) : h.hairpinMismatch);
+      let eh = h.hairpinLoop + (loop === 3 ? 0 : h.hairpinMismatch);
       let e =
         hairpinLoopEnergy(p, loop) +
         (loop === 3
           ? isGc(xi)
             ? 0
-            : p.atClose
+            : p.triloopAtClose
           : isGc(xi)
             ? p.hairpinMismatchGc
             : p.hairpinMismatchAt);

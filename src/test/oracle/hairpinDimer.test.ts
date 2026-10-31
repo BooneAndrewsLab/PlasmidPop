@@ -92,10 +92,12 @@ describe('hairpin and dimer checks against primer3-py', () => {
 
   it('hairpin: flagged the same way as Primer3 (dG <= -2 kcal/mol)', () => {
     const m = matrix(hairpin);
-    expect(m.agreement).toBeGreaterThanOrEqual(0.94); // measured 94.7 %
+    // With the loops of SantaLucia and Hicks 2004 (item 125, #345): 95.3 %,
+    // 94.7 % before. Two other seeds, held out: 93.0 and 95.3 %.
+    expect(m.agreement).toBeGreaterThanOrEqual(0.945); // measured 95.3 %
     // Remaining disagreements: ours only, Primer3 only.
-    expect(m.oursOnly).toBeLessThanOrEqual(4);
-    expect(m.primer3Only).toBeLessThanOrEqual(12);
+    expect(m.oursOnly).toBeLessThanOrEqual(7);
+    expect(m.primer3Only).toBeLessThanOrEqual(7);
   });
 
   it('self-dimer: flagged the same way as Primer3 (dG <= -6 kcal/mol)', () => {

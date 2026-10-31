@@ -5,6 +5,7 @@ import {
   hairpinEnergy,
   hairpinTm,
   selfDimerEnergy,
+  STRUCTURE_PARAMS,
   threePrimeDimer,
   threePrimeDuplexEnergy,
 } from './structure';
@@ -65,9 +66,143 @@ describe('hairpinEnergy', () => {
 
   it('agrees with Primer3 across the oracle within the measured error', () => {
     const e = errors(rows.map((r) => [hairpinEnergy(r.seq), r.hairpin.dg]));
-    // Measured: mean 0.26, max 2.26 kcal/mol over 300 primers.
-    expect(e.mean).toBeLessThan(0.35);
-    expect(e.max).toBeLessThan(2.6);
+    // Measured: mean 0.31, max 2.63 kcal/mol over 300 primers (item 125).
+    expect(e.mean).toBeLessThan(0.33);
+    expect(e.max).toBeLessThan(2.7);
+  });
+});
+
+/**
+ * Hairpin loops by hand (item 125). The stems are self-complementary G/C
+ * runs closed by A loops, so the best fold is the whole stem and its ΔG is
+ * a sum anyone can check: SantaLucia 1998 stacks at 37 °C from ΔH and ΔS
+ * (5'GC3'/3'CG5' -9.8 and -24.4 e.u., 5'CG3'/3'GC5' -10.6 and -27.2,
+ * 5'CA3'/3'GT5' -8.5 and -22.7: -2.231, -2.164 and -1.460), the 0.34 salt
+ * term per stack, 0.2 hairpin initiation, and the loop from SantaLucia and Hicks 2004,
+ * Table 4 (p. 427), Equations 7 to 9 (pp. 427-428).
+ */
+describe('hairpin loops (SantaLucia and Hicks 2004)', () => {
+  /** ΔG at 37 °C of a stack from its ΔH, kcal/mol, and ΔS, cal/(mol K). */
+  const stack = (dH: number, dS: number): number => dH - (310.15 * dS) / 1000;
+  const GC = stack(-9.8, -24.4);
+  const CG = stack(-10.6, -27.2);
+  const CA = stack(-8.5, -22.7);
+  /** GCGC, a loop of `n` A, GCGC: three stacks and their salt. */
+  const stem = (n: number): string => `GCGC${'A'.repeat(n)}GCGC`;
+  /** The stem, salt, initiation and (past a triloop) the terminal mismatch of G/C. */
+  const STEM = 2 * GC + CG + 3 * 0.34 + 0.2;
+  /** A longer stem (GCGCGCGC both sides) for the loops too dear for a short one. */
+  const long = (n: number): string => `GCGCGCGC${'A'.repeat(n)}GCGCGCGC`;
+  const LONG = 4 * GC + 3 * CG + 7 * 0.34 + 0.2;
+  const MISMATCH = -0.8;
+  /** 2.44 RT at 37 °C, Equation 7. */
+  const GROWTH = 2.44 * 0.001987 * 310.15;
+
+  it('a loop of three has no terminal mismatch and none of the 3.5 is lost', () => {
+    expect(hairpinEnergy(stem(3))).toBeCloseTo(STEM + 3.5, 3); // about -1.91
+  });
+
+  it('a loop of four takes the terminal mismatch, a loop of three does not', () => {
+    expect(hairpinEnergy(stem(4))).toBeCloseTo(STEM + 3.5 + MISMATCH, 3); // about -2.71
+    expect(hairpinEnergy(stem(4))).toBeLessThan(hairpinEnergy(stem(3)) - 0.7);
+  });
+
+  it('uses every size of Table 4 up to ten', () => {
+    // Size 5 is 3.3, below the 3.5 of sizes 3 and 4; the rest climb.
+    const table: readonly [number, number][] = [
+      [5, 3.3],
+      [6, 4.0],
+      [7, 4.2],
+      [8, 4.3],
+      [9, 4.5],
+      [10, 4.6],
+    ];
+    for (const [n, g] of table) {
+      expect(hairpinEnergy(stem(n))).toBeCloseTo(STEM + MISMATCH + g, 3);
+    }
+  });
+
+  it('uses the tabulated sizes past ten: 12, 14, 16, 18, 20, 25, 30', () => {
+    const table: readonly [number, number][] = [
+      [12, 5.0],
+      [14, 5.1],
+      [16, 5.3],
+      [18, 5.5],
+      [20, 5.7],
+      [25, 6.1],
+      [30, 6.3],
+    ];
+    for (const [n, g] of table) {
+      expect(hairpinEnergy(long(n))).toBeCloseTo(LONG + MISMATCH + g, 3);
+    }
+  });
+
+  it('extrapolates a size between rows from the row below (Equation 7)', () => {
+    expect(hairpinEnergy(long(11))).toBeCloseTo(
+      LONG + MISMATCH + 4.6 + GROWTH * Math.log(11 / 10),
+      3,
+    );
+    expect(hairpinEnergy(long(13))).toBeCloseTo(
+      LONG + MISMATCH + 5.0 + GROWTH * Math.log(13 / 12),
+      3,
+    );
+    expect(hairpinEnergy(long(19))).toBeCloseTo(
+      LONG + MISMATCH + 5.5 + GROWTH * Math.log(19 / 18),
+      3,
+    );
+    expect(hairpinEnergy(long(27))).toBeCloseTo(
+      LONG + MISMATCH + 6.1 + GROWTH * Math.log(27 / 25),
+      3,
+    );
+    // Past the last row it keeps growing from 30.
+    expect(hairpinEnergy(long(33))).toBeCloseTo(
+      LONG + MISMATCH + 6.3 + GROWTH * Math.log(33 / 30),
+      3,
+    );
+  });
+
+  // GCGCGC, an A·T pair, the loop, then the T and GCGCGC: five G/C stacks, one C·A/G·T stack.
+  const atStem = (loop: string): string => `GCGCGCA${loop}TGCGCGC`;
+  const STACKS = 3 * GC + 2 * CG + CA + 6 * 0.34 + 0.2;
+
+  it('a triloop closed by A·T costs 0.5 more, as Equation 8 says', () => {
+    // Every loop past four is made dear, so that the fold keeps the A·T pair.
+    const dear = [...STRUCTURE_PARAMS.hairpinLoop.slice(0, 2), [5, 30]] as const;
+    const base = { ...STRUCTURE_PARAMS, hairpinLoop: dear };
+    expect(hairpinEnergy(atStem('AAA'), base)).toBeCloseTo(STACKS + 3.5 + 0.5, 3);
+    const none = { ...base, triloopAtClose: 0 };
+    expect(hairpinEnergy(atStem('AAA'), none)).toBeCloseTo(STACKS + 3.5, 3);
+    const big = { ...base, triloopAtClose: 1.5 };
+    expect(hairpinEnergy(atStem('AAA'), big)).toBeCloseTo(STACKS + 3.5 + 1.5, 3);
+  });
+
+  it('the A·T penalty is for a loop of three only: four takes the A·T terminal mismatch', () => {
+    const big = { ...STRUCTURE_PARAMS, triloopAtClose: 1.5 };
+    expect(hairpinEnergy(atStem('AAAA'))).toBeCloseTo(STACKS + 3.5 - 0.6, 3); // about -7.34
+    expect(hairpinEnergy(atStem('AAAA'), big)).toBeCloseTo(hairpinEnergy(atStem('AAAA')), 6);
+  });
+
+  it('does not charge a triloop closed by G·C the A·T penalty', () => {
+    const big = { ...STRUCTURE_PARAMS, triloopAtClose: 1.5 };
+    expect(hairpinEnergy(stem(3), big)).toBeCloseTo(hairpinEnergy(stem(3)), 6);
+  });
+
+  it('has the hairpin loop columns of Table 4 and the 0.5 of Equation 8 in its parameters', () => {
+    const sizes = STRUCTURE_PARAMS.hairpinLoop.map(([n]) => n);
+    expect(sizes).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 25, 30]);
+    expect(STRUCTURE_PARAMS.hairpinLoop.map(([, g]) => g)).toEqual([
+      3.5, 3.5, 3.3, 4.0, 4.2, 4.3, 4.5, 4.6, 5.0, 5.1, 5.3, 5.5, 5.7, 6.1, 6.3,
+    ]);
+    expect(STRUCTURE_PARAMS.triloopAtClose).toBe(0.5);
+  });
+
+  it('a loop adds entropy and no enthalpy: the Tm is the stacks’ ΔH over ΔS (Equation 11)', () => {
+    // ΔH is the stacks' alone (5'GC3' -9.8 twice, 5'CG3' -10.6): -30.2 kcal/mol,
+    // and the loop's ΔS is -ΔG/T (Table 4, footnote a: its ΔH is zero).
+    const h = 2 * -9.8 + -10.6;
+    const g = STEM + 3.5;
+    const tm = (h * 310.15) / (h - g) - 273.15 + STRUCTURE_PARAMS.hairpinTmOffset;
+    expect(hairpinTm(stem(3))).toBeCloseTo(tm, 2);
   });
 });
 
@@ -94,7 +229,7 @@ describe('hairpinTm (#345)', () => {
     // primer3-py 2.2.0). The enthalpy terms were fitted on the even rows
     // and the 300 of hairpinDimer.json, the offset on all 800, so this is
     // the fit's own sample, not an independent one. Measured: 135 flagged
-    // by both, 84 by us only, 29 by Primer3 only, 552 by neither.
+    // by both, 94 by us only, 27 by Primer3 only, 542 by neither (item 125).
     let both = 0;
     let ours = 0;
     let theirs = 0;
@@ -106,9 +241,9 @@ describe('hairpinTm (#345)', () => {
       else if (b) theirs++;
     }
     // Recall: the share of what Primer3 refuses that we refuse too.
-    expect(both / (both + theirs)).toBeGreaterThanOrEqual(0.8); // measured 82 %
+    expect(both / (both + theirs)).toBeGreaterThanOrEqual(0.82); // measured 83.5 %
     // The price of the offset: refusals Primer3 would not make.
-    expect(ours / sample.length).toBeLessThanOrEqual(0.12); // measured 10.5 %
+    expect(ours / sample.length).toBeLessThanOrEqual(0.12); // measured 11.75 %
   });
 });
 
