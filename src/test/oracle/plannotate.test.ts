@@ -52,7 +52,9 @@ describe('Detect features against pLannotate', () => {
     result = compare(await loadFeatureLibrary());
     const path = process.env['PLANNOTATE_REPORT'];
     if (path !== undefined) writeFileSync(path, report(result));
-  }, 120_000);
+    // The whole corpus is detected here: 120 s was not enough in a mutation
+    // run's dry run (instrumented code, eight workers on one machine).
+  }, 600_000);
 
   it('records which pLannotate and databases made the expectations', () => {
     expect(versions.plannotate).toMatch(/^pLannotate \d/);

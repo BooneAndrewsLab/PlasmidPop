@@ -285,7 +285,7 @@ export default defineConfig({
     // A mutation run (`npm run mutate`) instruments the code, which runs
     // many times slower; the ordinary limit would fail tests that are not
     // slow at all.
-    testTimeout: process.env['PLASMIDPOP_MUTATION'] === '1' ? 60_000 : 5_000,
+    testTimeout: process.env['PLASMIDPOP_MUTATION'] === '1' ? 180_000 : 5_000,
     // A mutation run's dry run goes through every file on one worker, and
     // a fresh module registry per file is about half its time. There the
     // files share one, apart from those that need their own.
