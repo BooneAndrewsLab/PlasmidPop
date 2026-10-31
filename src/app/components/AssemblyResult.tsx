@@ -107,8 +107,8 @@ export function AssemblyResult({
           </ul>
           {reference === null ? (
             <p className="panel__note">
-              To place these reads without guessing, open the plasmid or reference they came from
-              and align them to it.
+              To place the reads that reach out of the repeat, open the plasmid or reference they
+              came from and align them to it.
             </p>
           ) : (
             <p className="panel__controls">
@@ -116,7 +116,7 @@ export function AssemblyResult({
                 type="button"
                 className="button button--small"
                 disabled={reference.busy}
-                data-tip="Align every read to the open document instead: a reference tells the copies of a repeat apart"
+                data-tip="Align every read to the open document instead: reads that reach out of a repeat are placed by their flank; reads wholly inside it stay ambiguous"
                 onClick={() => {
                   analytics.track('align', 'assemble-to-reference');
                   reference.onAlign();

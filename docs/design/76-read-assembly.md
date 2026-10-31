@@ -59,7 +59,10 @@ assemble`, `align / assemble-save` and `align / assemble-to-reference`
   (item 38). When a contig has a repeat warning (#347), a button under the
   warnings, **Align these reads to** the open document, runs the existing
   read batch (`runReadBatch`, as **Align all**) over the same records; with
-  no document it shows a note to open a reference instead. `AssemblyResult`
+  no document it shows a note to open a reference instead. A reference
+  places the reads that reach out of a repeat by their flank; a read wholly
+  inside one copy is identical in both and lands on one of them (the first),
+  so the way out is partial (screenshot-checked on the six-read scenario). `AssemblyResult`
   takes it as the optional `reference` prop (name, busy, `onAlign`); the
   panel passes `runAll`.
 

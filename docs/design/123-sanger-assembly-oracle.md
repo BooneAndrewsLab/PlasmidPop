@@ -403,7 +403,11 @@ An assembler cannot resolve a repeat longer than its reads (paired ends are
 for 1.22.0), so a contig with a `possible-repeat-collapse` or `ambiguous-join`
 warning now offers **Align these reads to** the open document in the result
 panel (item 76): the existing read batch against the reference, with no new
-alignment code and no change to how reads are joined. No oracle number moved.
+alignment code and no change to how reads are joined. No oracle number moved. It is a partial
+way out: reads that reach out of the repeat are placed by their flank, but a
+read wholly inside one copy is identical in both and is drawn on one (the
+first), as the six-read scenario shows in the UI. Only longer reads or paired
+ends settle those (1.22.0).
 
 What the collapse warning keys on already is depth: a stretch of 100 bases or
 more at depth 3 or more, peaking at 4, whose mean is at least 3x the contig's

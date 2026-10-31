@@ -184,8 +184,10 @@ shaded stretch in the layout. There are two:
 
 Under the warnings, **Align these reads to** _document name_ aligns the same
 reads to the document open in the editor, as **Align all** does, and lists
-them below: a reference tells the copies of a repeat apart where the reads
-cannot. When there is no document with sequence, the warning says to open the
+them below. A reference helps for reads that reach out of the repeat into
+unique sequence: each is placed by its flank. A read that lies wholly inside
+one copy is the same in both, so it is drawn on one of them (usually the
+first) and its copy stays unknown. When there is no document with sequence, the warning says to open the
 plasmid or reference the reads came from and align them to it.
 
 A repeat longer than the reads cannot be resolved by assembly: separate
