@@ -179,6 +179,14 @@ shaded stretch in the layout. There are two:
   The contig may then lack the sequence between the copies, and its length is
   the thing to check against what you expect. Extra reads you sequenced over one
   region on purpose look the same, so read it as "check", not "wrong".
+  The warning gives the depths it saw (for example "covered 3.5× deep where the
+  contig is 1× deep"), so you can judge how strong the evidence is.
+
+Under the warnings, **Align these reads to** _document name_ aligns the same
+reads to the document open in the editor, as **Align all** does, and lists
+them below: a reference tells the copies of a repeat apart where the reads
+cannot. When there is no document with sequence, the warning says to open the
+plasmid or reference the reads came from and align them to it.
 
 A repeat longer than the reads cannot be resolved by assembly: separate
 reads, or reads long enough to reach unique sequence on both sides, are

@@ -55,7 +55,13 @@ insert not known yet, or one consensus from overlapping reads.
   read's base and quality, a contig picker, and **Save consensus as
   document**, which opens a tab (`editorStore.openConsensus`) with the call
   qualities as its read when any read had qualities. Events: `align /
-assemble` and `align / assemble-save` (item 38).
+assemble`, `align / assemble-save` and `align / assemble-to-reference`
+  (item 38). When a contig has a repeat warning (#347), a button under the
+  warnings, **Align these reads to** the open document, runs the existing
+  read batch (`runReadBatch`, as **Align all**) over the same records; with
+  no document it shows a note to open a reference instead. `AssemblyResult`
+  takes it as the optional `reference` prop (name, busy, `onAlign`); the
+  panel passes `runAll`.
 
 **Left out, on purpose:** the traces under the layout (the layout shows reads
 as bars, not bases, and no trace view of a read that is not the document);

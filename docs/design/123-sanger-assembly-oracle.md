@@ -396,3 +396,20 @@ vitest runs them in parallel: 16 s wall locally against ~48 s. Nothing was
 trimmed: 8 replicates everywhere, no `CI` switch. `ORACLE_REPORT=1` prints one
 report per file now (each covers its own scenarios). No aligner-call-order test
 changed.
+
+## A way out of a repeat warning (#347)
+
+An assembler cannot resolve a repeat longer than its reads (paired ends are
+for 1.22.0), so a contig with a `possible-repeat-collapse` or `ambiguous-join`
+warning now offers **Align these reads to** the open document in the result
+panel (item 76): the existing read batch against the reference, with no new
+alignment code and no change to how reads are joined. No oracle number moved.
+
+What the collapse warning keys on already is depth: a stretch of 100 bases or
+more at depth 3 or more, peaking at 4, whose mean is at least 3x the contig's
+median, and its message states both depths ("covered 3.5x deep where the
+contig is 1x deep"). That is the "about twice the neighbours" evidence, so
+nothing was added. A flank-disagreement signal (reads whose flanks differ)
+was not added: it needs a per-read look at the overlap ends, which is new
+layout logic that would touch the oracle's collapsed-repeat gate (8 of 8
+flagged) for a warning that is already specific in the oracle scenarios.
