@@ -51,6 +51,9 @@ function design(t: Template) {
 const overlaps = (a: Site, b: Site): boolean => Math.min(a[1], b[1]) > Math.max(a[0], b[0]);
 const same = (a: Site, b: Site): boolean => a[0] === b[0] && a[1] === b[1];
 
+// Instrumented, the designer runs several times slower than the 60 s this needs plain.
+const SLOW = process.env['PLASMIDPOP_MUTATION'] === '1' ? 600_000 : 60_000;
+
 describe('selected primer pairs against primer3-py', () => {
   // Writes the pairs primerpairs.py hands to Primer3: `scripts/oracle/run.sh primer-pairs`.
   it.skipIf(process.env['ORACLE_EXPORT_PAIRS'] === undefined)(
@@ -94,7 +97,7 @@ describe('selected primer pairs against primer3-py', () => {
       const then = t.ours.map((o) => [o.fwd, o.rev, ...o.left, ...o.right]);
       expect(now, `${t.name}: run scripts/oracle/run.sh primer-pairs`).toEqual(then);
     }
-  }, 60_000);
+  }, SLOW);
 
   it('Tm and GC: at least 95 % of our pairs meet the criteria by Primer3 numbers', () => {
     const ok = all.filter(({ o }) => {
