@@ -34,6 +34,9 @@ import { goldenGate } from './goldenGate';
 import { emptyVector, flipFragment, ligate } from './ligate';
 import { pcr } from './pcr';
 
+// A mutation run's instrumented code is several times slower in its dry run.
+const SLOW = process.env['PLASMIDPOP_MUTATION'] === '1' ? 600_000 : 60_000;
+
 /**
  * Check primers for a clone (#311, item 120), on the tutorials' synthetic
  * files: a directional ligation, a one-enzyme ligation whose insert can go
@@ -614,31 +617,35 @@ describe('designCheckPrimers: reusing a primer', () => {
 });
 
 describe('designCheckPrimers: multi-part builds', () => {
-  it('a four-part Golden Gate: a pair across each junction with room for one', () => {
-    const dest = tut('pGG-Destination');
-    const parts = ['GG-prom', 'GG-cds', 'GG-tag', 'GG-term'].map(tut);
-    const product = def(goldenGate([dest, ...parts], { enzyme: enz('BsaI') }).assembly).product;
-    const geometry = def(locateInsert(product, dest, parts));
-    const d = designCheckPrimers(product, geometry, { empty: dest, orientation: 'fixed' });
-    const covered = new Set(d.pairs.filter((p) => p.kind === 'junction').map((p) => p.junction));
-    // The 33 bp tag is too short to hold a primer 50 bp from either of its
-    // junctions, so those two are said to have no pair. The middle junction
-    // is left with one forward primer whose hairpin Primer3 puts at 50 °C
-    // (limit 47); the fold of SantaLucia and Hicks's loops sees it too, and
-    // the junction goes without a pair (item 125).
-    expect(covered).toEqual(new Set([0, 2]));
-    expect(d.notes.filter((n) => n.startsWith('No pair across the junction'))).toHaveLength(3);
-    for (const p of d.pairs) {
-      expect(p.bands.clone).toEqual([p.productLength]);
-      expect(p.productLength).toBe(sliceLength(p, product.length, true));
-      if (p.kind === 'junction') expect(p.bands.empty).toEqual([]);
-    }
-    // The uncut destination carries its dropout: a flank pair gives a different size on it.
-    for (const p of d.pairs.filter((q) => q.kind === 'flank')) {
-      expect(p.bands.empty).toHaveLength(1);
-      expect(p.bands.empty).not.toEqual(p.bands.clone);
-    }
-  }, 30_000); // five junctions on a 3 kb product: about 1.3 s here, 7 s on a shared CI runner
+  it(
+    'a four-part Golden Gate: a pair across each junction with room for one',
+    () => {
+      const dest = tut('pGG-Destination');
+      const parts = ['GG-prom', 'GG-cds', 'GG-tag', 'GG-term'].map(tut);
+      const product = def(goldenGate([dest, ...parts], { enzyme: enz('BsaI') }).assembly).product;
+      const geometry = def(locateInsert(product, dest, parts));
+      const d = designCheckPrimers(product, geometry, { empty: dest, orientation: 'fixed' });
+      const covered = new Set(d.pairs.filter((p) => p.kind === 'junction').map((p) => p.junction));
+      // The 33 bp tag is too short to hold a primer 50 bp from either of its
+      // junctions, so those two are said to have no pair. The middle junction
+      // is left with one forward primer whose hairpin Primer3 puts at 50 °C
+      // (limit 47); the fold of SantaLucia and Hicks's loops sees it too, and
+      // the junction goes without a pair (item 125).
+      expect(covered).toEqual(new Set([0, 2]));
+      expect(d.notes.filter((n) => n.startsWith('No pair across the junction'))).toHaveLength(3);
+      for (const p of d.pairs) {
+        expect(p.bands.clone).toEqual([p.productLength]);
+        expect(p.productLength).toBe(sliceLength(p, product.length, true));
+        if (p.kind === 'junction') expect(p.bands.empty).toEqual([]);
+      }
+      // The uncut destination carries its dropout: a flank pair gives a different size on it.
+      for (const p of d.pairs.filter((q) => q.kind === 'flank')) {
+        expect(p.bands.empty).toHaveLength(1);
+        expect(p.bands.empty).not.toEqual(p.bands.clone);
+      }
+    },
+    SLOW,
+  ); // five junctions on a 3 kb product: about 1.3 s here, 7 s on a shared CI runner
 
   it('a Gateway LR clone: junction pairs are silent on the destination vector', () => {
     const dest = tut('GW-pDEST');

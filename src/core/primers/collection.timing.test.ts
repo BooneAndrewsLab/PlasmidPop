@@ -3,6 +3,9 @@ import { expectWithin, itTimed } from '@/test/timing';
 
 import { findCollectionPrimers } from './collection';
 
+// A mutation run's instrumented code is several times slower in its dry run.
+const SLOW = process.env['PLASMIDPOP_MUTATION'] === '1' ? 600_000 : 60_000;
+
 /**
  * "Find my primers" over a lab's whole collection (#64): 500 primers of
  * 18–30 nt, a tenth of them with a 5′ tail, against a 10 kb plasmid and a
@@ -45,6 +48,6 @@ describe('finding a collection', () => {
       expect(hits.length).toBeGreaterThanOrEqual(250);
       expectWithin(ms, 5000);
     },
-    60_000,
+    SLOW,
   );
 });

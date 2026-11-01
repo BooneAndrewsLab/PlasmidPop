@@ -7,6 +7,9 @@ import { reverseComplement } from '../sequence';
 import { MAX_MOLECULES, analyzePrimer, findPrimerBindingSites } from './primerDesign';
 import { meltingTemperature } from './thermo';
 
+// A mutation run's instrumented code is several times slower in its dry run.
+const SLOW = process.env['PLASMIDPOP_MUTATION'] === '1' ? 600_000 : 60_000;
+
 /**
  * The Primers tab's check of a pasted degenerate primer (#76), against
  * oracles that list the mix outright: every molecule a code stands for, its
@@ -35,30 +38,34 @@ const primerArb = fc
   .map((a) => a.join(''));
 
 describe('analyzePrimer on a degenerate primer', () => {
-  it('gives the Tm and GC ranges of the mix, and no single Tm', () => {
-    fc.assert(
-      fc.property(primerArb, (primer) => {
-        const report = analyzePrimer(primer);
-        const molecules = mix(primer);
-        expect(report.sequence).toBe(primer);
-        expect(report.molecules).toBe(molecules.length);
-        expect(report.gcRange.min).toBeCloseTo(Math.min(...molecules.map(gcOf)), 9);
-        expect(report.gcRange.max).toBeCloseTo(Math.max(...molecules.map(gcOf)), 9);
-        const tms = molecules.map((m) => meltingTemperature(m));
-        if (report.degenerate === 0) {
-          expect(report.tmRange).toBeNull();
-          expect(report.tm).toBeCloseTo(meltingTemperature(primer), 9);
-        } else {
-          expect(Number.isNaN(report.tm)).toBe(true);
-          expect(report.tmRange?.min).toBeCloseTo(Math.min(...tms), 9);
-          expect(report.tmRange?.max).toBeCloseTo(Math.max(...tms), 9);
-        }
-      }),
-      { numRuns: 200 },
-    );
-    // Up to 4,096 molecules a primer, a Tm each: under a second here, past
-    // Vitest's five seconds on a CI runner sharing its cores (2026-09-25).
-  }, 30_000);
+  it(
+    'gives the Tm and GC ranges of the mix, and no single Tm',
+    () => {
+      fc.assert(
+        fc.property(primerArb, (primer) => {
+          const report = analyzePrimer(primer);
+          const molecules = mix(primer);
+          expect(report.sequence).toBe(primer);
+          expect(report.molecules).toBe(molecules.length);
+          expect(report.gcRange.min).toBeCloseTo(Math.min(...molecules.map(gcOf)), 9);
+          expect(report.gcRange.max).toBeCloseTo(Math.max(...molecules.map(gcOf)), 9);
+          const tms = molecules.map((m) => meltingTemperature(m));
+          if (report.degenerate === 0) {
+            expect(report.tmRange).toBeNull();
+            expect(report.tm).toBeCloseTo(meltingTemperature(primer), 9);
+          } else {
+            expect(Number.isNaN(report.tm)).toBe(true);
+            expect(report.tmRange?.min).toBeCloseTo(Math.min(...tms), 9);
+            expect(report.tmRange?.max).toBeCloseTo(Math.max(...tms), 9);
+          }
+        }),
+        { numRuns: 200 },
+      );
+      // Up to 4,096 molecules a primer, a Tm each: under a second here, past
+      // Vitest's five seconds on a CI runner sharing its cores (2026-09-25).
+    },
+    SLOW,
+  );
 
   it('keeps the codes in place rather than joining their neighbours', () => {
     const report = analyzePrimer('acgtNNKgatcgatcgatc');
@@ -111,32 +118,36 @@ describe('findPrimerBindingSites with a degenerate primer', () => {
     return [...found].sort();
   }
 
-  it('binds exactly where some molecule of the mix binds exactly', () => {
-    fc.assert(
-      fc.property(
-        fc.integer({ min: 0, max: 600 - 20 }),
-        fc.boolean(),
-        fc.array(fc.integer({ min: 0, max: 19 }), { minLength: 1, maxLength: 2 }),
-        (at, reverse, positions) => {
-          const site = template.slice(at, at + 20);
-          const plain = reverse ? reverseComplement(site) : site;
-          // Replace some positions with a code that covers the base there.
-          const primer = Array.from(plain)
-            .map((b, i) =>
-              positions.includes(i) ? ({ A: 'R', G: 'R', C: 'Y', T: 'Y' }[b] ?? b) : b,
-            )
-            .join('');
-          const exact = findPrimerBindingSites(template, 'linear', primer)
-            .filter((s) => s.mismatches === 0)
-            .map((s) => `${s.strand}:${s.range.start}`)
-            .sort();
-          expect(exact).toEqual(oracle(primer));
-          expect(exact).toContain(`${reverse ? 'reverse' : 'forward'}:${at}`);
-        },
-      ),
-      { numRuns: 60 },
-    );
-  }, 30_000);
+  it(
+    'binds exactly where some molecule of the mix binds exactly',
+    () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 0, max: 600 - 20 }),
+          fc.boolean(),
+          fc.array(fc.integer({ min: 0, max: 19 }), { minLength: 1, maxLength: 2 }),
+          (at, reverse, positions) => {
+            const site = template.slice(at, at + 20);
+            const plain = reverse ? reverseComplement(site) : site;
+            // Replace some positions with a code that covers the base there.
+            const primer = Array.from(plain)
+              .map((b, i) =>
+                positions.includes(i) ? ({ A: 'R', G: 'R', C: 'Y', T: 'Y' }[b] ?? b) : b,
+              )
+              .join('');
+            const exact = findPrimerBindingSites(template, 'linear', primer)
+              .filter((s) => s.mismatches === 0)
+              .map((s) => `${s.strand}:${s.range.start}`)
+              .sort();
+            expect(exact).toEqual(oracle(primer));
+            expect(exact).toContain(`${reverse ? 'reverse' : 'forward'}:${at}`);
+          },
+        ),
+        { numRuns: 60 },
+      );
+    },
+    SLOW,
+  );
 
   it('does not bind a code where it does not stand for the template base', () => {
     const site = template.slice(300, 320);

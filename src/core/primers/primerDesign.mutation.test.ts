@@ -13,6 +13,9 @@ import {
 import { dimerEnergy, threePrimeDimer } from './structure';
 import { threePrimeComplementarity } from './thermo';
 
+// A mutation run's instrumented code is several times slower in its dry run.
+const SLOW = process.env['PLASMIDPOP_MUTATION'] === '1' ? 600_000 : 60_000;
+
 /**
  * Exact outputs of the primer check and designer, pinned at the edges of
  * every criterion and region (#77): a bound is inclusive, a warning's wording
@@ -349,96 +352,100 @@ function expectAllPairs(
 }
 
 describe('designPrimers against every pair its rules allow', () => {
-  it('matches a slow listing on short random templates and criteria', () => {
-    const scenario = fc
-      .record({
-        // Now and then an N, which no designed primer may cover.
-        seq: fc
-          .tuple(
-            fc.array(fc.constantFrom('A', 'C', 'G', 'T'), { minLength: 80, maxLength: 140 }),
-            fc.oneof(
-              { arbitrary: fc.constant(null), weight: 3 },
-              { arbitrary: fc.nat(), weight: 1 },
-            ),
-          )
-          .map(([bases, n]) => {
-            const text = bases.join('');
-            if (n === null) return text;
-            const at = n % text.length;
-            return `${text.slice(0, at)}N${text.slice(at + 1)}`;
-          }),
-        circular: fc.boolean(),
-        start: fc.double({ min: 0, max: 1, noNaN: true }),
-        size: fc.integer({ min: 1, max: 20 }),
-        minLength: fc.integer({ min: 10, max: 20 }),
-        extraLength: fc.integer({ min: 0, max: 2 }),
-        fNear: fc.integer({ min: -10, max: 20 }),
-        fWidth: fc.integer({ min: -3, max: 12 }),
-        rNear: fc.integer({ min: -10, max: 20 }),
-        rWidth: fc.integer({ min: -3, max: 12 }),
-        tmBelow: fc.integer({ min: 0, max: 10 }),
-        tmWidth: fc.integer({ min: 20, max: 60 }),
-        minGc: fc.constantFrom(0, 0.2, 0.3, 0.4),
-        gcWidth: fc.constantFrom(0.2, 0.3, 0.4, 0.6, 1),
-        maxHomopolymer: fc.oneof(fc.integer({ min: 3, max: 8 }), fc.constant(100)),
-        hairpinDg: fc.constantFrom(-0.5, -1, -2, -3, -100),
-        hairpinTm: fc.constantFrom(30, 40, 47, 150),
-        dimerDg: fc.constantFrom(-2, -4, -6, -100),
-        maxThreePrime: fc.oneof(fc.integer({ min: 2, max: 25 }), fc.constant(100)),
-        threePrimeDg: fc.constantFrom(0, -2, -3.5, -5, -7),
-        requireGcClamp: fc.boolean(),
-        maxTmDifference: fc.oneof(fc.integer({ min: 2, max: 40 }), fc.constant(100)),
-        minProduct: fc.integer({ min: 0, max: 30 }),
-        productWidth: fc.integer({ min: 20, max: 200 }),
-      })
-      .map((s) => {
-        const L = s.seq.length;
-        // On a line, mostly with room on both sides; anywhere on a circle.
-        const start = s.circular
-          ? Math.floor(s.start * L)
-          : Math.floor(35 + s.start * (L - 70 - s.size));
-        const end = s.circular ? start + s.size : Math.min(L, start + s.size);
-        const minLength = s.minLength;
-        const c: PrimerCriteria = {
-          ...DEFAULT_PRIMER_CRITERIA,
-          minLength,
-          maxLength: minLength + s.extraLength,
-          // About the Tm of a random primer of that length, give or take.
-          minTm: Math.round(2.7 * minLength) - 14 - s.tmBelow,
-          maxTm: Math.round(2.7 * minLength) - 14 - s.tmBelow + s.tmWidth,
-          minGc: s.minGc,
-          maxGc: Math.min(1, s.minGc + s.gcWidth),
-          // At most 13 sites of the shortest length, so under 40 in all.
-          forwardRegion: { near: s.fNear, far: s.fNear + minLength + s.fWidth },
-          reverseRegion: { near: s.rNear, far: s.rNear + minLength + s.rWidth },
-          maxHomopolymer: s.maxHomopolymer,
-          hairpinDg: s.hairpinDg,
-          hairpinTm: s.hairpinTm,
-          dimerDg: s.dimerDg,
-          maxThreePrime: s.maxThreePrime,
-          threePrimeDg: s.threePrimeDg,
-          requireGcClamp: s.requireGcClamp,
-          maxTmDifference: s.maxTmDifference,
-          minProduct: s.minProduct,
-          maxProduct: s.minProduct + s.productWidth,
-          requireSpecific: false,
-        };
-        const topology: Topology = s.circular ? 'circular' : 'linear';
-        return { seq: s.seq, topology, target: { start, end }, c };
-      })
-      .filter((s) => s.target.end > s.target.start);
-    let designed = 0;
-    fc.assert(
-      fc.property(scenario, ({ seq, topology, target, c }) => {
-        if (expectAllPairs(seq, topology, target, c).length > 0) designed++;
-      }),
-      { numRuns: 600 },
-    );
-    // Not a vacuous agreement on nothing. The count is random (about 80 to
-    // 100 of 600 here) and an earlier bound of 80 failed CI on a value of 80.
-    expect(designed).toBeGreaterThan(40);
-    // 600 runs of a slow listing: 4-5 s here, past 5 s on a CI runner.
-  }, 60_000);
+  it(
+    'matches a slow listing on short random templates and criteria',
+    () => {
+      const scenario = fc
+        .record({
+          // Now and then an N, which no designed primer may cover.
+          seq: fc
+            .tuple(
+              fc.array(fc.constantFrom('A', 'C', 'G', 'T'), { minLength: 80, maxLength: 140 }),
+              fc.oneof(
+                { arbitrary: fc.constant(null), weight: 3 },
+                { arbitrary: fc.nat(), weight: 1 },
+              ),
+            )
+            .map(([bases, n]) => {
+              const text = bases.join('');
+              if (n === null) return text;
+              const at = n % text.length;
+              return `${text.slice(0, at)}N${text.slice(at + 1)}`;
+            }),
+          circular: fc.boolean(),
+          start: fc.double({ min: 0, max: 1, noNaN: true }),
+          size: fc.integer({ min: 1, max: 20 }),
+          minLength: fc.integer({ min: 10, max: 20 }),
+          extraLength: fc.integer({ min: 0, max: 2 }),
+          fNear: fc.integer({ min: -10, max: 20 }),
+          fWidth: fc.integer({ min: -3, max: 12 }),
+          rNear: fc.integer({ min: -10, max: 20 }),
+          rWidth: fc.integer({ min: -3, max: 12 }),
+          tmBelow: fc.integer({ min: 0, max: 10 }),
+          tmWidth: fc.integer({ min: 20, max: 60 }),
+          minGc: fc.constantFrom(0, 0.2, 0.3, 0.4),
+          gcWidth: fc.constantFrom(0.2, 0.3, 0.4, 0.6, 1),
+          maxHomopolymer: fc.oneof(fc.integer({ min: 3, max: 8 }), fc.constant(100)),
+          hairpinDg: fc.constantFrom(-0.5, -1, -2, -3, -100),
+          hairpinTm: fc.constantFrom(30, 40, 47, 150),
+          dimerDg: fc.constantFrom(-2, -4, -6, -100),
+          maxThreePrime: fc.oneof(fc.integer({ min: 2, max: 25 }), fc.constant(100)),
+          threePrimeDg: fc.constantFrom(0, -2, -3.5, -5, -7),
+          requireGcClamp: fc.boolean(),
+          maxTmDifference: fc.oneof(fc.integer({ min: 2, max: 40 }), fc.constant(100)),
+          minProduct: fc.integer({ min: 0, max: 30 }),
+          productWidth: fc.integer({ min: 20, max: 200 }),
+        })
+        .map((s) => {
+          const L = s.seq.length;
+          // On a line, mostly with room on both sides; anywhere on a circle.
+          const start = s.circular
+            ? Math.floor(s.start * L)
+            : Math.floor(35 + s.start * (L - 70 - s.size));
+          const end = s.circular ? start + s.size : Math.min(L, start + s.size);
+          const minLength = s.minLength;
+          const c: PrimerCriteria = {
+            ...DEFAULT_PRIMER_CRITERIA,
+            minLength,
+            maxLength: minLength + s.extraLength,
+            // About the Tm of a random primer of that length, give or take.
+            minTm: Math.round(2.7 * minLength) - 14 - s.tmBelow,
+            maxTm: Math.round(2.7 * minLength) - 14 - s.tmBelow + s.tmWidth,
+            minGc: s.minGc,
+            maxGc: Math.min(1, s.minGc + s.gcWidth),
+            // At most 13 sites of the shortest length, so under 40 in all.
+            forwardRegion: { near: s.fNear, far: s.fNear + minLength + s.fWidth },
+            reverseRegion: { near: s.rNear, far: s.rNear + minLength + s.rWidth },
+            maxHomopolymer: s.maxHomopolymer,
+            hairpinDg: s.hairpinDg,
+            hairpinTm: s.hairpinTm,
+            dimerDg: s.dimerDg,
+            maxThreePrime: s.maxThreePrime,
+            threePrimeDg: s.threePrimeDg,
+            requireGcClamp: s.requireGcClamp,
+            maxTmDifference: s.maxTmDifference,
+            minProduct: s.minProduct,
+            maxProduct: s.minProduct + s.productWidth,
+            requireSpecific: false,
+          };
+          const topology: Topology = s.circular ? 'circular' : 'linear';
+          return { seq: s.seq, topology, target: { start, end }, c };
+        })
+        .filter((s) => s.target.end > s.target.start);
+      let designed = 0;
+      fc.assert(
+        fc.property(scenario, ({ seq, topology, target, c }) => {
+          if (expectAllPairs(seq, topology, target, c).length > 0) designed++;
+        }),
+        { numRuns: 600 },
+      );
+      // Not a vacuous agreement on nothing. The count is random (about 80 to
+      // 100 of 600 here) and an earlier bound of 80 failed CI on a value of 80.
+      expect(designed).toBeGreaterThan(40);
+      // 600 runs of a slow listing: 4-5 s here, past 5 s on a CI runner.
+    },
+    SLOW,
+  );
 
   it('pairs primers that lie on top of each other, but not past each other', () => {
     const seq = template();

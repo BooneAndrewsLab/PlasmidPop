@@ -15,6 +15,9 @@ import { digest } from './digest';
 import { assemblyJunctions, flipFragment, ligate } from './ligate';
 import { POLYMERASE_REACH, type Polymerase, type PcrPrimer, pcr, primerDimers } from './pcr';
 
+// A mutation run's instrumented code is several times slower in its dry run.
+const SLOW = process.env['PLASMIDPOP_MUTATION'] === '1' ? 600_000 : 60_000;
+
 /**
  * PCR II (#14) against what a bench would do with the same oligos.
  *
@@ -135,75 +138,83 @@ function tVector(bases: string): SeqDocument {
 // The limits leave room for mutation testing, whose instrumented code runs
 // these many times slower than the ~1 s they take here.
 describe('Taq A-tailing, for random reactions', () => {
-  it('is the proofreading product and an A, with a 3′ T left and a 3′ A right', () => {
-    fc.assert(
-      fc.property(reactionArb, (x) => {
-        const blunt = pcr(x.template, x.primers);
-        const taq = pcr(x.template, x.primers, { polymerase: 'taq' });
-        expect(blunt.products.length).toBeGreaterThanOrEqual(1);
-        fc.pre(blunt.products.length === 1);
-        expect(taq.products).toHaveLength(1);
-        const b = must(blunt.products[0], 'a blunt product').document;
-        const t = must(taq.products[0], 'a Taq product').document;
-        expect(b.sequence.toString()).toBe(x.expected);
-        expect(t.sequence.toString()).toBe(`${x.expected}A`);
-        expect(b.ends).toBeNull();
-        expect(t.ends).toEqual({
-          left: { kind: "3'", overhang: 'T', enzyme: null },
-          right: { kind: "3'", overhang: 'A', enzyme: null },
-        });
-        expect(t.topology).toBe('linear');
-        // Listed as long as the document it opens as, A and all (#74): the
-        // list, the gel and the shelf all say one number.
-        expect(must(blunt.products[0], 'a blunt product').length).toBe(b.length);
-        expect(must(taq.products[0], 'a Taq product').length).toBe(t.length);
-        expect(t.length).toBe(b.length + 1);
-        // Made in a tube: no methylase has seen either, whatever the template's host.
-        expect(x.template.methylation).not.toEqual(UNMETHYLATED_HOST);
-        expect(b.methylation).toEqual(UNMETHYLATED_HOST);
-        expect(t.methylation).toEqual(UNMETHYLATED_HOST);
-      }),
-      { numRuns: 150 },
-    );
-  }, 60_000);
+  it(
+    'is the proofreading product and an A, with a 3′ T left and a 3′ A right',
+    () => {
+      fc.assert(
+        fc.property(reactionArb, (x) => {
+          const blunt = pcr(x.template, x.primers);
+          const taq = pcr(x.template, x.primers, { polymerase: 'taq' });
+          expect(blunt.products.length).toBeGreaterThanOrEqual(1);
+          fc.pre(blunt.products.length === 1);
+          expect(taq.products).toHaveLength(1);
+          const b = must(blunt.products[0], 'a blunt product').document;
+          const t = must(taq.products[0], 'a Taq product').document;
+          expect(b.sequence.toString()).toBe(x.expected);
+          expect(t.sequence.toString()).toBe(`${x.expected}A`);
+          expect(b.ends).toBeNull();
+          expect(t.ends).toEqual({
+            left: { kind: "3'", overhang: 'T', enzyme: null },
+            right: { kind: "3'", overhang: 'A', enzyme: null },
+          });
+          expect(t.topology).toBe('linear');
+          // Listed as long as the document it opens as, A and all (#74): the
+          // list, the gel and the shelf all say one number.
+          expect(must(blunt.products[0], 'a blunt product').length).toBe(b.length);
+          expect(must(taq.products[0], 'a Taq product').length).toBe(t.length);
+          expect(t.length).toBe(b.length + 1);
+          // Made in a tube: no methylase has seen either, whatever the template's host.
+          expect(x.template.methylation).not.toEqual(UNMETHYLATED_HOST);
+          expect(b.methylation).toEqual(UNMETHYLATED_HOST);
+          expect(t.methylation).toEqual(UNMETHYLATED_HOST);
+        }),
+        { numRuns: 150 },
+      );
+    },
+    SLOW,
+  );
 
-  it('ligates into a T-vector either way round, and nothing else does', () => {
-    fc.assert(
-      fc.property(reactionArb, fc.integer({ min: 1, max: 0x7fffffff }), (x, vSeed) => {
-        const taq = pcr(x.template, x.primers, { polymerase: 'taq' });
-        fc.pre(taq.products.length === 1);
-        const product = must(taq.products[0], 'a product').document;
-        const [insert] = digest(product, []);
-        const ins = must(insert, 'the whole product');
-        expect(ins.left).toEqual({ kind: "3'", overhang: 'T', enzyme: null });
-        expect(ins.right).toEqual({ kind: "3'", overhang: 'A', enzyme: null });
+  it(
+    'ligates into a T-vector either way round, and nothing else does',
+    () => {
+      fc.assert(
+        fc.property(reactionArb, fc.integer({ min: 1, max: 0x7fffffff }), (x, vSeed) => {
+          const taq = pcr(x.template, x.primers, { polymerase: 'taq' });
+          fc.pre(taq.products.length === 1);
+          const product = must(taq.products[0], 'a product').document;
+          const [insert] = digest(product, []);
+          const ins = must(insert, 'the whole product');
+          expect(ins.left).toEqual({ kind: "3'", overhang: 'T', enzyme: null });
+          expect(ins.right).toEqual({ kind: "3'", overhang: 'A', enzyme: null });
 
-        const bases = randomDna(seededRandom(vSeed), 400);
-        const [vector] = digest(tVector(bases), []);
-        const vec = must(vector, 'the vector');
-        const circle = ligate([vec, ins], { name: 'TA', circular: true });
-        expect(circle.isCircular).toBe(true);
-        expect(circle.sequence.toString()).toBe(`${bases}T${x.expected}A`);
-        // TA cloning has no direction: the insert goes in the other way too.
-        const back = ligate([vec, flipFragment(ins)], { name: 'TA', circular: true });
-        expect(back.sequence.toString()).toBe(
-          `${bases}T${reverseComplement(`${x.expected}A`).slice(1)}A`,
-        );
-        expect(back.length).toBe(bases.length + x.expected.length + 2);
+          const bases = randomDna(seededRandom(vSeed), 400);
+          const [vector] = digest(tVector(bases), []);
+          const vec = must(vector, 'the vector');
+          const circle = ligate([vec, ins], { name: 'TA', circular: true });
+          expect(circle.isCircular).toBe(true);
+          expect(circle.sequence.toString()).toBe(`${bases}T${x.expected}A`);
+          // TA cloning has no direction: the insert goes in the other way too.
+          const back = ligate([vec, flipFragment(ins)], { name: 'TA', circular: true });
+          expect(back.sequence.toString()).toBe(
+            `${bases}T${reverseComplement(`${x.expected}A`).slice(1)}A`,
+          );
+          expect(back.length).toBe(bases.length + x.expected.length + 2);
 
-        // An A-tailed product cannot close on itself, and a blunt one does not
-        // go into a T-vector.
-        expect(assemblyJunctions([ins], true).every((j) => j.compatible)).toBe(false);
-        const blunt = must(
-          digest(must(pcr(x.template, x.primers).products[0], 'blunt').document, [])[0],
-          'blunt',
-        );
-        expect(assemblyJunctions([vec, blunt], true).some((j) => j.compatible)).toBe(false);
-        expect(() => ligate([vec, blunt], { name: 'x', circular: true })).toThrow(/Incompatible/);
-      }),
-      { numRuns: 100 },
-    );
-  }, 60_000);
+          // An A-tailed product cannot close on itself, and a blunt one does not
+          // go into a T-vector.
+          expect(assemblyJunctions([ins], true).every((j) => j.compatible)).toBe(false);
+          const blunt = must(
+            digest(must(pcr(x.template, x.primers).products[0], 'blunt').document, [])[0],
+            'blunt',
+          );
+          expect(assemblyJunctions([vec, blunt], true).some((j) => j.compatible)).toBe(false);
+          expect(() => ligate([vec, blunt], { name: 'x', circular: true })).toThrow(/Incompatible/);
+        }),
+        { numRuns: 100 },
+      );
+    },
+    SLOW,
+  );
 
   it('A-tails a product that crosses the origin, and the whole plasmid', () => {
     const text = randomDna(seededRandom(101), 1500);

@@ -52,7 +52,7 @@ function withBase(r: AssemblyRead, index: number, base: string, q: number): Asse
   };
 }
 
-const TIMEOUT = 60_000;
+const TIMEOUT = process.env['PLASMIDPOP_MUTATION'] === '1' ? 600_000 : 60_000;
 
 describe('assembleReads', () => {
   it(
