@@ -65,6 +65,8 @@ const MUTATION_SKIP = [
   'src/app/readAlignment.mapping.test.ts',
   'src/app/readBatch.timing.test.ts',
   'src/app/alignmentOriginIndel.test.ts',
+  'src/app/alignmentOrigin.test.ts',
+  'src/app/readAlignment.test.ts',
   'src/core/cloning/mutagenesis.property.test.ts',
   'src/core/cloning/overlapPrimers.property.test.ts',
 ];
