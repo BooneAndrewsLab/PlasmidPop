@@ -83,21 +83,25 @@ describe('selected primer pairs against primer3-py', () => {
     for (const t of templates) expect(t.primer3.pairs.length).toBeGreaterThan(0);
   });
 
-  it('the designer still selects the pairs that were sent to Primer3', () => {
-    // A sample, to keep the run short; run.sh primer-pairs regenerates all.
-    for (const t of templates.slice(0, 8)) {
-      const now = design(t).map((p) => [
-        p.forward.sequence,
-        p.reverse.sequence,
-        p.forwardSite.start,
-        p.forwardSite.end,
-        p.reverseSite.start,
-        p.reverseSite.end,
-      ]);
-      const then = t.ours.map((o) => [o.fwd, o.rev, ...o.left, ...o.right]);
-      expect(now, `${t.name}: run scripts/oracle/run.sh primer-pairs`).toEqual(then);
-    }
-  }, SLOW);
+  it(
+    'the designer still selects the pairs that were sent to Primer3',
+    () => {
+      // A sample, to keep the run short; run.sh primer-pairs regenerates all.
+      for (const t of templates.slice(0, 8)) {
+        const now = design(t).map((p) => [
+          p.forward.sequence,
+          p.reverse.sequence,
+          p.forwardSite.start,
+          p.forwardSite.end,
+          p.reverseSite.start,
+          p.reverseSite.end,
+        ]);
+        const then = t.ours.map((o) => [o.fwd, o.rev, ...o.left, ...o.right]);
+        expect(now, `${t.name}: run scripts/oracle/run.sh primer-pairs`).toEqual(then);
+      }
+    },
+    SLOW,
+  );
 
   it('Tm and GC: at least 95 % of our pairs meet the criteria by Primer3 numbers', () => {
     const ok = all.filter(({ o }) => {
