@@ -37,30 +37,37 @@ function overlaps(a: string, b: string, minOverlap: number, minIdentity: number)
   return alignment.endA - alignment.startA >= minOverlap && alignment.identity >= minIdentity;
 }
 
+// The screen is instrumented in a mutation run, whose dry run runs these tests several times slower.
+const SLOW = process.env['PLASMIDPOP_MUTATION'] === '1' ? 600_000 : 60_000;
+
 describe('OverlapScreen (#353)', () => {
   // 100 real alignments; a mutation run's instrumented code is about 150 times
   // slower and runs this for every mutant, so it takes 10 there.
   const TRIALS = process.env['PLASMIDPOP_MUTATION'] === '1' ? 10 : 100;
 
-  it('never refuses a pair that has an overlap, on either strand, at any error rate', () => {
-    const r = rng(353);
-    let overlapping = 0;
-    for (let t = 0; t < TRIALS; t++) {
-      const left = bases(300 + Math.floor(r() * 300), r);
-      const shared = bases(20 + Math.floor(r() * 150), r);
-      const right = bases(300 + Math.floor(r() * 300), r);
-      const rate = r() * 0.14;
-      const a = left + shared;
-      let b = mutate(shared, rate, r) + right;
-      if (r() < 0.5) b = reverseComplement(b);
-      if (!overlaps(a, b, 25, 0.9)) continue;
-      overlapping++;
-      expect(new OverlapScreen(b).mayOverlap(a, 25, 0.9)).toBe(true);
-    }
-    // The generator has to produce overlaps for this to say anything.
-    expect(overlapping).toBeGreaterThan(TRIALS * 0.3);
-    // 100 real alignments: about 1.4 s here, over 5 s under coverage on a shared CI runner.
-  }, 60_000);
+  it(
+    'never refuses a pair that has an overlap, on either strand, at any error rate',
+    () => {
+      const r = rng(353);
+      let overlapping = 0;
+      for (let t = 0; t < TRIALS; t++) {
+        const left = bases(300 + Math.floor(r() * 300), r);
+        const shared = bases(20 + Math.floor(r() * 150), r);
+        const right = bases(300 + Math.floor(r() * 300), r);
+        const rate = r() * 0.14;
+        const a = left + shared;
+        let b = mutate(shared, rate, r) + right;
+        if (r() < 0.5) b = reverseComplement(b);
+        if (!overlaps(a, b, 25, 0.9)) continue;
+        overlapping++;
+        expect(new OverlapScreen(b).mayOverlap(a, 25, 0.9)).toBe(true);
+      }
+      // The generator has to produce overlaps for this to say anything.
+      expect(overlapping).toBeGreaterThan(TRIALS * 0.3);
+      // 100 real alignments: about 1.4 s here, over 5 s under coverage on a shared CI runner.
+    },
+    SLOW,
+  );
 
   it('keeps a pair with the shortest overlap allowed, two substitutions in 25 columns', () => {
     const r = rng(7);
@@ -74,16 +81,20 @@ describe('OverlapScreen (#353)', () => {
     expect(new OverlapScreen(b).mayOverlap(a, 25, 0.9)).toBe(true);
   });
 
-  it('refuses nearly all unrelated reads', () => {
-    const r = rng(11);
-    let kept = 0;
-    for (let t = 0; t < 40; t++) {
-      if (new OverlapScreen(bases(700, r)).mayOverlap(bases(700, r), 25, 0.9)) kept++;
-    }
-    expect(kept).toBeLessThanOrEqual(2);
-    // Forty pairs of 700 bases: well under a second here, past 5 s on a
-    // shared CI runner under coverage.
-  }, 30_000);
+  it(
+    'refuses nearly all unrelated reads',
+    () => {
+      const r = rng(11);
+      let kept = 0;
+      for (let t = 0; t < 40; t++) {
+        if (new OverlapScreen(bases(700, r)).mayOverlap(bases(700, r), 25, 0.9)) kept++;
+      }
+      expect(kept).toBeLessThanOrEqual(2);
+      // Forty pairs of 700 bases: well under a second here, past 5 s on a
+      // shared CI runner under coverage.
+    },
+    SLOW,
+  );
 
   it('treats an ambiguity code as a difference, so it only ever makes a pair easier to keep', () => {
     const r = rng(13);
