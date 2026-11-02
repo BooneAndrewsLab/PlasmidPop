@@ -147,6 +147,30 @@ describe('guide tree', () => {
     expect(d[0]?.[2]).toBe(1);
   });
 
+  it("measures k-mer distance as the share of the shorter sequence's windows not found in the other", () => {
+    const enc = (s: string): Uint8Array =>
+      Uint8Array.from(s.split('').map((c) => (c === 'N' ? 4 : 'ACGT'.indexOf(c))));
+    // ACGT holds AC, CG, GT; ACTT holds AC, CT, TT: one of three is shared.
+    const one = kmerDistances([enc('ACGT'), enc('ACTT')], 4, 2);
+    expect(one[0]?.[1]).toBeCloseTo(2 / 3, 12);
+    // With multiplicity: AAAA holds AA three times, AACC once.
+    const many = kmerDistances([enc('AAAA'), enc('AACC')], 4, 2);
+    expect(many[0]?.[1]).toBeCloseTo(2 / 3, 12);
+    // The shorter sequence sets the denominator, whichever comes first: ACGTAC has
+    // five windows, ACTG three, and AC is the one shared.
+    for (const order of [
+      [enc('ACGTAC'), enc('ACTG')],
+      [enc('ACTG'), enc('ACGTAC')],
+    ]) {
+      const d = kmerDistances(order, 4, 2);
+      expect(d[0]?.[1]).toBeCloseTo(2 / 3, 12);
+      expect(d[1]?.[0]).toBeCloseTo(2 / 3, 12);
+    }
+    // A window with an ambiguity code is not counted on either side: ACNGT has AC and GT only.
+    const amb = kmerDistances([enc('ACNGT'), enc('ACTTT')], 4, 2);
+    expect(amb[0]?.[1]).toBeCloseTo(1 / 2, 12);
+  });
+
   it('measures zero between identical sequences that hold ambiguity codes', () => {
     // ACGT are 0-3 and anything else is 4, an ambiguity code.
     const enc = (s: string): Uint8Array =>

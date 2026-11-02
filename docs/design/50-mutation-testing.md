@@ -612,3 +612,34 @@ Equivalent, by kind:
   is inside a 25-entry `Int8Array`, so it is never undefined. L552 `?? 'N'` to
   `?? ''`: the tail is a 3′ match, whose only unpaired characters are N, and N
   pairs with nothing, so the partner's N changes no energy.
+
+### At 1.21: the overlap screen and the k-mer window count
+
+Of the survivors in `assembly/overlapBound.ts` (29) and `alignment/msa.ts` (7),
+28 were gaps and are killed by new tests; 8 are equivalent. Each was checked by
+applying it by hand.
+
+Killed: the bar at its edge, an 18-base run kept and a 17-base run refused, at
+the start and the end of the screened read and on both strands, which also
+pins `v >= bar`, the last column, the `ceil` rounding and the coefficient of the
+bar; a gap in either direction (ten bases, a gap, ten bases reaches the bar
+exactly); the clamp at zero after a stretch of mismatches; an ambiguity code
+matching nothing, even another one; an identity of 0, above 1 and exactly 1,
+and a `minOverlap` of 0 with no base in common (the bar guards at L88 and L91)
+and an overlap of 20 columns with two substitutions, whose bar sits on an
+integer so the `1e-9` allowances count (`overlapBound.test.ts`, "the bar,
+exactly"). In `kmerDistances`, exact distances for tiny sequences, in both
+orders, with multiplicity and with an ambiguity code (`msa.test.ts`). All of
+these are fast direct tests; none relies on a suite the mutation run skips.
+
+Equivalent, by kind:
+
+- **Value always defined.** `overlapBound.ts` L41 `i <= seq.length` (the extra
+  write to a typed array is dropped), L43 `c < 128` to `true` or `c <= 128`
+  (`CODE[c]` is undefined past 127, and `?? 4` is what the guard gives).
+- **Tie, same value.** L60 `above >= left` (the two are equal, so either is
+  taken), L61 `gap >= v` (equal values), L62 `v <= 0` (a zero is set to zero,
+  and `bar > 0` there, so the `v >= bar` test it skips fails anyway).
+- **Guard covered by another guard.** L88 `PENALTY / (1 + PENALTY) - 1e-9` and
+  `<` for `<=`: they differ only for an identity within 1e-9 of 2/3, where the
+  bar is 0 and L91 returns true just the same.

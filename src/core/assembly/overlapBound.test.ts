@@ -110,3 +110,80 @@ describe('OverlapScreen (#353)', () => {
     expect(new OverlapScreen(bases(100, r)).mayOverlap(bases(100, r), 25, 0.6)).toBe(true);
   });
 });
+
+describe('OverlapScreen: the bar, exactly (#353)', () => {
+  // 25 columns at 90 % need 23 identical columns, which score 23 - 2 * 2 = 19 at the
+  // worst; the bar is 18 (ceil of 23 * (1 - 2 * 0.1 / 0.9)). Reads of 'x' flank a
+  // run `n` bases long shared from the end of one read to the start of the other.
+  const r = rng(353353);
+  const run = bases(18, r);
+  const flankA = bases(300, r);
+  const flankB = bases(300, r);
+
+  const keep = (screened: string, other: string, minOverlap = 25, minIdentity = 0.9): boolean =>
+    new OverlapScreen(screened).mayOverlap(other, minOverlap, minIdentity);
+
+  it('keeps a run scoring exactly the bar and refuses one point short, wherever it sits and on either strand', () => {
+    const short = run.slice(0, 17);
+    for (const flip of [false, true]) {
+      const orient = (s: string): string => (flip ? reverseComplement(s) : s);
+      // The run at the start of the screened read (the first column) and at its end (the last).
+      expect(keep(orient(run + flankB), flankA + run)).toBe(true);
+      expect(keep(orient(flankB + run), run + flankA)).toBe(true);
+      expect(keep(orient(short + flankB), flankA + short)).toBe(false);
+      expect(keep(orient(flankB + short), short + flankA)).toBe(false);
+    }
+  });
+
+  it('counts a gap as one penalty in either direction, so ten bases, a gap and ten more reach the bar', () => {
+    const one = bases(10, r);
+    const two = bases(10, r);
+    const gapped = one + 'A' + two;
+    const plain = one + two;
+    // An extra base in the screened read, and an extra base in the other.
+    expect(keep(gapped + flankB, flankA + plain)).toBe(true);
+    expect(keep(plain + flankB, flankA + gapped)).toBe(true);
+    // One column fewer and it falls short.
+    const one9 = one.slice(1);
+    expect(keep(one9 + 'A' + two + flankB, flankA + one9 + two)).toBe(false);
+    expect(keep(one9 + two + flankB, flankA + one9 + 'A' + two)).toBe(false);
+  });
+
+  it('starts afresh after a stretch of mismatches instead of carrying the debt', () => {
+    const a = 'A'.repeat(30) + run;
+    const b = 'C'.repeat(30) + run;
+    expect(keep(b, a)).toBe(true);
+  });
+
+  it('keeps a pair whose overlap holds exactly the identity asked, with two substitutions in 20 columns', () => {
+    const rr = rng(2020);
+    const shared = bases(20, rr);
+    const edited = Array.from(shared);
+    edited[4] = edited[4] === 'A' ? 'C' : 'A';
+    edited[13] = edited[13] === 'G' ? 'T' : 'G';
+    const a = bases(300, rr) + shared;
+    const b = edited.join('') + bases(300, rr);
+    // 18 identical columns of 20 is 90 %: ceil(0.9 * 20) = 18, scoring 18 - 4 = 14, the bar.
+    expect(keep(b, a, 20, 0.9)).toBe(true);
+  });
+
+  it('treats an ambiguity code as matching nothing, even another one', () => {
+    const n = 'N'.repeat(40);
+    expect(keep(n, n)).toBe(false);
+    expect(keep(n.toLowerCase(), n)).toBe(false);
+  });
+
+  it('refuses nothing when the identity cannot be met by anything, or is not a fraction', () => {
+    const rr = rng(88);
+    const a = bases(200, rr);
+    const b = bases(200, rr);
+    expect(keep(a, b, 25, 0)).toBe(true);
+    expect(keep(a, b, 25, 1.5)).toBe(true);
+    // An identity of exactly 1 is a real bar: 25 identical columns.
+    expect(keep(a, b, 25, 1)).toBe(false);
+  });
+
+  it('refuses nothing when no column is needed, even for reads with no base in common', () => {
+    expect(keep('AAAA', 'CCCC', 0, 0.9)).toBe(true);
+  });
+});
