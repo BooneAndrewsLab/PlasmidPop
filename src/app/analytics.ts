@@ -268,8 +268,10 @@ export const EVENTS = {
    * once per visit; `batch` is Align all, every record of a file, named by
    * the mode like `run` (#59), or `auto` when none was picked and each record
    * gets its own (#86), never how many; `assemble` is Assemble reads, the
-   * records of a file joined into contigs with no reference (#208), and
-   * `assemble-save` the consensus saved as a document; `msa` is a multiple
+   * records of a file joined into contigs with no reference (#208),
+   * `assemble-save` the consensus saved as a document, and
+   * `assemble-to-reference` the reads aligned to the open document from a
+   * contig's repeat warning (#347), never how many; `msa` is a multiple
    * alignment run, named by the alphabet (`nucleotide`/`protein`), never how
    * many sequences, and `msa-export` one saved or copied, named by the
    * format (`fasta`/`clustal`) (#207).
