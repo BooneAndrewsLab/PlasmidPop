@@ -589,15 +589,18 @@ describe('the fold cache is keyed on the sequence only for the default model (mu
   it('does not hand a dimer folded with one loop limit to a fold with another', () => {
     const none = dimerEnergy(bulged, partner, STRUCTURE_PARAMS, 0);
     const one = dimerEnergy(bulged, partner, STRUCTURE_PARAMS, 1);
-    expect(one).toBeLessThan(none - 5);
+    // The exact values pin the bound: a limit one short would give 0 and -12.34.
+    expect(none).toBeCloseTo(-12.34, 2);
+    expect(one).toBeCloseTo(-21.65, 2);
+    expect(dimerEnergy(bulged, partner, STRUCTURE_PARAMS, 2)).toBeCloseTo(-21.65, 2);
     expect(dimerEnergy(bulged, partner, STRUCTURE_PARAMS, 0)).toBe(none);
   });
 
   it('limits a bulge on the second strand as it does on the first', () => {
     const none = dimerEnergy(partner, bulged, STRUCTURE_PARAMS, 0);
     const one = dimerEnergy(partner, bulged, STRUCTURE_PARAMS, 1);
-    expect(none).toBeCloseTo(dimerEnergy(bulged, partner, STRUCTURE_PARAMS, 0), 6);
-    expect(one).toBeLessThan(none - 5);
+    expect(none).toBeCloseTo(-12.34, 2);
+    expect(one).toBeCloseTo(-21.65, 2);
   });
 
   it('does not hand a dimer folded with one set of parameters to another', () => {
