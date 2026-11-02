@@ -643,3 +643,45 @@ Equivalent, by kind:
 - **Guard covered by another guard.** L88 `PENALTY / (1 + PENALTY) - 1e-9` and
   `<` for `<=`: they differ only for an identity within 1e-9 of 2/3, where the
   bar is 0 and L91 returns true just the same.
+
+### At 1.21: the Sanger read assembler, to line 650 (`assembly/assemble.ts`)
+
+Of the 76 survivors on changed lines up to L650, 59 were gaps and are killed
+by new tests in `assemble.test.ts`; 17 are equivalent. Each was applied by hand
+and run against `src/core/assembly`; the oracle suites the mutation run skips
+(`sangerAssembly[0-9]*`) were not needed, since no survivor was left that only
+they could kill and none of the 17 is a behaviour they could pin.
+
+Killed: the stretch `core` keeps of a local alignment that runs on past the
+overlap (what it starts and ends at, how it counts the bases a gap column
+leaves out on each side, and what it scores, which decides between two places
+a read fits; "the stretch of an alignment that holds the identity", with the
+exact ties at a minimum identity of 0.5, where a mismatch costs one match and
+the floats are exact; at 0.9 the cost is 9.000000000000002 and a run never
+lands on zero); `explainedByQuality` (three alignments of 26 to 30 columns
+whose expected miss counts the mutants of each line turn over, found by
+searching over a copy of the function, and an identity of exactly 0.8); the
+ends of the consensus and of the read that `findPlacements` aligns (the
+aligner's arguments are recorded, forwards and reverse), the shift of a
+stretch of the read into the whole read, a read lying inside the consensus
+trying no corners, `fitsElsewhere` looking at a stretch of exactly `minOverlap`
+and at none shorter, and which reads wait to be tried again (`unrelated`).
+
+Equivalent, by kind:
+
+- **Dead data.** `placeStretch` returns `used` (L576-579, eight mutants over
+  three lines), and nothing reads it.
+- **Value never read.** L447 `ambiguous` of a cut alignment (the field is
+  unread in the assembler) and L187, the initial `ambiguous` list: a string
+  entry matches no read index.
+- **Cannot differ.** L427 `c <= a.columns`: the extra column is a non-match,
+  which only lowers the run. L446 `line.match(/\|/g)?.length`: the stretch has a
+  match, so the match is never null. L462: the identity of a cut stretch
+  exceeds `minIdentity` by construction, so a larger value passes the same
+  tests. L561 `identity <= minIdentity`: at equality `passes` is true unless
+  the overlap is short, and cutting a short alignment only shortens it.
+- **Performance only.** L539 and L542 `from === 0 && to === read.bases.length`:
+  `slice(0, length)` is the same string.
+- **Tie.** L519 `miss <= expected + ...`: an exact tie needs the sum of the
+  error probabilities to hit an integer threshold, which no sum of the
+  powers of ten involved does.

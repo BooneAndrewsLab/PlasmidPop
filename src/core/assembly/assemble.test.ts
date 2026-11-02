@@ -659,6 +659,7 @@ function hand(
   startB: number,
   alignedA: string,
   alignedB: string,
+  matchLine = '',
 ): StrandedAlignment {
   const length = (s: string): number => s.replace(/-/g, '').length;
   let identities = 0;
@@ -674,7 +675,7 @@ function hand(
       score: 0,
       alignedA,
       alignedB,
-      matchLine: '',
+      matchLine,
       startA,
       endA: startA + length(alignedA),
       startB,
@@ -1362,5 +1363,455 @@ describe('repeats', () => {
       },
       TIMEOUT,
     );
+  });
+});
+
+/** `hand` with the match line the columns give: `|` for a match, `.` for a mismatch, a space for a gap. */
+function handLine(
+  startA: number,
+  startB: number,
+  alignedA: string,
+  alignedB: string,
+  score = 0,
+): StrandedAlignment {
+  const line = Array.from(alignedA, (x, i) => {
+    const y = alignedB.charAt(i);
+    return x === '-' || y === '-' ? ' ' : x === y ? '|' : '.';
+  }).join('');
+  const al = hand(startA, startB, alignedA, alignedB, line);
+  return { ...al, alignment: { ...al.alignment, score } };
+}
+
+/** The bases of `s` turned into others, so every one differs. */
+const unlike = (s: string): string => comp(s);
+
+describe('the stretch of an alignment that holds the identity', () => {
+  // A local alignment that runs on past the overlap through sequence that is
+  // not one has too little identity; what is kept is the stretch with the
+  // most matches that holds 90 % (a column that is no match costs nine).
+  const cons = G.slice(0, 200);
+  const rest = unlike(G.slice(200, 240));
+  const join = (t: string, al: StrandedAlignment, consensus = cons, qualities = 40) =>
+    assembleReads(
+      [
+        { name: 's', sequence: consensus, qualities: flat(consensus.length, 20) },
+        { name: 't', sequence: t, qualities: flat(t.length, qualities) },
+      ],
+      { align: scripted({ [t]: al }), trimCutoff: null },
+    );
+
+  it('places the read by the stretch, not by the whole alignment', async () => {
+    // 100 bases match; the read then goes on for 40 that the consensus has no more of.
+    const t = G.slice(100, 200) + rest;
+    const al = handLine(100, 0, G.slice(100, 200) + '-'.repeat(40), t);
+    const out = await join(t, al);
+    expect(out.contigs).toHaveLength(1);
+    expect(out.contigs[0]?.consensus).toBe(G.slice(0, 200) + rest);
+    const row = out.contigs[0]?.reads.find((r) => r.name === 't');
+    expect(row?.row).toBe(spaces(100) + t);
+    expect([row?.start, row?.end]).toEqual([100, 240]);
+  });
+
+  it('counts the consensus bases the stretch spans, not the gaps in it', async () => {
+    // 40 columns before the stretch hold consensus bases the read has none of.
+    const t = G.slice(100, 200);
+    const al = handLine(60, 0, G.slice(60, 200), '-'.repeat(40) + t);
+    const out = await join(t, al);
+    expect(out.contigs).toHaveLength(1);
+    const row = out.contigs[0]?.reads.find((r) => r.name === 't');
+    expect(row?.row).toBe(spaces(100) + t);
+  });
+
+  it('counts the read bases before the stretch, not the gaps in them', async () => {
+    // 40 columns before the stretch hold read bases the consensus has none of.
+    const head = unlike(G.slice(300, 340));
+    const t = head + G.slice(0, 100);
+    const al = handLine(0, 0, '-'.repeat(40) + G.slice(0, 100), t.slice(0, 40) + G.slice(0, 100));
+    const out = await join(t, al, G.slice(0, 200));
+    expect(out.contigs).toHaveLength(1);
+    expect(out.contigs[0]?.consensus).toBe(head + G.slice(0, 200));
+    const row = out.contigs[0]?.reads.find((r) => r.name === 't');
+    expect(row?.row).toBe(head + G.slice(0, 100) + spaces(100));
+  });
+
+  it('keeps a stretch that ends where the consensus has eight bases left, and no fewer', async () => {
+    // The read's 40 extra bases pair off with the last eight (the slack at an
+    // end) and extend; with nine left the read would be no overlap there.
+    for (const [left, joins] of [
+      [8, true],
+      [9, false],
+    ] as const) {
+      const consensus = G.slice(0, 200 + left);
+      const t = G.slice(100, 200) + rest;
+      const al = handLine(100, 0, G.slice(100, 200 + left) + '-'.repeat(40 - left), t);
+      // Aligned past 200 the read's tail meets the consensus: mismatches.
+      const out = await join(t, al, consensus);
+      expect(out.contigs).toHaveLength(joins ? 1 : 2);
+    }
+  });
+
+  it('starts the stretch after the last column that spent all it had earned', async () => {
+    // Nine matches earn nine; a mismatch then costs nine, so the stretch starts
+    // after it: ten bases of the read before the stretch are no overlap.
+    const t = G.slice(0, 9) + unlike(G.slice(9, 10)) + G.slice(10, 60) + rest;
+    const a = G.slice(0, 60) + G.slice(60, 100);
+    const al = handLine(0, 0, a, t.slice(0, 60) + unlike(G.slice(60, 100)));
+    const out = await join(t, al, G.slice(0, 100));
+    expect(out.contigs).toHaveLength(2);
+  });
+
+  it('starts the stretch after a run of mismatches that put it under water', async () => {
+    // Ten mismatching columns, then 50 matches: the ten bases before the
+    // stretch are more than the slack of an end allows.
+    const t = unlike(G.slice(0, 10)) + G.slice(10, 60) + rest;
+    const a = G.slice(0, 60) + G.slice(60, 100);
+    const al = handLine(0, 0, a, t.slice(0, 60) + unlike(G.slice(60, 100)));
+    const out = await join(t, al, G.slice(0, 100));
+    expect(out.contigs).toHaveLength(2);
+  });
+
+  it('keeps the whole alignment when it has the identity, mismatches at its end and all', async () => {
+    // 95 matches and ten mismatches at the end (90.5 %): no need to cut it.
+    const t = G.slice(95, 190) + unlike(G.slice(190, 200));
+    const al = handLine(95, 0, G.slice(95, 200), t);
+    const out = await join(t, al, G.slice(0, 200));
+    expect(out.contigs).toHaveLength(1);
+  });
+
+  describe('at a minimum identity of 0.5, where a mismatch costs exactly one match', () => {
+    const half = (t: string, al: StrandedAlignment, length: number) =>
+      assembleReads(
+        [
+          { name: 's', sequence: G.slice(0, length), qualities: flat(length, 20) },
+          { name: 't', sequence: t, qualities: flat(t.length, 40) },
+        ],
+        { align: scripted({ [t]: al }), trimCutoff: null, minIdentity: 0.5 },
+      );
+
+    it('ends the stretch at the first place that earned the most', async () => {
+      // 30 matches, ten mismatches and ten matches earn what the 30 did; the
+      // stretch is the 30, and the 20 columns after it leave no overlap at the end.
+      const t = G.slice(0, 30) + unlike(G.slice(30, 40)) + G.slice(40, 50);
+      const al = handLine(0, 0, G.slice(0, 110), t + '-'.repeat(60));
+      expect((await half(t, al, 110)).contigs).toHaveLength(2);
+    });
+
+    it('starts the stretch after a column that brought what had been earned to nothing', async () => {
+      // A match and a mismatch five times over earn nothing, so the stretch
+      // starts after them, and ten bases in on both sides is no overlap at the start.
+      const pairs = Array.from(
+        { length: 5 },
+        (_, k) => G.charAt(2 * k) + unlike(G.charAt(2 * k + 1)),
+      );
+      const t = pairs.join('') + G.slice(10, 60);
+      const al = handLine(0, 0, G.slice(0, 120), t + '-'.repeat(60));
+      expect((await half(t, al, 120)).contigs).toHaveLength(2);
+    });
+  });
+
+  it('does not join on an alignment with no column that matches, however little is asked', async () => {
+    // Eight bases that all differ, at the very end of the consensus: with no
+    // overlap needed they would be an overlap of nothing.
+    const t = unlike(G.slice(100, 108));
+    const al = handLine(100, 0, G.slice(100, 108), t);
+    const out = await assembleReads(
+      [
+        { name: 's', sequence: G.slice(0, 108), qualities: flat(108, 20) },
+        { name: 't', sequence: t, qualities: flat(t.length, 40) },
+      ],
+      { align: scripted({ [t]: al }), trimCutoff: null, minOverlap: 0 },
+    );
+    expect(out.contigs).toHaveLength(2);
+  });
+});
+
+describe('an alignment under 90 % identity that the qualities of its bases explain', () => {
+  /**
+   * A 0.8 to 0.9 identity overlap written as columns: `m` a match, `x` a
+   * mismatch, `i` a base only the read has, `d` a base only the consensus has.
+   * Every base is Q40 but the ones named (by position in the consensus or in
+   * the read), which are as given; the consensus goes on ten bases past the
+   * overlap, at Q40.
+   */
+  function overlap(
+    columns: string,
+    poorConsensus: Record<number, number>,
+    poorRead: Record<number, number>,
+    options: { minIdentity?: number } = {},
+  ) {
+    let a = '';
+    let b = '';
+    let at = 0;
+    for (const column of columns) {
+      const base = G.charAt(at);
+      if (column === 'i') {
+        a += '-';
+        b += unlike(base);
+      } else {
+        a += base;
+        b += column === 'd' ? '-' : column === 'x' ? unlike(base) : base;
+        at++;
+      }
+    }
+    const t = b.replace(/-/g, '');
+    const s = G.slice(0, at + 10);
+    const quals = (n: number, poor: Record<number, number>) =>
+      Array.from({ length: n }, (_, k) => poor[k] ?? 40);
+    return assembleReads(
+      [
+        { name: 's', sequence: s, qualities: quals(s.length, poorConsensus) },
+        { name: 't', sequence: t, qualities: quals(t.length, poorRead) },
+      ],
+      { align: scripted({ [t]: handLine(0, 0, a, b) }), trimCutoff: null, ...options },
+    );
+  }
+
+  it('joins when the bases that differ are poor, and not when they are good', async () => {
+    // Each is 26 to 30 columns at 80 to 90 % identity, so only the qualities
+    // can account for the columns that are no match. They are written so that
+    // an error in how the expected count is summed (which base's quality a
+    // gap takes, where the two reads' positions advance) turns the answer over.
+    const cases: [string, Record<number, number>, Record<number, number>, boolean][] = [
+      ['mmmmmmmmmmmmmimdmmmmmimmmmmm', { 0: 10, 27: 10 }, { 16: 10, 19: 20, 25: 10 }, false],
+      ['immmmmmmdmmmxmmmmmmmmmmmmm', { 7: 10, 19: 10 }, { 0: 10, 18: 10 }, true],
+      ['mmmdmmmmdmmmmmmmmmmmmmimmmmm', { 20: 10, 22: 10 }, { 3: 10 }, false],
+    ];
+    for (const [columns, poorConsensus, poorRead, joins] of cases) {
+      const out = await overlap(columns, poorConsensus, poorRead);
+      expect(out.contigs, columns).toHaveLength(joins ? 1 : 2);
+    }
+  });
+
+  it('needs 80 % identity, whatever the qualities, and no less', async () => {
+    // 20 of 25 columns match, and every base is Q10, so the five that do not are expected.
+    const poor = Object.fromEntries(Array.from({ length: 40 }, (_, k) => [k, 10]));
+    const columns = 'mmmmxmmmmxmmmmxmmmmxmmmmx';
+    expect((await overlap(columns, poor, poor)).contigs).toHaveLength(1);
+    // 19 of 25 do not.
+    const fewer = 'mmmxmmmmxmmmmxmmmmxmmmxmx';
+    expect((await overlap(fewer, poor, poor)).contigs).toHaveLength(2);
+  });
+});
+
+describe('where a read is looked for in the consensus', () => {
+  type Call = readonly [string, string];
+  /** `align` that notes what it was asked, and lets `override` answer first. */
+  const spy = (
+    calls: Call[],
+    override: (a: string, b: string) => StrandedAlignment | null = () => null,
+  ): AssemblyAlign => {
+    return (a, b, options) => {
+      calls.push([a, b]);
+      return Promise.resolve(override(a, b) ?? alignEitherStrand(a, b, options));
+    };
+  };
+  const q40 = (s: string): number[] => flat(s.length, 40);
+
+  describe('a read that overlaps the consensus only through its end, past a repeat', () => {
+    // The consensus is a repeat unit R and 300 bases after it; the read has 200
+    // bases of its own before an R. Its best alignment as a whole is said to be
+    // another place (no overlap), so the ends of both are tried.
+    const R = randomBases(200, 901);
+    const Y = randomBases(300, 902);
+    const X = randomBases(200, 903);
+    const s = R + Y;
+    const t = X + R;
+
+    for (const reverse of [false, true]) {
+      it(`${reverse ? 'a reverse' : 'a forward'} read: aligns each end of the consensus to each end of the read, and places it by the one that fits`, async () => {
+        const read = reverse ? comp(t).split('').reverse().join('') : t;
+        const calls: Call[] = [];
+        const out = await assembleReads(
+          [
+            { name: 's', sequence: s, qualities: q40(s) },
+            { name: 'read', sequence: read, qualities: q40(read) },
+          ],
+          {
+            align: spy(calls, (a, b) =>
+              a === s && b === read ? handLine(0, 200, R.slice(0, 60), R.slice(0, 60)) : null,
+            ),
+            trimCutoff: null,
+          },
+        );
+        expect(calls.slice(0, 5)).toEqual([
+          [s, read],
+          [s.slice(0, 300), read.slice(0, 300)],
+          [s.slice(0, 300), read.slice(100)],
+          [s.slice(200), read.slice(0, 300)],
+          [s.slice(200), read.slice(100)],
+        ]);
+        expect(out.contigs).toHaveLength(1);
+        expect(out.contigs[0]?.consensus).toBe(X + R + Y);
+        const placed = out.contigs[0]?.reads.find((r) => r.name === 'read');
+        expect([placed?.strand, placed?.start, placed?.end]).toEqual([
+          reverse ? 'reverse' : 'forward',
+          0,
+          400,
+        ]);
+      });
+    }
+  });
+
+  it('does not align the ends of the consensus to a read that lies inside it', async () => {
+    const s = G.slice(0, 600);
+    const t = G.slice(100, 250);
+    const calls: Call[] = [];
+    const out = await assembleReads(
+      [
+        { name: 's', sequence: s, qualities: q40(s) },
+        { name: 't', sequence: t, qualities: q40(t) },
+      ],
+      { align: spy(calls), trimCutoff: null },
+    );
+    expect(out.contigs).toHaveLength(1);
+    expect(calls[0]).toEqual([s, t]);
+    expect(calls.filter(([a]) => a.length === 300)).toEqual([]);
+  });
+
+  it('does not look for a second place in what is left of the consensus when that is less than the overlap asked', async () => {
+    const s = G.slice(0, 200);
+    for (const [start, end] of [
+      [0, 60],
+      [140, 200],
+    ] as const) {
+      const t = G.slice(start, end);
+      const calls: Call[] = [];
+      await assembleReads(
+        [
+          { name: 's', sequence: s, qualities: q40(s) },
+          { name: 't', sequence: t, qualities: q40(t) },
+        ],
+        { align: spy(calls), trimCutoff: null },
+      );
+      expect(calls.filter(([a]) => a.length < 25)).toEqual([]);
+    }
+  });
+
+  it('warns of a second place that is as long as the overlap asked, and no shorter', async () => {
+    const s = G.slice(0, 200);
+    const t = G.slice(150, 175);
+    const out = await assembleReads(
+      [
+        { name: 's', sequence: s, qualities: q40(s) },
+        { name: 't', sequence: t, qualities: q40(t) },
+      ],
+      {
+        align: (a, b, options) =>
+          Promise.resolve(
+            b === t && a === s
+              ? handLine(150, 0, t, t)
+              : b === t && a === s.slice(175)
+                ? handLine(0, 0, t, t)
+                : alignEitherStrand(a, b, options),
+          ),
+        trimCutoff: null,
+      },
+    );
+    expect(out.contigs[0]?.warnings.map((w) => [w.kind, w.read])).toEqual([['ambiguous-join', 1]]);
+  });
+
+  it('puts a read that fits nowhere aside until a read that joins overlaps it, and tries again one that overlapped a little', async () => {
+    const s = G.slice(0, 400);
+    const joins = G.slice(300, 500);
+    const nowhere = randomBases(150, 904);
+    const partly = randomBases(200, 905);
+    const calls: Call[] = [];
+    const out = await assembleReads(
+      [
+        { name: 's', sequence: s, qualities: q40(s) },
+        { name: 'joins', sequence: joins, qualities: q40(joins) },
+        { name: 'nowhere', sequence: nowhere, qualities: q40(nowhere) },
+        { name: 'partly', sequence: partly, qualities: q40(partly) },
+      ],
+      {
+        // 'partly' has an alignment against the whole consensus that is no overlap
+        // and none against an end of it.
+        align: spy(calls, (a, b) =>
+          b === partly
+            ? a.length > 300
+              ? handLine(100, 0, G.slice(100, 160), G.slice(100, 160))
+              : hand(0, 0, '', '')
+            : null,
+        ),
+        trimCutoff: null,
+      },
+    );
+    expect(out.contigs.map((c) => c.reads.length)).toEqual([2, 1, 1]);
+    // Against the contig 's' began; 'partly' then seeds a contig of its own.
+    expect(calls.filter(([a, b]) => b === nowhere && a.length > 300)).toHaveLength(1);
+    expect(calls.filter(([a, b]) => b === partly && a.length > 300)).toHaveLength(2);
+  });
+});
+
+describe('choosing among the places a read fits the ends of the consensus', () => {
+  // The consensus is 600 bases; the read is 284, whose first 184 columns
+  // hold 180 matches, two mismatches, and a base only the read has and one
+  // only the consensus has, and whose last 100 bases the consensus has no
+  // more of. Against the first 300 of the consensus the read fits entirely
+  // at a score of `inside`; against the last 300 it fits by that stretch, at
+  // 5 per match less 4 per mismatch, 892.
+  const s = G.slice(0, 600);
+  const columns = (ops: string): { a: string; b: string } => {
+    let a = '';
+    let b = '';
+    let at = 417;
+    for (const op of ops) {
+      const base = G.charAt(at % 600);
+      if (op === 'i') {
+        a += '-';
+        b += unlike(base);
+      } else {
+        a += base;
+        b += op === 'd' ? '-' : op === 'x' ? unlike(base) : base;
+        at++;
+      }
+    }
+    return { a, b };
+  };
+  const { a, b } = columns(
+    'm'.repeat(60) +
+      'i' +
+      'm'.repeat(30) +
+      'x' +
+      'm'.repeat(30) +
+      'd' +
+      'm'.repeat(30) +
+      'x' +
+      'm'.repeat(30) +
+      'i'.repeat(100),
+  );
+  const t = b.replace(/-/g, '');
+
+  const placeAt = async (inside: number): Promise<number | undefined> => {
+    const out = await assembleReads(
+      [
+        { name: 's', sequence: s },
+        { name: 't', sequence: t },
+      ],
+      {
+        align: (x, y) =>
+          Promise.resolve(
+            y !== t
+              ? hand(0, 0, '', '')
+              : x === s
+                ? handLine(400, 0, G.slice(400, 460), G.slice(400, 460))
+                : x === s.slice(0, 300)
+                  ? handLine(0, 0, t, t, inside)
+                  : x === s.slice(300)
+                    ? handLine(117, 0, a, b)
+                    : hand(0, 0, '', ''),
+          ),
+        trimCutoff: null,
+      },
+    );
+    return out.contigs[0]?.reads.find((r) => r.name === 't')?.start;
+  };
+
+  it('puts it where the stretch of matches scores more than the other place', async () => {
+    expect(await placeAt(890)).toBe(417);
+  });
+
+  it('puts it at the other place when that scores more than the stretch', async () => {
+    expect(await placeAt(894)).toBe(0);
   });
 });
