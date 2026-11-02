@@ -173,6 +173,56 @@ describe('designAnchoredPrimers against the slow way', () => {
     }
   });
 
+  it('drops a pair whose cross-dimer ΔG is exactly the limit, and keeps it just above', () => {
+    let checked = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const insert = randomDna(seededRandom(seed + 700), 120);
+      const first = designAnchoredPrimers(insert);
+      if (!first?.withinCriteria) continue;
+      // The pair's own cross dimer must be the strongest, or a primer alone
+      // would be what the limit rules out.
+      if (Math.min(first.forward.selfDimerDg, first.reverse.selfDimerDg) <= first.crossDimerDg) {
+        continue;
+      }
+      const same = (p: typeof first | null): boolean =>
+        p?.forward.sequence === first.forward.sequence &&
+        p.reverse.sequence === first.reverse.sequence;
+      expect(same(designAnchoredPrimers(insert, { dimerDg: first.crossDimerDg - 0.001 }))).toBe(
+        true,
+      );
+      const at = designAnchoredPrimers(insert, { dimerDg: first.crossDimerDg });
+      // With nothing else passing the least bad pair is returned, and may be this one.
+      expect(at?.withinCriteria === true && same(at)).toBe(false);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  it('drops a pair whose 3′ ends anchor a dimer on each other although neither primer does alone', () => {
+    let checked = 0;
+    for (let seed = 1; seed <= 60; seed++) {
+      const insert = randomDna(seededRandom(seed + 1300), 120);
+      const first = designAnchoredPrimers(insert);
+      if (!first?.withinCriteria) continue;
+      const k = first.crossDimer;
+      if (k < 1 || k <= Math.max(first.forward.threePrimeSelf, first.reverse.threePrimeSelf)) {
+        continue;
+      }
+      // Any 3′ match longer than k - 1 counts at a cutoff of 0.
+      const got = designAnchoredPrimers(insert, { maxThreePrime: k - 1, threePrimeDg: 0 });
+      const same =
+        got?.forward.sequence === first.forward.sequence &&
+        got.reverse.sequence === first.reverse.sequence;
+      // With nothing else passing the least bad pair is returned, and may be this one.
+      expect(got?.withinCriteria === true && same).toBe(false);
+      if (got?.withinCriteria) {
+        expect(threePrimeDimer(got.forward.sequence, got.reverse.sequence, k - 1, 0)).toBe(false);
+      }
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+
   it('is case-blind, and reports uppercase primers', () => {
     const insert = randomDna(seededRandom(7), 100);
     const upper = designAnchoredPrimers(insert.toUpperCase());

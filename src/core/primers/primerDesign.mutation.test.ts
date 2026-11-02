@@ -589,6 +589,24 @@ describe('designPrimers on the fixed template', () => {
     ]);
   });
 
+  it('drops a pair whose cross-dimer ΔG is exactly the limit, and keeps it just above', () => {
+    const seq = template();
+    const target = { start: 300, end: 400 };
+    const all = designPrimers(seq, 'linear', target, { maxPairs: 2000 });
+    // Only where the cross dimer is stronger than either primer's own is the
+    // pairing rule what holds a pair back, and not one of its primers.
+    const pair = all.find(
+      (p) => Math.min(p.forward.selfDimerDg, p.reverse.selfDimerDg) > p.crossDimerDg,
+    );
+    if (pair === undefined) throw new Error('no pair whose cross dimer is its strongest');
+    const key = (p: PrimerPair): string =>
+      `${p.forwardSite.start}-${p.forwardSite.end}/${p.reverseSite.start}-${p.reverseSite.end}`;
+    const at = (dimerDg: number): string[] =>
+      designPrimers(seq, 'linear', target, { dimerDg, maxPairs: 2000 }).map(key);
+    expect(at(pair.crossDimerDg - 0.001)).toContain(key(pair));
+    expect(at(pair.crossDimerDg)).not.toContain(key(pair));
+  });
+
   it('shortlists the 40 best of each primer, specific or not', () => {
     const seq = template();
     const c: PrimerCriteria = {

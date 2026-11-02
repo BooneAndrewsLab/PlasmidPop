@@ -579,3 +579,36 @@ The principal scientific computations join the `mutate` list (#333):
 so the first release run with them mutates them in full, which takes longer
 than an incremental run. `strands.ts` (picks the strand by k-mer counts and
 delegates the scoring) was left out as orchestration, not scoring.
+
+## At 1.21: the primer structure model, criteria and designer
+
+The pre-release run on changes since v1.20.0 scored 93.11. Of the survivors in
+`primers/structure.ts` (16), `criteria.ts` (5) and `primerDesign.ts` (13), 19
+were gaps and are killed by new tests; 15 are equivalent. Each was checked by
+applying it by hand.
+
+Killed: the fractional `hairpinDg`, `hairpinTm` and `dimerDg` limits and the
+`hairpinTm` key in `normalizePrimerCriteria` (`criteria.test.ts`); U read as T
+in `codes`, a mismatch against an unknown base taking no stacking term, and the
+interior loop table extended by Equation 7 past 11 unpaired bases, reached
+with a loop limit of 8 (`structure.test.ts`, "what the fold reads and weighs");
+the cross-dimer ΔG at exactly its limit in `designPrimers`
+(`primerDesign.mutation.test.ts`) and `designAnchoredPrimers`, and its 3′
+cross-dimer rule (`designAnchored.test.ts`). The anchored designer returns its
+least bad pair when none passes, which may be the very pair that was ruled
+out, so those tests assert on `withinCriteria` as well.
+
+Equivalent, by kind:
+
+- **Performance only.** `structure.ts` L177, `memo.clear()` when the memo is
+  full, only bounds memory. `primerDesign.ts` L293, L294 and L296, the GC,
+  homopolymer and Tm tests of `failsBasics`: a prefilter that
+  `candidatePenalty` repeats line for line, so a mutant that lets more through
+  changes the time and not the pairs (all eight mutants applied, none caught).
+- **Unreachable.** `structure.ts` L308, the `up === 0 && down === 0` stack in
+  `loopEnergy`: both callers take that case themselves before calling it, and
+  the function is not exported (four mutants applied).
+- **Value always defined.** `structure.ts` L235 `?? -1` to `?? +1`: the index
+  is inside a 25-entry `Int8Array`, so it is never undefined. L552 `?? 'N'` to
+  `?? ''`: the tail is a 3′ match, whose only unpaired characters are N, and N
+  pairs with nothing, so the partner's N changes no energy.

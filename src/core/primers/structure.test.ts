@@ -10,6 +10,7 @@ import {
   threePrimeDuplexEnergy,
 } from './structure';
 import { TETRALOOP_BONUS, TRILOOP_BONUS } from './hairpinLoops';
+import { reverseComplement } from '../sequence';
 import { threePrimeComplementarity } from './thermo';
 
 /**
@@ -522,5 +523,49 @@ describe('the 3′ duplex (#343)', () => {
   it('flags a self-dimer when one primer is passed twice', () => {
     expect(threePrimeDimer('ACGTACGTACGTTGCGCGC', 'ACGTACGTACGTTGCGCGC', 4, -5)).toBe(true);
     expect(threePrimeDimer('AAAAAAAAAAAAAAAAAAAA', 'AAAAAAAAAAAAAAAAAAAA', 4, -5)).toBe(false);
+  });
+});
+
+describe('what the fold reads and weighs (mutation triage, 1.21.0)', () => {
+  const rc = reverseComplement;
+  // Two stems joined by an interior loop, both strands carrying the loop.
+  const stem1 = 'CAGGCG';
+  const stem2 = 'GACCGC';
+  const loops = (l1: string, l2: string): [string, string] => [
+    stem1 + l1 + stem2,
+    rc(stem2) + l2 + rc(stem1),
+  ];
+
+  it('reads U as T and either case alike', () => {
+    expect(hairpinEnergy('GGGCGCUUUUGCGCCC')).toBeCloseTo(hairpinEnergy('GGGCGCTTTTGCGCCC'), 9);
+    expect(hairpinEnergy('GGGCGCTTTTGCGCCC')).toBeCloseTo(-6.1846, 3);
+    expect(hairpinEnergy('gggcgcuuuugcgccc')).toBeCloseTo(-6.1846, 3);
+    expect(dimerEnergy('GCGCAAUU', 'AAUUGCGC')).toBeCloseTo(dimerEnergy('GCGCAATT', 'AATTGCGC'), 9);
+    expect(dimerEnergy('GCGCAAUU', 'AAUUGCGC')).toBeCloseTo(-6.3605, 3);
+  });
+
+  it('gives a mismatch against an unknown base no stacking term', () => {
+    const [aN, bN] = loops('NN', 'NN');
+    const [aG, bG] = loops('GG', 'GG');
+    // A·A has no term in the GC column, and an N must cost the same as it.
+    expect(dimerEnergy(aN, bN)).toBeCloseTo(-9.9623, 3);
+    // G·G at both closing pairs takes -1.0 each (Table: GG, GC column).
+    expect(dimerEnergy(aG, bG)).toBeCloseTo(-11.9623, 3);
+    // One G·G and one unknown pair take -1.0 once.
+    const [aH, bH] = loops('GN', 'NG');
+    expect(dimerEnergy(aH, bH)).toBeCloseTo(-10.9623, 3);
+  });
+
+  it('extends the interior loop table by Equation 7 past 11 unpaired bases', () => {
+    // 7 unpaired bases on one strand and 6 on the other: 13 in all, two past
+    // the last table row, which only a looser loop limit reaches.
+    const [a, b] = loops('AAAAAAA', 'AAAAAA');
+    expect(dimerEnergy(a, b)).toBeCloseTo(-6.1916, 3);
+    expect(dimerEnergy(a, b, STRUCTURE_PARAMS, 8)).toBeCloseTo(-7.176, 3);
+  });
+
+  it('pairs a 3′ tail that holds an unknown base with unknown bases', () => {
+    expect(threePrimeComplementarity('ACGCGNN', 'NNCGCGT')).toBe(7);
+    expect(threePrimeDuplexEnergy('ACGCGNN', 'NNCGCGT')).toBeCloseTo(-4.4402, 3);
   });
 });
