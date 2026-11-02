@@ -20,6 +20,9 @@ import { BenchProductSlot } from './benchProductSlot';
 import { LigationPanel } from './LigationPanel';
 import { PrimerWorkspace } from './PrimerWorkspace';
 
+// The designer is instrumented in a mutation run, whose dry run runs this several times slower.
+const SLOW = process.env['PLASMIDPOP_MUTATION'] === '1' ? 300_000 : 30_000;
+
 /**
  * The Bench's clone check takes the vector the ligation's Against picker
  * names (#329), not the longest part: with two candidate vectors in the
@@ -80,54 +83,62 @@ afterEach(() => {
 });
 
 describe('Bench clone check and the Against picker (#329)', () => {
-  it('uses the vector chosen under Against, though a longer part is in the tube', async () => {
-    act(() => {
-      for (const f of [big, small, insert]) editorStore.addToShelf(f);
-    });
-    const slot = document.createElement('div');
-    document.body.append(slot);
-    render(
-      <BenchProductSlot.Provider value={slot}>
-        <LigationPanel />
-      </BenchProductSlot.Provider>,
-    );
-    const bench = within(slot);
-    const against = bench.getByRole('combobox', { name: 'Vector to check against' });
-    const smallOption = bench.getByRole('option', { name: /^pSmall/ });
-    fireEvent.change(against, { target: { value: smallOption.getAttribute('value') } });
-    fireEvent.click(bench.getByRole('button', { name: 'Design check primers…' }));
+  it(
+    'uses the vector chosen under Against, though a longer part is in the tube',
+    async () => {
+      act(() => {
+        for (const f of [big, small, insert]) editorStore.addToShelf(f);
+      });
+      const slot = document.createElement('div');
+      document.body.append(slot);
+      render(
+        <BenchProductSlot.Provider value={slot}>
+          <LigationPanel />
+        </BenchProductSlot.Provider>,
+      );
+      const bench = within(slot);
+      const against = bench.getByRole('combobox', { name: 'Vector to check against' });
+      const smallOption = bench.getByRole('option', { name: /^pSmall/ });
+      fireEvent.change(against, { target: { value: smallOption.getAttribute('value') } });
+      fireEvent.click(bench.getByRole('button', { name: 'Design check primers…' }));
 
-    const product = def(editorStore.document);
-    const context = def(recallCloneCheck(product));
-    // The direct computation for the chosen vector.
-    const docOf = (f: DigestFragment): SeqDocument => documentFromFragment(f);
-    const expectedGeometry = def(locateInsert(product, docOf(small), [docOf(big), docOf(insert)]));
-    const expectedEmpty = def(emptyVector(small));
-    expect(context.geometry).toEqual(expectedGeometry);
-    expect(context.empty?.sequence.toString()).toBe(expectedEmpty.sequence.toString());
-    expect(context.vector).toEqual({
-      name: expect.stringContaining('pSmall') as string,
-      chosen: true,
-    });
+      const product = def(editorStore.document);
+      const context = def(recallCloneCheck(product));
+      // The direct computation for the chosen vector.
+      const docOf = (f: DigestFragment): SeqDocument => documentFromFragment(f);
+      const expectedGeometry = def(
+        locateInsert(product, docOf(small), [docOf(big), docOf(insert)]),
+      );
+      const expectedEmpty = def(emptyVector(small));
+      expect(context.geometry).toEqual(expectedGeometry);
+      expect(context.empty?.sequence.toString()).toBe(expectedEmpty.sequence.toString());
+      expect(context.vector).toEqual({
+        name: expect.stringContaining('pSmall') as string,
+        chosen: true,
+      });
 
-    // The page says which vector it used, and its bands follow it.
-    render(<PrimerWorkspace doc={product} />);
-    expect(screen.getByText(/Vector/)).toBeInTheDocument();
-    expect(screen.getByText(/pSmall.*chosen under Against/)).toBeInTheDocument();
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'to' }), { target: { value: '6000' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Design check primers' }));
-    const table = await screen.findByRole('table', { name: 'Check primer pairs' });
-    const flank = within(table)
-      .getAllByRole('row')
-      .slice(1)
-      .find((r) => within(r).getAllByRole('cell')[0]?.textContent === 'Flank');
-    if (flank === undefined) throw new Error('no flank pair');
-    const cells = within(flank)
-      .getAllByRole('cell')
-      .map((c) => Number(c.textContent.replaceAll(',', '')));
-    const inserted = expectedGeometry.insert.end - expectedGeometry.insert.start;
-    expect(Number(cells[3]) - Number(cells[4])).toBe(inserted);
-    // The shorter vector is what a colony without the insert carries.
-    expect(inserted).toBe(product.length - expectedEmpty.length);
-  }, 30_000);
+      // The page says which vector it used, and its bands follow it.
+      render(<PrimerWorkspace doc={product} />);
+      expect(screen.getByText(/Vector/)).toBeInTheDocument();
+      expect(screen.getByText(/pSmall.*chosen under Against/)).toBeInTheDocument();
+      fireEvent.change(screen.getByRole('spinbutton', { name: 'to' }), {
+        target: { value: '6000' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Design check primers' }));
+      const table = await screen.findByRole('table', { name: 'Check primer pairs' });
+      const flank = within(table)
+        .getAllByRole('row')
+        .slice(1)
+        .find((r) => within(r).getAllByRole('cell')[0]?.textContent === 'Flank');
+      if (flank === undefined) throw new Error('no flank pair');
+      const cells = within(flank)
+        .getAllByRole('cell')
+        .map((c) => Number(c.textContent.replaceAll(',', '')));
+      const inserted = expectedGeometry.insert.end - expectedGeometry.insert.start;
+      expect(Number(cells[3]) - Number(cells[4])).toBe(inserted);
+      // The shorter vector is what a colony without the insert carries.
+      expect(inserted).toBe(product.length - expectedEmpty.length);
+    },
+    SLOW,
+  );
 });
