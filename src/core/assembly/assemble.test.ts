@@ -1814,4 +1814,330 @@ describe('choosing among the places a read fits the ends of the consensus', () =
   it('puts it at the other place when that scores more than the stretch', async () => {
     expect(await placeAt(894)).toBe(0);
   });
+
+  it('keeps the first of two places that score the same', async () => {
+    expect(await placeAt(892)).toBe(0);
+  });
+});
+
+describe('the warning that reads may have piled onto one copy of a repeat', () => {
+  // The depth profile alone decides the warning, so these reads come from
+  // unique sequence: one long backbone read (or two), and short reads laid
+  // inside it to make the depth just what a test wants.
+  const U = randomBases(1000, 501);
+  const part = (from: number, to: number, name = `u${from}-${to}`): AssemblyRead => ({
+    name,
+    sequence: U.slice(from, to),
+    qualities: flat(to - from, 40),
+  });
+  const collapses = async (reads: AssemblyRead[]) => {
+    const out = await assembleReads(reads, { align });
+    expect(out.contigs).toHaveLength(1);
+    const c = out.contigs[0];
+    expect(c?.consensus).toBe(U.slice(0, c?.consensus.length));
+    return {
+      depth: c?.depth ?? [],
+      found: (c?.warnings ?? []).filter((w) => w.kind === 'possible-repeat-collapse'),
+    };
+  };
+
+  it(
+    'warns of a stretch of exactly 100 bases at depth 4, and not of one of 99',
+    async () => {
+      const at100 = await collapses([
+        part(0, 1000),
+        part(300, 400, 'x1'),
+        part(300, 400, 'x2'),
+        part(300, 400, 'x3'),
+      ]);
+      expect(at100.depth.slice(299, 401)).toEqual([1, ...new Array<number>(100).fill(4), 1]);
+      expect(at100.found.map((w) => [w.start, w.end])).toEqual([[300, 400]]);
+      const at99 = await collapses([
+        part(0, 1000),
+        part(300, 399, 'x1'),
+        part(300, 399, 'x2'),
+        part(300, 399, 'x3'),
+      ]);
+      expect(at99.found).toEqual([]);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'reports a stretch that starts at the first base and one that runs to the last',
+    async () => {
+      const first = await collapses([
+        part(0, 1000),
+        part(0, 100, 'x1'),
+        part(0, 100, 'x2'),
+        part(0, 100, 'x3'),
+      ]);
+      expect(first.found.map((w) => [w.start, w.end])).toEqual([[0, 100]]);
+      expect(first.found[0]?.message).toMatch(
+        /^1–100 is covered 4× deep where the contig is 1× deep/,
+      );
+      const last = await collapses([
+        part(0, 1000),
+        part(900, 1000, 'x1'),
+        part(900, 1000, 'x2'),
+        part(900, 1000, 'x3'),
+      ]);
+      expect(last.found.map((w) => [w.start, w.end])).toEqual([[900, 1000]]);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'takes the stretch at depth 3 and up, and states its mean to a tenth',
+    async () => {
+      // 3 over 20 + 40 bases, 4 over 40: the stretch is 300-400 and its mean 3.4.
+      const out = await collapses([
+        part(0, 1000),
+        part(300, 400, 'x1'),
+        part(300, 400, 'x2'),
+        part(320, 360, 'x3'),
+      ]);
+      expect(out.depth[319]).toBe(3);
+      expect(out.depth[320]).toBe(4);
+      expect(out.found.map((w) => [w.start, w.end])).toEqual([[300, 400]]);
+      expect(out.found[0]?.message).toMatch(
+        /^301–400 is covered 3\.4× deep where the contig is 1× deep: /,
+      );
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'does not warn of a stretch that never gets deeper than 3',
+    async () => {
+      // Four reads, a stretch of 100 at depth 3 whose mean is 3 times the median.
+      const out = await collapses([
+        part(0, 600),
+        part(500, 1000),
+        part(100, 200, 'x1'),
+        part(100, 200, 'x2'),
+      ]);
+      expect(Math.max(...out.depth)).toBe(3);
+      expect(out.found).toEqual([]);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'weighs the stretch against the median depth of the contig, which is 2 here',
+    async () => {
+      const backbone = [part(0, 1000, 'b1'), part(0, 1000, 'b2')];
+      // 4 deep is under 3 x 2 ...
+      const under = await collapses([...backbone, part(300, 400, 'x1'), part(300, 400, 'x2')]);
+      expect(under.depth[350]).toBe(4);
+      expect(under.found).toEqual([]);
+      // ... 6 deep is exactly 3 x 2 ...
+      const exact = await collapses([
+        ...backbone,
+        ...[1, 2, 3, 4].map((i) => part(300, 400, `x${i}`)),
+      ]);
+      expect(exact.depth[350]).toBe(6);
+      expect(exact.found.map((w) => [w.start, w.end])).toEqual([[300, 400]]);
+      expect(exact.found[0]?.message).toMatch(/covered 6× deep where the contig is 2× deep/);
+      // ... and a mean of 5.99 is under it, though the base after the stretch is 2 deep.
+      const just = await collapses([
+        ...backbone,
+        part(300, 400, 'x1'),
+        part(300, 400, 'x2'),
+        part(300, 400, 'x3'),
+        part(300, 399, 'x4'),
+      ]);
+      expect(just.depth.slice(396, 401)).toEqual([6, 6, 6, 5, 2]);
+      expect(just.found).toEqual([]);
+    },
+    TIMEOUT,
+  );
+});
+
+describe('the second pass at a looser trim, and how far it goes (#349)', () => {
+  type Call = readonly [string, string];
+  const counting = (calls: Call[]): AssemblyAlign => {
+    return (a, b, options) => {
+      calls.push([a, b]);
+      return align(a, b, options);
+    };
+  };
+  const q40 = (s: string): number[] => flat(s.length, 40);
+  const callsFor = async (reads: AssemblyRead[], trimCutoff?: number | null) => {
+    const calls: Call[] = [];
+    const out = await assembleReads(
+      reads,
+      trimCutoff === undefined
+        ? { align: counting(calls) }
+        : { align: counting(calls), trimCutoff },
+    );
+    return { calls, out };
+  };
+  const unique = (name: string, from: number, to: number): AssemblyRead => ({
+    name,
+    sequence: G.slice(from, to),
+    qualities: q40(G.slice(from, to)),
+  });
+
+  it(
+    'does not go over the reads again when they made one contig',
+    async () => {
+      const reads = [unique('a', 0, 300), unique('b', 200, 500)];
+      const once = await callsFor(reads, null);
+      const dflt = await callsFor(reads);
+      expect(dflt.out.contigs).toHaveLength(1);
+      expect(once.calls.length).toBeGreaterThan(0);
+      expect(dflt.calls).toEqual(once.calls);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'goes over them again at twice the cutoff when they made several, and not when it is already 0.2',
+    async () => {
+      const other = randomBases(300, 4711);
+      const reads = [unique('a', 0, 300), { name: 'x', sequence: other, qualities: q40(other) }];
+      const once = await callsFor(reads, null);
+      expect(once.out.contigs).toHaveLength(2);
+      for (const cutoff of [0.05, 0.1]) {
+        const twice = await callsFor(reads, cutoff);
+        expect(twice.out.contigs).toHaveLength(2);
+        expect(twice.calls).toEqual([...once.calls, ...once.calls]);
+      }
+      // At the ceiling the second pass would trim at the very same rate.
+      const ceiling = await callsFor(reads, 0.2);
+      expect(ceiling.calls).toEqual(once.calls);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'keeps the tails only as far as twice the cutoff, not as far as the ceiling',
+    async () => {
+      // Both reads end (and begin) in 60 bases at Q8, a 16 % error rate: kept at a
+      // cutoff of 0.2, trimmed at 0.1, which is where the default 0.05 doubles to.
+      const tail = (name: string, start: number, end: number, poor: [number, number]) => ({
+        name,
+        sequence: G.slice(start, end),
+        qualities: Array.from({ length: end - start }, (_, k) =>
+          start + k >= poor[0] && start + k < poor[1] ? 8 : 40,
+        ),
+      });
+      const reads = [tail('a', 0, 300, [240, 300]), tail('b', 230, 550, [230, 290])];
+      const dflt = await assembleReads(reads, { align });
+      expect(dflt.contigs.map((c) => c.reads.length)).toEqual([1, 1]);
+      const loose = await assembleReads(reads, { align, trimCutoff: 0.2 });
+      expect(loose.contigs.map((c) => c.reads.length)).toEqual([2]);
+    },
+    TIMEOUT,
+  );
+});
+
+describe('which reads are tried again after a read joins, and which are put aside', () => {
+  type Call = readonly [string, string];
+  const q40 = (s: string): number[] => flat(s.length, 40);
+  const s = G.slice(0, 400);
+  const j = G.slice(300, 500);
+  // 130 bases that share the last 30 of `j` and nothing of `s`.
+  const u = G.slice(470, 600);
+  const nowhere = randomBases(150, 990);
+  const reads = [s, j, u, nowhere].map((sequence, i) => ({
+    name: ['s', 'j', 'u', 'nowhere'][i] ?? '',
+    sequence,
+    qualities: q40(sequence),
+  }));
+
+  /** Assembles with the alignment of `u` against `j` told as `hit`; what was asked of the aligner, and the contigs. */
+  const run = async (hit: StrandedAlignment | null) => {
+    const calls: Call[] = [];
+    const out = await assembleReads(reads, {
+      align: (a, b, options) => {
+        calls.push([a, b]);
+        return Promise.resolve(
+          hit !== null && a === u && b === j ? hit : alignEitherStrand(a, b, options),
+        );
+      },
+      trimCutoff: null,
+    });
+    return {
+      calls,
+      // Against the consensus, not against a read that joined.
+      tries: calls.filter(([a, b]) => b === u && (a === s || a === G.slice(0, 500))).length,
+      sizes: out.contigs.map((c) => c.reads.length),
+    };
+  };
+  const stretch = (from: number, to: number): string => u.slice(from, to);
+  const mismatched = (text: string, at: readonly number[]): string =>
+    Array.from(text, (ch, i) => (at.includes(i) ? unlike(ch) : ch)).join('');
+
+  it('asks a read that fits nowhere about a read that joined only when they could overlap', async () => {
+    const r = await run(null);
+    // `u` shares 30 bases with `j`, so it is tried against it, and then again
+    // against the consensus, where it joins; `nowhere` shares nothing with `j`.
+    expect(r.calls.filter(([a, b]) => a === u && b === j)).toHaveLength(1);
+    expect(r.calls.filter(([a, b]) => a === nowhere && b === j)).toEqual([]);
+    expect(r.tries).toBe(2);
+    expect(r.sizes).toEqual([3, 1]);
+  });
+
+  it('tries it again when the overlap with the read that joined is 25 bases, not when it is shorter', async () => {
+    const a = stretch(0, 25);
+    expect((await run(handLine(0, 0, a, a))).tries).toBe(2);
+    // 20 bases at 10-30 of the read: the end is past the minimum, the overlap is not.
+    const b = stretch(10, 30);
+    expect((await run(handLine(10, 0, b, b))).tries).toBe(1);
+    const c = stretch(0, 24);
+    expect((await run(handLine(0, 0, c, c))).tries).toBe(1);
+  });
+
+  it('tries it again at an identity of exactly the minimum, not below it', async () => {
+    const a = stretch(0, 30);
+    // 27 of 30 columns match: 0.9.
+    const exact = handLine(0, 0, a, mismatched(a, [5, 15, 25]));
+    expect(exact.alignment.identity).toBe(0.9);
+    expect((await run(exact)).tries).toBe(2);
+    // 26 of 30, with the mismatches where no stretch of 25 holds 0.9.
+    const below = handLine(0, 0, a, mismatched(a, [5, 10, 15, 20]));
+    expect((await run(below)).tries).toBe(1);
+  });
+
+  it('tries it again when the part of a poor alignment that holds the identity is an overlap, and not when none is', async () => {
+    // 30 columns that match, then 10 that do not: 0.75 as a whole.
+    const a = stretch(0, 40);
+    const tail = handLine(0, 0, a, a.slice(0, 30) + unlike(a.slice(30)));
+    expect(tail.alignment.identity).toBe(0.75);
+    expect((await run(tail)).tries).toBe(2);
+    // Nothing of it matches, so no stretch holds any identity.
+    const b = stretch(0, 30);
+    const none = handLine(0, 0, b, unlike(b));
+    expect((await run(none)).tries).toBe(1);
+    expect((await run(none)).sizes).toEqual([2, 1, 1]);
+  });
+});
+
+describe('a tie among the reads that fit', () => {
+  it('puts the read that was tried first first when two fit as well as each other', async () => {
+    const s4 = G.slice(0, 400);
+    const r1 = G.slice(300, 500);
+    const r2 = G.slice(300, 490);
+    const overlap = G.slice(300, 400);
+    const out = await assembleReads(
+      [
+        { name: 's', sequence: s4 },
+        { name: 'r1', sequence: r1 },
+        { name: 'r2', sequence: r2 },
+      ],
+      {
+        // Both overlap the seed in the same 100 bases; once one of them has joined,
+        // the consensus is longer and the other is told to overlap nothing.
+        align: (x, y) =>
+          Promise.resolve(
+            x === s4 && (y === r1 || y === r2)
+              ? hand(300, 0, overlap, overlap)
+              : hand(0, 0, '', ''),
+          ),
+      },
+    );
+    expect(out.contigs[0]?.reads.map((r) => r.name).sort()).toEqual(['r1', 's']);
+  });
 });

@@ -685,3 +685,60 @@ Equivalent, by kind:
 - **Tie.** L519 `miss <= expected + ...`: an exact tie needs the sum of the
   error probabilities to hit an integer threshold, which no sum of the
   powers of ten involved does.
+
+### At 1.21: the Sanger read assembler, from line 650 (`assembly/assemble.ts`)
+
+Of the 63 survivors on changed lines past L650, 42 were gaps and are killed by
+new tests in `assemble.test.ts`, 7 were killed already by the part-A tests (L811
+`unrelated.has`, both L813 and three of the four at L818, which the pre-release
+run predates), and 14 are equivalent. Each was applied by hand and run against
+`src/core/assembly` and, for the equivalent ones, the four
+`sangerAssembly[0-9]*` oracle files the mutation run skips; they survive all of
+them, and none was killed only by a skipped suite.
+
+Killed:
+
+- The second pass (#349): the aligner's calls with a default cutoff equal those
+  of a run with no trim when the reads made one contig (L758), and are doubled
+  when they made two, but not at a cutoff of 0.2 (L760, both mutants); a pair
+  joined only through tails at Q8 stays two contigs at the default cutoff, whose
+  doubled 0.1 trims them, so the second pass is not at the ceiling (L764).
+  "the second pass at a looser trim, and how far it goes".
+- Which reads are tried again after a join (L848-853), seen by what the aligner
+  is asked: a read that cannot overlap the joined one is not aligned to it (the
+  screen, L848 `false`, L850), one that fits nowhere is tried against the
+  consensus again after a join when its alignment with the joined read is 25
+  bases (not 24, and not 20 bases at 10-30, L853), at an identity of exactly the
+  minimum (not below it), and when only a stretch of a poorer alignment holds the
+  identity (L852); an alignment with nothing in common is `core` null, which the
+  `a !== null` test keeps from being read (L853).
+- A tie between two places a read fits at the same score keeps the first
+  (L818 `>=`).
+- The collapse warning, from depth profiles built of reads of unique sequence (a
+  backbone read and short reads laid inside it): 100 bases is a stretch and 99
+  is not; one that starts at the first base and one that ends at the last; depth
+  3 joins the stretch and 2 does not; a peak of 4 and not of 3; a median of 2,
+  where 4 deep is under 3 times it, 6 deep is exactly 3 times it and a mean of
+  5.99 is under it though the base after the stretch is 2 deep (L965 `i <= to`);
+  and the mean said to a tenth, with the stretch counted from 1 ("the warning that
+  reads may have piled onto one copy of a repeat").
+
+Equivalent, by kind:
+
+- **Performance only.** L805 `pool.length >= 0` (the extra round finds no pick
+  and breaks); L848 `unrelated.size > 0` to `true` and to `>= 0` (a screen is
+  built over an empty set that nothing uses).
+- **Unreachable.** L811 `read === undefined` and L921 `r === undefined` (the
+  index is in range; the read is always among the rows); L850 `joined.mayOverlap`
+  (`joined` is null only when `unrelated` is empty, and then the loop has no
+  turn).
+- **Guard covered by another guard.** L823 `picks.length === 0` to `false`
+  (`chosen` is then undefined and L837 breaks), and L837 `chosen === undefined`
+  to `false` (reached only with no pick, which L823 has taken). L853
+  `a.identity >= minIdentity`: `a` is the alignment itself at that identity or
+  what `core` keeps of it above that identity. L955, five mutants of
+  `readCount < 4 || depth.length === 0`: with three reads the depth is 3 at most,
+  which the peak of 4 refuses, and an empty depth has no stretch.
+- **Tie.** L824 `p.at - q.at` to `p.at + q.at`: the picks are made in order of
+  `at`, and the sort is stable, so the tie-break repeats the order they already
+  have (a test pins it, but the mutant leaves the order alone).
