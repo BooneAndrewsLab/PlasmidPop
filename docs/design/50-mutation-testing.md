@@ -742,3 +742,9 @@ Equivalent, by kind:
 - **Tie.** L824 `p.at - q.at` to `p.at + q.at`: the picks are made in order of
   `at`, and the sort is stable, so the tie-break repeats the order they already
   have (a test pins it, but the mutant leaves the order alone).
+
+### At 1.21: mutants that timed out
+
+A timeout counts as detected, so it hides whether any assertion would have failed. Of the 43 timeouts on lines changed since 1.20, about 19 were loops that cannot end (loop counters flipped, a `while` body emptied, a `splice` dropped): sound kills. About 19 only made the code slower and left the answer alone: the memo lookup, clear and store in `remembered`, the cached-parameters shortcut in `hairpinFold` and `dimerEnergy`, the `failsBasics` prefilter in `primerDesign.ts`, the ASCII fast path of `codeMask` in `search.ts`. The last five changed the fold itself.
+
+Applied by hand, three of the cached-parameters shortcuts survived the unit tests (a custom loop limit or parameter set reaching the cache, which is keyed on the sequence alone) and one `maxLoop` bound on the second strand did too. `structure.test.ts` now has a describe, "the fold cache is keyed on the sequence only for the default model", that folds one bulged pair with two loop limits and two parameter sets, on either strand, and expects each its own energy. The memo, prefilter and fast-path mutants stay: slower, same answer, equivalent. The machine ran at a load of about 14.6 on 16 threads, so some of the slower ones may have been tipped over the limit by contention.

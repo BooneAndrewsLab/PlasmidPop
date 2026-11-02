@@ -569,3 +569,44 @@ describe('what the fold reads and weighs (mutation triage, 1.21.0)', () => {
     expect(threePrimeDuplexEnergy('ACGCGNN', 'NNCGCGT')).toBeCloseTo(-4.4402, 3);
   });
 });
+
+describe('the fold cache is keyed on the sequence only for the default model (mutation triage, 1.21.0)', () => {
+  // A one-base bulge: with no loop allowed only one half of the helix counts, with one it all does.
+  const left = 'GCGCCGATGC';
+  const right = 'CGTAGGCGCC';
+  const bulged = `${left}A${right}`;
+  const partner = reverseComplement(left + right);
+  const hairpin = `${bulged}TTTT${partner}`;
+  const salty = { ...STRUCTURE_PARAMS, stackSalt: STRUCTURE_PARAMS.stackSalt + 0.2 };
+
+  it('does not hand a hairpin folded with one loop limit to a fold with another', () => {
+    const none = hairpinEnergy(hairpin, STRUCTURE_PARAMS, 0);
+    const one = hairpinEnergy(hairpin, STRUCTURE_PARAMS, 1);
+    expect(one).toBeLessThan(none - 5);
+    expect(hairpinEnergy(hairpin, STRUCTURE_PARAMS, 0)).toBe(none);
+  });
+
+  it('does not hand a dimer folded with one loop limit to a fold with another', () => {
+    const none = dimerEnergy(bulged, partner, STRUCTURE_PARAMS, 0);
+    const one = dimerEnergy(bulged, partner, STRUCTURE_PARAMS, 1);
+    expect(one).toBeLessThan(none - 5);
+    expect(dimerEnergy(bulged, partner, STRUCTURE_PARAMS, 0)).toBe(none);
+  });
+
+  it('limits a bulge on the second strand as it does on the first', () => {
+    const none = dimerEnergy(partner, bulged, STRUCTURE_PARAMS, 0);
+    const one = dimerEnergy(partner, bulged, STRUCTURE_PARAMS, 1);
+    expect(none).toBeCloseTo(dimerEnergy(bulged, partner, STRUCTURE_PARAMS, 0), 6);
+    expect(one).toBeLessThan(none - 5);
+  });
+
+  it('does not hand a dimer folded with one set of parameters to another', () => {
+    const plain = dimerEnergy(left + right, partner);
+    const other = dimerEnergy(left + right, partner, salty);
+    expect(other).toBeGreaterThan(plain + 1);
+    expect(dimerEnergy(left + right, partner, salty)).toBe(other);
+    expect(dimerEnergy(left + right, partner)).toBe(plain);
+    const saltier = { ...STRUCTURE_PARAMS, stackSalt: STRUCTURE_PARAMS.stackSalt + 0.4 };
+    expect(dimerEnergy(left + right, partner, saltier)).toBeGreaterThan(other + 1);
+  });
+});
