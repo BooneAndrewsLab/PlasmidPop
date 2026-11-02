@@ -71,8 +71,8 @@ server round-trip.
 
 ## Releasing
 
-Few, large, themed releases, one GitHub milestone each; current is 1.20.0
-(2026-10-30). Each GitHub Release gets a Zenodo DOI; the concept DOI in
+Few, large, themed releases, one GitHub milestone each; current is 1.21.0
+(2026-11-02). Each GitHub Release gets a Zenodo DOI; the concept DOI in
 `CITATION.cff` stands for all of them. Before a release run
 `npm run mutate` (Stryker, incremental, never in CI, score floor 90; item 50)
 and triage its survivors. Bump `package.json` and `CITATION.cff` together. **The site
