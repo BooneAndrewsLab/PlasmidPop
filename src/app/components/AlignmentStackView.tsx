@@ -14,6 +14,7 @@ import { measureCharWidth, monoFontOf } from '@/view/linear';
 
 import { AlignmentCopyPanel } from './AlignmentCopyPanel';
 import { AlignmentSelectionBar } from './AlignmentSelectionBar';
+import { CopyNote } from './CopyNote';
 import { followTooltip, hideFollowTooltip } from './tooltip';
 
 import { residueTitle, sampleChanges } from '../alignmentChanges';
@@ -695,11 +696,7 @@ export function AlignmentStackView({
           onClose={closePanel}
         />
       )}
-      {copyNote !== '' && (
-        <div className="astack__copy-note" role="status">
-          {copyNote}
-        </div>
-      )}
+      <CopyNote note={copyNote} />
     </div>
   );
 }

@@ -357,8 +357,8 @@ the Align button.
    on; a click on the ruler, the conservation bar or empty space clears it.
    `Ctrl+C` (`Cmd+C` on a Mac), with the alignment focused, copies that row's
    **own letters**, gaps left out; `Ctrl+Alt+C` copies the **row as drawn**,
-   gaps kept as `-`, so it lines up with the others. A line beside the
-   buttons above says what was copied. The selection is for copying only:
+   gaps kept as `-`, so it lines up with the others. A line under the
+   alignment says what was copied. The selection is for copying only:
    it is not in a saved file.
 
    A small bar floats beside the selection once the mouse is released:

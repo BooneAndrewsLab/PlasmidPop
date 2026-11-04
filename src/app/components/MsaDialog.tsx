@@ -24,6 +24,7 @@ import { downloadText } from '../saveFile';
 import { readColours } from './alignmentStackDraw';
 import { AlignmentSelectionBar } from './AlignmentSelectionBar';
 import { MsaCopyPanel } from './MsaCopyPanel';
+import { CopyNote } from './CopyNote';
 import { MSA_NAME_WIDTH, drawMsa, msaSize, type MsaShading } from './msaDraw';
 
 interface Props {
@@ -237,11 +238,6 @@ export function MsaDialog({ names, alignment, onClose }: Props) {
           <button type="button" className="button button--small" onClick={copy}>
             Copy FASTA
           </button>
-          {note !== null && (
-            <span className="panel__note" role="status">
-              {note}
-            </span>
-          )}
         </div>
         <div className="msa-area" ref={area}>
           <div
@@ -340,6 +336,7 @@ export function MsaDialog({ names, alignment, onClose }: Props) {
             />
           )}
         </div>
+        <CopyNote note={note} />
         <p className="panel__note">
           Columns are shaded by the share of sequences with the commonest letter; the bar over each
           column is the same share. Gaps are drawn as dashes. A gap in most sequences leaves the

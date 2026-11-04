@@ -5610,10 +5610,23 @@ button {
   border-radius: 4px;
 }
 
-.astack__copy-note {
+/* What the last copy did, under an alignment. It keeps its line when empty
+   so a copy never resizes the window (#366). */
+.copy-note {
   flex: none;
+  min-height: 1.4em;
   font-size: 12px;
+  line-height: 1.4;
   color: var(--muted);
+}
+
+/* The toolbar's labelled fields are as wide as their content, not a full row. */
+.astack-tools .panel__field--row {
+  flex: 0 0 auto;
+}
+
+.astack-tools .panel__field--row .panel__select {
+  flex: 0 0 auto;
 }
 
 .astack__canvas {
