@@ -27,3 +27,75 @@ it as a tinted, outlined block; an export does not carry it.
 
 Not covered by tests: the pointer handling in `AlignmentStackView` (a real
 browser was not driven); the pure pieces are.
+
+## The bar and the Advanced copy panel
+
+**Asked:** the two keys cover one row's residues or aligned row, and nothing
+else: not the reference beside a sample, not every row in register, not the
+amino acids with the bases, not FASTA. A menu of fixed combinations would
+grow with each wish. Instead, a bar beside the selection with the one-click
+copy, and a panel where the copy is composed from options.
+
+**Built:**
+
+- `AlignmentSelectionBar`: Copy (the residues, as Ctrl+C), Advanced copy…,
+  and the column count, in the scroller's content space like the sequence
+  view's `SelectionBar` (#89), whose `.selection-bar` styling and fade it
+  shares. `AlignmentStackView` places it: above the row when there is room
+  under the pinned header, else below; for the pinned reference always just
+  below the header, so it never sits on the reference's own strips (it may
+  sit on the first sample, which is not the selection). It is kept inside
+  the view sideways with fixed `BAR_WIDTH`/`BAR_HEIGHT` estimates rather
+  than measured, and not drawn while dragging or once the row has scrolled
+  under the header. Ctrl+C is unchanged: never a popup.
+- `alignmentCopy.ts`, pure: `CopyOptions` (rows: selected / with the
+  reference / all; columns: selection / all; gaps: kept / dropped; tracks:
+  bases / aa / both; format: text / FASTA; names; coordinates),
+  `copyLimits` (what the context rules out: gaps are kept once several rows
+  go out, so they stay in register; bases only without residues in view;
+  "with the reference" is moot on the reference), `effectiveOptions` (the
+  same fallbacks, so the copy is what the preview shows), `copyOutput`
+  (text, row and column counts), `previewLines`, `largeCopyWarning` (a
+  warning above a million characters, never a refusal), and the
+  localStorage round trip (`plasmidpop.alignmentCopy`, try/catch, each
+  field checked on the way back). It builds on `rowBases` / `rowResidues`,
+  now exported from `alignmentSelection.ts`, and on `alignmentText`'s
+  `fastaRecord` and `cut`, so the Export popover's FASTA and this one are
+  one writer. Three formats collapsed to two plus a Names chip: text
+  without names is the bare form, so a third button would have been a
+  redundant state.
+- `AlignmentCopyPanel`: an `AlignmentPopover` hung from an empty absolute
+  anchor placed where the bar is (`.astack-copy`, in the `.astack`'s own
+  space, which is why `.astack` became `position: relative`), so the
+  popover's frame, right-edge fitting and family look are reused as they
+  are; the panel lifts itself when it would pass the window's foot. The
+  choices are `SegmentedChoices` (real radio groups) and toggle chips (real
+  checkboxes under a pill, `.astack-pop__chip`); the preview is the first
+  six lines, cut, with "N more lines" and a count. Esc closes the panel
+  before the window: the window's Esc listens on the document in the
+  capture phase, so the panel listens on the window, which the event
+  reaches first. A press outside closes it; a copy closes it, notes what was
+  copied under the alignment and hands the focus back to the scroller.
+  Opening it puts the keyboard on the chosen Rows choice.
+
+**Decisions:**
+
+- Which samples go out is "all shown": the Samples popover already hides
+  rows, and a second pick list here would have fought it.
+- The track opens on the strip the selection is on (as Ctrl+C decides),
+  unless Both was chosen last time; the other settings are remembered as
+  left.
+- A row's amino acids are named `row|CDS|aa`, in text and in FASTA, so a
+  FASTA id stays unique when a row has several CDSs.
+- Gaps kept now writes a codon the sample does not reach as `-` (it was
+  left out), the same as the bases form does for uncovered columns, so the
+  residues of several rows stay in register; Ctrl+Alt+C follows, and the
+  guide says so.
+- Analytics: `alignment-selection / copy`, named `bar`, `text` or `fasta`;
+  never what or how much.
+
+Not covered by tests: the bar's placement arithmetic and the panel's
+lifting (DOM geometry); seen in a browser once, desktop width only. The
+alignment window is not offered by the phone shell, so a narrow viewport is
+a narrow desktop window: the popover's `max-width` and the preview's own
+horizontal scroll keep it inside one.

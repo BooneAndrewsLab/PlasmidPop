@@ -724,11 +724,37 @@ once the ORFs panel has found them. With no document behind the reference
   the **amino acids** of every codon the columns touch, in the protein's
   reading order (a reverse-strand CDS reads right to left), one line for
   each CDS; a sample's letters are what its bases make of the document's
-  codons, a codon with a base missing or inserted is `-` (kept only by
-  `Ctrl+Alt+C`), and a codon the sample does not reach is left out. A line
+  codons, a codon with a base missing or inserted is `-`, and so is one the
+  sample does not reach (both kept only by `Ctrl+Alt+C`). A line
   under the alignment says what was copied. The selection is for copying; it
   is not in the saved picture, and it is dropped when a sample is hidden or
   shown.
+- **The selection bar.** A small bar floats beside the selection once the
+  mouse is released (it fades while the pointer is elsewhere): **Copy** is
+  `Ctrl+C`, and the count says how many columns are selected. **Advanced
+  copy…** opens a panel to compose what goes out instead:
+  - **Rows:** this row; the document's row above it, the two in register;
+    or every row shown (hide samples with **Samples** to leave them out).
+  - **Columns:** the selected ones, or the whole alignment.
+  - **Gaps:** kept as `-` (the aligned form), or dropped (the row's own
+    residues, as `Ctrl+C`). With more than one row the gaps are kept, so the
+    rows stay in register.
+  - **Tracks:** bases, amino acids, or both, when **Residues** are shown;
+    the panel opens on the strip the selection is on. A row's amino acids
+    are a line per CDS, named `row|CDS|aa`.
+  - **Format:** text (one sequence per line) or FASTA (a named record each,
+    60 letters per line).
+  - **Extras:** **Names** leads each text line with its name in one padded
+    column (FASTA records are always named); **Coordinates** adds a first
+    line, or a note after each FASTA name, saying which columns these are
+    and the document positions they span.
+
+  The preview shows the first lines and counts the rows, columns and
+  characters; a very large copy gets a warning but still goes. **Copy** puts
+  the text on the clipboard, closes the panel and says what was copied under
+  the alignment. The panel remembers its settings in this browser. `Esc`
+  closes the panel first.
+
 - `Esc` closes the window and returns you to where you were.
 
 An insertion in one sample opens gap columns in the document row and in
