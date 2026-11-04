@@ -6,9 +6,25 @@ import type { MultipleAlignment } from '@/core';
 
 import { analytics } from '../analytics';
 import { copyText } from '../clipboard';
+import {
+  extendMsaSelection,
+  msaBarAt,
+  msaColumnAt,
+  msaCopiedNote,
+  msaRowAt,
+  msaSelectionColumns,
+  msaSelectionText,
+  msaSelectionValid,
+  startMsaSelection,
+  type MsaCopyMode,
+  type MsaSelection,
+} from '../msaSelection';
+import type { MsaCopyContext } from '../msaCopy';
 import { downloadText } from '../saveFile';
 import { readColours } from './alignmentStackDraw';
-import { drawMsa, msaSize, type MsaShading } from './msaDraw';
+import { AlignmentSelectionBar } from './AlignmentSelectionBar';
+import { MsaCopyPanel } from './MsaCopyPanel';
+import { MSA_NAME_WIDTH, drawMsa, msaSize, type MsaShading } from './msaDraw';
 
 interface Props {
   readonly names: readonly string[];
@@ -19,7 +35,8 @@ interface Props {
 /**
  * The multiple alignment in a window of its own (#207): every sequence in
  * one column space with the consensus above it and each column shaded by
- * how many of the sequences agree, saved as aligned FASTA or Clustal. The
+ * how many of the sequences agree, saved as aligned FASTA or Clustal, or a
+ * run of columns selected on one row and copied (#368). The
  * grid is a canvas drawn for the columns in view only; the scroll bars
  * belong to a sizer behind it.
  */
@@ -34,6 +51,18 @@ export function MsaDialog({ names, alignment, onClose }: Props) {
   const labels = useMemo(() => uniqueNames(names), [names]);
   const summary = useMemo(() => summariseColumns(alignment.rows), [alignment]);
   const size = msaSize(alignment.columns, alignment.rows.length);
+  const consensus = useMemo(() => summary.map((s) => s.consensus).join(''), [summary]);
+  const unit = nucleotide ? 'base' : 'residue';
+  // The selection (#368): a run of columns on one row, the consensus included.
+  const [picked, setPicked] = useState<MsaSelection | null>(null);
+  const selection =
+    picked !== null && msaSelectionValid(alignment.rows.length, alignment.columns, picked)
+      ? picked
+      : null;
+  const selecting = useRef(false);
+  const [dragSelecting, setDragSelecting] = useState(false);
+  const [panelAt, setPanelAt] = useState<{ left: number; top: number } | null>(null);
+  const area = useRef<HTMLDivElement>(null);
   const identical = useMemo(() => summary.filter((s) => s.conservation === 1).length, [summary]);
 
   useEffect(() => {
@@ -79,6 +108,7 @@ export function MsaDialog({ names, alignment, onClose }: Props) {
     el.height = Math.max(1, Math.floor(view.height * dpr));
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const accentInk = getComputedStyle(el).getPropertyValue('--accent-ink').trim() || '#ffffff';
+    const cols = selection === null ? null : msaSelectionColumns(alignment.columns, selection);
     drawMsa(ctx, {
       names: labels,
       rows: alignment.rows,
@@ -86,9 +116,13 @@ export function MsaDialog({ names, alignment, onClose }: Props) {
       colours: readColours(el),
       shading: nucleotide ? shading : 'conservation',
       onAccent: accentInk,
+      selection:
+        selection === null || cols === null
+          ? null
+          : { row: selection.row, start: cols.start, end: cols.end },
       ...view,
     });
-  }, [view, labels, alignment, summary, shading, nucleotide]);
+  }, [view, labels, alignment, summary, shading, nucleotide, selection]);
 
   const stem = 'multiple-alignment';
   const save = (format: 'fasta' | 'clustal'): void => {
@@ -104,6 +138,42 @@ export function MsaDialog({ names, alignment, onClose }: Props) {
     setNote('Copied as aligned FASTA.');
     analytics.track('align', 'msa-export', 'fasta');
   };
+
+  /** Ctrl+C copies the selection; with Alt, the row as drawn with its gaps. */
+  const copySelection = (mode: MsaCopyMode): boolean => {
+    if (selection === null) return false;
+    const text = msaSelectionText(alignment.rows, consensus, alignment.columns, selection, mode);
+    if (text === '') return false;
+    copyText(text);
+    const name = selection.row < 0 ? 'the consensus' : (labels[selection.row] ?? '');
+    setNote(msaCopiedNote(name, unit, text, mode));
+    return true;
+  };
+  const closePanel = (): void => {
+    setPanelAt(null);
+  };
+  const barAt =
+    selection === null || dragSelecting ? null : msaBarAt(selection, alignment.columns, view, view);
+  const togglePanel = (bar: HTMLElement): void => {
+    if (panelAt !== null) {
+      setPanelAt(null);
+      return;
+    }
+    const box = area.current?.getBoundingClientRect();
+    const at = bar.getBoundingClientRect();
+    if (box === undefined) return;
+    setPanelAt({ left: at.left - box.left, top: at.bottom - box.top });
+  };
+  const copyContext: MsaCopyContext | null =
+    selection === null
+      ? null
+      : {
+          rows: alignment.rows,
+          consensus,
+          names: labels,
+          columns: alignment.columns,
+          selection,
+        };
 
   return createPortal(
     <div className="dialog-backdrop dialog-backdrop--full">
@@ -173,19 +243,102 @@ export function MsaDialog({ names, alignment, onClose }: Props) {
             </span>
           )}
         </div>
-        <div className="msa-scroll" ref={scroller}>
-          <div className="msa-sizer" style={{ width: size.width, height: size.height }}>
-            <canvas
-              ref={canvas}
-              className="msa-canvas"
-              role="img"
-              aria-label={`Multiple alignment: ${alignment.rows.length} sequences, ${alignment.columns} columns; consensus ${summary
-                .map((s) => s.consensus)
-                .join('')
-                .slice(0, 200)}`}
-              style={{ width: view.width, height: view.height }}
-            />
+        <div className="msa-area" ref={area}>
+          <div
+            className="msa-scroll"
+            ref={scroller}
+            tabIndex={0}
+            aria-label="Alignment, all sequences; drag over letters to select, Ctrl+C copies"
+            onKeyDown={(e) => {
+              // Ctrl+Shift+C is the browser's inspector, so the aligned row is Ctrl+Alt+C.
+              if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.code === 'KeyC') {
+                if (copySelection(e.altKey ? 'aligned' : 'residues')) e.preventDefault();
+              }
+            }}
+          >
+            <div className="msa-sizer" style={{ width: size.width, height: size.height }}>
+              <canvas
+                ref={canvas}
+                className="msa-canvas"
+                role="img"
+                aria-label={`Multiple alignment: ${alignment.rows.length} sequences, ${alignment.columns} columns; consensus ${summary
+                  .map((s) => s.consensus)
+                  .join('')
+                  .slice(0, 200)}`}
+                style={{ width: view.width, height: view.height }}
+                onPointerMove={(e) => {
+                  if (!selecting.current) return;
+                  const column = msaColumnAt(
+                    e.clientX - e.currentTarget.getBoundingClientRect().left,
+                    view.left,
+                    alignment.columns,
+                  );
+                  setPicked((s) =>
+                    s === null || s.head === column ? s : extendMsaSelection(s, column),
+                  );
+                }}
+                onPointerDown={(e) => {
+                  // Drag over a row's letters, or shift-click the far end, to select (#368).
+                  if (e.button !== 0 || e.pointerType === 'touch') return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = e.clientX - rect.left;
+                  if (x < MSA_NAME_WIDTH) return;
+                  setPanelAt(null);
+                  setNote(null);
+                  const row = msaRowAt(e.clientY - rect.top, view.top, alignment.rows.length);
+                  if (row === null) {
+                    setPicked(null);
+                    return;
+                  }
+                  const column = msaColumnAt(x, view.left, alignment.columns);
+                  setPicked(
+                    e.shiftKey && selection !== null
+                      ? extendMsaSelection(selection, column)
+                      : startMsaSelection(row, column),
+                  );
+                  selecting.current = true;
+                  setDragSelecting(true);
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                  // The keys work from the scroller.
+                  scroller.current?.focus();
+                }}
+                onPointerUp={() => {
+                  selecting.current = false;
+                  setDragSelecting(false);
+                }}
+                onPointerCancel={() => {
+                  selecting.current = false;
+                  setDragSelecting(false);
+                }}
+              />
+              {barAt !== null && (
+                <AlignmentSelectionBar
+                  left={barAt.left}
+                  top={barAt.top}
+                  columns={barAt.columns}
+                  advancedOpen={panelAt !== null}
+                  advancedTip="Choose rows, columns, gaps and the format, with a preview"
+                  onCopy={() => {
+                    copySelection('residues');
+                    scroller.current?.focus();
+                  }}
+                  onAdvanced={togglePanel}
+                />
+              )}
+            </div>
           </div>
+          {panelAt !== null && copyContext !== null && (
+            <MsaCopyPanel
+              context={copyContext}
+              left={panelAt.left}
+              top={panelAt.top}
+              onCopied={(text) => {
+                setNote(text);
+                scroller.current?.focus();
+              }}
+              onClose={closePanel}
+            />
+          )}
         </div>
         <p className="panel__note">
           Columns are shaded by the share of sequences with the commonest letter; the bar over each

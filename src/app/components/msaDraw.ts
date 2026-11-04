@@ -19,6 +19,9 @@ export const MSA_CHAR_WIDTH = 9;
 /** Ruler, consensus row and conservation bar. */
 export const MSA_HEADER_HEIGHT = MSA_RULER_HEIGHT + MSA_ROW_HEIGHT + MSA_BAR_HEIGHT;
 
+/** The `row` of a selection on the consensus row, which is not one of the alignment's rows (#368). */
+export const MSA_CONSENSUS_ROW = -1;
+
 export type MsaShading = 'conservation' | 'bases';
 
 export interface MsaDrawing {
@@ -29,6 +32,12 @@ export interface MsaDrawing {
   readonly shading: MsaShading;
   /** The text colour on the accent, for a strongly shaded cell. */
   readonly onAccent: string;
+  /** The run of columns selected on a row (#368), or null: `row` is an index or `MSA_CONSENSUS_ROW`. */
+  readonly selection?: {
+    readonly row: number;
+    readonly start: number;
+    readonly end: number;
+  } | null;
   /** The scroll offsets and the size of what is shown. */
   readonly left: number;
   readonly top: number;
@@ -153,6 +162,29 @@ export function drawMsa(g: MsaContext, d: MsaDrawing): void {
     g.fillRect(x + 1, MSA_HEADER_HEIGHT - 1 - h, MSA_CHAR_WIDTH - 2, h);
   }
   g.restore();
+
+  // The selection: a tinted, outlined block on its row (the consensus is pinned; a sequence's row slides under the header).
+  const sel = d.selection;
+  if (sel !== undefined && sel !== null && sel.end > first && sel.start < end) {
+    const consensus = sel.row === MSA_CONSENSUS_ROW;
+    const y = consensus ? MSA_RULER_HEIGHT : MSA_HEADER_HEIGHT + sel.row * MSA_ROW_HEIGHT - d.top;
+    const x = xOf(sel.start);
+    const w = (sel.end - sel.start) * MSA_CHAR_WIDTH;
+    g.save();
+    g.beginPath();
+    g.rect(MSA_NAME_WIDTH, consensus ? 0 : MSA_HEADER_HEIGHT, d.width - MSA_NAME_WIDTH, d.height);
+    g.clip();
+    g.fillStyle = c.accent;
+    g.globalAlpha = 0.3;
+    g.fillRect(x, y, w, MSA_ROW_HEIGHT);
+    g.globalAlpha = 0.9;
+    g.fillRect(x, y, w, 1);
+    g.fillRect(x, y + MSA_ROW_HEIGHT - 1, w, 1);
+    g.fillRect(x, y, 1, MSA_ROW_HEIGHT);
+    g.fillRect(x + w - 1, y, 1, MSA_ROW_HEIGHT);
+    g.globalAlpha = 1;
+    g.restore();
+  }
 
   // The pinned names, drawn last so scrolled residues pass under them.
   g.fillStyle = c.background;

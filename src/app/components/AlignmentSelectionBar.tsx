@@ -10,6 +10,8 @@ interface Props {
   readonly columns: number;
   /** Whether the Advanced copy panel this bar opens is open. */
   readonly advancedOpen: boolean;
+  /** The Advanced copy button's tooltip, where the choices differ from the large view's. */
+  readonly advancedTip?: string;
   /** Copy the selected residues, as Ctrl+C does. */
   readonly onCopy: () => void;
   /** Open (or close) the Advanced copy panel; `bar` is this bar's element, for the panel to hang from. */
@@ -28,6 +30,7 @@ export function AlignmentSelectionBar({
   top,
   columns,
   advancedOpen,
+  advancedTip = 'Choose rows, columns, gaps, amino acids and the format, with a preview',
   onCopy,
   onAdvanced,
 }: Props) {
@@ -60,7 +63,7 @@ export function AlignmentSelectionBar({
         type="button"
         className="button button--small"
         aria-expanded={advancedOpen}
-        data-tip="Choose rows, columns, gaps, amino acids and the format, with a preview"
+        data-tip={advancedTip}
         onClick={(e) => {
           const bar = e.currentTarget.closest('.selection-bar');
           if (bar instanceof HTMLElement) onAdvanced(bar);
