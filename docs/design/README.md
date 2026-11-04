@@ -319,3 +319,5 @@ the Bench, item 49). The rest stand.
 126. [A desktop app, and a project file that keeps the history](126-desktop-app-and-project-file.md)
 
 127. [Select and copy in the alignment's large view, and the multiple alignment](127-alignment-select-copy.md)
+
+128. [The multiple alignment's alphabet](128-msa-alphabet.md)

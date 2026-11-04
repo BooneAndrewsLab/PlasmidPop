@@ -81,6 +81,22 @@ describe('AlignPanel', () => {
     expect(within(group).getByRole('button', { name: 'Align 3 together' })).toBeEnabled();
   });
 
+  it('says plainly when the document is left out of protein records (#369)', () => {
+    render(<AlignPanel doc={doc} />);
+    fireEvent.change(box(), {
+      target: {
+        value:
+          '>a\nMKTAYIAKQRQISFVKSHFSRQ\n>b\nMKTAYIAKQRQISFVKSHFSRA\n>c\nMKTAYIAKQRQISFVKSHFSRL\n',
+      },
+    });
+    const group = screen.getByRole('group', { name: 'Multiple alignment' });
+    expect(
+      within(group).getByText(/not included\. It is a nucleotide document/),
+    ).toBeInTheDocument();
+    expect(within(group).getByRole('checkbox', { name: 'Include this document' })).toBeDisabled();
+    expect(within(group).getByText(/Scored as protein/)).toBeInTheDocument();
+  });
+
   it('groups the read settings apart from the options (#107)', async () => {
     render(<AlignPanel doc={doc} />);
     const fastq = new File(['@r\nACGTACGTACGT\n+\nIIIIIIIIIIII\n'], 'r.fastq');

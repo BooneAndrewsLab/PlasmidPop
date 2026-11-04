@@ -46,6 +46,54 @@ describe('MsaControls (#207)', () => {
   });
 });
 
+describe('MsaControls alphabet and document (#369)', () => {
+  const protein = [
+    { name: 'p1', sequence: 'MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQ' },
+    { name: 'p2', sequence: 'MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVA' },
+    { name: 'p3', sequence: 'MKTAYIAKQRQISFVKSHFSRQLEERLGLIEAQ' },
+  ];
+
+  it('says the document is included, and that the letters read as bases', () => {
+    render(<MsaControls doc={doc} records={two} />);
+    expect(screen.getByText('target is included as one more sequence.')).toBeInTheDocument();
+    expect(screen.getByText(/the letters read as nucleotide/)).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Detected (nucleotide)' })).toBeInTheDocument();
+  });
+
+  it('leaves a nucleotide document out of protein records and says why', () => {
+    render(<MsaControls doc={doc} records={protein} />);
+    expect(
+      screen.getByText(/target is not included\. It is a nucleotide document/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Include this document' })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: 'Include this document' })).not.toBeChecked();
+    expect(screen.getByRole('button', { name: 'Align 3 together' })).toBeEnabled();
+  });
+
+  it('says so when the document is unticked', () => {
+    render(<MsaControls doc={doc} records={two} />);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Include this document' }));
+    expect(screen.getByText('target is not included (unticked).')).toBeInTheDocument();
+  });
+
+  it('refuses a mixed set until the user chooses', () => {
+    render(<MsaControls doc={doc} records={[...two, protein[0] as (typeof two)[0]]} />);
+    expect(screen.getByRole('button', { name: /Align/ })).toBeDisabled();
+    expect(screen.getAllByText(/records are mixed/).length).toBeGreaterThan(0);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Alphabet of the records' }), {
+      target: { value: 'nucleotide' },
+    });
+    expect(screen.getByText(/Scored as nucleotide, as chosen/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Align/ })).toBeEnabled();
+  });
+
+  it('aligns protein records as protein under a nucleotide document', async () => {
+    render(<MsaControls doc={doc} records={protein} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Align 3 together' }));
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Multiple alignment of 3 proteins');
+  });
+});
+
 describe('drawing the alignment', () => {
   it('works out which columns are in view', () => {
     expect(visibleColumns(0, 168 + 9 * 10, 100)).toEqual({ first: 0, end: 11 });

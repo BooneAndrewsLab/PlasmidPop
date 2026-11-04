@@ -336,7 +336,14 @@ the Align button.
 
 1. Put three to fifty sequences in the box (one record each). **Include this
    document** adds the open document as one more, so a box of two records is
-   enough for three.
+   enough for three. The group says in a line whether the document is
+   included. A document in the other alphabet from the records (a DNA plasmid
+   open while you align proteins) is left out, its tick box is greyed, and the line
+   says why, so it is never scored as the wrong kind of sequence.
+   **Letters are** shows whether the records read as nucleotide or protein,
+   judged from their letters rather than from the open document, and lets you
+   choose the other. When the records are mixed, or too short to tell, the
+   group says so and **Align** waits until you choose.
 2. Click **Align N together**. It runs in the background, with a progress
    bar and **Cancel**, and opens a window of its own.
 3. The window shows every sequence in one column space. Over them are the
