@@ -21,7 +21,9 @@ import {
 
 function row(name: string, bases: string): StackRow {
   const cells = Uint8Array.from(
-    bases.split('').map((ch) => (ch === ' ' ? Cell.Blank : ch === '-' ? Cell.Deletion : Cell.Match)),
+    bases
+      .split('')
+      .map((ch) => (ch === ' ' ? Cell.Blank : ch === '-' ? Cell.Deletion : Cell.Match)),
   );
   const first = bases.search(/\S/);
   return {
