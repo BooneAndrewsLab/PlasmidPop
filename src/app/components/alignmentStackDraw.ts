@@ -11,6 +11,12 @@ import {
   type ChangeValue,
   type ResidueFrame,
 } from '../alignmentResidues';
+import {
+  REFERENCE_ROW,
+  selectionColumns,
+  type AlignmentSelection,
+  type SelectionTrack,
+} from '../alignmentSelection';
 import { Cell, columnPosition, isDifference, type Stack, type StackRow } from '../alignmentStack';
 import { ColumnClass, type Track } from '../alignmentTrack';
 import { readLinearTheme } from './linearTheme';
@@ -414,6 +420,36 @@ export function rowAtOffset(layout: StackLayout, rows: number, y: number): numbe
   return lo;
 }
 
+/**
+ * What the pointer at `y` (on the canvas, `scrollTop` into the rows) is on,
+ * for selecting (#366): the reference's or a sample's bases or amino-acid
+ * strip. Null on the ruler, the feature tracks, the protein ruler, a sample's
+ * tags, own features or trace, and below the last row.
+ */
+export function selectionTargetAt(
+  layout: StackLayout,
+  rows: number,
+  y: number,
+  scrollTop: number,
+): { row: number; track: SelectionTrack } | null {
+  const refTop = RULER_HEIGHT + layout.trackHeight;
+  const within = (offset: number): SelectionTrack | null =>
+    offset >= 0 && offset < ROW_HEIGHT
+      ? 'bases'
+      : offset >= ROW_HEIGHT && offset < ROW_HEIGHT + layout.aaHeight
+        ? 'aa'
+        : null;
+  if (y < layout.headerHeight) {
+    const track = within(y - refTop);
+    return track === null ? null : { row: REFERENCE_ROW, track };
+  }
+  const offset = y - layout.headerHeight + scrollTop;
+  const row = rowAtOffset(layout, rows, offset);
+  if (row < 0) return null;
+  const track = within(offset - (layout.tops[row] ?? 0));
+  return track === null ? null : { row, track };
+}
+
 export interface StackDrawing {
   readonly stack: Stack;
   readonly referenceName: string;
@@ -430,6 +466,8 @@ export interface StackDrawing {
   /** Each row's named changes (#261), by row, for the tags under its strip; null for none. */
   readonly changes?: readonly (readonly ResidueChange[])[] | null;
   readonly marked: { readonly start: number; readonly end: number } | null;
+  /** The run of columns selected for copying (#366); none in an export. */
+  readonly selection?: AlignmentSelection | null;
   /** Columns of differences marked reviewed or taken (#123), drawn faded; none in an export. */
   readonly reviewed?: ReadonlySet<number>;
   readonly colours: Colours;
@@ -467,6 +505,7 @@ export function drawStack(ctx: StackContext, d: StackDrawing, view: StackView): 
     residues,
     changes,
     marked,
+    selection,
     reviewed,
     colours,
     charWidth,
@@ -678,6 +717,39 @@ export function drawStack(ctx: StackContext, d: StackDrawing, view: StackView): 
     }
   }
   if (track !== null) drawTrack(ctx, track, colours, monoFont, first, last, x, RULER_HEIGHT);
+  const picked =
+    selection === undefined || selection === null ? null : selectionColumns(stack, selection);
+  if (
+    selection !== undefined &&
+    selection !== null &&
+    picked !== null &&
+    picked.end > first &&
+    picked.start < last
+  ) {
+    const strip = selection.track === 'aa' ? ROW_HEIGHT : 0;
+    const height = selection.track === 'aa' ? aaHeight : ROW_HEIGHT;
+    const reference = selection.row === REFERENCE_ROW;
+    const top = reference
+      ? RULER_HEIGHT + trackHeight + strip
+      : headerHeight + (tops[selection.row] ?? 0) - view.top + strip;
+    ctx.save();
+    ctx.beginPath();
+    // A sample's strip slides under the pinned header.
+    ctx.rect(NAME_WIDTH, reference ? 0 : headerHeight, view.width - NAME_WIDTH, view.height);
+    ctx.clip();
+    ctx.fillStyle = colours.accent;
+    ctx.globalAlpha = 0.3;
+    ctx.fillRect(x(picked.start), top, (picked.end - picked.start) * charWidth, height);
+    ctx.globalAlpha = 1;
+    ctx.globalAlpha = 0.9;
+    const w = (picked.end - picked.start) * charWidth;
+    ctx.fillRect(x(picked.start), top, w, 1);
+    ctx.fillRect(x(picked.start), top + height - 1, w, 1);
+    ctx.fillRect(x(picked.start), top, 1, height);
+    ctx.fillRect(x(picked.start) + w - 1, top, 1, height);
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
   ctx.restore();
 
   // The names, pinned.

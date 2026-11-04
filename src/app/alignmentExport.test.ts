@@ -82,6 +82,20 @@ describe('the picture of the stack', () => {
     expect(faded).toContain('fill-opacity="0.12"');
   });
 
+  it('draws a selection as a tinted outlined block on its row (#366)', () => {
+    const plainSvg = alignmentSvg(d, { start: 10, end: 30 }, 'Alignment');
+    const picked = alignmentSvg(
+      { ...d, selection: { row: 0, track: 'bases', anchor: 12, head: 14 } },
+      { start: 10, end: 30 },
+      'Alignment',
+    );
+    expect(plainSvg).not.toContain('fill="#7a3fd0" fill-opacity="0.3"');
+    // Three columns of 8 px, two columns in from the range's start (names 168 wide).
+    expect(picked).toContain(
+      'x="184" y="38" width="24" height="20" fill="#7a3fd0" fill-opacity="0.3"',
+    );
+  });
+
   it('is sized by the names and the columns drawn', () => {
     const size = pictureSize(d, { start: 10, end: 30 });
     expect(size.width).toBe(168 + 20 * 8);

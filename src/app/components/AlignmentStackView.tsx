@@ -15,7 +15,18 @@ import { measureCharWidth, monoFontOf } from '@/view/linear';
 import { followTooltip, hideFollowTooltip } from './tooltip';
 
 import { residueTitle, sampleChanges } from '../alignmentChanges';
+import {
+  REFERENCE_ROW,
+  copiedNote,
+  extendSelection,
+  selectionText,
+  selectionValid,
+  startSelection,
+  type AlignmentSelection,
+  type CopyMode,
+} from '../alignmentSelection';
 import { type Stack } from '../alignmentStack';
+import { copyText } from '../clipboard';
 import { ColumnClass, itemAt, type Track, type TrackItem } from '../alignmentTrack';
 import { coverageBand, type Coverage } from '../alignmentVerdict';
 import type { ResidueFrame } from '../alignmentResidues';
@@ -33,6 +44,7 @@ import {
   drawStack,
   readColours,
   rowAtOffset,
+  selectionTargetAt,
   stackLayout,
   type Colours,
   type StackDrawing,
@@ -124,6 +136,17 @@ export function AlignmentStackView({
   const [scroll, setScroll] = useState({ left: 0, top: 0 });
   const [marked, setMarked] = useState<{ start: number; end: number } | null>(null);
   const [colours, setColours] = useState<Colours | null>(null);
+  const [picked, setPicked] = useState<AlignmentSelection | null>(null);
+  const [copyNote, setCopyNote] = useState('');
+  // A different stack (a sample hidden, a new alignment) puts the columns elsewhere.
+  const [seenStack, setSeenStack] = useState(stack);
+  if (stack !== seenStack) {
+    setSeenStack(stack);
+    setPicked(null);
+    setCopyNote('');
+  }
+  const selection = picked !== null && selectionValid(stack, picked) ? picked : null;
+  const selecting = useRef(false);
 
   const monoFont = monoFontOf(FONT_SIZE);
   const charWidth = useMemo(() => measureCharWidth(monoFont), [monoFont]);
@@ -205,6 +228,7 @@ export function AlignmentStackView({
       picked: number | null,
       mark: { start: number; end: number } | null,
       faded: ReadonlySet<number>,
+      range: AlignmentSelection | null = null,
     ) =>
       ({
         stack,
@@ -220,6 +244,7 @@ export function AlignmentStackView({
         residues,
         changes,
         marked: mark,
+        selection: range,
         reviewed: faded,
         colours: c,
         charWidth,
@@ -306,13 +331,13 @@ export function AlignmentStackView({
     el.width = Math.max(1, Math.floor(size.width * dpr));
     el.height = Math.max(1, Math.floor(size.height * dpr));
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    drawStack(ctx, drawing(colours, selectedRow, marked, reviewed), {
+    drawStack(ctx, drawing(colours, selectedRow, marked, reviewed, selection), {
       left: scroll.left,
       top: scroll.top,
       width: size.width,
       height: size.height,
     });
-  }, [size, scroll, marked, selectedRow, colours, drawing, reviewed]);
+  }, [size, scroll, marked, selectedRow, colours, drawing, reviewed, selection]);
 
   // The overview.
   useEffect(() => {
@@ -425,6 +450,23 @@ export function AlignmentStackView({
     scrollToColumn(at, at + 1);
   };
   const dragging = useRef(false);
+  /** The column under a pointer event on the canvas, kept inside the stack. */
+  const columnAtEvent = (e: { clientX: number; currentTarget: HTMLCanvasElement }): number => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const at = Math.floor((e.clientX - rect.left - NAME_WIDTH + scroll.left) / charWidth);
+    return Math.min(stack.columns - 1, Math.max(0, at));
+  };
+  /** Ctrl+C copies the selection; with Shift, the row as drawn with its gaps (#366). */
+  const copySelection = (mode: CopyMode): boolean => {
+    if (selection === null) return false;
+    const text = selectionText(stack, residues, selection, mode);
+    if (text === '') return false;
+    copyText(text);
+    const name =
+      selection.row === REFERENCE_ROW ? referenceName : (stack.rows[selection.row]?.name ?? '');
+    setCopyNote(copiedNote(name, selection.track, text, mode));
+    return true;
+  };
 
   return (
     <div className="astack">
@@ -450,8 +492,12 @@ export function AlignmentStackView({
         ref={scroller}
         className="astack__scroller"
         tabIndex={0}
-        aria-label="Alignment, all sequences; Up and Down pick a sample"
+        aria-label="Alignment, all sequences; Up and Down pick a sample; drag over bases or amino acids to select, Ctrl+C copies"
         onKeyDown={(e) => {
+          if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'c') {
+            if (copySelection(e.shiftKey ? 'aligned' : 'residues')) e.preventDefault();
+            return;
+          }
           if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
           if (e.altKey || e.ctrlKey || e.metaKey || stack.rows.length === 0) return;
           e.preventDefault();
@@ -486,12 +532,50 @@ export function AlignmentStackView({
               // A finger scrolling the view is not asking what is under it;
               // a tap is (`onClick`).
               if (e.pointerType === 'touch') return;
+              if (selecting.current) {
+                const column = columnAtEvent(e);
+                setPicked((s) =>
+                  s === null || s.head === column ? s : extendSelection(s, column),
+                );
+              }
               const text = tipAt(e);
               if (text === null) hideFollowTooltip();
               else followTooltip(text, e.clientX, e.clientY);
             }}
             onPointerLeave={() => {
               hideFollowTooltip();
+            }}
+            onPointerDown={(e) => {
+              // Drag over a row's bases or amino acids, or shift-click the far end, to select (#366).
+              if (e.button !== 0 || e.pointerType === 'touch') return;
+              const rect = e.currentTarget.getBoundingClientRect();
+              if (e.clientX - rect.left < NAME_WIDTH) return;
+              const target = selectionTargetAt(
+                layout,
+                stack.rows.length,
+                e.clientY - rect.top,
+                scroll.top,
+              );
+              if (target === null) {
+                setPicked(null);
+                setCopyNote('');
+                return;
+              }
+              const column = columnAtEvent(e);
+              setCopyNote('');
+              if (e.shiftKey && selection !== null) {
+                setPicked(extendSelection(selection, column));
+              } else {
+                setPicked(startSelection(target.row, target.track, column));
+              }
+              selecting.current = true;
+              e.currentTarget.setPointerCapture(e.pointerId);
+            }}
+            onPointerUp={() => {
+              selecting.current = false;
+            }}
+            onPointerCancel={() => {
+              selecting.current = false;
             }}
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
@@ -515,6 +599,11 @@ export function AlignmentStackView({
           />
         </div>
       </div>
+      {copyNote !== '' && (
+        <div className="astack__copy-note" role="status">
+          {copyNote}
+        </div>
+      )}
     </div>
   );
 }

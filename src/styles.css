@@ -5477,6 +5477,12 @@ button {
   border-radius: 4px;
 }
 
+.astack__copy-note {
+  flex: none;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .astack__canvas {
   position: sticky;
   top: 0;
