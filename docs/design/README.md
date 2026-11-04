@@ -317,3 +317,5 @@ the Bench, item 49). The rest stand.
 125. [Primer3's hairpin criterion and ranking](125-primer3-hairpin-tm-and-ranking.md)
 
 126. [A desktop app, and a project file that keeps the history](126-desktop-app-and-project-file.md)
+
+127. [Select and copy in the alignment's large view](127-alignment-select-copy.md)

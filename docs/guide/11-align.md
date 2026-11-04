@@ -707,6 +707,28 @@ once the ORFs panel has found them. With no document behind the reference
 - Click a name, or click into the alignment and press `↑` or `↓`, to pick
   a sample. Its score and identity show under the toolbar, with
   **Select in document** beside them to select the region it aligned to.
+- **Select and copy.** Drag across the letters of the document's row or of
+  any one sample's row to select a run of columns, or click one end and
+  `Shift`-click the other. A strip of amino acids is selected the same way,
+  under the row it belongs to. The selection is on one row (or one strip)
+  only: dragging into another row's height keeps the first row. A plain click or drag on another row
+  starts a new selection there; a click on the ruler, a feature track or any
+  part that is not a row of letters or amino acids clears it. `Ctrl+C` (`Cmd+C` on a Mac), with the alignment focused,
+  copies the sample's **own residues**: the bases it has in those columns,
+  with its gaps and the columns it does not cover left out, read along the
+  row as it is shown (so a read that aligned reversed copies as its reverse
+  complement). `Ctrl+Shift+C` copies the **aligned row** instead, gaps kept as `-`
+  and columns outside the sample's stretch also as `-`, so the text lines up
+  with the others. On the document's row the columns another sample opened
+  are likewise left out, or kept as `-`. A selection on an amino-acid strip copies
+  the **amino acids** of every codon the columns touch, in the protein's
+  reading order (a reverse-strand CDS reads right to left), one line for
+  each CDS; a sample's letters are what its bases make of the document's
+  codons, a codon with a base missing or inserted is `-` (kept only by
+  `Ctrl+Shift+C`), and a codon the sample does not reach is left out. A line
+  under the alignment says what was copied. The selection is for copying; it
+  is not in the saved picture, and it is dropped when a sample is hidden or
+  shown.
 - `Esc` closes the window and returns you to where you were.
 
 An insertion in one sample opens gap columns in the document row and in
