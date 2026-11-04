@@ -4,7 +4,16 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { SeqDocument } from '@/core';
 
 import { MsaControls } from './MsaControls';
-import { MSA_CHAR_WIDTH, MSA_HEADER_HEIGHT, drawMsa, msaSize, visibleColumns } from './msaDraw';
+import { SELECTION_GUIDE_ALPHA } from './alignmentStackDraw';
+import {
+  MSA_CHAR_WIDTH,
+  MSA_CONSENSUS_ROW,
+  MSA_HEADER_HEIGHT,
+  MSA_RULER_HEIGHT,
+  drawMsa,
+  msaSize,
+  visibleColumns,
+} from './msaDraw';
 import { summariseColumns } from '@/core';
 import { readColours } from './alignmentStackDraw';
 
@@ -137,5 +146,67 @@ describe('drawing the alignment', () => {
     });
     expect(texts).toEqual(expect.arrayContaining(['a', 'b', 'c', 'Consensus', 'A', 'C', 'G', 'T']));
     expect(calls).toContain('fillRect');
+  });
+
+  it('shades the selected columns faintly on every row, clipped below the ruler (#371)', () => {
+    const rows = ['AC-GT', 'ACTGT', 'ACTGA'];
+    const guides: string[] = [];
+    const clips: string[] = [];
+    let alpha = 1;
+    let pending = '';
+    const g = new Proxy(
+      {},
+      {
+        get: (_t, prop: string) => {
+          if (prop === 'measureText') return () => ({ width: 5 });
+          if (prop === 'rect') {
+            return (x: number, y: number, w: number, h: number) => {
+              pending = `${x},${y},${w},${h}`;
+            };
+          }
+          if (prop === 'clip') return () => clips.push(pending);
+          if (prop === 'fillRect') {
+            return (x: number, y: number, w: number, h: number) => {
+              if (alpha === SELECTION_GUIDE_ALPHA) guides.push(`${x},${y},${w},${h}`);
+            };
+          }
+          return () => undefined;
+        },
+        set: (_t, prop: string, value: unknown) => {
+          if (prop === 'globalAlpha') alpha = value as number;
+          return true;
+        },
+      },
+    ) as unknown as Parameters<typeof drawMsa>[0];
+    const el = document.createElement('div');
+    const base = {
+      names: ['a', 'b', 'c'],
+      rows,
+      summary: summariseColumns(rows),
+      colours: readColours(el),
+      shading: 'conservation' as const,
+      onAccent: '#fff',
+      left: 0,
+      top: 0,
+      width: 400,
+      height: 200,
+    };
+    drawMsa(g, base);
+    drawMsa(g, { ...base, selection: null });
+    expect(guides).toEqual([]);
+    // A one-column selection on the middle row: the band runs from the consensus row down.
+    drawMsa(g, { ...base, selection: { row: 1, start: 2, end: 3 } });
+    expect(guides).toEqual([
+      `${168 + 2 * MSA_CHAR_WIDTH},${MSA_RULER_HEIGHT},${MSA_CHAR_WIDTH},200`,
+    ]);
+    expect(SELECTION_GUIDE_ALPHA).toBeLessThan(0.1);
+    expect(clips).toContain(`168,${MSA_RULER_HEIGHT},232,${200 - MSA_RULER_HEIGHT}`);
+    // The same on the consensus row; out of view, none.
+    guides.length = 0;
+    drawMsa(g, { ...base, selection: { row: MSA_CONSENSUS_ROW, start: 0, end: 2 } });
+    expect(guides).toHaveLength(1);
+    guides.length = 0;
+    drawMsa(g, { ...base, left: 10_000, selection: { row: 1, start: 0, end: 1 } });
+    expect(guides).toEqual([]);
   });
 });

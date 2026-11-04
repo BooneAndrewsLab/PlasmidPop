@@ -1,6 +1,7 @@
 import { alignEitherStrand, createFeature, rangeSegment, SeqDocument } from '@/core';
 
 import { sampleChanges } from './alignmentChanges';
+import { REFERENCE_ROW, type AlignmentSelection } from './alignmentSelection';
 import { buildFrames } from './alignmentResidues';
 import { stackAlignments } from './alignmentStack';
 import {
@@ -21,6 +22,8 @@ import {
   TAG_HEIGHT,
   stackLayout,
   type Colours,
+  RULER_HEIGHT,
+  drawStack,
   type StackDrawing,
 } from './components/alignmentStackDraw';
 
@@ -94,6 +97,53 @@ describe('the picture of the stack', () => {
     expect(picked).toContain(
       'x="184" y="38" width="24" height="20" fill="#7a3fd0" fill-opacity="0.3"',
     );
+  });
+
+  it('does not carry the selection guide into a file (#371)', () => {
+    const plainSvg = alignmentSvg(d, { start: 10, end: 30 }, 'Alignment');
+    expect(plainSvg).not.toContain('fill-opacity="0.07"');
+  });
+
+  it('shades the selection columns on the other rows too, clipped below the ruler (#371)', () => {
+    const view = { left: 0, top: 0, width: 168 + 160, height: d.layout.contentHeight };
+    const guide = (selection: AlignmentSelection | null): string[] => {
+      const calls: string[] = [];
+      let alpha = 1;
+      const g = new Proxy(
+        {},
+        {
+          get: (_t, prop: string) => {
+            if (prop === 'measureText') return () => ({ width: 5 });
+            if (prop === 'fillRect') {
+              return (x: number, y: number, w: number, h: number) => {
+                if (alpha === 0.07) calls.push(`${x},${y},${w},${h}`);
+              };
+            }
+            return () => undefined;
+          },
+          set: (_t, prop: string, value: unknown) => {
+            if (prop === 'globalAlpha') alpha = value as number;
+            return true;
+          },
+        },
+      ) as unknown as Parameters<typeof drawStack>[0];
+      drawStack(g, selection === null ? d : { ...d, selection }, view);
+      return calls;
+    };
+    expect(guide(null)).toEqual([]);
+    const one = guide({ row: 0, track: 'bases', anchor: 12, head: 12 });
+    expect(one).toHaveLength(1);
+    const [x, y, w, h] = (one[0] ?? '').split(',').map(Number);
+    // One column of 8 px, from the reference row down to the bottom of the picture, not over the ruler.
+    expect(w).toBe(8);
+    expect(y).toBe(RULER_HEIGHT + d.layout.trackHeight);
+    expect(y).toBeLessThan(d.layout.headerHeight);
+    expect(h).toBe(view.height);
+    expect(x).toBeGreaterThanOrEqual(168);
+    // Selection on the reference row draws the same guide.
+    expect(guide({ row: REFERENCE_ROW, track: 'bases', anchor: 12, head: 14 })).toHaveLength(1);
+    // A selection wholly out of view draws none.
+    expect(guide({ row: 0, track: 'bases', anchor: 50, head: 55 })).toEqual([]);
   });
 
   it('is sized by the names and the columns drawn', () => {

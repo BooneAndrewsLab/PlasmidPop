@@ -28,6 +28,9 @@ export const RULER_HEIGHT = 18;
 export const LANE_HEIGHT = 16;
 export const NAME_WIDTH = 168;
 export const OVERVIEW_HEIGHT = 44;
+/** The faint band over a selection's columns on the other rows (#371); well under the marker's 0.16. */
+export const SELECTION_GUIDE_ALPHA = 0.07;
+
 /** The coverage band under the overview's marks (#120). */
 export const COVERAGE_HEIGHT = 6;
 /** The chromatogram under a read's row (#110). */
@@ -732,6 +735,19 @@ export function drawStack(ctx: StackContext, d: StackDrawing, view: StackView): 
     const top = reference
       ? RULER_HEIGHT + trackHeight + strip
       : headerHeight + (tops[selection.row] ?? 0) - view.top + strip;
+    // The guide (#371): a very faint band over the same columns on every row from the reference down,
+    // so the run can be checked straight down. Only what shows is filled: one rect, clipped to the
+    // columns beside the names and the rows below the ruler and the feature track.
+    const guideTop = RULER_HEIGHT + trackHeight;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(NAME_WIDTH, guideTop, view.width - NAME_WIDTH, view.height - guideTop);
+    ctx.clip();
+    ctx.fillStyle = colours.accent;
+    ctx.globalAlpha = SELECTION_GUIDE_ALPHA;
+    ctx.fillRect(x(picked.start), guideTop, (picked.end - picked.start) * charWidth, view.height);
+    ctx.globalAlpha = 1;
+    ctx.restore();
     ctx.save();
     ctx.beginPath();
     // A sample's strip slides under the pinned header.

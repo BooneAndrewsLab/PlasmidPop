@@ -368,7 +368,9 @@ the Align button.
    **own letters**, gaps left out; `Ctrl+Alt+C` copies the **row as drawn**,
    gaps kept as `-`, so it lines up with the others. A line under the
    alignment says what was copied. The selection is for copying only:
-   it is not in a saved file.
+   it is not in a saved file. While a run is selected, the same columns are
+   shaded very faintly on every other row, the consensus row included, so
+   you can check the run straight down.
 
    A small bar floats beside a selection of two or more columns once the
    mouse is released (a single clicked column is the anchor for a
@@ -782,7 +784,10 @@ once the ORFs panel has found them. With no document behind the reference
   sample does not reach (both kept only by `Ctrl+Alt+C`). A line
   under the alignment says what was copied. The selection is for copying; it
   is not in the saved picture, and it is dropped when a sample is hidden or
-  shown.
+  shown. While a run is selected, its columns are also shaded very faintly
+  (fainter than the marker's band) on the document's row and every sample
+  below it, so the run can be checked straight down; an amino-acid selection
+  shades the columns its codons touch.
 - **The selection bar.** A small bar floats beside a selection of two or
   more columns once the mouse is released (it fades while the pointer is
   elsewhere; a single clicked column is the anchor for a `Shift`-click, and

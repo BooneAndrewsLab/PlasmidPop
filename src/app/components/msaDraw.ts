@@ -2,7 +2,7 @@ import type { ColumnSummary } from '@/core';
 import { monoFontOf, sansFontOf } from '@/view/linear';
 import type { DrawingContext } from '@/view/drawingContext';
 
-import type { Colours } from './alignmentStackDraw';
+import { SELECTION_GUIDE_ALPHA, type Colours } from './alignmentStackDraw';
 
 /**
  * The multiple alignment as pictures (#207): a ruler, the consensus row and
@@ -170,6 +170,17 @@ export function drawMsa(g: MsaContext, d: MsaDrawing): void {
     const y = consensus ? MSA_RULER_HEIGHT : MSA_HEADER_HEIGHT + sel.row * MSA_ROW_HEIGHT - d.top;
     const x = xOf(sel.start);
     const w = (sel.end - sel.start) * MSA_CHAR_WIDTH;
+    // The guide (#371): a very faint band over the same columns on the consensus row and every row below.
+    const guideTop = MSA_RULER_HEIGHT;
+    g.save();
+    g.beginPath();
+    g.rect(MSA_NAME_WIDTH, guideTop, d.width - MSA_NAME_WIDTH, d.height - guideTop);
+    g.clip();
+    g.fillStyle = c.accent;
+    g.globalAlpha = SELECTION_GUIDE_ALPHA;
+    g.fillRect(x, guideTop, w, d.height);
+    g.globalAlpha = 1;
+    g.restore();
     g.save();
     g.beginPath();
     g.rect(MSA_NAME_WIDTH, consensus ? 0 : MSA_HEADER_HEIGHT, d.width - MSA_NAME_WIDTH, d.height);
