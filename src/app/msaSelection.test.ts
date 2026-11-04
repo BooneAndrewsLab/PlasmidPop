@@ -6,7 +6,9 @@ import {
   MSA_CONSENSUS_ROW,
   extendMsaSelection,
   msaBarAt,
+  msaCellHasLetter,
   msaColumnAt,
+  msaColumnUnder,
   msaCopiedNote,
   msaRowAt,
   msaRowText,
@@ -57,6 +59,20 @@ describe('where the pointer is', () => {
     expect(msaColumnAt(MSA_NAME_WIDTH + 1, MSA_CHAR_WIDTH * 3, 6)).toBe(3);
     expect(msaColumnAt(0, 0, 6)).toBe(0);
     expect(msaColumnAt(10_000, 0, 6)).toBe(5);
+  });
+  it('also says which column is under x past the ends, for a press on blank space (#370)', () => {
+    expect(msaColumnUnder(MSA_NAME_WIDTH + MSA_CHAR_WIDTH * 6 + 1, 0)).toBe(6);
+    expect(msaColumnUnder(0, 0)).toBeLessThan(0);
+    expect(msaColumnUnder(MSA_NAME_WIDTH + 1, MSA_CHAR_WIDTH * 3)).toBe(3);
+  });
+  it('finds a letter, a gap included, in every column of a row or the consensus, and none past the end', () => {
+    expect(msaCellHasLetter(rows, consensus, 0, 2)).toBe(true); // a gap
+    expect(msaCellHasLetter(rows, consensus, 2, 0)).toBe(true);
+    expect(msaCellHasLetter(rows, consensus, MSA_CONSENSUS_ROW, 5)).toBe(true);
+    expect(msaCellHasLetter(rows, consensus, MSA_CONSENSUS_ROW, 6)).toBe(false);
+    expect(msaCellHasLetter(rows, consensus, 1, 6)).toBe(false);
+    expect(msaCellHasLetter(rows, consensus, 1, -1)).toBe(false);
+    expect(msaCellHasLetter(rows, consensus, 7, 0)).toBe(false);
   });
 });
 

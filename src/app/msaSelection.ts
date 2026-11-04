@@ -58,10 +58,31 @@ export function msaRowAt(y: number, scrollTop: number, rows: number): number | n
   return row >= 0 && row < rows ? row : null;
 }
 
+/** The column under `x` in the canvas, past the alignment's ends included (negative before it). */
+export function msaColumnUnder(x: number, scrollLeft: number): number {
+  return Math.floor((x - MSA_NAME_WIDTH + scrollLeft) / MSA_CHAR_WIDTH);
+}
+
 /** The column under `x` in the canvas, kept inside the alignment. */
 export function msaColumnAt(x: number, scrollLeft: number, columns: number): number {
-  const at = Math.floor((x - MSA_NAME_WIDTH + scrollLeft) / MSA_CHAR_WIDTH);
-  return Math.min(columns - 1, Math.max(0, at));
+  return Math.min(columns - 1, Math.max(0, msaColumnUnder(x, scrollLeft)));
+}
+
+/**
+ * Whether `column` of `row` shows a letter (#370): any character of the
+ * row, a gap's `-` included, so only a column past the alignment's end (or
+ * one a shorter row lacks) is blank. A press on a blank cell clears the
+ * selection instead of starting one.
+ */
+export function msaCellHasLetter(
+  rows: readonly string[],
+  consensus: string,
+  row: number,
+  column: number,
+): boolean {
+  const text = row === MSA_CONSENSUS_ROW ? consensus : (rows[row] ?? '');
+  const ch = column < 0 ? '' : text.charAt(column);
+  return ch !== '' && ch !== ' ';
 }
 
 /** The selected row's text in `r`: its own letters, or the aligned row, gaps as `-`. */

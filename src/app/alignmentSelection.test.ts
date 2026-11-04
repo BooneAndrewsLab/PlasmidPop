@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   REFERENCE_ROW,
+  cellHasLetter,
   copiedNote,
   extendSelection,
   selectionColumns,
@@ -98,6 +99,32 @@ describe('selectionText amino acids', () => {
     expect(selectionText(late, [frame], aa(0, 0, 5), 'aligned')).toBe('--');
     // A codon only partly covered is an indel, as the strip draws it.
     expect(selectionText(stack, [frame], aa(1, 0, 2), 'aligned')).toBe('-');
+  });
+});
+
+describe('cellHasLetter (#370)', () => {
+  it('is a base or a gap on the bases, not the blank outside a sample or past the end', () => {
+    expect(cellHasLetter(stack, null, REFERENCE_ROW, 'bases', 0)).toBe(true);
+    expect(cellHasLetter(stack, null, REFERENCE_ROW, 'bases', 6)).toBe(true); // another sample's column, drawn -
+    expect(cellHasLetter(stack, null, 0, 'bases', 3)).toBe(true); // s1's deletion, drawn -
+    expect(cellHasLetter(stack, null, 1, 'bases', 2)).toBe(true);
+    expect(cellHasLetter(stack, null, 1, 'bases', 0)).toBe(false); // before s2's stretch
+    expect(cellHasLetter(stack, null, 1, 'bases', 9)).toBe(false); // after it
+    expect(cellHasLetter(stack, null, 0, 'bases', 10)).toBe(false);
+    expect(cellHasLetter(stack, null, 0, 'bases', -1)).toBe(false);
+    expect(cellHasLetter(stack, null, 5, 'bases', 1)).toBe(false);
+  });
+
+  it('is a residue or an indel dash on the amino acids, not a column outside every codon or a codon the sample does not reach', () => {
+    expect(cellHasLetter(stack, [frame], REFERENCE_ROW, 'aa', 1)).toBe(true);
+    expect(cellHasLetter(stack, [frame], REFERENCE_ROW, 'aa', 6)).toBe(false); // the insertion column, in no codon
+    expect(cellHasLetter(stack, [frame], 0, 'aa', 4)).toBe(true); // s1's indel codon, drawn -
+    expect(cellHasLetter(stack, [frame], 1, 'aa', 0)).toBe(true); // s2 reaches the codon's last column: drawn -
+    const late = stackOf('ATGAAA-CCC', [row('s3', '       CCC')]);
+    expect(cellHasLetter(late, [frame], 0, 'aa', 1)).toBe(false); // a codon s3 does not reach
+    expect(cellHasLetter(late, [frame], 0, 'aa', 8)).toBe(true);
+    expect(cellHasLetter(stack, null, 0, 'aa', 1)).toBe(false);
+    expect(cellHasLetter(stack, [frame], 0, 'aa', 10)).toBe(false);
   });
 });
 

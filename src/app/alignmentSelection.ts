@@ -59,6 +59,40 @@ export function selectionValid(stack: Stack, sel: AlignmentSelection): boolean {
   return rowOk && selectionColumns(stack, sel) !== null;
 }
 
+/**
+ * Whether `column` of `row`'s `track` shows a letter (#370): on the bases a
+ * base or a gap, not the blank outside a sample's stretch or past the
+ * alignment's end; on the amino acids a residue, `*` or the `-` of an
+ * indel, not a column outside every CDS or of a codon the sample does not
+ * reach. A press on a cell with no letter clears the selection instead of
+ * starting one.
+ */
+export function cellHasLetter(
+  stack: Stack,
+  frames: readonly ResidueFrame[] | null,
+  row: number,
+  track: SelectionTrack,
+  column: number,
+): boolean {
+  if (column < 0 || column >= stack.columns) return false;
+  const sample = row === REFERENCE_ROW ? null : stack.rows[row];
+  if (sample === undefined) return false;
+  if (track === 'bases') {
+    const ch = (sample === null ? stack.reference : sample.bases).charAt(column);
+    return ch !== '' && ch !== ' ';
+  }
+  if (frames === null) return false;
+  for (const frame of frames) {
+    if (column < frame.start || column >= frame.end) continue;
+    for (const codon of frame.codons) {
+      const span = codonSpan(codon);
+      if (column < span.start || column >= span.end) continue;
+      return sample === null || residueOf(frame, codon, sample).letter !== ' ';
+    }
+  }
+  return false;
+}
+
 /** The name of `row` (`REFERENCE_ROW` is the reference's) as the view shows it. */
 export function rowName(stack: Stack, referenceName: string, row: number): string {
   return row === REFERENCE_ROW ? referenceName : (stack.rows[row]?.name ?? '');
