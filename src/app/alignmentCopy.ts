@@ -237,9 +237,10 @@ export function previewLines(text: string, maxLines = 6, width = 72): Preview {
 /** Where the options are remembered, per browser like the view's other settings. */
 const KEY = 'plasmidpop.alignmentCopy';
 
-type Store = Pick<Storage, 'getItem' | 'setItem'>;
+export type Store = Pick<Storage, 'getItem' | 'setItem'>;
 
-function storage(): Store | null {
+/** The browser's storage, or null where it is unavailable; shared with the alignment window's own copy options. */
+export function browserStorage(): Store | null {
   try {
     return globalThis.localStorage;
   } catch {
@@ -247,7 +248,12 @@ function storage(): Store | null {
   }
 }
 
-function pick<T extends string>(choices: readonly T[], value: unknown, fallback: T): T {
+/** `value` when it is one of `choices`, else `fallback`. */
+export function pickChoice<T extends string>(
+  choices: readonly T[],
+  value: unknown,
+  fallback: T,
+): T {
   return typeof value === 'string' && (choices as readonly string[]).includes(value)
     ? (value as T)
     : fallback;
@@ -259,18 +265,18 @@ export function normalizeCopyOptions(value: unknown): CopyOptions {
   if (typeof value !== 'object' || value === null) return d;
   const v = value as Record<string, unknown>;
   return {
-    rows: pick(ROW_CHOICES, v['rows'], d.rows),
-    columns: pick(COLUMN_CHOICES, v['columns'], d.columns),
-    gaps: pick(GAP_CHOICES, v['gaps'], d.gaps),
-    tracks: pick(TRACK_CHOICES, v['tracks'], d.tracks),
-    format: pick(FORMAT_CHOICES, v['format'], d.format),
+    rows: pickChoice(ROW_CHOICES, v['rows'], d.rows),
+    columns: pickChoice(COLUMN_CHOICES, v['columns'], d.columns),
+    gaps: pickChoice(GAP_CHOICES, v['gaps'], d.gaps),
+    tracks: pickChoice(TRACK_CHOICES, v['tracks'], d.tracks),
+    format: pickChoice(FORMAT_CHOICES, v['format'], d.format),
     names: typeof v['names'] === 'boolean' ? v['names'] : d.names,
     coordinates: typeof v['coordinates'] === 'boolean' ? v['coordinates'] : d.coordinates,
   };
 }
 
 /** The options as last saved, or the defaults: best effort, like the rest of local persistence. */
-export function loadCopyOptions(store: Store | null = storage()): CopyOptions {
+export function loadCopyOptions(store: Store | null = browserStorage()): CopyOptions {
   try {
     const raw = store?.getItem(KEY);
     if (raw === null || raw === undefined) return DEFAULT_COPY_OPTIONS;
@@ -280,7 +286,7 @@ export function loadCopyOptions(store: Store | null = storage()): CopyOptions {
   }
 }
 
-export function saveCopyOptions(o: CopyOptions, store: Store | null = storage()): void {
+export function saveCopyOptions(o: CopyOptions, store: Store | null = browserStorage()): void {
   try {
     store?.setItem(KEY, JSON.stringify(o));
   } catch {
