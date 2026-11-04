@@ -138,3 +138,62 @@ large view's own; `AlignmentSelectionBar` is used as is (a tooltip prop).
 
 Not covered by tests: the pointer handling and the panel's placement in
 `MsaDialog` (DOM geometry); the pure pieces are.
+
+## Click, marker and selection (#370)
+
+**Asked:** two things found testing the above. In the large view the
+column marker (`marked`, set by Go to, Find, Prev and Next, and until now
+by every click on the canvas, the one that ends a drag included) was drawn
+as a band beside a dragged range, two "selected" ideas at once. And a click
+on a cell with no letter (a column the sample does not reach) started a
+one-column selection with the bar, so clicking away to clear re-selected.
+
+**Decided**, after comparing a text editor's caret and selection, a
+spreadsheet's cell and range, and SnapGene's, Geneious's, Jalview's and
+IGV's clicks:
+
+- **The marker is navigation's alone.** It stays a concept apart from the
+  selection, because it answers a different question ("where did Go to,
+  Find, Prev or Next bring me?"), spans every row and the overview where a
+  selection is one row's, and is the stop the Reviewed and Take buttons act
+  on, so selecting must not drop it and it must not drop a selection. A
+  click no longer sets it; that was its only overlap with selecting. Folding
+  it into the selection was rejected: Next would then raise a copy bar on
+  every stop, and a difference has no single row to select on. The band
+  through all rows that a click used to give is gone; nothing else used it.
+- **A plain click on a letter is a one-column selection**, drawn like any
+  other, the anchor a Shift-click extends from (the spreadsheet's cell, not
+  the editor's caret: the grid's unit is a cell, so there is no "between"
+  position to put a caret at, and one base is a real thing to copy).
+  Ctrl+C copies it.
+- **The bar floats from two columns** (`BAR_FROM_COLUMNS`), once the button
+  is up. A click is an anchor or a click-away, not a request for a toolbar;
+  "1 column" said nothing; a floating bar on every click read as a popup.
+- **A cell with no letter is blank space.** A press on one clears the
+  selection and selects nothing, like a press on the ruler: the blank before
+  and after a sample's stretch, a codon outside every CDS or that the sample
+  does not reach, and past the alignment's end (the column used to be clamped
+  to the last one, so a click right of the reference selected its last
+  base). A gap's `-` is a letter, on both windows, and so is an indel's `-`
+  on an amino-acid strip: they are drawn. In the MSA only a column past the
+  end is blank. A drag may still begin or end on blank cells (the press
+  becomes a `pending` anchor and the selection starts when the pointer
+  reaches another column, as an editor's drag from past a line's end), since
+  a range over the columns a sample does not reach is meaningful: the
+  aligned copy writes them as `-`, and Advanced copy's other rows have
+  letters there.
+- **Esc**: the Advanced copy panel first (it takes Esc on the window before
+  either dialog's listener), then the large view's Find or Go to form, then
+  the selection, then the window: the same ladder the forms already had,
+  one rung longer. The large view's order lives in `AlignmentDialog`, which
+  owns the forms, through `StackHandle.clearSelection()`.
+- **One reducer for both windows**, `selectionGesture.ts` (press, move,
+  release, `barWanted`), generic over the selection type, so the large view
+  and the MSA cannot drift apart; each window only hit-tests
+  (`selectionTargetAt` + `cellHasLetter`, `msaRowAt` + `msaCellHasLetter`).
+- Touch is as it was: no selection; a tap names what is under it.
+
+Tests now drive the canvases in jsdom (`AlignmentStackView.test.tsx`,
+`MsaDialog.test.tsx`, with the stack's and the MSA's drawing mocked and
+the scroller's size stubbed) and the dialog's Esc ladder
+(`AlignmentDialog.escape.test.tsx`, with a real alignment).

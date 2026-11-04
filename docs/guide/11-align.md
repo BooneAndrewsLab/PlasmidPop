@@ -358,17 +358,21 @@ the Align button.
    (`*` where every sequence agrees, `:` where every pair of residues of a
    protein scores above zero in BLOSUM62).
 
-5. **Select and copy a run of columns.** Drag across the letters of one
-   sequence's row, or of the consensus row, to select columns, or click one
-   end and `Shift`-click the other. The selection stays on the row it began
-   on; a click on the ruler, the conservation bar or empty space clears it.
+5. **Select and copy a run of columns.** Click a letter of one sequence's
+   row, or of the consensus row, to select that column, drag across the
+   letters to select a run, or click one end and `Shift`-click the other.
+   The selection stays on the row it began on. A click on the ruler, the
+   conservation bar, past the last column or below the rows clears it, and
+   so does `Esc` (a second `Esc` closes the window).
    `Ctrl+C` (`Cmd+C` on a Mac), with the alignment focused, copies that row's
    **own letters**, gaps left out; `Ctrl+Alt+C` copies the **row as drawn**,
    gaps kept as `-`, so it lines up with the others. A line under the
    alignment says what was copied. The selection is for copying only:
    it is not in a saved file.
 
-   A small bar floats beside the selection once the mouse is released:
+   A small bar floats beside a selection of two or more columns once the
+   mouse is released (a single clicked column is the anchor for a
+   `Shift`-click, and `Ctrl+C` copies it without a bar):
    **Copy** is `Ctrl+C`, the count says how many columns are selected, and
    **Advanced copy…** opens a panel to compose what goes out:
 
@@ -612,7 +616,11 @@ once the ORFs panel has found them. With no document behind the reference
   are for this opening of the window and are not remembered.
 - **Go to** (`Ctrl+G`) takes a 1-based position, numbered as the ruler
   numbers the document, and scrolls to its column and marks it, however many
-  columns another sample's insertion has opened before it. A position past
+  columns another sample's insertion has opened before it. The mark is a
+  pale band down through every row, and on the overview: it says where Go
+  to, Find, Prev or Next brought you, and only they set it (a click does
+  not); it stays until the next of them, apart from the selection described
+  below. A position past
   the end of the document (or of a circular one) is refused with the last
   position; one in the document but outside the stretch the alignment covers
   (when the document's selection was aligned) says which positions are. When
@@ -628,8 +636,9 @@ once the ORFs panel has found them. With no document behind the reference
   the matches, wrapping round, and each is marked and scrolled into view
   (a match on the reverse strand says so). A motif across a circle's origin
   is found in the reference only when a sample reads through the origin,
-  which makes the reference run on. `Esc` closes the form first and the window
-  on the second press; neither key reaches the editor underneath.
+  which makes the reference run on. `Esc` closes the form first, then clears
+  a selection, and closes the window on the next press; neither key reaches
+  the editor underneath.
 - **Export** takes the alignment out of the window for a notebook, a slide or
   an email. The form's **Columns** are those on screen when it opens (1-based
   alignment columns, the gap columns another sample opened included); type a
@@ -746,13 +755,19 @@ once the ORFs panel has found them. With no document behind the reference
 - Click a name, or click into the alignment and press `↑` or `↓`, to pick
   a sample. Its score and identity show under the toolbar, with
   **Select in document** beside them to select the region it aligned to.
-- **Select and copy.** Drag across the letters of the document's row or of
-  any one sample's row to select a run of columns, or click one end and
-  `Shift`-click the other. A strip of amino acids is selected the same way,
-  under the row it belongs to. The selection is on one row (or one strip)
-  only: dragging into another row's height keeps the first row. A plain click or drag on another row
-  starts a new selection there; a click on the ruler, a feature track or any
-  part that is not a row of letters or amino acids clears it. `Ctrl+C` (`Cmd+C` on a Mac), with the alignment focused,
+- **Select and copy.** Click a letter of the document's row or of any one
+  sample's row to select that column, drag across the letters to select a
+  run, or click one end and `Shift`-click the other. A strip of amino acids
+  is selected the same way, under the row it belongs to. The selection is on
+  one row (or one strip) only: dragging into another row's height keeps the
+  first row. A plain click or drag on another row starts a new selection
+  there. A click on anything that is not a letter clears it: the ruler, a
+  feature track, a trace, the blank cells before or after a sample's
+  stretch (or a codon it does not reach), or past the end of the
+  alignment; so does `Esc` (after closing an open form; the next `Esc`
+  closes the window). A drag may still begin or end on blank cells, so a
+  run can reach past a sample's end: `Ctrl+Alt+C` writes those columns as
+  `-`. `Ctrl+C` (`Cmd+C` on a Mac), with the alignment focused,
   copies the sample's **own residues**: the bases it has in those columns,
   with its gaps and the columns it does not cover left out, read along the
   row as it is shown (so a read that aligned reversed copies as its reverse
@@ -768,10 +783,12 @@ once the ORFs panel has found them. With no document behind the reference
   under the alignment says what was copied. The selection is for copying; it
   is not in the saved picture, and it is dropped when a sample is hidden or
   shown.
-- **The selection bar.** A small bar floats beside the selection once the
-  mouse is released (it fades while the pointer is elsewhere): **Copy** is
-  `Ctrl+C`, and the count says how many columns are selected. **Advanced
-  copy…** opens a panel to compose what goes out instead:
+- **The selection bar.** A small bar floats beside a selection of two or
+  more columns once the mouse is released (it fades while the pointer is
+  elsewhere; a single clicked column is the anchor for a `Shift`-click, and
+  `Ctrl+C` copies it without a bar): **Copy** is `Ctrl+C`, and the count
+  says how many columns are selected. **Advanced copy…** opens a panel to
+  compose what goes out instead:
   - **Rows:** this row; the document's row above it, the two in register;
     or every row shown (hide samples with **Samples** to leave them out).
   - **Columns:** the selected ones, or the whole alignment.
