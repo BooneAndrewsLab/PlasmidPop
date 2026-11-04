@@ -717,7 +717,7 @@ once the ORFs panel has found them. With no document behind the reference
   copies the sample's **own residues**: the bases it has in those columns,
   with its gaps and the columns it does not cover left out, read along the
   row as it is shown (so a read that aligned reversed copies as its reverse
-  complement). `Ctrl+Shift+C` copies the **aligned row** instead, gaps kept as `-`
+  complement). `Ctrl+Alt+C` copies the **aligned row** instead, gaps kept as `-`
   and columns outside the sample's stretch also as `-`, so the text lines up
   with the others. On the document's row the columns another sample opened
   are likewise left out, or kept as `-`. A selection on an amino-acid strip copies
@@ -725,7 +725,7 @@ once the ORFs panel has found them. With no document behind the reference
   reading order (a reverse-strand CDS reads right to left), one line for
   each CDS; a sample's letters are what its bases make of the document's
   codons, a codon with a base missing or inserted is `-` (kept only by
-  `Ctrl+Shift+C`), and a codon the sample does not reach is left out. A line
+  `Ctrl+Alt+C`), and a codon the sample does not reach is left out. A line
   under the alignment says what was copied. The selection is for copying; it
   is not in the saved picture, and it is dropped when a sample is hidden or
   shown.

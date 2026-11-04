@@ -13,7 +13,7 @@ it as a tinted, outlined block; an export does not carry it.
 **Decisions** (the issue's defaults):
 
 - Ctrl+C copies the sample's own residues, gaps and uncovered columns left
-  out; Ctrl+Shift+C copies the row as drawn, gaps kept and uncovered columns
+  out; Ctrl+Alt+C copies the row as drawn, gaps kept and uncovered columns
   as `-`, the form of aligned FASTA. Text is as the row is shown, so a read
   that aligned reversed copies reverse-complemented.
 - Any single row, the document's included. A selection never spans rows, so

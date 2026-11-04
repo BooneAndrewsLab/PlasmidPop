@@ -494,8 +494,9 @@ export function AlignmentStackView({
         tabIndex={0}
         aria-label="Alignment, all sequences; Up and Down pick a sample; drag over bases or amino acids to select, Ctrl+C copies"
         onKeyDown={(e) => {
-          if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'c') {
-            if (copySelection(e.shiftKey ? 'aligned' : 'residues')) e.preventDefault();
+          // Ctrl+Shift+C is the browser's inspector, so the aligned row is Ctrl+Alt+C.
+          if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.code === 'KeyC') {
+            if (copySelection(e.altKey ? 'aligned' : 'residues')) e.preventDefault();
             return;
           }
           if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;

@@ -89,7 +89,7 @@ it has.
 | `Ctrl+F`, `Ctrl+G`             | In the alignment's large view: find a motif; go to a position (not rebindable; Esc closes the form, then the window)                                                                     |
 | `Alt+T`                        | In the alignment's large view: Amino acids' Residues on or off (follows a rebound Translations)                                                                                          |
 | `↑`, `↓`                       | In the alignment's large view, with the alignment focused: pick the sample above or below                                                                                                |
-| `Ctrl+C`, `Ctrl+Shift+C`       | In the alignment's large view, with a selection dragged or Shift-clicked over a row: copy its residues; copy the aligned row with gaps kept (an amino-acid strip copies its amino acids) |
+| `Ctrl+C`, `Ctrl+Alt+C`         | In the alignment's large view, with a selection dragged or Shift-clicked over a row: copy its residues; copy the aligned row with gaps kept (an amino-acid strip copies its amino acids) |
 
 ## Find
 
