@@ -417,9 +417,11 @@ export function AlignmentDialog({
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        // The popover closes first, the window on a second Esc.
+        // The popover closes first, then the selection clears, and the
+        // window closes on the next Esc (#370). The Advanced copy panel
+        // takes Esc before this listener sees it.
         if (searchOpen.current) setPopover(null);
-        else onClose();
+        else if (stackHandle.current?.clearSelection() !== true) onClose();
       } else if (
         (e.ctrlKey || e.metaKey) &&
         !e.altKey &&

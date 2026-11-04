@@ -20,6 +20,7 @@ import { followTooltip, hideFollowTooltip } from './tooltip';
 import { residueTitle, sampleChanges } from '../alignmentChanges';
 import {
   REFERENCE_ROW,
+  cellHasLetter,
   copiedNote,
   extendSelection,
   rowName,
@@ -29,8 +30,19 @@ import {
   startSelection,
   type AlignmentSelection,
   type CopyMode,
+  type SelectionTrack,
 } from '../alignmentSelection';
 import { type Stack } from '../alignmentStack';
+import {
+  barWanted,
+  gestureMove,
+  gesturePress,
+  gestureRelease,
+  idleGesture,
+  type Gesture,
+  type GestureCell,
+  type GestureOps,
+} from '../selectionGesture';
 import { copyText } from '../clipboard';
 import { ColumnClass, itemAt, type Track, type TrackItem } from '../alignmentTrack';
 import { coverageBand, type Coverage } from '../alignmentVerdict';
@@ -64,12 +76,25 @@ const BAR_WIDTH = 280;
 /** Room between the bar and the row it belongs to. */
 const BAR_GAP = 4;
 
-/** What the window lets its owner reach: the columns in view, and the drawing to export. */
+/** A row and strip a selection is on, as `selectionTargetAt` finds it. */
+interface StripKey {
+  readonly row: number;
+  readonly track: SelectionTrack;
+}
+type StackGesture = Gesture<StripKey, AlignmentSelection>;
+const GESTURE_OPS: GestureOps<StripKey, AlignmentSelection> = {
+  start: (key, column) => startSelection(key.row, key.track, column),
+  extend: extendSelection,
+};
+
+/** What the window lets its owner reach: the columns in view, the drawing to export, and the selection to clear. */
 export interface StackHandle {
   /** The columns now in view, half-open. */
   visibleColumns(): ColumnRange;
   /** Everything needed to draw the stack elsewhere (an export): nothing picked or marked. Null until the theme is read. */
   drawing(): StackDrawing | null;
+  /** Clear the selection (Esc, #370): whether there was one to clear. */
+  clearSelection(): boolean;
 }
 
 interface Props {
@@ -145,9 +170,16 @@ export function AlignmentStackView({
   const [size, setSize] = useState({ width: 600, height: 300 });
   const [overviewWidth, setOverviewWidth] = useState(600);
   const [scroll, setScroll] = useState({ left: 0, top: 0 });
+  /**
+   * The columns a tool brought into view (Go to, Find, Prev and Next, the
+   * List): a band through every row and the overview, apart from the
+   * selection, which is one row's and the pointer's (#370). Only `focus`
+   * sets it; a click does not.
+   */
   const [marked, setMarked] = useState<{ start: number; end: number } | null>(null);
   const [colours, setColours] = useState<Colours | null>(null);
-  const [picked, setPicked] = useState<AlignmentSelection | null>(null);
+  /** The selection and the press making it (#366, #370). */
+  const [gesture, setGesture] = useState<StackGesture>(idleGesture);
   const [copyNote, setCopyNote] = useState('');
   /** Where the Advanced copy panel hangs from, in the `.astack`'s coordinates; null when closed. */
   const [panelAt, setPanelAt] = useState<{ left: number; top: number } | null>(null);
@@ -156,13 +188,14 @@ export function AlignmentStackView({
   const [seenStack, setSeenStack] = useState(stack);
   if (stack !== seenStack) {
     setSeenStack(stack);
-    setPicked(null);
+    setGesture(idleGesture());
     setCopyNote('');
     setPanelAt(null);
   }
-  const selection = picked !== null && selectionValid(stack, picked) ? picked : null;
-  const selecting = useRef(false);
-  const [dragSelecting, setDragSelecting] = useState(false);
+  const selection =
+    gesture.selection !== null && selectionValid(stack, gesture.selection)
+      ? gesture.selection
+      : null;
   const closePanel = useCallback(() => {
     setPanelAt(null);
   }, []);
@@ -299,8 +332,14 @@ export function AlignmentStackView({
         };
       },
       drawing: () => (colours === null ? null : drawing(colours, null, null, NONE_REVIEWED)),
+      clearSelection: () => {
+        if (selection === null) return false;
+        setGesture(idleGesture());
+        setPanelAt(null);
+        return true;
+      },
     }),
-    [scroll.left, size.width, charWidth, stack.columns, colours, drawing],
+    [scroll.left, size.width, charWidth, stack.columns, colours, drawing, selection],
   );
 
   useLayoutEffect(() => {
@@ -469,11 +508,29 @@ export function AlignmentStackView({
     scrollToColumn(at, at + 1);
   };
   const dragging = useRef(false);
-  /** The column under a pointer event on the canvas, kept inside the stack. */
-  const columnAtEvent = (e: { clientX: number; currentTarget: HTMLCanvasElement }): number => {
+  /** The column under a pointer event on the canvas, past the stack's ends included. */
+  const columnUnder = (e: { clientX: number; currentTarget: HTMLCanvasElement }): number => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const at = Math.floor((e.clientX - rect.left - NAME_WIDTH + scroll.left) / charWidth);
-    return Math.min(stack.columns - 1, Math.max(0, at));
+    return Math.floor((e.clientX - rect.left - NAME_WIDTH + scroll.left) / charWidth);
+  };
+  /** The column under a pointer event on the canvas, kept inside the stack. */
+  const columnAtEvent = (e: { clientX: number; currentTarget: HTMLCanvasElement }): number =>
+    Math.min(stack.columns - 1, Math.max(0, columnUnder(e)));
+  /** The cell a press on the canvas lands on, for the selection gesture (#370): null off every row and strip. */
+  const cellAtEvent = (e: {
+    clientX: number;
+    clientY: number;
+    currentTarget: HTMLCanvasElement;
+  }): GestureCell<StripKey> | null => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const key = selectionTargetAt(layout, stack.rows.length, e.clientY - rect.top, scroll.top);
+    if (key === null) return null;
+    const under = columnUnder(e);
+    return {
+      key,
+      column: columnAtEvent(e),
+      letter: cellHasLetter(stack, residues, key.row, key.track, under),
+    };
   };
   /** Ctrl+C copies the selection; with Shift, the row as drawn with its gaps (#366). */
   const copySelection = (mode: CopyMode): boolean => {
@@ -492,13 +549,14 @@ export function AlignmentStackView({
    * above the row where there is room under the pinned header, else under
    * it (always under the reference, which is pinned at the top: there the
    * bar sits just below the header, over the first sample rather than over
-   * the reference's own strips). Kept inside the view sideways; null while
-   * dragging, or when the row has scrolled under the header or out of view.
+   * the reference's own strips). Kept inside the view sideways; null for one
+   * clicked cell, while dragging, or when the row has scrolled under the
+   * header or out of view.
    */
   const barAt = (() => {
-    if (selection === null || dragSelecting) return null;
+    if (selection === null) return null;
     const cols = selectionColumns(stack, selection);
-    if (cols === null) return null;
+    if (cols === null || !barWanted(gesture, cols)) return null;
     const reference = selection.row === REFERENCE_ROW;
     const strip = selection.track === 'aa' ? ROW_HEIGHT : 0;
     const height = selection.track === 'aa' ? layout.aaHeight : ROW_HEIGHT;
@@ -596,12 +654,8 @@ export function AlignmentStackView({
               // A finger scrolling the view is not asking what is under it;
               // a tap is (`onClick`).
               if (e.pointerType === 'touch') return;
-              if (selecting.current) {
-                const column = columnAtEvent(e);
-                setPicked((s) =>
-                  s === null || s.head === column ? s : extendSelection(s, column),
-                );
-              }
+              const column = columnAtEvent(e);
+              setGesture((g) => gestureMove(g, column, GESTURE_OPS));
               const text = tipAt(e);
               if (text === null) hideFollowTooltip();
               else followTooltip(text, e.clientX, e.clientY);
@@ -610,52 +664,31 @@ export function AlignmentStackView({
               hideFollowTooltip();
             }}
             onPointerDown={(e) => {
-              // Drag over a row's bases or amino acids, or shift-click the far end, to select (#366).
+              // Click a letter, drag over a row's bases or amino acids, or
+              // shift-click the far end, to select; a press on blank space
+              // clears (#366, #370). A press on the names is a row pick only.
               if (e.button !== 0 || e.pointerType === 'touch') return;
               const rect = e.currentTarget.getBoundingClientRect();
               if (e.clientX - rect.left < NAME_WIDTH) return;
-              const target = selectionTargetAt(
-                layout,
-                stack.rows.length,
-                e.clientY - rect.top,
-                scroll.top,
-              );
+              const cell = cellAtEvent(e);
+              const shift = e.shiftKey;
               setPanelAt(null);
-              if (target === null) {
-                setPicked(null);
-                setCopyNote('');
-                return;
-              }
-              const column = columnAtEvent(e);
               setCopyNote('');
-              if (e.shiftKey && selection !== null) {
-                setPicked(extendSelection(selection, column));
-              } else {
-                setPicked(startSelection(target.row, target.track, column));
-              }
-              selecting.current = true;
-              setDragSelecting(true);
-              e.currentTarget.setPointerCapture(e.pointerId);
+              setGesture((g) => gesturePress(g, cell, shift, GESTURE_OPS));
+              if (cell !== null) e.currentTarget.setPointerCapture(e.pointerId);
             }}
             onPointerUp={() => {
-              selecting.current = false;
-              setDragSelecting(false);
+              setGesture(gestureRelease);
             }}
             onPointerCancel={() => {
-              selecting.current = false;
-              setDragSelecting(false);
+              setGesture(gestureRelease);
             }}
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               const y = e.clientY - rect.top;
-              const x = e.clientX - rect.left;
               if (y >= headerHeight) {
                 const row = rowAt(y - headerHeight + scroll.top);
                 if (row >= 0) onSelectRow(row);
-              }
-              if (x >= NAME_WIDTH) {
-                const at = Math.floor((x - NAME_WIDTH + scroll.left) / charWidth);
-                setMarked({ start: at, end: at + 1 });
               }
               // A finger has no hover: a tap names the residue or feature
               // under it, and the tip stays until the next tap or scroll.

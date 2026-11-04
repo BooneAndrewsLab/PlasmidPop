@@ -107,7 +107,11 @@ describe('a drag', () => {
 
   it('ends on release, keeping the selection; a release with nothing pressed is the same object', () => {
     const g = gestureRelease(gestureMove(gesturePress(idle(), letter(1, 5), false, ops), 7, ops));
-    expect(g).toEqual({ selection: { row: 1, anchor: 5, head: 7 }, pending: null, dragging: false });
+    expect(g).toEqual({
+      selection: { row: 1, anchor: 5, head: 7 },
+      pending: null,
+      dragging: false,
+    });
     expect(gestureRelease(g)).toBe(g);
   });
 });

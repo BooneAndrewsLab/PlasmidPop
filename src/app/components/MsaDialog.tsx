@@ -9,7 +9,9 @@ import { copyText } from '../clipboard';
 import {
   extendMsaSelection,
   msaBarAt,
+  msaCellHasLetter,
   msaColumnAt,
+  msaColumnUnder,
   msaCopiedNote,
   msaRowAt,
   msaSelectionColumns,
@@ -21,6 +23,15 @@ import {
 } from '../msaSelection';
 import type { MsaCopyContext } from '../msaCopy';
 import { downloadText } from '../saveFile';
+import {
+  barWanted,
+  gestureMove,
+  gesturePress,
+  gestureRelease,
+  idleGesture,
+  type Gesture,
+  type GestureOps,
+} from '../selectionGesture';
 import { readColours } from './alignmentStackDraw';
 import { AlignmentSelectionBar } from './AlignmentSelectionBar';
 import { MsaCopyPanel } from './MsaCopyPanel';
@@ -32,6 +43,12 @@ interface Props {
   readonly alignment: MultipleAlignment;
   readonly onClose: () => void;
 }
+
+type MsaGesture = Gesture<number, MsaSelection>;
+const GESTURE_OPS: GestureOps<number, MsaSelection> = {
+  start: startMsaSelection,
+  extend: extendMsaSelection,
+};
 
 /**
  * The multiple alignment in a window of its own (#207): every sequence in
@@ -54,28 +71,38 @@ export function MsaDialog({ names, alignment, onClose }: Props) {
   const size = msaSize(alignment.columns, alignment.rows.length);
   const consensus = useMemo(() => summary.map((s) => s.consensus).join(''), [summary]);
   const unit = nucleotide ? 'base' : 'residue';
-  // The selection (#368): a run of columns on one row, the consensus included.
-  const [picked, setPicked] = useState<MsaSelection | null>(null);
+  // The selection (#368): a run of columns on one row, the consensus included, and the press making it (#370).
+  const [gesture, setGesture] = useState<MsaGesture>(idleGesture);
   const selection =
-    picked !== null && msaSelectionValid(alignment.rows.length, alignment.columns, picked)
-      ? picked
+    gesture.selection !== null &&
+    msaSelectionValid(alignment.rows.length, alignment.columns, gesture.selection)
+      ? gesture.selection
       : null;
-  const selecting = useRef(false);
-  const [dragSelecting, setDragSelecting] = useState(false);
   const [panelAt, setPanelAt] = useState<{ left: number; top: number } | null>(null);
   const area = useRef<HTMLDivElement>(null);
   const identical = useMemo(() => summary.filter((s) => s.conservation === 1).length, [summary]);
 
   useEffect(() => {
     closeRef.current?.focus();
+  }, []);
+  // Esc clears the selection first and closes the window on the next press
+  // (#370); the Advanced copy panel takes Esc before this listener sees it.
+  const selected = selection !== null;
+  useEffect(() => {
     const esc = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Escape') return;
+      if (selected) {
+        setGesture(idleGesture());
+        setPanelAt(null);
+      } else {
+        onClose();
+      }
     };
     document.addEventListener('keydown', esc);
     return () => {
       document.removeEventListener('keydown', esc);
     };
-  }, [onClose]);
+  }, [onClose, selected]);
 
   // The scroll position and the size of the area, which is what is drawn.
   useEffect(() => {
@@ -153,8 +180,11 @@ export function MsaDialog({ names, alignment, onClose }: Props) {
   const closePanel = (): void => {
     setPanelAt(null);
   };
+  // The bar floats beside two columns or more once the button is up (#370).
   const barAt =
-    selection === null || dragSelecting ? null : msaBarAt(selection, alignment.columns, view, view);
+    selection === null || !barWanted(gesture, msaSelectionColumns(alignment.columns, selection))
+      ? null
+      : msaBarAt(selection, alignment.columns, view, view);
   const togglePanel = (bar: HTMLElement): void => {
     if (panelAt !== null) {
       setPanelAt(null);
@@ -263,18 +293,17 @@ export function MsaDialog({ names, alignment, onClose }: Props) {
                   .slice(0, 200)}`}
                 style={{ width: view.width, height: view.height }}
                 onPointerMove={(e) => {
-                  if (!selecting.current) return;
+                  if (e.pointerType === 'touch') return;
                   const column = msaColumnAt(
                     e.clientX - e.currentTarget.getBoundingClientRect().left,
                     view.left,
                     alignment.columns,
                   );
-                  setPicked((s) =>
-                    s === null || s.head === column ? s : extendMsaSelection(s, column),
-                  );
+                  setGesture((g) => gestureMove(g, column, GESTURE_OPS));
                 }}
                 onPointerDown={(e) => {
-                  // Drag over a row's letters, or shift-click the far end, to select (#368).
+                  // Click a letter, drag over a row's letters, or shift-click
+                  // the far end, to select; a press on blank space clears (#368, #370).
                   if (e.button !== 0 || e.pointerType === 'touch') return;
                   const rect = e.currentTarget.getBoundingClientRect();
                   const x = e.clientX - rect.left;
@@ -282,29 +311,30 @@ export function MsaDialog({ names, alignment, onClose }: Props) {
                   setPanelAt(null);
                   setNote(null);
                   const row = msaRowAt(e.clientY - rect.top, view.top, alignment.rows.length);
-                  if (row === null) {
-                    setPicked(null);
-                    return;
-                  }
-                  const column = msaColumnAt(x, view.left, alignment.columns);
-                  setPicked(
-                    e.shiftKey && selection !== null
-                      ? extendMsaSelection(selection, column)
-                      : startMsaSelection(row, column),
-                  );
-                  selecting.current = true;
-                  setDragSelecting(true);
-                  e.currentTarget.setPointerCapture(e.pointerId);
+                  const cell =
+                    row === null
+                      ? null
+                      : {
+                          key: row,
+                          column: msaColumnAt(x, view.left, alignment.columns),
+                          letter: msaCellHasLetter(
+                            alignment.rows,
+                            consensus,
+                            row,
+                            msaColumnUnder(x, view.left),
+                          ),
+                        };
+                  const shift = e.shiftKey;
+                  setGesture((g) => gesturePress(g, cell, shift, GESTURE_OPS));
+                  if (cell !== null) e.currentTarget.setPointerCapture(e.pointerId);
                   // The keys work from the scroller.
                   scroller.current?.focus();
                 }}
                 onPointerUp={() => {
-                  selecting.current = false;
-                  setDragSelecting(false);
+                  setGesture(gestureRelease);
                 }}
                 onPointerCancel={() => {
-                  selecting.current = false;
-                  setDragSelecting(false);
+                  setGesture(gestureRelease);
                 }}
               />
               {barAt !== null && (
