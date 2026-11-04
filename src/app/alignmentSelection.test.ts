@@ -110,7 +110,7 @@ describe('selectionText amino acids', () => {
   const frame: ResidueFrame = {
     name: 'x',
     strand: 'forward',
-    table: 1 as ResidueFrame['table'],
+    table: 1,
     codons: [
       { columns: [0, 1, 2], reference: 'M', index: 0, first: true },
       { columns: [3, 4, 5], reference: 'K', index: 1, first: false },
