@@ -59,10 +59,19 @@ export function selectionValid(stack: Stack, sel: AlignmentSelection): boolean {
   return rowOk && selectionColumns(stack, sel) !== null;
 }
 
-/** The bases of the selected columns of the reference or a sample. */
-function basesText(stack: Stack, sel: AlignmentSelection, r: ColumnRange, mode: CopyMode): string {
-  const row = sel.row === REFERENCE_ROW ? null : stack.rows[sel.row];
-  const text = (row === null || row === undefined ? stack.reference : row.bases).slice(
+/** The name of `row` (`REFERENCE_ROW` is the reference's) as the view shows it. */
+export function rowName(stack: Stack, referenceName: string, row: number): string {
+  return row === REFERENCE_ROW ? referenceName : (stack.rows[row]?.name ?? '');
+}
+
+/**
+ * The bases of columns `r` of the reference or a sample (`row` as in a
+ * selection). `aligned` keeps gaps and writes the columns a sample does not
+ * cover as `-`, in register with the other rows; `residues` leaves both out.
+ */
+export function rowBases(stack: Stack, row: number, r: ColumnRange, mode: CopyMode): string {
+  const sample = row === REFERENCE_ROW ? null : stack.rows[row];
+  const text = (sample === null || sample === undefined ? stack.reference : sample.bases).slice(
     r.start,
     r.end,
   );
@@ -70,38 +79,52 @@ function basesText(stack: Stack, sel: AlignmentSelection, r: ColumnRange, mode: 
   return text.replace(/[- ]/g, '');
 }
 
+/** One CDS's amino acids of a row, from `rowResidues`. */
+export interface ResidueLine {
+  /** The CDS's name, from its frame. */
+  readonly frame: string;
+  readonly letters: string;
+}
+
 /**
- * The amino acids of the codons the columns touch, in reading order (so a
- * reverse-strand CDS reads as its protein, not left to right). A codon
- * counts when any of its columns is selected. A sample's residue is what
- * its bases make of the reference's codon; a codon with a base missing or
- * added is `-` (kept in `aligned`, left out otherwise), and one the sample
- * does not cover is left out. Each CDS is a line of its own.
+ * The amino acids of the codons that columns `r` touch, in reading order
+ * (so a reverse-strand CDS reads as its protein, not left to right). A codon
+ * counts when any of its columns is in `r`. A sample's residue is what its
+ * bases make of the reference's codon; a codon with a base missing or added
+ * is `-`, and one the sample does not cover is `-` too in `aligned` (so the
+ * lines of several rows stay in register) and left out, with the indels,
+ * in `residues`. Each CDS is a line of its own; a CDS with no letter left
+ * is not a line.
  */
-function aminoAcidText(
+export function rowResidues(
   stack: Stack,
   frames: readonly ResidueFrame[],
-  sel: AlignmentSelection,
+  row: number,
   r: ColumnRange,
   mode: CopyMode,
-): string {
-  const row = sel.row === REFERENCE_ROW ? null : stack.rows[sel.row];
-  const lines: string[] = [];
+): ResidueLine[] {
+  const sample = row === REFERENCE_ROW ? null : stack.rows[row];
+  const lines: ResidueLine[] = [];
   for (const frame of frames) {
     if (frame.end <= r.start || frame.start >= r.end) continue;
-    let line = '';
+    let letters = '';
     for (const codon of frame.codons) {
       const span = codonSpan(codon);
       if (span.end <= r.start || span.start >= r.end) continue;
       const letter =
-        row === null || row === undefined ? codon.reference : residueOf(frame, codon, row).letter;
-      if (letter === ' ') continue;
-      if (letter === '-' && mode === 'residues') continue;
-      line += letter;
+        sample === null || sample === undefined
+          ? codon.reference
+          : residueOf(frame, codon, sample).letter;
+      if (mode === 'residues') {
+        if (letter === ' ' || letter === '-') continue;
+        letters += letter;
+      } else {
+        letters += letter === ' ' ? '-' : letter;
+      }
     }
-    if (line !== '') lines.push(line);
+    if (letters !== '') lines.push({ frame: frame.name, letters });
   }
-  return lines.join('\n');
+  return lines;
 }
 
 /**
@@ -118,8 +141,11 @@ export function selectionText(
   if (!selectionValid(stack, sel)) return '';
   const r = selectionColumns(stack, sel);
   if (r === null) return '';
-  if (sel.track === 'bases') return basesText(stack, sel, r, mode);
-  return frames === null ? '' : aminoAcidText(stack, frames, sel, r, mode);
+  if (sel.track === 'bases') return rowBases(stack, sel.row, r, mode);
+  if (frames === null) return '';
+  return rowResidues(stack, frames, sel.row, r, mode)
+    .map((l) => l.letters)
+    .join('\n');
 }
 
 /** A short line for the status after a copy: "Copied 12 bases of s1" and the like. */

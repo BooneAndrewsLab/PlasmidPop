@@ -9,8 +9,6 @@ import {
   selectionValid,
   startSelection,
 } from './alignmentSelection';
-import type { ResidueFrame } from './alignmentResidues';
-import { Cell, type Stack, type StackRow } from './alignmentStack';
 import {
   stackLayout,
   selectionTargetAt,
@@ -18,41 +16,12 @@ import {
   AA_HEIGHT,
   RULER_HEIGHT,
 } from './components/alignmentStackDraw';
-
-function row(name: string, bases: string): StackRow {
-  const cells = Uint8Array.from(
-    bases
-      .split('')
-      .map((ch) => (ch === ' ' ? Cell.Blank : ch === '-' ? Cell.Deletion : Cell.Match)),
-  );
-  const first = bases.search(/\S/);
-  return {
-    name,
-    bases,
-    cells,
-    qualities: null,
-    readIndex: null,
-    firstColumn: first,
-    endColumn: bases.trimEnd().length,
-    result: {} as StackRow['result'],
-  };
-}
-
-function stackOf(reference: string, rows: StackRow[]): Stack {
-  return {
-    columns: reference.length,
-    reference,
-    refIndex: new Int32Array(reference.length),
-    twin: new Int32Array(reference.length).fill(-1),
-    rows,
-    differences: [],
-    offset: 0,
-    wrap: null,
-  };
-}
-
-// Reference ATGAAA-CCC (insertion column 6), sample 1 has a gap and a short stretch.
-const stack = stackOf('ATGAAA-CCC', [row('s1', 'ATG-AAGCCC'), row('s2', '  GAAA-CC ')]);
+import {
+  SAMPLE_FRAME as frame,
+  SAMPLE_STACK as stack,
+  row,
+  stackOf,
+} from '../test/alignmentStackFixture';
 
 describe('selectionColumns', () => {
   it('is inclusive of both ends, whichever came first', () => {
@@ -108,19 +77,6 @@ describe('selectionText bases', () => {
 });
 
 describe('selectionText amino acids', () => {
-  // A forward CDS ATG AAA CCC over columns 0-2, 3-5, then 7-9 (column 6 is an insertion).
-  const frame: ResidueFrame = {
-    name: 'x',
-    strand: 'forward',
-    table: 1,
-    codons: [
-      { columns: [0, 1, 2], reference: 'M', index: 0, first: true },
-      { columns: [3, 4, 5], reference: 'K', index: 1, first: false },
-      { columns: [7, 8, 9], reference: 'P', index: 2, first: false },
-    ],
-    start: 0,
-    end: 10,
-  };
   const aa = (row: number, a: number, b: number) => ({ ...startSelection(row, 'aa', a), head: b });
   it('copies the reference residues of the codons the columns touch', () => {
     expect(selectionText(stack, [frame], aa(REFERENCE_ROW, 0, 9), 'residues')).toBe('MKP');
@@ -136,9 +92,10 @@ describe('selectionText amino acids', () => {
     expect(selectionText(stack, [frame], aa(0, 0, 9), 'residues')).not.toContain('-');
     expect(selectionText(stack, [frame], aa(0, 0, 9), 'aligned')).toContain('-');
   });
-  it('leaves out codons a sample does not cover', () => {
+  it('leaves out codons a sample does not cover, or keeps them as - with the gaps', () => {
     const late = stackOf('ATGAAA-CCC', [row('s3', '      -CCC')]);
-    expect(selectionText(late, [frame], aa(0, 0, 5), 'aligned')).toBe('');
+    expect(selectionText(late, [frame], aa(0, 0, 5), 'residues')).toBe('');
+    expect(selectionText(late, [frame], aa(0, 0, 5), 'aligned')).toBe('--');
     // A codon only partly covered is an indel, as the strip draws it.
     expect(selectionText(stack, [frame], aa(1, 0, 2), 'aligned')).toBe('-');
   });

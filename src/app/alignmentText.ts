@@ -94,7 +94,8 @@ function sampleLine(row: StackRow, before: number, a: number, b: number): Line {
   };
 }
 
-function cut(name: string): string {
+/** A name on one line, cut to `NAME_LIMIT` for the text form's name column. */
+export function cut(name: string): string {
   const one = name.replace(/\s+/g, ' ').trim();
   return one.length > NAME_LIMIT ? `${one.slice(0, NAME_LIMIT - 1)}…` : one;
 }
@@ -159,6 +160,16 @@ function wrap(text: string, width: number): string {
 }
 
 /**
+ * One FASTA record, the header `>name description` (the description, when
+ * given, after a space) and the text in lines of `FASTA_WIDTH`, ending in a
+ * newline. A blank name is `sequence`.
+ */
+export function fastaRecord(name: string, text: string, description = ''): string {
+  const id = name.replace(/\s+/g, ' ').trim() || 'sequence';
+  return `>${id}${description === '' ? '' : ` ${description}`}\n${wrap(text, FASTA_WIDTH)}\n`;
+}
+
+/**
  * The columns as aligned FASTA: the reference first, then every sample, all
  * the same length, a gap as `-`. A sample's stretch outside what it covers
  * is gaps too, so the records stay in register in any tool.
@@ -166,12 +177,10 @@ function wrap(text: string, width: number): string {
 export function alignedFasta(stack: Stack, referenceName: string, range: ColumnRange): string {
   const r = clampRange(stack, range);
   if (r === null) return '';
-  const record = (name: string, text: string): string =>
-    `>${name.replace(/\s+/g, ' ').trim() || 'sequence'}\n${wrap(text, FASTA_WIDTH)}\n`;
   return [
-    record(referenceName, stack.reference.slice(r.start, r.end)),
+    fastaRecord(referenceName, stack.reference.slice(r.start, r.end)),
     ...stack.rows.map((row) =>
-      record(row.name, row.bases.slice(r.start, r.end).replace(/ /g, '-')),
+      fastaRecord(row.name, row.bases.slice(r.start, r.end).replace(/ /g, '-')),
     ),
   ].join('');
 }
