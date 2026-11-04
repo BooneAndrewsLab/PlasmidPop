@@ -337,6 +337,13 @@ export const EVENTS = {
    */
   'selection-bar': ['add-feature', 'copy'],
   /**
+   * The bar beside a selection in the alignment's large view and its
+   * Advanced copy panel (#366): `copy` is a copy made from one of them,
+   * named `bar` for the bar's button or by the panel's format (`text`,
+   * `fasta`); never what was copied, nor how much.
+   */
+  'alignment-selection': ['copy'],
+  /**
    * Protein documents (#66): `open` is Translate ▸ Open as protein, named by
    * what was translated (`cds` or `frame`); a protein file's own
    * `file / open` says its format, as for DNA.

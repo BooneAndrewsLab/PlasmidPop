@@ -4673,7 +4673,8 @@ button {
     transition: opacity 0.15s ease;
   }
 
-  .seq-view:not(:hover) .selection-bar:not(:focus-within) {
+  .seq-view:not(:hover) .selection-bar:not(:focus-within),
+  .astack:not(:hover) .selection-bar:not(:focus-within) {
     opacity: 0.4;
   }
 }
@@ -5106,6 +5107,132 @@ button {
   width: 20rem;
 }
 
+/* The Advanced copy panel (#366) hangs from an empty anchor put where the
+   selection bar is, in the `.astack`'s own space, so the popover's frame,
+   its edge fitting and its family look are reused unchanged. */
+.astack-copy {
+  position: absolute;
+  z-index: 6; /* above the scroller and the bar */
+  width: 0;
+  height: 0;
+}
+
+.astack-pop--copy {
+  width: 28rem;
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+}
+
+/* Toggle chips: a real checkbox under a pill, lit in the accent when on. */
+.astack-pop__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.astack-pop__chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  height: 26px;
+  padding: 0 11px 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.astack-pop__chip::before {
+  content: '';
+  box-sizing: border-box;
+  width: 13px;
+  height: 13px;
+  border: 1px solid var(--ink-3);
+  border-radius: 4px;
+  background: var(--surface);
+  transition: inherit;
+}
+
+/* The checkbox itself covers the chip, unseen, so a click or a key lands on it. */
+.astack-pop__chip input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.astack-pop__chip:hover:not(:has(input:disabled)) {
+  background: var(--surface-3);
+}
+
+.astack-pop__chip:has(input:checked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--accent);
+}
+
+.astack-pop__chip:has(input:checked)::before {
+  border-color: var(--accent);
+  background: var(--accent)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.5l2.5 2.5 4.5-5' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    center / 11px no-repeat;
+}
+
+.astack-pop__chip:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.astack-pop__chip:has(input:disabled) {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* The preview: the first lines as they will paste, in the sequence font. */
+.astack-copy__preview {
+  max-width: 100%;
+  margin: -4px 0 0;
+  padding: 8px 10px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font: 12px/1.45 var(--font-mono);
+  white-space: pre;
+}
+
+.astack-copy__preview--empty {
+  color: var(--ink-3);
+  font-family: var(--font-ui);
+  white-space: normal;
+}
+
+.astack-copy__more {
+  color: var(--ink-3);
+  font-family: var(--font-ui);
+}
+
+.astack-copy__count {
+  text-align: right;
+}
+
+.astack-copy__warn {
+  color: var(--warn);
+}
+
 /* The Amino acids button sits at the toolbar's right end, so its popover hangs from the right. */
 .astack-pop--end {
   right: 0;
@@ -5452,6 +5579,7 @@ button {
 }
 
 .astack {
+  position: relative; /* the Advanced copy panel is placed in its space (#366) */
   display: flex;
   flex: 1;
   flex-direction: column;

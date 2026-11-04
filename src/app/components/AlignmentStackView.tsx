@@ -12,6 +12,8 @@ import {
 
 import { measureCharWidth, monoFontOf } from '@/view/linear';
 
+import { AlignmentCopyPanel } from './AlignmentCopyPanel';
+import { AlignmentSelectionBar } from './AlignmentSelectionBar';
 import { followTooltip, hideFollowTooltip } from './tooltip';
 
 import { residueTitle, sampleChanges } from '../alignmentChanges';
@@ -19,6 +21,8 @@ import {
   REFERENCE_ROW,
   copiedNote,
   extendSelection,
+  rowName,
+  selectionColumns,
   selectionText,
   selectionValid,
   startSelection,
@@ -52,6 +56,12 @@ import {
 
 /** No difference reviewed: one set, so a render without the prop is not a new one each time. */
 const NONE_REVIEWED: ReadonlySet<number> = new Set();
+
+/** The selection bar's size, for keeping it inside the view (#366): two small buttons and a count. */
+const BAR_HEIGHT = 30;
+const BAR_WIDTH = 280;
+/** Room between the bar and the row it belongs to. */
+const BAR_GAP = 4;
 
 /** What the window lets its owner reach: the columns in view, and the drawing to export. */
 export interface StackHandle {
@@ -138,15 +148,23 @@ export function AlignmentStackView({
   const [colours, setColours] = useState<Colours | null>(null);
   const [picked, setPicked] = useState<AlignmentSelection | null>(null);
   const [copyNote, setCopyNote] = useState('');
+  /** Where the Advanced copy panel hangs from, in the `.astack`'s coordinates; null when closed. */
+  const [panelAt, setPanelAt] = useState<{ left: number; top: number } | null>(null);
+  const root = useRef<HTMLDivElement>(null);
   // A different stack (a sample hidden, a new alignment) puts the columns elsewhere.
   const [seenStack, setSeenStack] = useState(stack);
   if (stack !== seenStack) {
     setSeenStack(stack);
     setPicked(null);
     setCopyNote('');
+    setPanelAt(null);
   }
   const selection = picked !== null && selectionValid(stack, picked) ? picked : null;
   const selecting = useRef(false);
+  const [dragSelecting, setDragSelecting] = useState(false);
+  const closePanel = useCallback(() => {
+    setPanelAt(null);
+  }, []);
 
   const monoFont = monoFontOf(FONT_SIZE);
   const charWidth = useMemo(() => measureCharWidth(monoFont), [monoFont]);
@@ -462,14 +480,58 @@ export function AlignmentStackView({
     const text = selectionText(stack, residues, selection, mode);
     if (text === '') return false;
     copyText(text);
-    const name =
-      selection.row === REFERENCE_ROW ? referenceName : (stack.rows[selection.row]?.name ?? '');
-    setCopyNote(copiedNote(name, selection.track, text, mode));
+    setCopyNote(
+      copiedNote(rowName(stack, referenceName, selection.row), selection.track, text, mode),
+    );
     return true;
   };
 
+  /**
+   * The bar beside the selection (#366), in the scroller's content space:
+   * above the row where there is room under the pinned header, else under
+   * it (always under the reference, which is pinned at the top: there the
+   * bar sits just below the header, over the first sample rather than over
+   * the reference's own strips). Kept inside the view sideways; null while
+   * dragging, or when the row has scrolled under the header or out of view.
+   */
+  const barAt = (() => {
+    if (selection === null || dragSelecting) return null;
+    const cols = selectionColumns(stack, selection);
+    if (cols === null) return null;
+    const reference = selection.row === REFERENCE_ROW;
+    const strip = selection.track === 'aa' ? ROW_HEIGHT : 0;
+    const height = selection.track === 'aa' ? layout.aaHeight : ROW_HEIGHT;
+    // The reference is pinned; a sample's strip scrolls under the header.
+    const canvasTop = reference
+      ? RULER_HEIGHT + layout.trackHeight + strip
+      : headerHeight + (tops[selection.row] ?? 0) - scroll.top + strip;
+    const above = canvasTop - BAR_HEIGHT - BAR_GAP;
+    const below =
+      (reference ? Math.max(headerHeight, canvasTop + height) : canvasTop + height) + BAR_GAP;
+    const y = !reference && above >= headerHeight ? above : below;
+    if (y + BAR_HEIGHT > size.height || (!reference && canvasTop + height < headerHeight)) {
+      return null;
+    }
+    const x = Math.max(
+      NAME_WIDTH + BAR_GAP,
+      Math.min(NAME_WIDTH + cols.start * charWidth - scroll.left, size.width - BAR_WIDTH),
+    );
+    return { left: scroll.left + x, top: scroll.top + y, columns: cols.end - cols.start };
+  })();
+  /** Open the Advanced copy panel under the bar, or close it when it is open. */
+  const togglePanel = (bar: HTMLElement): void => {
+    if (panelAt !== null) {
+      setPanelAt(null);
+      return;
+    }
+    const box = root.current?.getBoundingClientRect();
+    const at = bar.getBoundingClientRect();
+    if (box === undefined) return;
+    setPanelAt({ left: at.left - box.left, top: at.bottom - box.top });
+  };
+
   return (
-    <div className="astack">
+    <div className="astack" ref={root}>
       <canvas
         ref={overview}
         className="astack__overview"
@@ -524,7 +586,7 @@ export function AlignmentStackView({
           setScroll({ left: el.scrollLeft, top: el.scrollTop });
         }}
       >
-        <div style={{ width: contentWidth, height: contentHeight }}>
+        <div style={{ width: contentWidth, height: contentHeight, position: 'relative' }}>
           <canvas
             ref={canvas}
             className="astack__canvas"
@@ -557,6 +619,7 @@ export function AlignmentStackView({
                 e.clientY - rect.top,
                 scroll.top,
               );
+              setPanelAt(null);
               if (target === null) {
                 setPicked(null);
                 setCopyNote('');
@@ -570,13 +633,16 @@ export function AlignmentStackView({
                 setPicked(startSelection(target.row, target.track, column));
               }
               selecting.current = true;
+              setDragSelecting(true);
               e.currentTarget.setPointerCapture(e.pointerId);
             }}
             onPointerUp={() => {
               selecting.current = false;
+              setDragSelecting(false);
             }}
             onPointerCancel={() => {
               selecting.current = false;
+              setDragSelecting(false);
             }}
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
@@ -598,8 +664,37 @@ export function AlignmentStackView({
               }
             }}
           />
+          {barAt !== null && (
+            <AlignmentSelectionBar
+              left={barAt.left}
+              top={barAt.top}
+              columns={barAt.columns}
+              advancedOpen={panelAt !== null}
+              onCopy={() => {
+                copySelection('residues');
+                // The keys work from the scroller, so hand it the focus back.
+                scroller.current?.focus();
+              }}
+              onAdvanced={togglePanel}
+            />
+          )}
         </div>
       </div>
+      {panelAt !== null && selection !== null && (
+        <AlignmentCopyPanel
+          stack={stack}
+          frames={residues}
+          referenceName={referenceName}
+          selection={selection}
+          left={panelAt.left}
+          top={panelAt.top}
+          onCopied={(note) => {
+            setCopyNote(note);
+            scroller.current?.focus();
+          }}
+          onClose={closePanel}
+        />
+      )}
       {copyNote !== '' && (
         <div className="astack__copy-note" role="status">
           {copyNote}
