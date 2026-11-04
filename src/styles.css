@@ -5308,6 +5308,11 @@ button {
   color: var(--ink-2);
 }
 
+/* A button group is as wide as its buttons, not the column it sits in. */
+.astack-pop__form > .segmented {
+  justify-self: start;
+}
+
 .astack-pop__form > label {
   grid-column: 1 / -1;
   display: grid;
