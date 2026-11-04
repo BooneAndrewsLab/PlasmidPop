@@ -195,6 +195,16 @@ describe('guide tree', () => {
     for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) expect(e[a]?.[b]).toBe(e[b]?.[a]);
   });
 
+  it('measures zero between identical sequences with no valid k-mer, one otherwise', () => {
+    // ACGT are 0-3, N is 4 and R is 5: both are ambiguity codes.
+    const enc = (s: string): Uint8Array =>
+      Uint8Array.from(s.split('').map((c) => (c === 'N' ? 4 : c === 'R' ? 5 : 'ACGT'.indexOf(c))));
+    expect(kmerDistances([enc('NNNNNN'), enc('NNNNNN')], 4, 3)[0]?.[1]).toBe(0);
+    expect(kmerDistances([enc('AC'), enc('AC')], 4, 3)[0]?.[1]).toBe(0);
+    expect(kmerDistances([enc('NNNNNN'), enc('RRRRRR')], 4, 3)[0]?.[1]).toBe(1);
+    expect(kmerDistances([enc('ACGTAC'), enc('NNNNNN')], 4, 3)[0]?.[1]).toBe(1);
+  });
+
   it('keeps the k-mer distance symmetric with ambiguity codes', () => {
     const enc = (s: string): Uint8Array =>
       Uint8Array.from(s.split('').map((c) => (c === 'N' ? 4 : 'ACGT'.indexOf(c))));

@@ -76,6 +76,12 @@ export function kmerLength(alphabet: 'nucleotide' | 'protein', shortest: number)
   return shortest < 40 ? 3 : shortest < 200 ? 5 : 6;
 }
 
+function sameCodes(a: Uint8Array | undefined, b: Uint8Array | undefined): boolean {
+  if (a === undefined || b === undefined || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
 /**
  * 1 − (k-mers shared, counted with multiplicity) / (k-mers of the shorter
  * sequence), where only k-mers free of ambiguity codes count, on both sides; 0 for identical sequences, 1 for sequences with none in common.
@@ -115,7 +121,14 @@ export function kmerDistances(codes: readonly Uint8Array[], radix: number, k: nu
       if (ca !== undefined && cb !== undefined) {
         for (let h = 0; h < size; h++) shared += Math.min(ca[h] ?? 0, cb[h] ?? 0);
       }
-      const dist = 1 - Math.min(1, shared / Math.min(la, lb));
+      // With no valid window on either side there is no evidence either way: equal
+      // sequences are 0 apart, and any other pair is 1 apart.
+      const dist =
+        windows[a] === 0 && windows[b] === 0
+          ? sameCodes(codes[a], codes[b])
+            ? 0
+            : 1
+          : 1 - Math.min(1, shared / Math.min(la, lb));
       at(d, a)[b] = dist;
       at(d, b)[a] = dist;
     }
