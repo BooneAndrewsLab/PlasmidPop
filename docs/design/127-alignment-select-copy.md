@@ -99,3 +99,42 @@ lifting (DOM geometry); seen in a browser once, desktop width only. The
 alignment window is not offered by the phone shell, so a narrow viewport is
 a narrow desktop window: the popover's `max-width` and the preview's own
 horizontal scroll keep it inside one.
+
+## The multiple alignment (#368)
+
+**Asked:** the same selection, bar and panel in the multiple-alignment window
+(`MsaDialog`), which had only whole-alignment Save and Copy FASTA.
+
+**Built:** the same experience on a different data shape. The MSA has plain
+strings (`alignment.rows`), a consensus row and no reference, strips or
+tracks, so its pure side is its own and small: `msaSelection.ts` (selection,
+hit test of the canvas, what Ctrl+C copies, the bar's placement, which is
+pure here unlike the large view's inline arithmetic) and `msaCopy.ts`
+(options, `msaCopyOutput`, remembered under `plasmidpop.msaCopy`). The
+parts that do not depend on the data are shared rather than copied:
+`CopyPanelFrame` is the panel's shell (popover, Esc, press outside, lifting,
+preview with counts, large-copy warning, Copy) with `CopyExtras` for the
+Names and Coordinates chips, and `AlignmentCopyPanel` was reduced to its
+choices on top of it; `CopyOutput`, `copySummary`, `previewLines`,
+`largeCopyWarning`, `fastaRecord`, `cut` and the storage helpers are the
+large view's own; `AlignmentSelectionBar` is used as is (a tooltip prop).
+
+**Decisions:**
+
+- The consensus row is selectable: it is a row of letters, and its copy is
+  a reasonable thing to want. It is pinned, so its bar sits just under the
+  header. Its gap-majority `-` columns are gaps like any other.
+- Rows: this row, every sequence, or the consensus and every sequence. The
+  large view's "with the reference" has no counterpart.
+- Removed as inapplicable: Tracks (no amino-acid strips) and any reference
+  wording. Gaps follow the large view: several rows go out with gaps kept.
+- Coordinates: the large view's reference positions do not exist here, so it
+  is the columns plus the sequence's own residue numbers (`residues 12-40`),
+  none for the consensus. Text carries the residue numbers only when a single
+  sequence goes out; FASTA puts them after each name.
+- Unit in the copy note is `base` or `residue` by the alignment's alphabet.
+- Analytics: the same `alignment-selection / copy` event, named `bar`,
+  `text` or `fasta`.
+
+Not covered by tests: the pointer handling and the panel's placement in
+`MsaDialog` (DOM geometry); the pure pieces are.

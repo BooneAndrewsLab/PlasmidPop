@@ -338,7 +338,8 @@ export const EVENTS = {
   'selection-bar': ['add-feature', 'copy'],
   /**
    * The bar beside a selection in the alignment's large view and its
-   * Advanced copy panel (#366): `copy` is a copy made from one of them,
+   * Advanced copy panel (#366), and the same in the multiple alignment's
+   * window (#368): `copy` is a copy made from one of them,
    * named `bar` for the bar's button or by the panel's format (`text`,
    * `fasta`); never what was copied, nor how much.
    */

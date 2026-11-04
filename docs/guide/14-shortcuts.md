@@ -90,6 +90,7 @@ it has.
 | `Alt+T`                        | In the alignment's large view: Amino acids' Residues on or off (follows a rebound Translations)                                                                                                                                                                                             |
 | `↑`, `↓`                       | In the alignment's large view, with the alignment focused: pick the sample above or below                                                                                                                                                                                                   |
 | `Ctrl+C`, `Ctrl+Alt+C`         | In the alignment's large view, with a selection dragged or Shift-clicked over a row: copy its residues; copy the aligned row with gaps kept (an amino-acid strip copies its amino acids). The bar beside the selection has the same Copy and an Advanced copy panel, which Esc closes first |
+| `Ctrl+C`, `Ctrl+Alt+C`         | In the multiple alignment's window, with a run of columns dragged or Shift-clicked on a row (the consensus too): copy its letters; copy the row as drawn with gaps kept. The bar beside the selection has the same Copy and an Advanced copy panel, which Esc closes first                  |
 
 ## Find
 

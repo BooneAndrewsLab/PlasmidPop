@@ -351,6 +351,38 @@ the Align button.
    (`*` where every sequence agrees, `:` where every pair of residues of a
    protein scores above zero in BLOSUM62).
 
+5. **Select and copy a run of columns.** Drag across the letters of one
+   sequence's row, or of the consensus row, to select columns, or click one
+   end and `Shift`-click the other. The selection stays on the row it began
+   on; a click on the ruler, the conservation bar or empty space clears it.
+   `Ctrl+C` (`Cmd+C` on a Mac), with the alignment focused, copies that row's
+   **own letters**, gaps left out; `Ctrl+Alt+C` copies the **row as drawn**,
+   gaps kept as `-`, so it lines up with the others. A line beside the
+   buttons above says what was copied. The selection is for copying only:
+   it is not in a saved file.
+
+   A small bar floats beside the selection once the mouse is released:
+   **Copy** is `Ctrl+C`, the count says how many columns are selected, and
+   **Advanced copy…** opens a panel to compose what goes out:
+
+   - **Rows:** this row (or the consensus), every sequence, or the consensus
+     and every sequence, all in register.
+   - **Columns:** the selected ones, or the whole alignment.
+   - **Gaps:** kept as `-`, or dropped (the row's own letters, as `Ctrl+C`).
+     With more than one row the gaps are kept, so the rows stay in register.
+   - **Format:** text (one sequence per line) or FASTA (a named record each,
+     60 letters per line).
+   - **Extras:** **Names** leads each text line with the sequence's name in
+     one padded column (FASTA records are always named); **Coordinates**
+     adds the columns these are and, for a sequence, its own residue
+     numbers there (a first line in text, a note after each FASTA name).
+
+   The preview shows the first lines; a very large copy gets a warning but
+   still goes. The panel remembers its settings in this browser, and `Esc`
+   closes it before the window. There is no reference or amino-acid choice
+   here, as in the [large view](#large-view): every row is an equal
+   sequence.
+
 Bases are scored as in [pairwise alignment](#scoring-and-limits), and proteins
 (when the open document is a protein) by BLOSUM62. The method is progressive: a guide tree is built from how many short words each pair of
 sequences shares, the sequences are joined along it, and the result is
