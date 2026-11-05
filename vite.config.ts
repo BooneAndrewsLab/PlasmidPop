@@ -21,6 +21,7 @@ import {
   type SampleFile,
 } from './src/app/help/staticTutorials.ts';
 import { handleShareTarget, isShareTargetRequest } from './src/pwa/shareTarget.ts';
+import { MUTATION_SKIP } from './scripts/mutationTools.mjs';
 
 /**
  * Deployment base path, e.g. "/PlasmidPop/" for GitHub Pages under a repo.
@@ -48,28 +49,21 @@ const DOM_TESTS = ALL_TESTS.filter((f) =>
 // mutated files are mostly not UI.
 const UNIT_ONLY = process.env['PLASMIDPOP_MUTATION_UNIT'] === '1';
 
-// The Sanger assembly oracle (#335) runs about 20 s here and 5-11 minutes in
-// an instrumented sandbox, per file; perTest coverage would run it for every
-// mutant of the assembler. A mutation run leaves it out; the assembler's unit
-// tests (assemble.test.ts and the rest) are what kills its mutants.
-// The alignment suites that take minutes per test instrumented (the Biopython
-// oracle, banded, strands, the origin and read-alignment batches, the MSA
-// oracle) go the same way: the dry run runs every test once on one worker and
-// their sum alone passes the 45-minute limit. Their cheaper unit tests stay.
-const MUTATION_SKIP = [
-  'src/test/oracle/sangerAssembly[0-9]*.test.ts',
-  'src/test/oracle/alignment.test.ts',
-  'src/test/oracle/msa.test.ts',
-  'src/core/alignment/banded.test.ts',
-  'src/core/alignment/strands.test.ts',
-  'src/app/readAlignment.mapping.test.ts',
-  'src/app/readBatch.timing.test.ts',
-  'src/app/alignmentOriginIndel.test.ts',
-  'src/app/alignmentOrigin.test.ts',
-  'src/app/readAlignment.test.ts',
-  'src/core/cloning/mutagenesis.property.test.ts',
-  'src/core/cloning/overlapPrimers.property.test.ts',
-];
+// `npm run mutate:changed` (#355) passes the tests that can reach the changed
+// files, one per line, so the dry run leaves out the rest. The list comes from
+// scripts/mutationTools.mjs `relatedTests`, which follows imports and so
+// names a superset of the tests that cover a mutant.
+const MUTATION_TESTS = process.env['PLASMIDPOP_MUTATION_TESTS'];
+const NOT_RELATED =
+  MUTATION_TESTS === undefined
+    ? []
+    : ALL_TESTS.filter((f) => !MUTATION_TESTS.split('\n').includes(f));
+
+// A mutation run leaves out the suites in `MUTATION_SKIP`
+// (scripts/mutationTools.mjs: the Sanger assembly oracle, the alignment
+// oracles and the other alignment suites that take minutes per test
+// instrumented). Their cheaper unit tests stay; item 50 says what that
+// means for survivors.
 
 const ISOLATED_TESTS = ALL_TESTS.filter((f) => {
   const text = readFileSync(f, 'utf8');
@@ -320,7 +314,12 @@ export default defineConfig({
               test: {
                 name: 'shared',
                 include: TESTS,
-                exclude: [...ISOLATED_TESTS, ...MUTATION_SKIP, ...(UNIT_ONLY ? DOM_TESTS : [])],
+                exclude: [
+                  ...ISOLATED_TESTS,
+                  ...MUTATION_SKIP,
+                  ...NOT_RELATED,
+                  ...(UNIT_ONLY ? DOM_TESTS : []),
+                ],
                 isolate: false,
               },
             },
@@ -328,9 +327,11 @@ export default defineConfig({
               extends: true,
               test: {
                 name: 'isolated',
-                include: UNIT_ONLY
+                include: (UNIT_ONLY
                   ? ISOLATED_TESTS.filter((f) => !DOM_TESTS.includes(f))
-                  : ISOLATED_TESTS,
+                  : ISOLATED_TESTS
+                ).filter((f) => !NOT_RELATED.includes(f)),
+                exclude: MUTATION_SKIP,
               },
             },
           ],
