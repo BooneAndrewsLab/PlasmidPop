@@ -844,9 +844,89 @@ miscounted as a loop). The unit tests are in
    (`--incremental-from`). Do not start it alongside other work.
 4. Triage per "Keeping a pass affordable": survivors on changed lines (the
    listing above), then the timeouts that are not loops. Write the missing
-   tests, list the equivalents in this note by kind.
+   tests, list the equivalents in this note by kind. The timeouts left over
+   from earlier releases are a separate, longer pass:
+   `npm run mutate:recheck-timeouts` (below, #356).
 5. One confirming rerun of `mutate:changed` (it reuses what it can), then the
    version bump.
+
+### Re-checking old timeouts: `npm run mutate:recheck-timeouts` (#356)
+
+A timeout counts as detected, and the incremental file keeps the timeouts of
+every earlier run: 443 mutants after 1.21.0, of which the loop-counter flips
+are sound kills. The rest were never looked at, and the by-hand pass of "At
+1.21: mutants that timed out" found four gaps among 43. This script does that
+pass for all of them.
+
+For each `Timeout` mutant in `reports/mutation/mutation.json` and
+`stryker-incremental.json` (a mutant in both is read from `mutation.json`, so a
+timeout a later run killed is not re-checked) that is not a loop (an
+`UpdateOperator` mutant, or any mutant on a line that opens a `for`, `while`
+or `do`: the heuristic of `mutate:triage`), it applies the replacement at the
+report's location, runs the test files that covered the mutant
+(`coveredBy` mapped through the report's `testFiles`; the by-imports allowlist
+of `relatedTests`, minus `MUTATION_SKIP`, for a mutant the report has no
+coverage for), puts the file back, and records a verdict:
+
+| Verdict        | Meaning                                                                                      |
+| -------------- | -------------------------------------------------------------------------------------------- |
+| `survived`     | the covering tests pass with the mutant applied: it only made the code slower. **The list.** |
+| `killed`       | a test fails: the timeout was a real kill that only needed its time to fail                  |
+| `timeout`      | the tests ran out of time again (the process limit, or a test limit): sound, leave it        |
+| `error`        | the mutated file did not compile or load; read it by hand                                    |
+| `stale`        | the file changed since the report (the span or its lines read differently): not applied      |
+| `no-tests`     | no existing test file covers it                                                              |
+| `baseline-red` | the file's tests fail unmutated, so no verdict means anything; the file is skipped           |
+
+The limit per mutant is the time of the file's covering tests run once
+unmutated times 4, at least 20 s (`--timeout-factor`, `--min-seconds`; or one
+`--timeout-seconds` for all). Vitest runs as `vitest run <files>
+--testTimeout=<half the limit>` in its own process group, and the group is
+killed at the limit, so a loop that never ends is gone, workers included.
+Mutation-mode settings (`PLASMIDPOP_MUTATION*`) are removed from its
+environment: a plain run, no instrumentation.
+
+**Survivors are not all gaps.** Sort each by kind in this note: cache,
+prefilter, fast path, guard (equivalent), or a missing test (write it; never
+change production code; one fresh agent per file). The report is
+`reports/mutation/timeout-recheck/report.md` and `report.json` (git-ignored with
+the rest of `reports/mutation`), per file with the covering test files.
+
+**It edits the real source, one mutant at a time, so it must never leave one
+mutated.**
+
+- The original text is held in memory and written back in `finally`, on SIGINT,
+  SIGTERM and SIGHUP (it also kills the test process group and saves the
+  state), on an uncaught error or rejection, and at process exit.
+- Before a mutant is written, a copy of the file (`applied.orig`) and a journal
+  (`applied.json`) go to the state folder. After a kill -9 the next start
+  restores the file from them before it reads anything.
+- It refuses to start if the files it would mutate have uncommitted changes
+  (`git status --porcelain`), or outside a git checkout, or if another run's
+  lock names a live process.
+- After every mutant it compares the file with the original and runs `git diff
+--stat HEAD` on the target files; if either differs it stops and says so.
+- A mutant is applied only where the file still reads as the report's source
+  on the mutant's lines (`stale` otherwise): 20 of the 125 in the 1.21.0
+  report were stale, in six files changed since.
+
+Flags: `--dry-run` (what it would apply, per file and line, with the number of
+covering test files; no file touched, no test run, no state written), `--file
+<path>` (repeatable; a path or part of one), `--limit <n>` (at most n mutants
+now), `--resume` (the state file `state.json` is written after every mutant, so
+an interrupted run continues; without the flag a run starts a fresh state),
+`--report <file>`, `--dir <folder>`. Run it on an idle machine with nothing
+else saving the files (the editor, a test run): a mutated file is on disk for
+the length of each run. The unit tests
+(`src/test/scripts/timeoutRecheck.test.ts`) run it end to end on a toy project
+in a temporary directory with a fake runner, including a SIGTERM in the middle
+of a mutant and a leftover journal; the real sources are never touched there.
+
+Counted read-only in the 1.21.0 reports: 443 timeouts in `stryker-incremental.json`
+(423 in `mutation.json`), 125 of them not loops by this heuristic, 105 of which
+apply (20 files; 20 stale). The heuristic counts every mutant on a loop's
+header line as a loop, so the number to re-check is smaller than the "about
+245" first estimated from `UpdateOperator` alone.
 
 ### What a mutation run skips, and what that means for survivors
 

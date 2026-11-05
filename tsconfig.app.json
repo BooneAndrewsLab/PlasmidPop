@@ -13,5 +13,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "scripts/mutationTools.mjs"]
+  "include": ["src", "scripts/mutationTools.mjs", "scripts/timeoutRecheck.mjs"]
 }
