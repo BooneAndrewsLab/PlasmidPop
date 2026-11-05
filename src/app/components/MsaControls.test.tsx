@@ -199,7 +199,7 @@ describe('drawing the alignment', () => {
     expect(guides).toEqual([
       `${168 + 2 * MSA_CHAR_WIDTH},${MSA_RULER_HEIGHT},${MSA_CHAR_WIDTH},200`,
     ]);
-    expect(SELECTION_GUIDE_ALPHA).toBeLessThan(0.1);
+    expect(SELECTION_GUIDE_ALPHA).toBeLessThan(0.16);
     expect(clips).toContain(`168,${MSA_RULER_HEIGHT},232,${200 - MSA_RULER_HEIGHT}`);
     // The same on the consensus row; out of view, none.
     guides.length = 0;

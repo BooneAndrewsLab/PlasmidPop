@@ -24,6 +24,7 @@ import {
   type Colours,
   RULER_HEIGHT,
   drawStack,
+  SELECTION_GUIDE_ALPHA,
   type StackDrawing,
 } from './components/alignmentStackDraw';
 
@@ -101,7 +102,7 @@ describe('the picture of the stack', () => {
 
   it('does not carry the selection guide into a file (#371)', () => {
     const plainSvg = alignmentSvg(d, { start: 10, end: 30 }, 'Alignment');
-    expect(plainSvg).not.toContain('fill-opacity="0.07"');
+    expect(plainSvg).not.toContain('fill-opacity="0.12"');
   });
 
   it('shades the selection columns on the other rows too, clipped below the ruler (#371)', () => {
@@ -116,7 +117,7 @@ describe('the picture of the stack', () => {
             if (prop === 'measureText') return () => ({ width: 5 });
             if (prop === 'fillRect') {
               return (x: number, y: number, w: number, h: number) => {
-                if (alpha === 0.07) calls.push(`${x},${y},${w},${h}`);
+                if (alpha === SELECTION_GUIDE_ALPHA) calls.push(`${x},${y},${w},${h}`);
               };
             }
             return () => undefined;
