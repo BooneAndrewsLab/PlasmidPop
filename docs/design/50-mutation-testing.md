@@ -800,6 +800,71 @@ Equivalent, by kind:
   `sameCodes` is false (equal codes have equal windows), which gives 1 as well.
   Only the case with none on both sides needs the special rule.
 
+### At 1.22 pre-release: `assembly/assemble.ts` (#355)
+
+The 19 survivors on lines changed since v1.21.0 (the read-pair code: `extentOf` and
+its binary search, `extentOfCandidate`, `withPairs`, `pairWarning`, and the mate
+lookup in `assembleWith`) and the two timeouts of the binary search that are not
+loops were each applied by hand and run against `pairing.assemble.test.ts` (about
+10 s for the file, against 70 s for `assemble.test.ts`; the Sanger oracle was
+not needed). Nine were gaps and are killed by four new tests there; the 10 others
+are equivalent.
+
+Killed:
+
+- L285 `first < 0` to `first <= 0`: a mate that lies at column 0 of the layout
+  (a read hanging over the seed on the left) was treated as not placed, so its
+  pair could not settle a repeat. "takes the mate at the first column of the layout".
+- L293 `<` to `<=` (the search counts the consensus bases _up to_ a column, not
+  before it) and L298 `before(last + 1)` to `before(last - 1)`: both move the
+  mate's end by one or two bases, which the 100-base tolerance of the insert
+  hides unless the insert sits exactly at its edge (template 350, insert 250 and
+  450). "counts the mate from its first to its last base".
+- L712 `startA - startB` to `startA + startB` and `endA + (length - endB)` to
+  `endA - (...)`: a candidate place is extended by the bases of the read the
+  alignment left out, which is nothing for a read that fits whole; a read with
+  two foreign bases at one end, with the insert at the tolerance's edge, moves
+  by 4 with the sign wrong. "counts the bases a read hangs over where it fits".
+- L862 `r.index === pair.first` to `true`: the warning named the contig's first
+  read, which is the first mate in every other test. With an unpaired read at the
+  left, "names the mates and the distance in every warning" also fixes the
+  warning's start, end and read.
+- L870 `insert === null` to `true` and the template literal to ` `` `, and L880
+  `template ?? 0` to `template && 0`: the insert and the distance in the
+  `too-long` message were not asserted (same test; the facing-away message is
+  compared whole).
+
+Equivalent, by kind:
+
+- **Sound timeouts, not gaps.** L292 `(lo + hi) >> 1` to `(lo - hi) >> 1` and
+  L293 `lo = mid + 1` to `mid - 1`, with L291 `lo < hi` to `lo <= hi` (and the
+  emptied body, L291): a binary search that no longer shrinks its interval loops
+  forever, and a synchronous loop cannot fail an assertion, so only a timeout
+  kills it. Applied by hand, `pairing.assemble.test.ts` hangs for all three
+  (killed by `timeout`, exit 124), restored it passes in 2 s. The search is
+  reached by any test that settles a repeat with a mate (the new column-0 test
+  and the existing ones that settle a repeat).
+- **Dead branch.** L285 `first < 0` to `false`: a placed read has an alignment,
+  and an alignment has at least one column that is not blank, so `first` is
+  never -1; the guard is there for the type checker and the row lookup above it.
+- **Guard covered by another guard.** L833 `check.contig === null` to `false`:
+  `assembly.contigs[null]` is `undefined`, and L835 skips that.
+- **Unreachable defensive guard.** L835 `contig === undefined` to `false`: a
+  check's contig index is one of the assembly's contigs. L864 `a === undefined
+|| b === undefined` (four mutants: `false`, either operand `false`, `&&`):
+  `pairWarning` is only reached with a state of `too-short`, `too-long`,
+  `same-strand` or `facing-away`, which need both mates in the one contig;
+  `linked`, where they are in two, returns null at the line above.
+- **Dead branch.** L870 `''` to `"Stryker was here!"`: the `about` text is used
+  only by `too-short`, `too-long` and `facing-away` with an insert, all of which
+  need a known insert size (without one every distance is `consistent`).
+- **Value unobservable.** L916 `options.pairs ?? []` to `["Stryker was here"]`:
+  with no pairs `mates` gets one entry under `undefined`, and it is only ever
+  read by a read's numeric index.
+- **Guard covered by another guard.** L974 `mate === undefined` to `false`:
+  `extentOf(undefined)` finds no row and returns null, which is what the guard
+  gives.
+
 ## A cheap dry run (#355, #320, 2026-11-05)
 
 The 1.21.0 pre-release `npm run mutate` took 53 minutes in its dry run alone

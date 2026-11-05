@@ -103,6 +103,74 @@ describe('a mate says which copy of a repeat a read is in (#347)', () => {
   );
 
   it(
+    'takes the mate at the first column of the layout, a read that hangs over the seed on the left',
+    async () => {
+      // m_F lies from 0 and the seed from 100, so m_F is at column 0 and its extent is still known:
+      // the reverse read in the second copy (750-850) is a template of 850 from it, in the first
+      // copy (350-450) one of 450.
+      const reads = [fwd('whole', 100, 1200), fwd('m_F', 0, 300), rev('m_R', 750, 850)];
+      const out = await assembleReads(reads, withPairs(reads, 850));
+      expect(out.contigs).toHaveLength(1);
+      expect(place(out, 'm_R')).toBe('750-850-');
+      expect(out.contigs[0]?.warnings).toEqual([]);
+      const first = await assembleReads(reads, withPairs(reads, 450));
+      expect(place(first, 'm_R')).toBe('350-450-');
+      expect(first.contigs[0]?.warnings).toEqual([]);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'counts the mate from its first to its last base, to the base: an insert at the edge of the tolerance',
+    async () => {
+      // t_F in the second copy (750-850), its mate 1000-1100: a template of 350. A tolerance of
+      // 100 takes an insert of 250 and of 450 and no other; a mate laid one base later or two
+      // earlier falls outside, and then neither copy fits and the read is a guess.
+      const reads = [fwd('whole', 0, 1200), fwd('t_F', 750, 850), rev('t_R', 1000, 1100)];
+      for (const insert of [250, 450]) {
+        const out = await assembleReads(reads, withPairs(reads, insert));
+        expect(place(out, 't_F'), `insert ${insert}`).toBe('750-850+');
+        expect(out.contigs[0]?.warnings, `insert ${insert}`).toEqual([]);
+      }
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'counts the bases a read hangs over where it fits, at the edge of the tolerance',
+    async () => {
+      // Two bases at one end of the read that are not the template's, which the alignment does
+      // not take in; the read is still laid where its first or last base would fall.
+      const other = (b: string): string => (b === 'A' ? 'C' : 'A');
+      const junk = (from: number, count: number): string =>
+        T.slice(from, from + count).replace(/./g, other);
+      // A forward read from 750 with two bases before it: its extent starts at 750, with the
+      // mate's 1100 a template of 350, 100 from an insert of 450 and no more.
+      const lead: AssemblyRead = {
+        name: 't_F',
+        sequence: junk(748, 2) + T.slice(750, 850),
+        qualities: q(102),
+      };
+      const reads = [fwd('whole', 0, 1200), lead, rev('t_R', 1000, 1100)];
+      const a = await assembleReads(reads, withPairs(reads, 450));
+      expect(place(a, 't_F').endsWith('+'), 'forward read').toBe(true);
+      expect(a.contigs[0]?.warnings, 'forward read').toEqual([]);
+      // A reverse read to 850 (as laid along the contig) with two bases after it; its mate
+      // from 500, a template of 350 again.
+      const tail: AssemblyRead = {
+        name: 't_R',
+        sequence: reverseComplement(T.slice(750, 850) + junk(850, 2)),
+        qualities: q(102),
+      };
+      const back = [fwd('whole', 0, 1200), fwd('t_F', 500, 600), tail];
+      const b = await assembleReads(back, withPairs(back, 450));
+      expect(b.contigs[0]?.warnings, 'reverse read').toEqual([]);
+      expect(b.contigs[0]?.reads.find((r) => r.name === 't_R')?.start, 'reverse read').toBe(750);
+    },
+    TIMEOUT,
+  );
+
+  it(
     'with no insert size, uses only which way the mates face, which these copies do not settle',
     async () => {
       const reads = [fwd('whole', 0, 1200), fwd('t_F', 750, 850), rev('t_R', 1000, 1100)];
@@ -173,6 +241,34 @@ describe('pairs that do not fit the layout (item 130)', () => {
       const check = out.pairing?.checks[0];
       expect(check?.state).toBe('too-short');
       expect(check?.template).toBe(out.contigs[0]?.consensus.length);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'names the mates and the distance in every warning, whichever read is the leftmost of the contig',
+    async () => {
+      // An unpaired read at the left end, so neither mate is the contig's first read.
+      const reads = [fwd('x', 0, 200), fwd('p_F', 100, 480), rev('p_R', 800, 1160)];
+      const short = await assembleReads(reads, withPairs(reads, 1060));
+      const tooShort = short.contigs[0]?.warnings.find((w) => w.kind === 'pair-distance');
+      expect(tooShort).toMatchObject({ start: 100, end: 760, read: 1 });
+      expect(tooShort?.message).toMatch(
+        /^p_F and p_R are mates, but only 6\d\d bp apart here \(the insert is about 1,060 bp\): about 4\d\d bp between them/,
+      );
+      // Too far apart: the number is the template the contig has, not nothing.
+      const long = await assembleReads(reads, withPairs(reads, 200));
+      const tooLong = long.contigs[0]?.warnings.find((w) => w.kind === 'pair-distance');
+      expect(tooLong?.message).toMatch(
+        /^p_F and p_R are mates, but 6\d\d bp apart here \(the insert is about 200 bp\): the layout may hold/,
+      );
+      // Facing away, with the forward mate on the right.
+      const away = [rev('w_R', 0, 300), fwd('w_F', 250, 550)];
+      const out = await assembleReads(away, withPairs(away, 2000));
+      expect(out.contigs[0]?.warnings[0]?.message).toBe(
+        'w_F and w_R are mates, but face away from each other here (the insert is about 2,000 bp), so they are not the two ends of one template as laid out.',
+      );
+      expect(out.contigs[0]?.warnings[0]).toMatchObject({ start: 0, end: 550, read: 1 });
     },
     TIMEOUT,
   );
