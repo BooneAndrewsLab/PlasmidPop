@@ -765,6 +765,41 @@ Those 20 are an artefact of the first run, not a regression. Their kills had com
 
 Lesson for the script of #355: a short test timeout in mutation mode turns every slower mutant into a kill, so the limits of the slow tests must be raised before a run, not after.
 
+### At 1.22 pre-release: `alignment/msa.ts` (#355, #357)
+
+The 11 survivors on lines changed since v1.21.0 (the `sameCodes` helper and the
+no-valid-window case of `kmerDistances`, L80-81 and L127) and three survivors of
+old timeouts (`mutate:recheck-timeouts`) were each applied by hand and run
+against `msa.test.ts`; `src/test/oracle/alignment.test.ts` and `msa.test.ts`
+were not needed.
+
+Killed: a different length with no valid k-mer on either side, in both orders
+(`return false` to `true`, and the length check dropped); and, from the
+timeout list, the radix of the k-mer words (`alphabet === 'protein'` to `true`
+or `!==`: with radix 20 for bases an N counts as a word and the guide tree
+changes, with radix 4 for residues nearly every word is spoilt) by the tree
+`alignMultiple` returns for a base set and a residue set, and the refinement's
+column cut (`.join('')`, which a join with a separator turns into garbage rows)
+by a set the refinement improves, 1082.5 to 1151.5 in sum-of-pairs
+(`msa.test.ts`: "counts the words on the radix of its alphabet" and "refines the
+progressive alignment"). The re-check ran only `analysisClient.test.ts` for
+these three (the one test file the report had for them), which is why they
+survived there; `msa.test.ts` kills the `.join('')` mutant even without the new
+test (the protein case), so only the two radix mutants were true gaps.
+
+Equivalent, by kind:
+
+- **Value always defined.** L80-81 `a?.length` and `b?.length` to `a.length` and
+  `b.length`, `a?.[i]` and `b?.[i]` to `a[i]` and `b[i]`: both are `codes[x]` with
+  `x < n`, never undefined (the optional chain only satisfies the type checker).
+- **Tie, same value.** L81 `i < len` to `i <= len`: the lengths are equal by the
+  line above, so the extra step compares `undefined` with `undefined`.
+- **Guard covered by another guard.** L127, `windows[a] === 0 && windows[b] === 0`
+  to `true && ...`, `... && true` or `||` (three mutants): when only one side has
+  no valid window, `shared` is 0, so the general formula already gives 1, and
+  `sameCodes` is false (equal codes have equal windows), which gives 1 as well.
+  Only the case with none on both sides needs the special rule.
+
 ## A cheap dry run (#355, #320, 2026-11-05)
 
 The 1.21.0 pre-release `npm run mutate` took 53 minutes in its dry run alone

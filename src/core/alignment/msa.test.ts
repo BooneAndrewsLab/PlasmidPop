@@ -80,6 +80,46 @@ describe('alignMultiple', () => {
     expect(seen.every((f, i) => i === 0 || f >= (seen[i - 1] ?? 0))).toBe(true);
   });
 
+  it('counts the words on the radix of its alphabet: ambiguity codes join none, residues all', () => {
+    // Bases: A and C differ in one base of ten, B shares only a run of Ns with A. An
+    // ambiguity code spoils a word, so A and C are the closest pair.
+    const a = 'ACGTAGCTAG' + 'N'.repeat(12);
+    const b = 'CCCCCCCCCC' + 'N'.repeat(12);
+    const c = 'ACGTAGCTAT' + 'G'.repeat(12);
+    expect(alignMultiple([a, b, c], { refine: false }).tree).toBe('(2,(1,3))');
+    // Residues: W, Y, F, H and E are all words, though none is among the first four codes.
+    // The last two share all but one residue, so they join first, not the first two.
+    const pc = 'AAAAARRRRRNNNNN';
+    const pa = 'WWWWWYYYYYFFFFF';
+    const pb = 'WWWWWYYYYYFFFFH';
+    expect(alignMultiple([pc, pa, pb], { alphabet: 'protein', refine: false }).tree).toBe(
+      '(1,(2,3))',
+    );
+  });
+
+  it('refines the progressive alignment when the sum-of-pairs score rises, and only then', () => {
+    const seqs = [
+      'GCCCGTGAGCTAGGACTGCGGGGCATCAAATTCAAG',
+      'GCTCCGTGAGTTAGGATCTTGCGGGCATCAAATTTACAAG',
+      'GCTCGTGAGTCTAGGTCTCTGCGGGGCATCAAATTAAG',
+      'CTCCGTGAGTCTAGGATCTGCGGGGATCAAATTAAG',
+      'GCTCCGTGAGTCTTAGGATCTTGCGGGCACCAAATTCAAG',
+    ];
+    const rough = alignMultiple(seqs, { refine: false });
+    const refined = alignMultiple(seqs);
+    expect(sumOfPairs(rough.rows, 'nucleotide')).toBe(1082.5);
+    expect(sumOfPairs(refined.rows, 'nucleotide')).toBe(1151.5);
+    // Whatever moved, the rows are the sequences, in one width, with no column of gaps alone.
+    expect(strip(refined.rows)).toEqual(seqs);
+    expect(new Set(refined.rows.map((r) => r.length))).toEqual(new Set([refined.columns]));
+    for (let c = 0; c < refined.columns; c++) {
+      expect(refined.rows.some((r) => r.charAt(c) !== '-')).toBe(true);
+    }
+    // The score never falls: sequences the first pass already aligned are left alone.
+    const s = 'ATGGCGTACGTTAGC';
+    expect(alignMultiple([s, s, s, s]).rows).toEqual([s, s, s, s]);
+  });
+
   it('refuses too few, too many, empty and too large', () => {
     expect(() => alignMultiple(['ACGT'])).toThrow(/at least two/);
     expect(() =>
@@ -203,6 +243,17 @@ describe('guide tree', () => {
     expect(kmerDistances([enc('AC'), enc('AC')], 4, 3)[0]?.[1]).toBe(0);
     expect(kmerDistances([enc('NNNNNN'), enc('RRRRRR')], 4, 3)[0]?.[1]).toBe(1);
     expect(kmerDistances([enc('ACGTAC'), enc('NNNNNN')], 4, 3)[0]?.[1]).toBe(1);
+  });
+
+  it('tells sequences with no valid k-mer apart when their lengths differ, whatever the order', () => {
+    // N is 4, an ambiguity code: NN and NNN hold no word of 3, and NN is a prefix of NNN.
+    const enc = (s: string): Uint8Array =>
+      Uint8Array.from(s.split('').map((c) => (c === 'N' ? 4 : 'ACGT'.indexOf(c))));
+    expect(kmerDistances([enc('NN'), enc('NNN')], 4, 3)[0]?.[1]).toBe(1);
+    expect(kmerDistances([enc('NNN'), enc('NN')], 4, 3)[0]?.[1]).toBe(1);
+    expect(kmerDistances([enc('ACNN'), enc('ACNNN')], 4, 3)[1]?.[0]).toBe(1);
+    // The same length and a different code is told apart at the last place too.
+    expect(kmerDistances([enc('NNNA'), enc('NNNC')], 4, 5)[0]?.[1]).toBe(1);
   });
 
   it('keeps the k-mer distance symmetric with ambiguity codes', () => {
