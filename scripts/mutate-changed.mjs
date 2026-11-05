@@ -28,6 +28,13 @@
 //                       timeout costs its whole budget; the other 90 were
 //                       killed by a test, so the pass loses that signal on
 //                       loop counters.
+//   --without <file>    leave this file out of the pass (repeatable). A file
+//                       with no baseline here is mutated whole and its
+//                       instrumented suites can be very slow (the 1.22.0
+//                       dry run for pairwise.ts and quality.ts passed the 45
+//                       min ceiling); mutate those on the machine that has
+//                       their results and bring the report back with
+//                       --incremental-from.
 //   --unit-only         run the tests without the jsdom component tests
 //                       (*.test.tsx) that the mutated files do not need; a
 //                       mutant only a component test would kill then
@@ -83,6 +90,11 @@ const unitOnly = take('--unit-only');
 const wholeFiles = take('--whole-files');
 const allTests = take('--all-tests');
 const incrementalFrom = takeValue('--incremental-from');
+/** Files of the `mutate` list to leave out of this pass (repeatable). */
+const without = [];
+for (let file = takeValue('--without'); file !== undefined; file = takeValue('--without')) {
+  without.push(file);
+}
 const first = args[0];
 const ref =
   first !== undefined && !first.startsWith('-')
@@ -93,7 +105,9 @@ const raw = /** @type {unknown} */ (JSON.parse(readFileSync('stryker.config.json
 const config = /** @type {{ mutate: string[]; incrementalFile: string; concurrency?: number }} */ (
   raw
 );
-const { mutate, incrementalFile } = config;
+const { incrementalFile } = config;
+const mutate = config.mutate.filter((f) => !without.includes(f));
+if (without.length > 0) out(`Leaving out: ${without.join(', ')}`);
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
 mkdirSync('reports/mutation/logs', { recursive: true });
 if (existsSync(incrementalFile)) {
