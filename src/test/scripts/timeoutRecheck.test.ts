@@ -1,7 +1,7 @@
 import { type ChildProcess, execFileSync, spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
@@ -327,7 +327,7 @@ describe('mutate:recheck-timeouts', () => {
   it('refuses outside a git checkout', () => {
     const p = project([m1], { commit: false });
     rmSync(join(p.dir, '.git'), { recursive: true });
-    const r = p.run(['--timeout-seconds', '2']);
+    const r = p.run(['--timeout-seconds', '2'], { GIT_CEILING_DIRECTORIES: dirname(p.dir) });
     expect(r.status).toBe(1);
     expect(readFileSync(p.lib, 'utf8')).toBe(LIB);
   });
