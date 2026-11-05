@@ -1157,3 +1157,50 @@ lines above the `size(y) - size(x)` it describes (the arrow's body went to its
 own line when the sort was shared with the hidden list), so it disables
 nothing; the survivor is reported as if it were new. Moving it onto the line of the
 body would do; production code was not touched here.
+
+### At 1.22 pre-release: `analysis/gel.ts` and `cloning/protocol.ts` (#355)
+
+The 12 survivors on lines changed since v1.21.0 (item 132, the wrong clones:
+`checkSummary` in `gel.ts`, L372-380, and `diagnosticDigests` and `buildProtocol`
+in `protocol.ts`, L493-555; `protocolText.ts` had none) were each applied by hand
+and run against `gel.test.ts` and `protocol.test.ts` (the equivalent one also
+against all of `src/core/cloning`, 820 tests). Eleven were gaps and are killed by
+seven new tests there; one is equivalent.
+
+Killed, in `gel.test.ts` ("the edges of checkSummary"):
+
+- L372 `c.contrast >= resolution` to `>`: a lane whose contrast is exactly the
+  resolution (1,000 against 1,500 bp, resolution 1.5) was not counted as told
+  apart. "counts a lane whose contrast is exactly the resolution as told apart".
+- L377 `c.contrast < weakest` to `true` and to `<=`, and L380 `c.contrast ===
+weakest` to `true`, `false`, `!==`, and `Math.min(faintest, c.band)` to
+  `Math.max`: the summary of a set of lanes, which the existing tests compared
+  with one lane of a kind. The new tests use a product of 3,000 + 1,000 bp and
+  lanes that differ from it at a ratio of exactly 2 (`half`, at the product's
+  1,000 bp band; `extra`, at its own 500 bp band) or of 10 (`sliver`), in both
+  orders: the weakest lane wins wherever it falls (`true`), lanes tied for weakest
+  keep the faintest differing band whichever comes first (`<=`, `Math.max`,
+  `false`, `!==`), and the band of the weakest lane is not replaced by a stronger
+  lane's (`true`, `!==` at L380).
+
+Killed, in `protocol.test.ts` ("diagnosticDigests against wrong clones"):
+
+- L493 `gelProfile([], gel)` to `gelProfile(["Stryker was here"], gel)`: the lane
+  of a wrong clone the enzyme misses has no band and no fragment (an uncut circle
+  is not drawn), and is not told apart.
+- L499 `contrast >= resolution` to `true` and to `>`: `apart` on the lane of a
+  clone whose digest is the product's, and on one at exactly the resolution
+  (3,000 + 1,500 against 3,000 + 1,000 bp, resolution 1.5, and 1.51).
+- L555 `options.wrongClones ?? []` to `&& []` (the list `buildProtocol` hands to
+  `diagnosticDigests`): with clones given, no digest carried a wrong lane. The
+  existing tests of the lanes call `diagnosticDigests` directly; "hands
+  buildProtocol's wrong clones to the diagnostic digests" goes through
+  `buildProtocol`. (With no list the mutant gives `undefined`, and the default
+  parameter takes `[]`, so that side is the same.)
+
+Equivalent:
+
+- **Tie, same order.** L510 `wrongClones.length === 0` to `false`: the sort then
+  uses `compareCheckAll` with no wrong lane at all, whose summaries are equal
+  (nothing apart, weakest 1, faintest 0) and whose last rule is
+  `compareDiagnostic(a.product, b.product)`, the very call the guard makes.

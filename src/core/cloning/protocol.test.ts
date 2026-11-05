@@ -7,6 +7,7 @@ import {
   type Protocol,
   type ProtocolStep,
   SeqDocument,
+  type WrongClone,
   UNMETHYLATED_HOST,
   annealingPart,
   compareDiagnostic,
@@ -736,5 +737,66 @@ describe('diagnosticDigests', () => {
     expect(diagnosticDigests(doc, {}, 1000).map((d) => d.enzyme)).not.toContain('ClaI');
     const free = doc.setMethylation(UNMETHYLATED_HOST);
     expect(diagnosticDigests(free, {}, 1000).map((d) => d.enzyme)).toContain('ClaI');
+  });
+});
+
+describe('diagnosticDigests against wrong clones (item 132, #355)', () => {
+  /** A circle of `a` and `b` bases from one EcoRI site to the next, and back: EcoRI cuts it into `a` and `b`. */
+  const circle = (name: string, a: number, b: number): SeqDocument =>
+    SeqDocument.create({
+      name,
+      topology: 'circular',
+      sequence: `GAATTC${'A'.repeat(a - 6)}GAATTC${'A'.repeat(b - 6)}`,
+    });
+  const clone = (label: string, molecule: SeqDocument): WrongClone => ({
+    kind: 'empty',
+    label,
+    name: `${label} clone`,
+    why: 'for the test',
+    molecule,
+  });
+  const ecoRI = (wrong: readonly WrongClone[], gel = {}) => {
+    const d = diagnosticDigests(circle('p', 3000, 1000), gel, 1000, wrong).find(
+      (x) => x.enzyme === 'EcoRI',
+    );
+    if (d === undefined) throw new Error('no EcoRI digest');
+    return d;
+  };
+
+  it('draws a lane with no band where the enzyme misses the wrong clone', () => {
+    const uncut = clone(
+      'Uncut',
+      SeqDocument.create({ name: 'u', topology: 'circular', sequence: 'A'.repeat(2000) }),
+    );
+    const lane = must(ecoRI([uncut]).wrong[0]);
+    expect(lane.profile.bands).toEqual([]);
+    expect(lane.profile.fragments).toEqual([]);
+    expect(lane.apart).toBe(false);
+  });
+
+  it('marks a wrong lane apart only where its bands differ by what the gel resolves', () => {
+    // The product is 3,000 + 1,000 bp. One clone gives 3,000 + 1,500, a contrast
+    // of exactly 1.5; another gives the product's own lane.
+    const wrong = [clone('Near', circle('n', 3000, 1500)), clone('Same', circle('s', 3000, 1000))];
+    const lanes = ecoRI(wrong, { resolution: 1.5 }).wrong;
+    expect(lanes.map((w) => w.apart)).toEqual([true, false]);
+    // A hair over the contrast, the near one is not told apart either.
+    expect(ecoRI(wrong, { resolution: 1.51 }).wrong.map((w) => w.apart)).toEqual([false, false]);
+  });
+
+  it('hands buildProtocol’s wrong clones to the diagnostic digests', () => {
+    const doc = product(must(pcrNode().step));
+    const wrong = [
+      clone('Empty', circle('e', 2000, 1500)),
+      clone('Twice', circle('t', 2500, 2500)),
+    ];
+    const p = must(buildProtocol(doc, { wrongClones: wrong, diagnosticCount: 1000 }));
+    expect(p.wrongClones.map((w) => w.label)).toEqual(['Empty', 'Twice']);
+    expect(p.diagnostics.length).toBeGreaterThan(0);
+    for (const d of p.diagnostics) expect(d.wrong.map((w) => w.label)).toEqual(['Empty', 'Twice']);
+    // And without any, no lanes.
+    for (const d of must(buildProtocol(doc, { diagnosticCount: 1000 })).diagnostics) {
+      expect(d.wrong).toEqual([]);
+    }
   });
 });

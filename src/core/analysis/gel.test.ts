@@ -309,6 +309,45 @@ describe('compareCheckAll (item 132)', () => {
   });
 });
 
+describe('the edges of checkSummary (item 132, #355)', () => {
+  const lane = (...sizes: number[]) => gelProfile(sizes);
+  const product = lane(3000, 1000);
+  // Each differs from the product by a band that sits at a ratio of exactly 2:
+  // `half` by the product's own 1,000 (nothing of its near), `extra` by a
+  // 500 bp band of its own; `sliver` by a 100 bp band, ratio 10.
+  const half = lane(3000, 500);
+  const extra = lane(3000, 1000, 500);
+  const sliver = lane(3000, 1000, 100);
+
+  it('counts a lane whose contrast is exactly the resolution as told apart', () => {
+    const s = checkSummary(lane(1000), [lane(1500)], { resolution: 1.5 });
+    expect(s).toEqual({ apart: 1, weakest: 1.5, faintest: 1000 });
+    // Just under it, nothing is told apart, and the widest narrow one stands.
+    const under = checkSummary(lane(1000), [lane(1500)], { resolution: 1.51 });
+    expect(under.apart).toBe(0);
+    expect(under.weakest).toBe(1.5);
+  });
+
+  it('keeps the weakest lane whichever order the lanes come in', () => {
+    // The weakest is the 2.0 one, first or last; the stronger one (10) never replaces it.
+    expect(checkSummary(product, [half, sliver]).weakest).toBe(2);
+    expect(checkSummary(product, [sliver, half]).weakest).toBe(2);
+  });
+
+  it('of lanes tied for weakest, takes the faintest differing band, in either order', () => {
+    // `half` differs at 1,000 bp and `extra` at 500 bp, both at ratio 2.
+    expect(checkSummary(product, [half, extra])).toEqual({ apart: 2, weakest: 2, faintest: 500 });
+    expect(checkSummary(product, [extra, half])).toEqual({ apart: 2, weakest: 2, faintest: 500 });
+  });
+
+  it('takes the band of the weakest lane, not the faintest of the stronger ones', () => {
+    const s = checkSummary(product, [half, sliver]);
+    expect(s.faintest).toBe(1000);
+    // Whichever side the weaker lane falls on.
+    expect(checkSummary(product, [sliver, half]).faintest).toBe(1000);
+  });
+});
+
 describe('describeBands', () => {
   it('writes the sizes a gel would show', () => {
     expect(describeBands(gelProfile([3224, 1137]))).toBe('3,224 + 1,137 bp');
