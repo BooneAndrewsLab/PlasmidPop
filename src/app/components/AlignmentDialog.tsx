@@ -67,6 +67,7 @@ import { AlignmentSamples } from './AlignmentSamples';
 import { AlignmentVerdictTable } from './AlignmentVerdictTable';
 import { UNCHECKED_NOTE } from '../readAlignment';
 import { AlignmentStackView, type StackHandle } from './AlignmentStackView';
+import { ZOOM_MAX, ZOOM_MIN, stepZoom } from '../alignmentZoom';
 
 /** Lanes of features and ORFs drawn above the reference; more are left out and counted. */
 const MAX_LANES = 8;
@@ -354,6 +355,7 @@ export function AlignmentDialog({
     return { changing: per.filter((n) => n > 0).length, named: per.reduce((a, n) => a + n, 0) };
   }, [popover, stack, frames]);
   const stackHandle = useRef<StackHandle>(null);
+  const [zoom, setZoom] = useState(1);
   const searchOpen = useRef(false);
   useEffect(() => {
     searchOpen.current = popover !== null;
@@ -676,6 +678,53 @@ export function AlignmentDialog({
                 }}
               />
             )}
+          </div>
+          <div className="segmented" role="group" aria-label="Zoom">
+            <button
+              type="button"
+              className="segmented__button"
+              aria-label="Zoom out"
+              data-tip="Zoom out (-, or Ctrl+wheel on the alignment)"
+              disabled={zoom <= ZOOM_MIN}
+              onClick={() => {
+                setZoom((z) => stepZoom(z, -1));
+              }}
+            >
+              &minus;
+            </button>
+            <button
+              type="button"
+              className="segmented__button"
+              data-tip="Back to the full size (0)"
+              onClick={() => {
+                setZoom(1);
+              }}
+            >
+              {`${Math.round(zoom * 100).toLocaleString()}%`}
+            </button>
+            <button
+              type="button"
+              className="segmented__button"
+              aria-label="Zoom in"
+              data-tip="Zoom in (+, or Ctrl+wheel on the alignment)"
+              disabled={zoom >= ZOOM_MAX}
+              onClick={() => {
+                setZoom((z) => stepZoom(z, 1));
+              }}
+            >
+              +
+            </button>
+            <button
+              type="button"
+              className="segmented__button"
+              data-tip="Zoom out until every column is in view"
+              onClick={() => {
+                const fit = stackHandle.current?.fitZoom();
+                if (fit !== undefined) setZoom(fit);
+              }}
+            >
+              Fit
+            </button>
           </div>
           {samples.length > 1 && (
             <div className="astack-tools__search">
@@ -1008,6 +1057,8 @@ export function AlignmentDialog({
           focus={focus}
           reviewed={markedCols}
           handle={stackHandle}
+          zoom={zoom}
+          onZoom={setZoom}
         />
       </div>
     </div>,

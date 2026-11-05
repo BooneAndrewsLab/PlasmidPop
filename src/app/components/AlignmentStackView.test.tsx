@@ -280,3 +280,57 @@ describe('selecting in the large view (#370)', () => {
     expect(cleared).toBe(false);
   });
 });
+
+describe('zoom in the large view (#263)', () => {
+  beforeEach(() => {
+    vi.mocked(drawStack).mockClear();
+    descriptors = ['clientWidth', 'clientHeight'].map((p) => {
+      const d = Object.getOwnPropertyDescriptor(HTMLElement.prototype, p) ?? {
+        configurable: true,
+      };
+      Object.defineProperty(HTMLElement.prototype, p, {
+        configurable: true,
+        get: () => (p === 'clientWidth' ? WIDTH : HEIGHT),
+      });
+      return d;
+    });
+  });
+  afterEach(() => {
+    ['clientWidth', 'clientHeight'].forEach((p, i) => {
+      const d = descriptors[i];
+      if (d !== undefined && 'get' in d) Object.defineProperty(HTMLElement.prototype, p, d);
+      else Reflect.deleteProperty(HTMLElement.prototype, p);
+    });
+    vi.restoreAllMocks();
+  });
+
+  it('draws the columns at the zoomed width, and a click lands on the column drawn there', () => {
+    const { canvas } = setup({ zoom: 0.5 });
+    expect(drawn().charWidth).toBeCloseTo(CHAR / 2);
+    // Column 4 spans 4 * 4 .. 5 * 4 px from the names' edge at half size.
+    press(canvas, NAME_WIDTH + 4 * (CHAR / 2) + 1, rowY(0));
+    release(canvas, NAME_WIDTH + 4 * (CHAR / 2) + 1, rowY(0));
+    expect(selected()).toEqual({ row: 0, track: 'bases', from: 4, to: 4 });
+  });
+
+  it('a picture is drawn at full size whatever the zoom, and the handle says what fits', () => {
+    const { handle } = setup({ zoom: 0.25 });
+    expect(handle.current?.drawing()?.charWidth).toBe(CHAR);
+    expect(drawn().charWidth).toBeCloseTo(CHAR / 4);
+    const fit = handle.current?.fitZoom() ?? 0;
+    expect(fit).toBeCloseTo(Math.min(2, (WIDTH - NAME_WIDTH) / stack.columns / CHAR), 5);
+  });
+
+  it('Ctrl+wheel and the keys ask for a zoom; a plain wheel does not', () => {
+    const onZoom = vi.fn();
+    const { scroller } = setup({ onZoom });
+    fireEvent.wheel(scroller, { deltaY: -100 });
+    expect(onZoom).not.toHaveBeenCalled();
+    fireEvent.wheel(scroller, { deltaY: -100, ctrlKey: true, clientX: 300 });
+    expect(onZoom).toHaveBeenLastCalledWith(expect.closeTo(1.25, 3));
+    fireEvent.keyDown(scroller, { key: '-' });
+    expect(onZoom).toHaveBeenLastCalledWith(expect.closeTo(0.8, 3));
+    fireEvent.keyDown(scroller, { key: '0' });
+    expect(onZoom).toHaveBeenLastCalledWith(1);
+  });
+});

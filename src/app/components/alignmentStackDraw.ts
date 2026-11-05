@@ -17,6 +17,7 @@ import {
   type AlignmentSelection,
   type SelectionTrack,
 } from '../alignmentSelection';
+import { lettersLegible, rulerStep } from '../alignmentZoom';
 import { Cell, columnPosition, isDifference, type Stack, type StackRow } from '../alignmentStack';
 import { ColumnClass, type Track } from '../alignmentTrack';
 import { readLinearTheme } from './linearTheme';
@@ -105,6 +106,39 @@ export function readColours(el: HTMLElement): Colours {
 /** The colour of a column's class. */
 export function classColour(c: Colours, k: number): string {
   return c.byClass[k] ?? c.byClass[ColumnClass.None];
+}
+
+/**
+ * A run of a row's bases as coloured bars, for when a column is too narrow
+ * for a legible letter (#263): the colour of each base, gaps as a thin line,
+ * neighbours of one colour merged so a zoomed-out read costs a few rects.
+ */
+function drawBaseBars(
+  ctx: StackContext,
+  text: string,
+  from: number,
+  to: number,
+  x: (column: number) => number,
+  charWidth: number,
+  y: number,
+  colourOf: (ch: string) => string,
+  alphaOf: (column: number) => number,
+): void {
+  let c = from;
+  while (c < to) {
+    const ch = text.charAt(c);
+    const alpha = alphaOf(c);
+    let end = c + 1;
+    while (end < to && text.charAt(end) === ch && alphaOf(end) === alpha) end++;
+    if (ch !== '' && ch !== ' ') {
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = colourOf(ch);
+      if (ch === '-') ctx.fillRect(x(c), y + ROW_HEIGHT / 2 - 1, (end - c) * charWidth, 2);
+      else ctx.fillRect(x(c), y + 4, (end - c) * charWidth, ROW_HEIGHT - 8);
+    }
+    c = end;
+  }
+  ctx.globalAlpha = 1;
 }
 
 /**
@@ -251,6 +285,7 @@ function drawResidues(
   top: number,
   row: StackRow | null,
 ): void {
+  const letters = lettersLegible(charWidth);
   ctx.font = font;
   ctx.textAlign = 'center';
   for (const frame of frames) {
@@ -270,6 +305,7 @@ function drawResidues(
       ctx.fillStyle = loud ? colours.byClass[2] : colours.accent;
       ctx.fillRect(left + 1, top + 1, width - 2, AA_HEIGHT - 2);
       ctx.globalAlpha = 1;
+      if (!letters) continue;
       ctx.fillStyle = loud ? colours.ink : colours.muted;
       ctx.fillText(residue.letter, left + width / 2, top + AA_HEIGHT / 2);
     }
@@ -293,12 +329,14 @@ function drawAaRuler(
   top: number,
 ): void {
   ctx.font = sansFontOf(FONT_SIZE - 4);
+  const widest = Math.max(...frames.map((f) => (f.codons.at(-1)?.index ?? 0) + 1), 1);
+  const every = rulerStep(charWidth * 3, ctx.measureText(String(widest)).width);
   ctx.textAlign = 'center';
   ctx.fillStyle = colours.muted;
   ctx.strokeStyle = colours.muted;
   for (const frame of frames) {
     if (frame.end <= first || frame.start >= last) continue;
-    for (const tick of rulerTicks(frame)) {
+    for (const tick of rulerTicks(frame, every)) {
       if (tick.end <= first || tick.start >= last) continue;
       const mid = x(tick.start) + ((tick.end - tick.start) * charWidth) / 2;
       ctx.beginPath();
@@ -564,6 +602,8 @@ export function drawStack(ctx: StackContext, d: StackDrawing, view: StackView): 
     ctx.fillText(text, x(c), y);
   };
   const baseColour = (ch: string): string => colours.bases[ch] ?? colours.other;
+  /** Below a legible letter size the bases are bars (#263). */
+  const letters = lettersLegible(charWidth);
 
   for (let r = firstRow; r < lastRow; r++) {
     const row = stack.rows[r];
@@ -600,12 +640,31 @@ export function drawStack(ctx: StackContext, d: StackDrawing, view: StackView): 
         ctx.fillRect(x(c), y, charWidth, ROW_HEIGHT);
         ctx.globalAlpha = 1;
       }
-      drawText(
-        ch,
-        c,
-        y + ROW_HEIGHT / 2,
-        ch === '-' ? colours.muted : baseColour(ch),
-        cell === Cell.Padding ? 0.3 : poor ? 0.4 : 1,
+      if (letters) {
+        drawText(
+          ch,
+          c,
+          y + ROW_HEIGHT / 2,
+          ch === '-' ? colours.muted : baseColour(ch),
+          cell === Cell.Padding ? 0.3 : poor ? 0.4 : 1,
+        );
+      }
+    }
+    if (!letters) {
+      drawBaseBars(
+        ctx,
+        row.bases,
+        from,
+        to,
+        x,
+        charWidth,
+        y,
+        (ch) => (ch === '-' ? colours.muted : baseColour(ch)),
+        (c) => {
+          const q = row.qualities?.[c];
+          const poor = q !== undefined && !Number.isNaN(q) && q < confidentFrom;
+          return row.cells[c] === Cell.Padding ? 0.3 : poor ? 0.4 : 1;
+        },
       );
     }
     ctx.globalAlpha = 1;
@@ -677,9 +736,14 @@ export function drawStack(ctx: StackContext, d: StackDrawing, view: StackView): 
     ctx.globalAlpha = 1;
   }
   ctx.font = sansFontOf(FONT_SIZE);
+  const step = rulerStep(
+    charWidth,
+    ctx.measureText((columnPosition(stack, stack.columns - 1) ?? stack.columns).toLocaleString())
+      .width,
+  );
   for (let c = first; c < last; c++) {
     const position = columnPosition(stack, c);
-    if (position === null || position % 10 !== 0) continue;
+    if (position === null || position % step !== 0) continue;
     ctx.fillStyle = colours.muted;
     ctx.textAlign = 'center';
     ctx.fillText(position.toLocaleString(), x(c) + charWidth / 2, RULER_HEIGHT / 2);
@@ -702,13 +766,27 @@ export function drawStack(ctx: StackContext, d: StackDrawing, view: StackView): 
   }
   ctx.textAlign = 'left';
   ctx.font = monoFont;
-  for (let c = first; c < last; c++) {
-    const ch = stack.reference.charAt(c);
-    drawText(
-      ch,
-      c,
-      RULER_HEIGHT + trackHeight + ROW_HEIGHT / 2,
-      ch === '-' ? colours.muted : baseColour(ch),
+  if (letters) {
+    for (let c = first; c < last; c++) {
+      const ch = stack.reference.charAt(c);
+      drawText(
+        ch,
+        c,
+        RULER_HEIGHT + trackHeight + ROW_HEIGHT / 2,
+        ch === '-' ? colours.muted : baseColour(ch),
+      );
+    }
+  } else {
+    drawBaseBars(
+      ctx,
+      stack.reference,
+      first,
+      last,
+      x,
+      charWidth,
+      RULER_HEIGHT + trackHeight,
+      (ch) => (ch === '-' ? colours.muted : baseColour(ch)),
+      () => 1,
     );
   }
   ctx.globalAlpha = 1;

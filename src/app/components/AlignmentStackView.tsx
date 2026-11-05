@@ -11,6 +11,7 @@ import {
 } from 'react';
 
 import { measureCharWidth, monoFontOf } from '@/view/linear';
+import { fitZoom, letterFont, stepZoom, wheelZoom, zoomedScroll } from '../alignmentZoom';
 
 import { AlignmentCopyPanel } from './AlignmentCopyPanel';
 import { AlignmentSelectionBar } from './AlignmentSelectionBar';
@@ -95,6 +96,8 @@ export interface StackHandle {
   drawing(): StackDrawing | null;
   /** Clear the selection (Esc, #370): whether there was one to clear. */
   clearSelection(): boolean;
+  /** The zoom at which every column fits the width, for the Fit button (#263). */
+  fitZoom(): number;
 }
 
 interface Props {
@@ -133,6 +136,10 @@ interface Props {
   readonly focus: { readonly start: number; readonly end: number; readonly nonce: number } | null;
   /** Columns of differences marked reviewed or taken, drawn faded here and in the overview (#123). */
   readonly reviewed?: ReadonlySet<number>;
+  /** The zoom, 1 being the size it has always had (#263); the parent keeps it for its buttons. */
+  readonly zoom?: number;
+  /** Asked for a new zoom by Ctrl+wheel, a pinch or the keys + - 0. */
+  readonly onZoom?: (zoom: number) => void;
 }
 
 /**
@@ -162,6 +169,8 @@ export function AlignmentStackView({
   focus,
   handle,
   reviewed = NONE_REVIEWED,
+  zoom = 1,
+  onZoom,
 }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -200,8 +209,11 @@ export function AlignmentStackView({
     setPanelAt(null);
   }, []);
 
-  const monoFont = monoFontOf(FONT_SIZE);
-  const charWidth = useMemo(() => measureCharWidth(monoFont), [monoFont]);
+  const baseMonoFont = monoFontOf(FONT_SIZE);
+  const baseCharWidth = useMemo(() => measureCharWidth(baseMonoFont), [baseMonoFont]);
+  // Column width and letter size both follow the zoom (#263).
+  const monoFont = monoFontOf(letterFont(zoom, FONT_SIZE));
+  const charWidth = baseCharWidth * zoom;
   /** Each sample's named changes, for its tags (#261); null without residues or with the tags off. */
   const changes = useMemo(
     () =>
@@ -331,7 +343,16 @@ export function AlignmentStackView({
           end: Math.min(stack.columns, Math.max(1, Math.ceil(left + width - 1e-6))),
         };
       },
-      drawing: () => (colours === null ? null : drawing(colours, null, null, NONE_REVIEWED)),
+      // A picture is drawn at the size the window has by default, whatever the zoom.
+      drawing: () =>
+        colours === null
+          ? null
+          : {
+              ...drawing(colours, null, null, NONE_REVIEWED),
+              charWidth: baseCharWidth,
+              monoFont: baseMonoFont,
+            },
+      fitZoom: () => fitZoom(stack.columns, size.width - NAME_WIDTH, baseCharWidth),
       clearSelection: () => {
         if (selection === null) return false;
         setGesture(idleGesture());
@@ -339,7 +360,17 @@ export function AlignmentStackView({
         return true;
       },
     }),
-    [scroll.left, size.width, charWidth, stack.columns, colours, drawing, selection],
+    [
+      scroll.left,
+      size.width,
+      charWidth,
+      baseCharWidth,
+      baseMonoFont,
+      stack.columns,
+      colours,
+      drawing,
+      selection,
+    ],
   );
 
   useLayoutEffect(() => {
@@ -376,9 +407,46 @@ export function AlignmentStackView({
     setSeenFocus(focus);
     if (focus !== null) setMarked({ start: focus.start, end: focus.end });
   }
+  // Once per focus: a zoom changes `scrollToColumn` and must not go back to it.
+  const goneTo = useRef(focus);
   useEffect(() => {
-    if (focus !== null) scrollToColumn(focus.start, focus.end);
+    if (focus === null || goneTo.current === focus) return;
+    goneTo.current = focus;
+    scrollToColumn(focus.start, focus.end);
   }, [focus, scrollToColumn]);
+  // Zoom about the pointer or the middle of the view: the column there stays put (#263).
+  const zoomAnchor = useRef<number | null>(null);
+  const zoomedFrom = useRef(charWidth);
+  useLayoutEffect(() => {
+    const from = zoomedFrom.current;
+    if (from === charWidth) return;
+    zoomedFrom.current = charWidth;
+    const el = scroller.current;
+    const anchor = zoomAnchor.current ?? Math.max(0, (el?.clientWidth ?? 0) - NAME_WIDTH) / 2;
+    zoomAnchor.current = null;
+    if (el === null) return;
+    el.scrollLeft = zoomedScroll(el.scrollLeft, anchor, from, charWidth);
+    setScroll((s) => ({ ...s, left: el.scrollLeft }));
+  }, [charWidth]);
+  const zoomRef = useRef({ zoom, onZoom });
+  useEffect(() => {
+    zoomRef.current = { zoom, onZoom };
+  });
+  useEffect(() => {
+    const el = scroller.current;
+    if (el === null) return;
+    const onWheel = (e: WheelEvent): void => {
+      const { zoom: z, onZoom: set } = zoomRef.current;
+      if (!(e.ctrlKey || e.metaKey) || set === undefined) return;
+      e.preventDefault();
+      zoomAnchor.current = Math.max(0, e.clientX - el.getBoundingClientRect().left - NAME_WIDTH);
+      set(wheelZoom(z, e.deltaY, e.deltaMode));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', onWheel);
+    };
+  }, []);
 
   // The main canvas.
   useEffect(() => {
@@ -619,6 +687,20 @@ export function AlignmentStackView({
           if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.code === 'KeyC') {
             if (copySelection(e.altKey ? 'aligned' : 'residues')) e.preventDefault();
             return;
+          }
+          if (!e.ctrlKey && !e.metaKey && !e.altKey && onZoom !== undefined) {
+            const steps =
+              e.key === '+' || e.key === '=' ? 1 : e.key === '-' || e.key === '_' ? -1 : 0;
+            if (steps !== 0) {
+              e.preventDefault();
+              onZoom(stepZoom(zoom, steps));
+              return;
+            }
+            if (e.key === '0') {
+              e.preventDefault();
+              onZoom(1);
+              return;
+            }
           }
           if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
           if (e.altKey || e.ctrlKey || e.metaKey || stack.rows.length === 0) return;
