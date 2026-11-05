@@ -1282,7 +1282,7 @@ All on the workstation, idle (load under 1), `npm run mutate:changed`.
    whole-file runs only.
 5. **The second machine reuses the workstation's report completely.** The
    1.22 pre-release pass (`mutate:changed v1.21.0 --without pairwise.ts
-   --without quality.ts --incremental-from <workstation report>`) on duncan:
+--without quality.ts --incremental-from <workstation report>`) on duncan:
    6 files, 55 line ranges, 364 of 364 mutant results reused, dry run 4 min
    56 s (5,679 tests), 5 min 10 s in all, score 92.49 as on the workstation.
    The checkout there was synced by `rsync` (with `.git`, without
