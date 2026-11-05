@@ -74,6 +74,44 @@ describe('designPrimers', () => {
   });
 });
 
+describe('designPrimers shortlist', () => {
+  // A long random template: far more than 40 candidates of each kind pass the basics.
+  let x = 987;
+  let long = '';
+  for (let i = 0; i < 1500; i++) {
+    x = (x * 1103515245 + 12345) & 0x7fffffff;
+    long += 'ACGT'.charAt((x >> 16) & 3);
+  }
+  const target = { start: 700, end: 800 };
+  const loose = {
+    maxPairs: 1_000_000,
+    forwardRegion: { near: 0, far: 400 },
+    reverseRegion: { near: 0, far: 400 },
+    maxTmDifference: 100,
+    minProduct: 1,
+    maxProduct: 5000,
+    maxThreePrime: 100,
+    threePrimeDg: -1000,
+    dimerDg: -1000,
+  };
+
+  for (const requireSpecific of [false, true]) {
+    it(`pairs only the best 40 forward and 40 reverse primers (requireSpecific ${requireSpecific})`, () => {
+      const pairs = designPrimers(long, 'linear', target, { ...loose, requireSpecific });
+      const forwards = new Set<string>();
+      const reverses = new Set<string>();
+      for (const p of pairs) {
+        forwards.add(`${p.forwardSite.start}-${p.forwardSite.end}`);
+        reverses.add(`${p.reverseSite.start}-${p.reverseSite.end}`);
+      }
+      expect(forwards.size).toBeGreaterThan(30);
+      expect(reverses.size).toBeGreaterThan(30);
+      expect(forwards.size).toBeLessThanOrEqual(40);
+      expect(reverses.size).toBeLessThanOrEqual(40);
+    });
+  }
+});
+
 describe('designPrimers with criteria', () => {
   const seq = template();
   const target = { start: 250, end: 350 };

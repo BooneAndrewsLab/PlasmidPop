@@ -1215,6 +1215,8 @@ The other 12 were each applied by hand (an exact replacement, then `git checkout
 `structure.ts` against 17 to 22. One was a gap and is killed by a new test; the
 other 11 only slow the code down and are equivalent.
 
+Two more of the `primerDesign.ts` ones, in `shortlist()`, were gaps too: L361 `return candidates.slice(0, SHORTLIST)` to `return candidates` and L368 `if (out.length >= SHORTLIST) break;` to `if (false) break;`. Both are killed by "pairs only the best 40 forward and 40 reverse primers" in `primerDesign.test.ts` (one run each for `requireSpecific` false and true), which counts the distinct primers in the pairs of a wide design and fails with 352 and 189 under the mutants.
+
 Killed, in `inputQuiet.test.ts`: `whenQuiet`'s wait, L90 `{ await sleep(...);
 continue; }` to `{}`. The mutant does not sleep until the input has been quiet; it
 falls through to `whenIdle` and asks for an idle moment on every turn, polling
