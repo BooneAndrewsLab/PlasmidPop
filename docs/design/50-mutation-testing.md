@@ -1259,6 +1259,20 @@ Equivalent, by kind:
   sequence only for the default model" in `structure.test.ts` (1.21) already kills
   that one. No new test is possible for `true`: the result is the same.
 
+**The 105 that timed out again, at 120 s.** The first pass used 20-25 s per
+mutant (four times the unmutated tests). Run again with 120 s on the second
+machine (`--timeout-seconds 120`), the 127 old non-loop timeouts came out as 27
+killed, 16 survived and 84 still timed out. The 12 mutants that went from
+timeout to killed were slow, not endless: a test fails them given the time, so
+they are sound kills. The 16 survivors are the 15 above plus two in
+`primerDesign.ts` (L361 and L368), the shortlist cap, now killed by the new
+"designPrimers shortlist" tests. The 84 that still time out are mostly in
+parsers, hashes and diffs (`io/xml.ts`, `checksum/sha1.ts`, `seguid.ts`,
+`verify/variants.ts`, `diff/documentDiff.ts`, `io/ncbi/efetch.ts`), where moving
+a position or dropping the step that advances it never ends. They are recorded
+as sound kills by reading, not proved one by one; a longer limit would only
+spend its whole budget on each.
+
 ### Measured at 1.22 (#355, #320)
 
 All on the workstation, idle (load under 1), `npm run mutate:changed`.
