@@ -59,6 +59,16 @@ export interface StoredCloneCheck {
   readonly orientationNote: string;
   readonly primers: readonly { readonly name: string; readonly sequence: string }[];
   readonly vector: { readonly name: string; readonly chosen: boolean } | null;
+  /** The wrong clones the reaction may give (item 132), each a circle's name and bases; absent in rows from before. */
+  readonly wrong?: readonly StoredWrongClone[];
+}
+
+export interface StoredWrongClone {
+  readonly kind: 'empty' | 'reversed' | 'tandem' | 'dimer' | 'head-to-head' | 'tail-to-tail';
+  readonly label: string;
+  readonly name: string;
+  readonly why: string;
+  readonly molecule: { readonly name: string; readonly sequence: string };
 }
 
 export interface StoredDocument {

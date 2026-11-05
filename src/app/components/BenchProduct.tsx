@@ -3,20 +3,23 @@ import { createPortal } from 'react-dom';
 
 import {
   type CutSite,
+  DEFAULT_GEL,
   type DigestProfile,
   type GelOptions,
   type SeqDocument,
+  type WrongClone,
   activeEnzymes,
-  compareCheck,
+  compareCheckAll,
   compareDiagnostic,
   cuttableSites,
   describeBands,
-  emptyVector,
+  emptyVectorClone,
   enzymeProfile,
   findCutSites,
   gelProfile,
   getEnzyme,
   laneContrast,
+  wrongLanes,
 } from '@/core';
 
 import { useGelOptions } from '../state/useGel';
@@ -29,17 +32,30 @@ import { type Ingredient } from './tube';
 /** Past this many cuts an enzyme's lane is a smear, not a check. */
 const MAX_CHECK_CUTS = 6;
 
+/** A wrong clone's lane cut with the check enzyme (item 132). */
+interface WrongLaneProfile {
+  readonly clone: WrongClone;
+  readonly profile: DigestProfile;
+  /** Whether a gel tells this lane from the product's. */
+  readonly apart: boolean;
+}
+
 interface CheckEnzyme {
   readonly name: string;
   readonly profile: DigestProfile;
   /** Where it cuts, for the map to mark. */
   readonly sites: readonly CutSite[];
-  /** The empty vector cut with it, when there is one to compare with (#78). */
-  readonly empty: DigestProfile | null;
+  /** Each wrong clone cut with it, in the gel's order (#78, item 132). */
+  readonly wrong: readonly WrongLaneProfile[];
 }
 
 const NO_SITES: readonly CutSite[] = [];
 const NO_PARTS: readonly Ingredient[] = [];
+
+/** The empty vector alone: what a one-pot assembly can give besides its product. */
+function emptyOnly(vector: Ingredient): readonly WrongClone[] {
+  return emptyVectorClone(vector.fragment ?? vector.document);
+}
 
 /**
  * Every enzyme in the set in use that cuts `doc`, with its sites, leaving
@@ -61,42 +77,88 @@ function sitesByEnzyme(doc: SeqDocument): Map<string, CutSite[]> {
 
 /**
  * The enzymes worth checking the product with, best first: each one that
- * cuts it at least once and at most `MAX_CHECK_CUTS` times. With an empty
- * vector to compare with, they are ordered by how well the two lanes
- * differ (`compareCheck`), since what a miniprep screen asks is whether a
- * colony took the insert; without one, by how well the product's lane
- * reads alone, as the Enzymes tab's band separation sort orders them. An
- * enzyme that does not cut the empty circle leaves it uncut, which does not
- * run at its size, so its lane is empty and tells nothing apart.
+ * cuts it at least once and at most `MAX_CHECK_CUTS` times. With wrong
+ * clones to compare with, they are ordered by how well the product's lane
+ * differs from every wrong one (`compareCheckAll`), since what a miniprep
+ * screen asks is whether a colony took the insert, and took it once and
+ * the right way round; without any, by how well the product's lane reads
+ * alone, as the Enzymes tab's band separation sort orders them. An enzyme
+ * that does not cut a wrong circle leaves it uncut, which does not run at
+ * its size, so its lane is empty and tells nothing apart.
  */
 function checkEnzymes(
   product: SeqDocument,
-  empty: SeqDocument | null,
+  wrong: readonly WrongClone[],
   gel: GelOptions,
 ): CheckEnzyme[] {
-  const emptySites = empty === null ? null : sitesByEnzyme(empty);
+  const { resolution } = { ...DEFAULT_GEL, ...gel };
+  const wrongSites = wrong.map((clone) => ({ clone, sites: sitesByEnzyme(clone.molecule) }));
   const out: CheckEnzyme[] = [];
   for (const [name, own] of sitesByEnzyme(product)) {
     if (own.length > MAX_CHECK_CUTS) continue;
-    const theirs = emptySites?.get(name);
+    const profile = enzymeProfile(own, product.length, product.topology, gel);
     out.push({
       name,
-      profile: enzymeProfile(own, product.length, product.topology, gel),
+      profile,
       sites: own,
-      empty:
-        empty === null
-          ? null
-          : theirs === undefined
+      wrong: wrongSites.map(({ clone, sites }) => {
+        const theirs = sites.get(name);
+        const lane =
+          theirs === undefined
             ? gelProfile([], gel)
-            : enzymeProfile(theirs, empty.length, empty.topology, gel),
+            : enzymeProfile(theirs, clone.molecule.length, clone.molecule.topology, gel);
+        return {
+          clone,
+          profile: lane,
+          apart: laneContrast(profile, lane, gel).contrast >= resolution,
+        };
+      }),
     });
   }
-  const pair = (e: CheckEnzyme) => ({ product: e.profile, empty: e.empty ?? e.profile });
+  const lanes = (e: CheckEnzyme) => ({ product: e.profile, wrong: e.wrong.map((w) => w.profile) });
   return out.sort(
     (a, b) =>
-      (empty === null
+      (wrong.length === 0
         ? compareDiagnostic(a.profile, b.profile, gel)
-        : compareCheck(pair(a), pair(b), gel)) || a.name.localeCompare(b.name),
+        : compareCheckAll(lanes(a), lanes(b), gel)) || a.name.localeCompare(b.name),
+  );
+}
+
+/** "tells all apart", or which wrong lanes the enzyme cannot tell from the product's. */
+function describeCheck(e: CheckEnzyme, best: boolean): string {
+  if (e.wrong.length === 0) return best ? ' (clearest)' : '';
+  const missed = e.wrong.filter((w) => !w.apart).map((w) => w.clone.label.toLowerCase());
+  if (missed.length === 0) return best ? ' (tells all apart)' : '';
+  return `; same as ${missed.join(', ')}`;
+}
+
+/** The wrong lanes of `check`, each with its bands and the lanes it cannot be told from. */
+function WrongLegend({ check, gel }: { readonly check: CheckEnzyme; readonly gel: GelOptions }) {
+  const { resolution } = { ...DEFAULT_GEL, ...gel };
+  return (
+    <ul className="bench__wrong" aria-label="What a wrong colony gives">
+      {check.wrong.map((w, i) => {
+        const alike = check.wrong
+          .filter(
+            (o, k) =>
+              k !== i &&
+              o.profile.bands.length > 0 &&
+              w.profile.bands.length > 0 &&
+              laneContrast(w.profile, o.profile, gel).contrast < resolution,
+          )
+          .map((o) => o.clone.label);
+        return (
+          <li key={w.clone.kind + w.clone.name}>
+            <b>{w.clone.label}</b> ({w.clone.name.toLowerCase()}): {w.clone.why}{' '}
+            {w.profile.bands.length === 0
+              ? 'Uncut, so it runs supercoiled and is not drawn.'
+              : `${describeBands(w.profile)} bp.`}
+            {!w.apart && ' Same as the product.'}
+            {w.apart && alike.length > 0 && ` Same as ${alike.join(', ')}.`}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -113,25 +175,27 @@ function ProductView({
   product,
   parts,
   onCheckPrimers,
+  wrongClonesOf = emptyOnly,
 }: {
   readonly product: SeqDocument;
   readonly parts: readonly Ingredient[];
   readonly onCheckPrimers?: ((vectorId: string) => void) | undefined;
+  readonly wrongClonesOf?: ((vector: Ingredient) => readonly WrongClone[]) | undefined;
 }) {
   const gel = useGelOptions();
   const [vectorId, setVectorId] = useState('');
   const vector = parts.find((p) => p.id === vectorId) ?? longest(parts);
-  // A shelf part's fragment is kept by the shelf and a tab's document by
-  // its history, so either is stable across renders where the ingredient
-  // wrapped round it (and a shelf part's document) is not.
-  const molecule = vector === undefined ? undefined : (vector.fragment ?? vector.document);
-  const empty = useMemo(() => (molecule === undefined ? null : emptyVector(molecule)), [molecule]);
-  const enzymes = useMemo(() => checkEnzymes(product, empty, gel), [product, empty, gel]);
+  // The reaction's own list of wrong clones for this vector (item 132),
+  // capped to what the gel can show; the names past the cap are listed.
+  const { shown: wrong, omitted } = useMemo(
+    () => wrongLanes(vector === undefined ? [] : wrongClonesOf(vector)),
+    [vector, wrongClonesOf],
+  );
+  const empty = wrong.find((w) => w.kind === 'empty')?.molecule ?? null;
+  const enzymes = useMemo(() => checkEnzymes(product, wrong, gel), [product, wrong, gel]);
   const [picked, setPicked] = useState('');
   const [protocol, setProtocol] = useState(false);
   const check = enzymes.find((e) => e.name === picked) ?? enzymes[0];
-  const apart = (e: CheckEnzyme): boolean =>
-    e.empty !== null && laneContrast(e.profile, e.empty, gel).contrast >= gel.resolution;
   return (
     <>
       <h3 className="panel__heading">
@@ -166,6 +230,7 @@ function ProductView({
           {protocol && (
             <ProtocolDialog
               doc={product}
+              wrongClones={wrong}
               onClose={() => {
                 setProtocol(false);
               }}
@@ -218,8 +283,8 @@ function ProductView({
         {vector !== undefined && empty === null && (
           <p className="panel__note">
             {vector.document.name} cannot close on itself (its ends do not join, or were
-            dephosphorylated), so a colony without the insert is unlikely and the product is checked
-            alone.
+            dephosphorylated), so a colony without the insert is unlikely
+            {wrong.length === 0 ? ' and the product is checked alone' : ''}.
           </p>
         )}
         {check === undefined ? (
@@ -241,36 +306,25 @@ function ProductView({
                 {enzymes.map((e, i) => (
                   <option key={e.name} value={e.name}>
                     {e.name}: {describeBands(e.profile)}
-                    {e.empty === null
-                      ? i === 0
-                        ? ' (clearest)'
-                        : ''
-                      : `; empty ${e.empty.bands.length === 0 ? 'uncut' : describeBands(e.empty)}${
-                          !apart(e) ? ' (same)' : i === 0 ? ' (tells apart best)' : ''
-                        }`}
+                    {describeCheck(e, i === 0)}
                   </option>
                 ))}
               </select>
             </label>
+            {/* The wrong lanes first, the product last: the last lane is the
+                one the gel writes sizes beside. An uncut circle is not a lane. */}
             <Gel
-              lanes={
-                check.empty === null || check.empty.bands.length === 0
-                  ? [{ profile: check.profile, label: check.name }]
-                  : [
-                      { profile: check.empty, label: 'Empty' },
-                      { profile: check.profile, label: check.name },
-                    ]
-              }
+              lanes={[
+                ...check.wrong
+                  .filter((w) => w.profile.bands.length > 0)
+                  .map((w) => ({ profile: w.profile, label: w.clone.label })),
+                { profile: check.profile, label: check.name },
+              ]}
             />
-            {check.empty !== null && check.empty.bands.length === 0 && (
+            {check.wrong.length > 0 && <WrongLegend check={check} gel={gel} />}
+            {omitted.length > 0 && (
               <p className="panel__note">
-                {check.name} does not cut {empty?.name}: left uncut, a circle runs as supercoiled
-                DNA, not at its size, so this lane cannot tell a colony without the insert.
-              </p>
-            )}
-            {check.empty !== null && check.empty.bands.length > 0 && !apart(check) && (
-              <p className="panel__note">
-                {check.name} gives {empty?.name} the same bands as the product.
+                Also possible, not drawn: {omitted.map((n) => n.toLowerCase()).join('; ')}.
               </p>
             )}
           </>
@@ -288,12 +342,20 @@ export function BenchProduct({
   product,
   parts = NO_PARTS,
   onCheckPrimers,
+  wrongClonesOf,
 }: {
   readonly product: SeqDocument | null;
   /** What went into the tube, to pick the empty vector from (#78). */
   readonly parts?: readonly Ingredient[];
   /** Assembles the product and opens the clone check on it (item 120); absent, no such button. */
   readonly onCheckPrimers?: ((vectorId: string) => void) | undefined;
+  /**
+   * The wrong clones the reaction may give with this part as the vector
+   * (item 132), most common first; by default the empty vector alone. Keep
+   * it stable across renders, since the lanes are digested again when it
+   * changes.
+   */
+  readonly wrongClonesOf?: ((vector: Ingredient) => readonly WrongClone[]) | undefined;
 }) {
   const slot = useContext(BenchProductSlot);
   if (slot === null) return null;
@@ -303,7 +365,12 @@ export function BenchProduct({
         The product is drawn here once the parts in the tube go together.
       </p>
     ) : (
-      <ProductView product={product} parts={parts} onCheckPrimers={onCheckPrimers} />
+      <ProductView
+        product={product}
+        parts={parts}
+        onCheckPrimers={onCheckPrimers}
+        wrongClonesOf={wrongClonesOf}
+      />
     ),
     slot,
   );

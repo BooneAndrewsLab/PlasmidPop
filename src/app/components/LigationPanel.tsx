@@ -1,12 +1,15 @@
-import { Fragment, useMemo } from 'react';
+import { Fragment, useCallback, useMemo } from 'react';
 
 import {
   type FragmentEnd,
+  type WrongClone,
   assemblyJunctions,
   describeEnd,
   ligate,
   ligationSeed,
+  ligationWrongClones,
   recordLigation,
+  wrongLanes,
 } from '@/core';
 
 import { analytics } from '../analytics';
@@ -21,7 +24,7 @@ import { useEditorState } from '../state/useEditorStore';
 import { PartsTube } from './PartsTube';
 import { BenchProduct } from './BenchProduct';
 import { ProductSummary } from './ProductSummary';
-import { shelfIngredients } from './tube';
+import { type Ingredient, shelfIngredients } from './tube';
 
 function JunctionRow({
   from,
@@ -78,6 +81,35 @@ export function LigationPanel() {
     editorStore.updateBench('ligation', { name: next });
   };
 
+  const ingredients = useMemo(() => shelfIngredients(shelf), [shelf]);
+  const inTube = useMemo(
+    () => ingredients.filter((i) => !excluded.has(i.id)),
+    [ingredients, excluded],
+  );
+  const used = useMemo(() => shelf.filter((p) => !excluded.has(p.id)), [shelf, excluded]);
+  const parts = useMemo(() => used.map((p) => p.fragment), [used]);
+  const junctions = assemblyJunctions(parts, circular);
+  const canAssemble = parts.length > 0 && junctions.every((j) => j.compatible);
+  const defaultName = `${[...new Set(parts.map((f) => f.source))].join('+')} assembly`;
+  // Joining strings and shifting a few features: cheap enough to do on
+  // every render, so the product can be described before it is made (#15);
+  // memoised all the same, since the wrong clones (item 132) and their
+  // digests are worked out from it and should not be on every keystroke.
+  const preview = useMemo(
+    () => (canAssemble ? ligate(parts, { name: defaultName, circular }) : null),
+    [canAssemble, parts, defaultName, circular],
+  );
+  // The wrong clones a colony may carry instead, for the vector the Bench
+  // checks against: the same fragments, joined the other ways their ends
+  // allow (item 132).
+  const wrongClonesOf = useCallback(
+    (vector: Ingredient): readonly WrongClone[] =>
+      preview === null || vector.fragment === undefined
+        ? []
+        : ligationWrongClones(parts, parts.indexOf(vector.fragment), preview),
+    [parts, preview],
+  );
+
   if (shelf.length === 0) {
     return (
       <p className="panel__note">
@@ -87,16 +119,7 @@ export function LigationPanel() {
     );
   }
 
-  const ingredients = shelfIngredients(shelf);
-  const used = shelf.filter((p) => !excluded.has(p.id));
   const names = new Map(ingredients.map((i) => [i.id, i.document.name]));
-  const parts = used.map((p) => p.fragment);
-  const junctions = assemblyJunctions(parts, circular);
-  const canAssemble = parts.length > 0 && junctions.every((j) => j.compatible);
-  const defaultName = `${[...new Set(parts.map((f) => f.source))].join('+')} assembly`;
-  // Joining strings and shifting a few features: cheap enough to do on
-  // every render, so the product can be described before it is made (#15).
-  const preview = canAssemble ? ligate(parts, { name: defaultName, circular }) : null;
 
   const toggle = (id: string): void => {
     const next = new Set(excluded);
@@ -121,7 +144,6 @@ export function LigationPanel() {
       // one insert after another, and the other reactions may want its parts.
       const storage = { scratch: true, shownEnzymes: ligationSeed(parts) };
       if (check) {
-        const inTube = ingredients.filter((i) => !excluded.has(i.id));
         // The vector the Bench's Against picker names, else the longest part (#329).
         const picked = inTube.find((i) => i.id === vectorId);
         const vector = picked ?? longestPart(inTube);
@@ -137,6 +159,7 @@ export function LigationPanel() {
                 ligationOrientation(parts, at, circular),
                 [],
                 picked !== undefined,
+                wrongLanes(wrongClonesOf(vector)).shown,
               );
         openCloneCheck(product, context, storage, 'ligation');
       } else {
@@ -153,7 +176,8 @@ export function LigationPanel() {
     <>
       <BenchProduct
         product={preview}
-        parts={ingredients.filter((i) => !excluded.has(i.id))}
+        parts={inTube}
+        wrongClonesOf={wrongClonesOf}
         onCheckPrimers={
           canAssemble
             ? (vectorId) => {

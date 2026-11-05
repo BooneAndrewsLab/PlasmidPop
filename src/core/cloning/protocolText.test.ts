@@ -8,6 +8,7 @@ import {
   type ProtocolStep,
   SeqDocument,
   diagnosticDigests,
+  gelProfile,
   protocolToHtml,
   protocolToMarkdown,
 } from '@/core';
@@ -43,6 +44,7 @@ const base: Protocol = {
   steps: [],
   oligos: [],
   diagnostics: [],
+  wrongClones: [],
   colonyPcr: [],
   caveats: [],
 };
@@ -389,6 +391,61 @@ describe('protocol text of a diagnostic digest', () => {
         '',
       ].join('\n'),
     );
+  });
+});
+
+describe('protocol text of a diagnostic digest against the wrong clones (item 132)', () => {
+  it('has a column per wrong clone, marks the ones an enzyme misses, and says what each clone is', () => {
+    const d = diagnostic();
+    const same = { ...d.profile };
+    const withWrong: DiagnosticDigest = {
+      ...d,
+      wrong: [
+        { label: 'Empty', name: 'Empty vector', profile: gelProfile([506]), apart: true },
+        { label: 'Reverse', name: 'Insert reversed', profile: same, apart: false },
+        { label: 'Dimer', name: 'Vector dimer', profile: gelProfile([]), apart: false },
+      ],
+    };
+    const md = protocolToMarkdown({
+      ...base,
+      diagnostics: [withWrong],
+      wrongClones: [
+        {
+          label: 'Empty',
+          name: 'Empty vector',
+          why: 'The vector closed on itself, with no insert.',
+        },
+        {
+          label: 'Reverse',
+          name: 'Insert reversed',
+          why: 'The insert went in the other way round.',
+        },
+        {
+          label: 'Dimer',
+          name: 'Vector dimer',
+          why: 'Two copies of the vector joined into one circle, with no insert.',
+        },
+      ],
+    });
+    expect(md).toContain(
+      [
+        '## Expected diagnostic digest',
+        '',
+        '| Enzyme | Cuts | Product | Empty vector | Insert reversed | Vector dimer |',
+        '| --- | --- | --- | --- | --- | --- |',
+        '| EcoRI | 2 | 506 + 306 bp | 506 bp | 506 + 306 bp (same as the product) | uncut (same as the product) |',
+        '',
+        'Ranked by how well each enzyme tells the product from every wrong clone the reaction may give, best first.',
+      ].join('\n'),
+    );
+    expect(md).toContain('- Empty vector: The vector closed on itself, with no insert.');
+    expect(md).toContain(
+      '- Vector dimer: Two copies of the vector joined into one circle, with no insert.',
+    );
+    const html = protocolToHtml({ ...base, diagnostics: [withWrong], wrongClones: [] });
+    // With no wrong clones named, the table is the plain one.
+    expect(html).toContain('<th>Bands</th>');
+    expect(html).not.toContain('<th>Product</th>');
   });
 });
 

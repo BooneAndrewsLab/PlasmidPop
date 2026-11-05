@@ -5,16 +5,21 @@ import {
   type LineageNode,
   type PcrPrimer,
   SeqDocument,
+  WRONG_CLONE_KINDS,
+  type WrongClone,
   activeEnzymes,
   assemblyJunctions,
   cuttableSites,
   digest,
   documentChecksum,
   emptyVector,
+  emptyVectorClone,
   findCutSites,
   flipFragment,
+  ligationWrongClones,
   locateInsert,
   partJunctions,
+  wrongLanes,
 } from '@/core';
 import type { StoredCloneCheck } from '@/storage';
 
@@ -54,6 +59,14 @@ export interface CloneCheckContext {
    * reaction with no vector.
    */
   readonly vector: { readonly name: string; readonly chosen: boolean } | null;
+  /**
+   * The wrong clones the reaction may give (item 132), in the order the
+   * Bench's gel draws them and capped as it caps them: the empty vector is
+   * among them, as `empty` is, and the rest are a ligation's reversed and
+   * double inserts and vector dimer. The protocol ranks its digests against
+   * them.
+   */
+  readonly wrong: readonly WrongClone[];
 }
 
 const contexts = new Map<string, CloneCheckContext>();
@@ -100,6 +113,13 @@ export function storedCloneCheck(
     orientationNote: context.orientationNote,
     primers: context.primers.map((p) => ({ name: p.name, sequence: p.sequence })),
     vector: context.vector === null ? null : { ...context.vector },
+    wrong: context.wrong.map((w) => ({
+      kind: w.kind,
+      label: w.label,
+      name: w.name,
+      why: w.why,
+      molecule: { name: w.molecule.name, sequence: w.molecule.sequence.toString() },
+    })),
   };
 }
 
@@ -107,6 +127,19 @@ function isNamedBases(v: unknown): boolean {
   if (typeof v !== 'object' || v === null) return false;
   const o = v as Record<string, unknown>;
   return typeof o['name'] === 'string' && typeof o['sequence'] === 'string';
+}
+
+function isStoredWrongClone(v: unknown): boolean {
+  if (typeof v !== 'object' || v === null) return false;
+  const o = v as Record<string, unknown>;
+  return (
+    typeof o['kind'] === 'string' &&
+    (WRONG_CLONE_KINDS as readonly string[]).includes(o['kind']) &&
+    typeof o['label'] === 'string' &&
+    typeof o['name'] === 'string' &&
+    typeof o['why'] === 'string' &&
+    isNamedBases(o['molecule'])
+  );
 }
 
 function isStoredCloneCheck(v: unknown): v is StoredCloneCheck {
@@ -132,7 +165,10 @@ function isStoredCloneCheck(v: unknown): v is StoredCloneCheck {
     (vector === null ||
       (typeof vector === 'object' &&
         typeof vector['name'] === 'string' &&
-        typeof vector['chosen'] === 'boolean'))
+        typeof vector['chosen'] === 'boolean')) &&
+    // Rows from before item 132 have no wrong clones; a row with some has them well formed.
+    (o['wrong'] === undefined ||
+      (Array.isArray(o['wrong']) && o['wrong'].every(isStoredWrongClone)))
   );
 }
 
@@ -160,6 +196,17 @@ export function restoreStoredCloneCheck(stored: unknown): void {
     orientationNote: stored.orientationNote,
     primers: stored.primers.map((p) => ({ name: p.name, sequence: p.sequence })),
     vector: stored.vector === null ? null : { ...stored.vector },
+    wrong: (stored.wrong ?? []).map((w) => ({
+      kind: w.kind,
+      label: w.label,
+      name: w.name,
+      why: w.why,
+      molecule: SeqDocument.create({
+        name: w.molecule.name,
+        sequence: w.molecule.sequence,
+        topology: 'circular',
+      }),
+    })),
   });
 }
 
@@ -195,7 +242,9 @@ const NO_EMPTY = {
  * as it went in or closed on itself (`emptyVector`, as Check by digest
  * has it), and the other parts give the junctions between them. `chosen`
  * says the vector was picked by the user, not assumed to be the longest
- * part. Null when the vector is nowhere on the product.
+ * part. `wrong` is the reaction's own list of wrong clones (item 132), the
+ * lanes the Bench draws; by default the empty vector alone, which is all a
+ * one-pot assembly can give. Null when the vector is nowhere on the product.
  */
 export function cloneCheckFromParts(
   product: SeqDocument,
@@ -205,6 +254,8 @@ export function cloneCheckFromParts(
   orientation: { readonly open: boolean; readonly note: string },
   primers: readonly PcrPrimer[] = [],
   chosen = false,
+  wrong: readonly WrongClone[] = wrongLanes(emptyVectorClone(vector.fragment ?? vector.document))
+    .shown,
 ): CloneCheckContext | null {
   const geometry = locateInsert(
     product,
@@ -227,6 +278,7 @@ export function cloneCheckFromParts(
     orientationNote: orientation.note,
     primers,
     vector: { name: vector.document.name, chosen },
+    wrong,
   };
 }
 
@@ -301,6 +353,8 @@ export function restrictionCloningContext(
     'cloning',
     ligationOrientation([backbone, piece], 0, true),
     primers,
+    false,
+    wrongLanes(ligationWrongClones([backbone, piece], 0, product)).shown,
   );
 }
 
@@ -329,6 +383,7 @@ export function fusionContext(
     orientationNote: 'The overlaps direct each fragment, so the joins can only be this way round.',
     primers,
     vector: null,
+    wrong: [],
   };
 }
 

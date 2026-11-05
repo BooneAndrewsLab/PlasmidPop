@@ -8,7 +8,9 @@ import {
   bandLabel,
   bandProblems,
   chooseLadder,
+  checkSummary,
   compareCheck,
+  compareCheckAll,
   compareDiagnostic,
   describeBands,
   digestProfile,
@@ -219,6 +221,91 @@ describe('compareCheck', () => {
     const readable = check([3000, 1000], [3000, 400]);
     const oneBand = check([1000], [400]);
     expect(compareCheck(readable, oneBand)).toBeLessThan(0);
+  });
+});
+
+describe('compareCheckAll (item 132)', () => {
+  const check = (product: number[], ...wrong: number[][]) => ({
+    product: gelProfile(product),
+    wrong: wrong.map((w) => gelProfile(w)),
+  });
+
+  it('with one wrong lane is compareCheck, whichever way the pair falls', () => {
+    const lanes = [
+      [
+        [4000, 1500],
+        [4000, 1500],
+      ],
+      [[5500], [4000]],
+      [
+        [4000, 1500],
+        [4000, 600],
+      ],
+      [
+        [4000, 1500],
+        [4000, 1200],
+      ],
+      [[4000, 150], [4000]],
+      [
+        [3000, 1000],
+        [3000, 400],
+      ],
+      [[1000], [400]],
+      [[3000, 1000], []],
+    ] as const;
+    for (const [pa, ea] of lanes) {
+      for (const [pb, eb] of lanes) {
+        const one = compareCheck(
+          { product: gelProfile(pa), empty: gelProfile(ea) },
+          { product: gelProfile(pb), empty: gelProfile(eb) },
+        );
+        const all = compareCheckAll(check([...pa], [...ea]), check([...pb], [...eb]));
+        expect(Math.sign(all)).toBe(Math.sign(one));
+      }
+    }
+  });
+
+  it('more wrong lanes told apart beats fewer, whatever the product lane looks like', () => {
+    // Tells the empty vector and the reversed insert apart, misses the tandem.
+    const two = check([4000, 1500], [4000], [4000, 900], [4000, 1500, 1500]);
+    // Tells only the empty vector apart, though its own lane is clearer.
+    const one = check([4000, 2000], [4000], [4000, 2000], [4000, 2000, 2000]);
+    expect(compareCheckAll(two, one)).toBeLessThan(0);
+    expect(compareCheckAll(one, two)).toBeGreaterThan(0);
+  });
+
+  it('among equal counts, the weakest difference decides, then its band’s brightness', () => {
+    // Both tell two lanes apart; the first's weakest difference is wider.
+    const wide = check([4000, 1500], [4000, 600], [4000, 700]);
+    const narrow = check([4000, 1500], [4000, 600], [4000, 1250]);
+    expect(compareCheckAll(wide, narrow)).toBeLessThan(0);
+    // The same weakest ratio, but one of them differs by a sliver.
+    const bright = check([4000, 1500], [4000], [4000, 600]);
+    const sliver = check([4000, 150], [4000], [4000, 60]);
+    expect(compareCheckAll(bright, sliver)).toBeLessThan(0);
+  });
+
+  it('an uncut wrong lane is not told apart, and no wrong lanes at all fall back to the product lane', () => {
+    const uncut = check([4000, 1500], []);
+    const cut = check([4000, 1500], [5500]);
+    expect(checkSummary(uncut.product, uncut.wrong).apart).toBe(0);
+    expect(compareCheckAll(cut, uncut)).toBeLessThan(0);
+    const readable = check([3000, 1000]);
+    const oneBand = check([4000]);
+    expect(compareCheckAll(readable, oneBand)).toBeLessThan(0);
+    expect(checkSummary(readable.product, [])).toEqual({ apart: 0, weakest: 1, faintest: 0 });
+  });
+
+  it('summarises the weakest told-apart lane, not a lane it misses', () => {
+    const s = checkSummary(gelProfile([4000, 1500]), [
+      gelProfile([4000, 1500]),
+      gelProfile([4000, 600]),
+      gelProfile([4000, 1000]),
+    ]);
+    expect(s.apart).toBe(2);
+    expect(s.weakest).toBeCloseTo(1.5);
+    // The band `laneContrast` names for that lane: the product's 1,500 bp, nearest 1,000.
+    expect(s.faintest).toBe(1500);
   });
 });
 

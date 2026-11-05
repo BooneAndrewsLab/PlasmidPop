@@ -331,14 +331,92 @@ export function compareCheck(
   b: { readonly product: DigestProfile; readonly empty: DigestProfile },
   options: GelOptions = {},
 ): number {
-  const { resolution, plenty, bright } = { ...DEFAULT_GEL, ...options };
-  const ca = laneContrast(a.product, a.empty, options);
-  const cb = laneContrast(b.product, b.empty, options);
-  const apart = (c: typeof ca): boolean => c.contrast >= resolution;
-  if (apart(ca) !== apart(cb)) return apart(ca) ? -1 : 1;
-  const wider = Math.min(cb.contrast, plenty) - Math.min(ca.contrast, plenty);
+  return compareCheckAll(
+    { product: a.product, wrong: [a.empty] },
+    { product: b.product, wrong: [b.empty] },
+    options,
+  );
+}
+
+/**
+ * What one enzyme's digest shows of the product beside every wrong clone a
+ * colony may carry (item 132): how many of the wrong lanes it tells the
+ * product's from, and the weakest and faintest of those differences, which
+ * is what the rules of `compareCheckAll` compare.
+ */
+export interface CheckSummary {
+  /** Wrong lanes whose contrast with the product's reaches `resolution`. */
+  readonly apart: number;
+  /** The contrast of the wrong lane told apart least well; over every lane when none is. */
+  readonly weakest: number;
+  /** The differing band of that lane, by length: a sliver is easily missed. */
+  readonly faintest: number;
+}
+
+/** Each wrong lane's contrast with the product's, in order. */
+export function laneContrasts(
+  product: DigestProfile,
+  wrong: readonly DigestProfile[],
+  options: GelOptions = {},
+): { readonly contrast: number; readonly band: number }[] {
+  return wrong.map((w) => laneContrast(product, w, options));
+}
+
+export function checkSummary(
+  product: DigestProfile,
+  wrong: readonly DigestProfile[],
+  options: GelOptions = {},
+): CheckSummary {
+  const { resolution } = { ...DEFAULT_GEL, ...options };
+  const all = laneContrasts(product, wrong, options);
+  const told = all.filter((c) => c.contrast >= resolution);
+  const over = told.length > 0 ? told : all;
+  let weakest = Infinity;
+  let faintest = Infinity;
+  for (const c of over) {
+    if (c.contrast < weakest) {
+      weakest = c.contrast;
+      faintest = c.band;
+    } else if (c.contrast === weakest) faintest = Math.min(faintest, c.band);
+  }
+  return {
+    apart: told.length,
+    weakest: over.length === 0 ? 1 : weakest,
+    faintest: over.length === 0 ? 0 : faintest,
+  };
+}
+
+/**
+ * Orders two check digests by how well they tell a colony that carries the
+ * product from one that carries any of the wrong clones (item 132, #361):
+ * the empty vector, the insert reversed, a double insert, a vector dimer.
+ * Each candidate is the product's lane and one lane per wrong clone, all
+ * cut with the same enzyme. With one wrong lane this is `compareCheck`.
+ *
+ * 1. More wrong lanes that differ from the product's by a band a gel
+ *    resolves (`resolution`) beat fewer: an enzyme that tells three of four
+ *    apart beats one that tells two.
+ * 2. Among the lanes told apart, the weakest difference, wider beats
+ *    narrower, up to `plenty`: a check is as good as its least clear
+ *    lane. When none is told apart, the widest-of-the-narrow still orders
+ *    them, as `compareCheck` always has.
+ * 3. The differing band of that weakest lane, brighter beats fainter, up to
+ *    `bright`.
+ * 4. Then the product's lane by `compareDiagnostic`, so that among enzymes
+ *    that tell the clones apart equally well the clearer lane comes first.
+ */
+export function compareCheckAll(
+  a: { readonly product: DigestProfile; readonly wrong: readonly DigestProfile[] },
+  b: { readonly product: DigestProfile; readonly wrong: readonly DigestProfile[] },
+  options: GelOptions = {},
+): number {
+  const { plenty, bright } = { ...DEFAULT_GEL, ...options };
+  const sa = checkSummary(a.product, a.wrong, options);
+  const sb = checkSummary(b.product, b.wrong, options);
+  if (sa.apart !== sb.apart) return sb.apart - sa.apart;
+  const wider = Math.min(sb.weakest, plenty) - Math.min(sa.weakest, plenty);
   if (wider !== 0) return wider;
-  const brighter = Math.min(cb.band, bright) - Math.min(ca.band, bright);
+  const brighter = Math.min(sb.faintest, bright) - Math.min(sa.faintest, bright);
   if (brighter !== 0) return brighter;
   return compareDiagnostic(a.product, b.product, options);
 }

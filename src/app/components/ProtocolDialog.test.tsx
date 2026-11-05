@@ -4,10 +4,22 @@ import 'fake-indexeddb/auto';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { type CheckPair, type LineageNode, SeqDocument, withLineage } from '@/core';
+import {
+  type CheckPair,
+  type LineageNode,
+  SeqDocument,
+  type WrongClone,
+  withLineage,
+} from '@/core';
 
+import { cloneCheckFromParts, forgetCloneChecks, registerCloneCheck } from '../cloneCheck';
 import { forgetPanels, rememberPanel } from '../state/panelMemory';
 import { ProtocolDialog } from './ProtocolDialog';
+
+function def<T>(value: T | null | undefined): T {
+  if (value === undefined || value === null) throw new Error('missing');
+  return value;
+}
 
 function filler(length: number, seed: number): string {
   let x = seed;
@@ -118,6 +130,40 @@ describe('Protocol dialog (#215)', () => {
     render(<ProtocolDialog doc={made} onClose={noop} />);
     const plain = screen.getAllByTitle('Protocol preview').at(-1)?.getAttribute('srcdoc') ?? '';
     expect(plain).not.toContain('Colony PCR check');
+  });
+
+  it('ranks the digests against the wrong clones it is given, or those the product registered (item 132)', () => {
+    const wrong: WrongClone[] = [
+      {
+        kind: 'empty',
+        label: 'Empty',
+        name: 'Empty vector',
+        why: 'The vector went through uncut, with no insert.',
+        molecule: SeqDocument.create({
+          name: 'pDest',
+          topology: 'circular',
+          sequence: `GAATTC${filler(1500, 7)}`,
+        }),
+      },
+    ];
+    render(<ProtocolDialog doc={made} wrongClones={wrong} onClose={noop} />);
+    const page = screen.getByTitle('Protocol preview').getAttribute('srcdoc') ?? '';
+    expect(page).toContain('<th>Product</th><th>Empty vector</th>');
+    expect(page).toContain('Empty vector: The vector went through uncut, with no insert.');
+    // Without the prop, the context the product registered when it was assembled.
+    const context = cloneCheckFromParts(made, { document: def(wrong[0]).molecule }, [], 'Gibson', {
+      open: false,
+      note: 'fixed',
+    });
+    if (context === null) throw new Error('no context');
+    registerCloneCheck(made, context);
+    render(<ProtocolDialog doc={made} onClose={noop} />);
+    const recalled = screen.getAllByTitle('Protocol preview').at(-1)?.getAttribute('srcdoc') ?? '';
+    expect(recalled).toContain('<th>Product</th><th>Empty vector</th>');
+    forgetCloneChecks();
+    render(<ProtocolDialog doc={made} onClose={noop} />);
+    const plain = screen.getAllByTitle('Protocol preview').at(-1)?.getAttribute('srcdoc') ?? '';
+    expect(plain).toContain('<th>Bands</th>');
   });
 
   it('downloads the page as HTML and as Markdown', () => {

@@ -327,3 +327,5 @@ the Bench, item 49). The rest stand.
 130. [Read pairs in assembly](130-assembly-read-pairs.md)
 
 131. [Detect features: show what the rules hid](131-detect-hidden-calls.md)
+
+132. [The wrong clones beside the right one on the check gel](132-wrong-clone-lanes.md)

@@ -143,8 +143,14 @@ function stepBlocks(step: ProtocolStep): Block[] {
   }
 }
 
+/** A wrong clone's lane as a cell: its bands, "uncut" for none, and whether the product's are the same. */
+function wrongCell(lane: DiagnosticDigest['wrong'][number]): string {
+  const bands = lane.profile.bands.length === 0 ? 'uncut' : describeBands(lane.profile, 8);
+  return lane.apart ? bands : `${bands} (same as the product)`;
+}
+
 function diagnosticRows(d: DiagnosticDigest): readonly string[] {
-  return [d.enzyme, String(d.cuts), describeBands(d.profile, 8)];
+  return [d.enzyme, String(d.cuts), describeBands(d.profile, 8), ...d.wrong.map(wrongCell)];
 }
 
 function blocks(p: Protocol): Block[] {
@@ -186,15 +192,30 @@ function blocks(p: Protocol): Block[] {
       text: 'No enzyme in the set in use cuts the product between once and six times.',
     });
   } else {
+    const wrong = p.wrongClones;
     out.push({
       t: 'table',
-      head: ['Enzyme', 'Cuts', 'Bands'],
+      head:
+        wrong.length === 0
+          ? ['Enzyme', 'Cuts', 'Bands']
+          : ['Enzyme', 'Cuts', 'Product', ...wrong.map((w) => w.name)],
       rows: p.diagnostics.map(diagnosticRows),
     });
-    out.push({
-      t: 'p',
-      text: 'Clearest first. Band sizes are of the fragments the product gives; a circle left uncut runs supercoiled, not at its size.',
-    });
+    if (wrong.length === 0) {
+      out.push({
+        t: 'p',
+        text: 'Clearest first. Band sizes are of the fragments the product gives; a circle left uncut runs supercoiled, not at its size.',
+      });
+    } else {
+      out.push({
+        t: 'p',
+        text: 'Ranked by how well each enzyme tells the product from every wrong clone the reaction may give, best first. A lane that matches a wrong column is that clone; a column marked "same as the product" is one this enzyme cannot tell from it. A circle left uncut runs supercoiled, not at its size.',
+      });
+      out.push({
+        t: 'ul',
+        items: wrong.map((w) => `${w.name}: ${w.why}`),
+      });
+    }
   }
   if (p.colonyPcr.length > 0) {
     const sizes = (bands: readonly number[] | null): string =>

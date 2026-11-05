@@ -16,3 +16,4 @@ export * from './cloningEnds';
 export * from './goldenGateEnds';
 export * from './productEnzymes';
 export * from './checkPrimers';
+export * from './wrongClones';

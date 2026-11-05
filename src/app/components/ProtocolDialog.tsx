@@ -1,8 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { type SeqDocument, buildProtocol, protocolToHtml, protocolToMarkdown } from '@/core';
+import {
+  type SeqDocument,
+  type WrongClone,
+  buildProtocol,
+  protocolToHtml,
+  protocolToMarkdown,
+} from '@/core';
 
 import { analytics } from '../analytics';
+import { recallCloneCheck } from '../cloneCheck';
 import { downloadText, fileNameFor } from '../saveFile';
 import { usePrimerCollection } from '../state/primerCollection';
 import { useGelOptions } from '../state/useGel';
@@ -12,6 +19,12 @@ interface Props {
   readonly doc: SeqDocument;
   /** The tab `doc` is open in, whose Clone check design the page lists (item 120); null for none. */
   readonly documentId?: string | null;
+  /**
+   * The wrong clones the Bench drew beside the product (item 132), when the
+   * dialog is opened from there; otherwise those of the context the product
+   * registered when it was assembled, if any.
+   */
+  readonly wrongClones?: readonly WrongClone[] | undefined;
   readonly onClose: () => void;
   /** Where a file goes; the browser's download unless a test says otherwise. */
   readonly download?: (name: string, text: string) => void;
@@ -32,6 +45,7 @@ function positive(text: string): number | null {
 export function ProtocolDialog({
   doc,
   documentId = null,
+  wrongClones,
   onClose,
   download = downloadText,
 }: Props) {
@@ -65,17 +79,22 @@ export function ProtocolDialog({
     const record = recallCloneCheckRecord(documentId, doc);
     return record === null ? [] : protocolChecks(record);
   }, [documentId, doc]);
+  const wrong = useMemo(
+    () => wrongClones ?? recallCloneCheck(doc)?.wrong ?? [],
+    [wrongClones, doc],
+  );
   const protocol = useMemo(
     () =>
       buildProtocol(doc, {
         colonyPcr: checks,
+        wrongClones: wrong,
         ...(ng === null ? {} : { vectorNg: ng }),
         ...(ratioValue === null ? {} : { ratio: ratioValue }),
         concentrations,
         collection: primers,
         gel,
       }),
-    [doc, checks, ng, ratioValue, concentrations, primers, gel],
+    [doc, checks, wrong, ng, ratioValue, concentrations, primers, gel],
   );
   const html = useMemo(() => (protocol === null ? '' : protocolToHtml(protocol)), [protocol]);
   const partNames = useMemo(() => {

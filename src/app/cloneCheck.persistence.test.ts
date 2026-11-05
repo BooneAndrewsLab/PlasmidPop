@@ -16,7 +16,9 @@ import {
   findCutSites,
   getEnzyme,
   ligate,
+  ligationWrongClones,
   setActiveEnzymeSet,
+  wrongLanes,
 } from '@/core';
 import { decodeSharePayload, parseGenBank } from '@/io';
 import { PlasmidPopDb, DocumentRepository, createBackup, restoreBackup } from '@/storage';
@@ -56,9 +58,9 @@ function enz(name: string): Enzyme {
   return e;
 }
 
-function longest(doc: SeqDocument): DigestFragment {
+function longest(doc: SeqDocument, names: readonly string[] = ['EcoRI', 'BamHI']): DigestFragment {
   const text = doc.sequence.toString();
-  const enzymes = ['EcoRI', 'BamHI'].map(enz);
+  const enzymes = names.map(enz);
   const sites = cuttableSites(
     text,
     doc.topology,
@@ -134,6 +136,50 @@ describe('the stored form', () => {
     expect(back.empty?.sequence.toString()).toBe(context.empty?.sequence.toString());
     expect(back.empty?.isCircular).toBe(true);
     expect(back.empty?.name).toBe(context.empty?.name);
+  });
+
+  it('carries the wrong clones as name and bases, and a row from before has none (item 132)', () => {
+    // A one-enzyme ligation: the backbone closes, so there is an empty
+    // vector, a reversed insert, a tandem and a dimer to carry.
+    const one = longest(vector, ['EcoRI']);
+    const ins = longest(tut('Insert-EcoRI-EcoRI'), ['EcoRI']);
+    const clone = ligate([one, ins], { name: 'one-enzyme', circular: true });
+    const all = ligationWrongClones([one, ins], 0, clone);
+    const context = def(
+      cloneCheckFromParts(
+        clone,
+        { document: vector, fragment: one },
+        [],
+        'Ligation',
+        { open: true, note: 'open' },
+        [],
+        false,
+        wrongLanes(all).shown,
+      ),
+    );
+    expect(context.wrong.map((w) => w.kind)).toEqual(['empty', 'reversed', 'tandem', 'dimer']);
+    const stored = def(storedCloneCheck(clone, context));
+    expect(JSON.parse(JSON.stringify(stored))).toEqual(stored);
+    expect(stored.wrong?.map((w) => w.kind)).toEqual(['empty', 'reversed', 'tandem', 'dimer']);
+    forgetCloneChecks();
+    restoreStoredCloneCheck(stored);
+    const back = def(recallCloneCheck(clone));
+    expect(back.wrong.map((w) => [w.kind, w.label, w.name, w.why])).toEqual(
+      context.wrong.map((w) => [w.kind, w.label, w.name, w.why]),
+    );
+    back.wrong.forEach((w, i) => {
+      expect(w.molecule.sequence.toString()).toBe(context.wrong[i]?.molecule.sequence.toString());
+      expect(w.molecule.isCircular).toBe(true);
+      expect(w.molecule.name).toBe(context.wrong[i]?.molecule.name);
+    });
+    // A row from before the field restores with none; a damaged one is ignored.
+    forgetCloneChecks();
+    const { wrong: _dropped, ...before } = stored;
+    restoreStoredCloneCheck(before);
+    expect(def(recallCloneCheck(clone)).wrong).toEqual([]);
+    forgetCloneChecks();
+    restoreStoredCloneCheck({ ...stored, wrong: [{ kind: 'odd' }] });
+    expect(recallCloneCheck(clone)).toBeNull();
   });
 
   it('keeps a missing empty vector missing, and has nothing for a document with no checksum', () => {

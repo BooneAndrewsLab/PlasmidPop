@@ -271,23 +271,41 @@ columns:
   until you **Assemble** and the product opens as a document.
 
   Under the map is **Check by digest**: the product cut with one enzyme,
-  beside the **empty vector** cut with the same one. What a miniprep screen asks
-  is whether a colony took the insert or carries the vector without it, so
-  the enzyme list (every enzyme that cuts the product between once and six
-  times, with the product's own methylation allowed for) puts first the
-  one whose two lanes differ most clearly, and says of each what the empty
-  vector gives, **(same)** where it gives the product's bands.
+  beside the **wrong clones** the reaction may give, each cut with the same
+  one. What a miniprep screen asks is whether a colony took the insert,
+  took it once, and the right way round, so the enzyme list (every enzyme
+  that cuts the product between once and six times, with the product's own
+  methylation allowed for) puts first the one that tells the product's lane
+  from the most wrong lanes, and by the widest margin, and says of each
+  which wrong lanes it cannot tell from the product (**same as empty,
+  reverse**), or **(tells all apart)**.
+
+  Which wrong clones there are depends on the reaction and on the ends. A
+  Golden Gate, Gibson or Gateway closes in one orientation only, so its
+  only wrong clone is the **empty vector**: the uncut destination. A
+  Ligation has up to six, each only where its ends can join: the empty
+  vector (the cut vector closed on itself), the **insert reversed**, two
+  inserts **head to tail**, the **vector as a dimer**, and two inserts
+  **head to head** or **tail to tail**. An insert cut with two different
+  enzymes can go in one way only, and no copy of it joins another, so it
+  has none of these; a dephosphorylated vector cannot close or dimerise but
+  still takes a second or a turned insert; a one-enzyme or blunt ligation
+  can go wrong in every way. The gel draws at most four wrong lanes, the
+  most common first, and names the rest under it; the list under the gel
+  says what each lane is, the bands it gives, and where two lanes look the
+  same.
 
   The empty vector is taken from the longest part in the tube; **Against**
   picks another. A circular vector is the empty vector as it went in (an
   uncut destination vector in Golden Gate, Gibson or Gateway); a cut one
   is that piece closed on itself, when its two ends join. A vector cut
   with two enzymes, or dephosphorylated, cannot close, and a PCR product
-  has no phosphates to close with: then the Bench says so and ranks the
-  product's lane alone, clearest first, as the Enzymes tab's
-  [band separation](07-enzymes.md) sort does. An enzyme that does not cut
-  the empty vector leaves it uncut, and a supercoiled circle does not run
-  at its size, so that lane is not drawn.
+  has no phosphates to close with: then the Bench says so, and with no
+  other wrong clone to rank against it ranks the product's lane alone,
+  clearest first, as the Enzymes tab's [band separation](07-enzymes.md)
+  sort does. An enzyme that does not cut a wrong clone leaves it uncut,
+  and a supercoiled circle does not run at its size, so that lane is not
+  drawn and counts as not told apart.
 
   Above it, once the tube goes together, **Check by colony PCR** has one
   button: **Design check primers…** assembles the product, opens it as a
@@ -885,7 +903,15 @@ The page lists, in this order:
   gives its enzymes and fragment. A ligation, Golden Gate or Gibson gives
   each part's length, ng and pmol, and the program;
 - the **expected diagnostic digest**: the enzymes of the set in use that cut
-  the product once to six times, clearest first, with the bands each gives;
+  the product once to six times, with the bands each gives. When the
+  product came from the Bench, or was assembled with **Design check
+  primers…** so that it remembers its reaction, the table has a column for
+  each wrong clone the Bench drew beside it (the empty vector, the insert
+  reversed, a double insert, a vector dimer), the enzymes are ranked by how
+  well they tell the product from all of them, a lane that matches a column
+  is that clone, and a cell marked _same as the product_ is one the enzyme
+  cannot tell apart; otherwise the digests are ranked clearest first, as the
+  Enzymes tab ranks band separation;
 - the **colony PCR check**, when the
   [Clone check](10-primers.md#checking-a-clone-by-colony-pcr) page has a
   design for the document: the best pair across each junction and the best

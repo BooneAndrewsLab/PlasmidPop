@@ -6,13 +6,18 @@ import {
 } from '../lineage';
 import { type SeqDocument } from '../document';
 import {
+  DEFAULT_GEL,
   type DigestProfile,
   type GelOptions,
+  compareCheckAll,
   compareDiagnostic,
   enzymeProfile,
+  gelProfile,
+  laneContrast,
 } from '../analysis/gel';
 import { cuttableSites } from '../analysis/methylation';
-import { activeEnzymes, findCutSites } from '../analysis/restriction';
+import { type CutSite, activeEnzymes, findCutSites } from '../analysis/restriction';
+import { type WrongClone } from './wrongClones';
 import {
   cleanPrimer,
   meltingTemperature,
@@ -110,10 +115,21 @@ export interface OtherStep {
 
 export type ProtocolStep = PcrStep | DigestStep | AssemblyStep | OtherStep;
 
+/** One wrong clone's lane in a diagnostic digest (item 132): its bands, and whether they differ from the product's. */
+export interface WrongLane {
+  readonly label: string;
+  readonly name: string;
+  readonly profile: DigestProfile;
+  /** Whether a gel tells this lane from the product's. */
+  readonly apart: boolean;
+}
+
 export interface DiagnosticDigest {
   readonly enzyme: string;
   readonly cuts: number;
   readonly profile: DigestProfile;
+  /** The wrong clones' lanes with the same enzyme, in the protocol's order; empty when none are known. */
+  readonly wrong: readonly WrongLane[];
 }
 
 /**
@@ -139,6 +155,12 @@ export interface Protocol {
   readonly oligos: readonly ProtocolOligo[];
   /** Digests to check the product by, clearest first. */
   readonly diagnostics: readonly DiagnosticDigest[];
+  /** The wrong clones the digests are ranked against (item 132), in the lanes' order; empty when none are known. */
+  readonly wrongClones: readonly {
+    readonly label: string;
+    readonly name: string;
+    readonly why: string;
+  }[];
   /** Colony-PCR pairs designed for the product, as given; empty when none were. */
   readonly colonyPcr: readonly ColonyPcrCheck[];
   /** Things the record could not say, e.g. molecules a long tree left out. */
@@ -159,6 +181,8 @@ export interface ProtocolOptions {
   readonly diagnosticCount?: number;
   /** Colony-PCR check pairs the Clone check page designed, to list with their bands (item 120). */
   readonly colonyPcr?: readonly ColonyPcrCheck[];
+  /** The wrong clones the reaction may give (item 132), to rank the digests against and show beside the product. */
+  readonly wrongClones?: readonly WrongClone[];
 }
 
 export const DEFAULT_VECTOR_NG = 50;
@@ -424,16 +448,8 @@ function collectOligos(
   }
 }
 
-/**
- * The single-enzyme digests that check `doc`, clearest first: each enzyme in
- * the set in use that cuts it between once and six times (host methylation
- * allowed for), ranked as the Enzymes tab ranks its band separation.
- */
-export function diagnosticDigests(
-  doc: SeqDocument,
-  gel: GelOptions = {},
-  count = 3,
-): DiagnosticDigest[] {
+/** Every enzyme of the set in use that cuts `doc`, with its sites, its methylation allowed for. */
+function sitesByEnzyme(doc: SeqDocument): Map<string, CutSite[]> {
   const text = doc.sequence.toString();
   const enzymes = activeEnzymes();
   const sizeOf = new Map(enzymes.map((e) => [e.name, e.site.length]));
@@ -444,19 +460,56 @@ export function diagnosticDigests(
     findCutSites(text, doc.topology, enzymes),
     (name) => sizeOf.get(name) ?? 0,
   );
-  const byEnzyme = new Map<string, typeof sites>();
+  const byEnzyme = new Map<string, CutSite[]>();
   for (const s of sites) byEnzyme.set(s.enzyme, [...(byEnzyme.get(s.enzyme) ?? []), s]);
+  return byEnzyme;
+}
+
+/**
+ * The single-enzyme digests that check `doc`, clearest first: each enzyme in
+ * the set in use that cuts it between once and six times (host methylation
+ * allowed for). With wrong clones to tell it from (item 132) they are
+ * ranked by `compareCheckAll`, how well the enzyme tells the product's lane
+ * from every wrong one; without, as the Enzymes tab ranks its band
+ * separation. An enzyme that misses a wrong clone leaves it uncut, which
+ * runs supercoiled and tells nothing apart.
+ */
+export function diagnosticDigests(
+  doc: SeqDocument,
+  gel: GelOptions = {},
+  count = 3,
+  wrongClones: readonly WrongClone[] = [],
+): DiagnosticDigest[] {
+  const { resolution } = { ...DEFAULT_GEL, ...gel };
+  const wrongSites = wrongClones.map((w) => ({ clone: w, sites: sitesByEnzyme(w.molecule) }));
   const out: DiagnosticDigest[] = [];
-  for (const [enzyme, own] of byEnzyme) {
+  for (const [enzyme, own] of sitesByEnzyme(doc)) {
     if (own.length > MAX_DIAGNOSTIC_CUTS) continue;
-    out.push({
-      enzyme,
-      cuts: own.length,
-      profile: enzymeProfile(own, doc.length, doc.topology, gel),
+    const profile = enzymeProfile(own, doc.length, doc.topology, gel);
+    const wrong = wrongSites.map(({ clone, sites }) => {
+      const theirs = sites.get(enzyme);
+      const lane =
+        theirs === undefined
+          ? gelProfile([], gel)
+          : enzymeProfile(theirs, clone.molecule.length, clone.molecule.topology, gel);
+      return {
+        label: clone.label,
+        name: clone.name,
+        profile: lane,
+        apart: laneContrast(profile, lane, gel).contrast >= resolution,
+      };
     });
+    out.push({ enzyme, cuts: own.length, profile, wrong });
   }
+  const lanes = (d: DiagnosticDigest) => ({
+    product: d.profile,
+    wrong: d.wrong.map((w) => w.profile),
+  });
   out.sort(
-    (a, b) => compareDiagnostic(a.profile, b.profile, gel) || a.enzyme.localeCompare(b.enzyme),
+    (a, b) =>
+      (wrongClones.length === 0
+        ? compareDiagnostic(a.profile, b.profile, gel)
+        : compareCheckAll(lanes(a), lanes(b), gel)) || a.enzyme.localeCompare(b.enzyme),
   );
   return out.slice(0, count);
 }
@@ -495,7 +548,17 @@ export function buildProtocol(doc: SeqDocument, options: ProtocolOptions = {}): 
     topology: doc.isCircular ? 'circular' : 'linear',
     steps,
     oligos,
-    diagnostics: diagnosticDigests(doc, options.gel, options.diagnosticCount ?? 3),
+    diagnostics: diagnosticDigests(
+      doc,
+      options.gel,
+      options.diagnosticCount ?? 3,
+      options.wrongClones ?? [],
+    ),
+    wrongClones: (options.wrongClones ?? []).map((w) => ({
+      label: w.label,
+      name: w.name,
+      why: w.why,
+    })),
     colonyPcr: options.colonyPcr ?? [],
     caveats,
   };
