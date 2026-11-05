@@ -128,19 +128,21 @@ since there is nothing on it to select.
 | `Escape`                  | Back to where the keyboard was before `Alt+B`       |
 | Double-click the boundary | Put that boundary back where it was                 |
 
-## Primer workspace
+## Primer and Align workspaces
 
-The [primer workspace](10-primers.md#the-primer-workspace) is a region
-beside the map, not a dialog: the keyboard moves in and out of it with
-`Tab` as with any other part of the window, and opening it puts the
+The [primer workspace](10-primers.md#the-primer-workspace) and the
+[Align workspace](11-align.md#the-tab-and-the-workspace) are regions
+beside the map, not dialogs: the keyboard moves in and out of them with
+`Tab` as with any other part of the window, and opening one puts the
 keyboard on the page's heading.
 
-| Keys                             | Action                                                                                   |
-| -------------------------------- | ---------------------------------------------------------------------------------------- |
-| `↑ ↓` on the rail                | The page above or below (`Home`, `End` the first and the last); `← →` on a phone         |
-| `Escape`                         | Close the workspace, with the keyboard inside it; back on **Design primers…** in the tab |
-| `Escape` in an open **Settings** | Fold the settings first; a second `Escape` closes the workspace                          |
-| `Escape` on the map              | Clears the selection, as always; the workspace stays open                                |
+| Keys                                   | Action                                                                                                                    |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `↑ ↓` on the rail                      | The page above or below (`Home`, `End` the first and the last); `← →` on a phone                                          |
+| `Escape`                               | Close the workspace, with the keyboard inside it; back on **Design primers…** or **Options and more ›** in the tab        |
+| `Escape` in an open **Settings**       | Fold the settings first; a second `Escape` closes the workspace                                                           |
+| `Escape` in a large view or MSA window | The window's own: close its panel or form, clear its selection, then close the window; the workspace behind it stays open |
+| `Escape` on the map                    | Clears the selection, as always; the workspace stays open                                                                 |
 
 In the Results table, which is one stop in the tab order:
 

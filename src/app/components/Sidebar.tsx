@@ -47,11 +47,11 @@ const LABELS: Readonly<Record<SidebarTab, string>> = {
  * hiding it.
  */
 export function Sidebar({ doc }: Props) {
-  const { sidebarTab, sidebarOpen, primerWorkspace } = useEditorState();
-  // The primer workspace (item 107) stands in the panel's place, in a column
-  // of its own: the sidebar is then its rail alone, with Primers lit. The
+  const { sidebarTab, sidebarOpen, workspace } = useEditorState();
+  // A workspace (items 107 and 129) stands in the panel's place, in a column
+  // of its own: the sidebar is then its rail alone, with its tab lit. The
   // panel is not mounted behind it, so the two never hold the design at once.
-  const panelShown = sidebarOpen && !primerWorkspace;
+  const panelShown = sidebarOpen && workspace === null;
   const sidebarKey = useBindingLabel('toggle-sidebar');
   const prevKey = useBindingLabel('sidebar-previous');
   const nextKey = useBindingLabel('sidebar-next');
@@ -142,7 +142,7 @@ export function Sidebar({ doc }: Props) {
         aria-labelledby={`sidebar-tab-${sidebarTab}`}
         hidden={!panelShown}
       >
-        {!primerWorkspace && <SidebarPanel doc={doc} tab={sidebarTab} />}
+        {workspace === null && <SidebarPanel doc={doc} tab={sidebarTab} />}
       </div>
     </aside>
   );

@@ -5,6 +5,42 @@ a Sanger read against the plasmid, or a synthesised fragment against its
 design. In front of a [protein](16-proteins.md#aligning-two-proteins) it
 aligns two proteins, scored by BLOSUM62.
 
+## The tab and the workspace
+
+The tab itself is the common case and nothing else: the box for a read or
+a sequence, the **Reference** line (the document, its length and topology,
+or the selection when only that is aligned against), one **Align** button,
+and a line on what came of it. Everything else is in the **Align
+workspace**, a larger view beside the map that **Options and more ›** opens,
+as **Design primers…** opens the [primer workspace](10-primers.md#the-primer-workspace).
+It has four pages down its left edge:
+
+- **Align** — the same box, with the **Options** (mode, against the
+  selection) and **Reads** (trimming, quality) groups under it.
+- **Results** — the batch's list, or the one alignment with its score line,
+  trimming and differences, and the **Large view** buttons.
+- **Assemble** — the reads joined into contigs, the layout, the warnings
+  and **Save consensus as document**.
+- **Multiple** — the records of the box aligned with each other.
+
+The tab and the workspace hold the same thing: what you drop in one is in
+the other, a result made in the workspace is summed up in the tab, and a
+run started in the tab carries on while the workspace opens. When a result
+or an assembly exists, the tab's summary ends in **Results ›** or
+**Assembly ›**, which open that page; with two or more records in the box
+it also offers **Assemble reads ›** and **Multiple alignment ›**. The
+workspace's **Results** and **Assemble** tabs count what they hold.
+
+The workspace is a region of the window, not a dialog: `Tab` moves in and
+out of it, `Esc` with the keyboard inside closes it and puts the keyboard
+back on **Options and more ›**, and choosing another sidebar tab or putting
+the sidebar away closes it too; its page is remembered. Beside the map it
+shares the primer workspace's width (drag the boundary; double-click to
+reset); narrower than 1000 px it takes the whole main area with the
+document as a foldable strip across the top; on a phone it fills the
+screen, the pages as tabs across the top and **‹** to go back. On a phone
+the tab is a fifth **Details** subtab.
+
 ## How to align
 
 1. Paste the other sequence into the box: bare bases, a FASTA record or a
@@ -27,8 +63,8 @@ aligns two proteins, scored by BLOSUM62.
 3. Click **Align**, the button just under the box and the file controls.
    Both orientations of the other sequence are considered and the better
    one is shown; the heading says when it was the reverse complement. The
-   defaults suit most sequences; the **Options** group under the button
-   holds the rest:
+   defaults suit most sequences; the **Options** group on the workspace's
+   Align page holds the rest:
 4. In **Options**, choose **Global (end to end)** to align the whole of both sequences
    (Needleman–Wunsch), or **Local (best region)** to find the best-matching
    stretch (Smith–Waterman). Local is the right choice for a read against a
@@ -36,19 +72,21 @@ aligns two proteins, scored by BLOSUM62.
    base qualities) or a sequence under half as long as what it is aligned
    to; the note in the Options group says so. Global would score such a
    sequence across the whole of the plasmid and report a perfect read at
-   17% identity. A mode you choose yourself stays chosen while the Align
-   tab is open, whatever you then put in the box.
+   17% identity. A mode you choose yourself stays chosen for the document,
+   whatever you then put in the box.
 5. Tick **Against selection only** to align against the selected part of
    the document instead of all of it (it is greyed out until something is
    selected). Click **Align** again to re-run with the new options.
 
-The result appears in a **Result** group under Options, and reports the
-score, percent identity, the number of columns and of gap columns. It does not print the alignment itself, which is too wide
-for a side panel: click **Large view** to read it in a window of its own,
-along the whole sequence (see below). Identity counts only the identical
-columns.
+The tab sums the result up in a line — the kind of alignment, the score,
+the percent identity, the number of columns and of gap columns — and
+**Results ›** opens the workspace's Results page, where a run started from
+the workspace lands by itself. The page does not print the alignment, which
+is too wide for a page: click **Large view** to read it in a window of its
+own, along the whole sequence (see below). Identity counts only the
+identical columns.
 
-Point at the result's summary line (a bordered button with a › at its end; hover it, or Tab to it) to see where the
+Point at the Results page's score line (a bordered button with a › at its end; hover it, or Tab to it) to see where the
 alignment sits: the region it covers is drawn in the map and the sequence
 view, in the same dashed purple as other previews, without touching your
 selection. A region that runs through the origin of a circular plasmid is
@@ -61,16 +99,19 @@ whole row is the target, not just the name.
 
 ## A result belongs to its input
 
-A result stays on screen only while it describes what is in the panel.
+A result stays on screen only while it describes what is in the box.
 Pasting or editing the sequence box, choosing or dropping a file, taking
-other open tabs or picking another record **clears** the result and its group (or the
+other open tabs or picking another record **clears** the result (or the
 batch's list) and stops an alignment that is still running, so an old
 result never looks like the new input's. Changing **Mode** or **Against
 selection only** is different, since people tweak these while comparing:
-the result stays but is dimmed, "Input changed, align again" shows under
-the Result group's name, and its summary line and Large view buttons are
-disabled until you click **Align** again. A Large view window that is already open keeps its own
-result until you close it.
+the result stays but is dimmed, the Results page says "Input changed —
+Align again" under its heading (the tab's summary says the same), and the
+score line and Large view buttons are disabled until you click **Align**
+again. A Large view window that is already open keeps its own result until
+you close it. Leaving both the tab and the workspace stops an alignment
+that is still running; opening the workspace from the tab, or closing it,
+does not.
 
 ## Aligning a batch of reads
 
@@ -94,8 +135,9 @@ all at once — the usual way to check a batch of clones.
    button then reads **Align all**. Click it. Each record is aligned against the document in turn,
    in the background; the bar counts reads (**12 of 96**) and **Cancel**
    stops the batch, keeping the reads already aligned. Leaving the Align tab
-   cancels it too.
-4. The reads are listed as they finish, in a **Results** group, one row each: the name, its length
+   and its workspace cancels it too.
+4. The reads are listed as they finish, on the workspace's **Results**
+   page (the tab says how many are aligned so far), one row each: the name, its length
    and whether it aligned **reversed**, the **identity**, the number of
    differences on confident bases (**Q20+ diffs**, following **Confident
    from**; a read without qualities counts all of its differences, as
@@ -123,11 +165,12 @@ repeat can sit in either copy), the batch may show the other one.
 Reads of an insert whose sequence you do not know yet, or reads you want
 one consensus from, can be joined with no reference. Load the reads as for a
 batch (a FASTQ, AB1 files or a FASTA of two or more records, at most 96) and
-click **Assemble reads**, beside **Align**. Nothing is aligned against the
+click **Assemble reads** on the workspace's **Assemble** page (the tab's
+**Assemble reads ›** opens it). Nothing is aligned against the
 document; the document is not used at all.
 
 Each read is first trimmed by its qualities (**Trim poor ends**, in the
-Reads group, as for an alignment). The longest read starts a contig, and
+Align page's Reads group, as for an alignment). The longest read starts a contig, and
 every other read is joined to it if it overlaps an end, or lies inside it,
 by at least 25 bases at 90% identity or better (or at least 80% where the
 differences are in bases the reads give poor qualities, as in two poor read
@@ -143,7 +186,7 @@ contigs. Such bases are called at the quality they state, so a poor end never
 outvotes a good base of another read, but the contig's ends may then run
 further into poor sequence: look at the qualities there.
 
-The **Assembly** group shows the picked contig: its length, depth, a
+The **Assemble** page shows the picked contig: its length, depth, a
 layout with a bar for each read and a red mark at each disagreement, and the
 disagreements listed with the position, the call and each read's base and
 quality there. The consensus is called from every read at once, weighted by
@@ -273,8 +316,8 @@ keeps its base qualities for the alignment; the note under the box says
 it and it is read as plain bases again. See [Sequencing reads](15-reads.md)
 for what the qualities are.
 
-A **Reads** group, under Options, appears when the box (or the document) holds
-a read.
+A **Reads** group, under Options on the workspace's Align page, appears
+when the box (or the document) holds a read.
 
 - **Trim poor ends**, on by default, cuts the read's unreliable start and
   tail before aligning — the first 20–50 bases and the end of a Sanger read,
@@ -300,8 +343,8 @@ a read.
   harder, Q10 (10%) keeps more of a noisy read; it applies the next time you align. Both
   are remembered in this browser with the view preferences.
 
-The panel does not draw a read's poor bases or an AB1 trace; the large
-view does (below).
+Neither the tab nor the Results page draws a read's poor bases or an AB1
+trace; the large view does (below).
 
 ## When the document is the read
 
@@ -309,7 +352,7 @@ Opened the AB1 or FASTQ itself, and want to check it against the plasmid?
 Paste or drop the plasmid (or any reference) into the box. While the open
 document is a read — opened from an AB1 or FASTQ, its bases unedited — and
 the box holds a sequence without qualities of its own, the note above the
-box says **… is a read**, and the document is aligned _to_ the box: the box
+box (in the tab and on the Align page) says **… is a read**, and the document is aligned _to_ the box: the box
 is the reference, the document the read. Its qualities and trace are then
 used as above — trimming, confident and poor differences.
 
@@ -331,21 +374,22 @@ used as above — trimming, confident and poor differences.
 Pairwise alignment lines two sequences up. To compare several variants of a
 construct, or several homologous coding sequences or proteins, align them
 all at once: paste a multi-record FASTA or GenBank text into the box, or drop
-or choose several files (or tick several open tabs), and the **Multiple alignment** group appears under
-the Align button. With no document to start from, **File ▸ Multiple
+or choose several files (or tick several open tabs), and open the
+workspace's **Multiple** page (the tab's **Multiple alignment ›** does).
+With no document to start from, **File ▸ Multiple
 alignment…** opens the same thing in a window of its own (see
 [Without a document](#without-a-document)).
 
 1. Put three to fifty sequences in the box (one record each). **Include this
    document** adds the open document as one more, so a box of two records is
-   enough for three. The group says in a line whether the document is
+   enough for three. The page says in a line whether the document is
    included. A document in the other alphabet from the records (a DNA plasmid
    open while you align proteins) is left out, its tick box is greyed, and the line
    says why, so it is never scored as the wrong kind of sequence.
    **Letters are** shows whether the records read as nucleotide or protein,
    judged from their letters rather than from the open document, and lets you
    choose the other. When the records are mixed, or too short to tell, the
-   group says so and **Align** waits until you choose.
+   page says so and **Align** waits until you choose.
 2. Click **Align N together**. It runs in the background, with a progress
    bar and **Cancel**, and opens a window of its own.
 3. The window shows every sequence in one column space. Over them are the
@@ -421,14 +465,14 @@ records go under the box as a row of chips, counted (**3 sequences**), each
 with its name, its length and, when several files were dropped, its file;
 the **×** on a chip leaves that record out. Files that were dropped empty
 the box, which then says so, and a paste replaces them. **Letters are**
-reads nucleotide or protein from the records' letters, as the Align tab's
-group does, and takes the other choice when they are mixed or too short to
+reads nucleotide or protein from the records' letters, as the workspace's
+Multiple page does, and takes the other choice when they are mixed or too short to
 tell. **Align N together** opens the same results window as above, with the
 consensus, the shading, the exports and the selection and copy. Closing
 the results brings the box back with its records, so a change of records
 or of alphabet is a click away; **Close** or `Esc` puts the window away
 and forgets them. The open document, if there is one, takes no part: for
-that, use the Align tab.
+that, use the Align workspace's Multiple page.
 
 ## Scoring and limits
 
@@ -509,7 +553,7 @@ once the ORFs panel has found them. With no document behind the reference
   how many reads cover each column at good quality: bare for none, light
   for one, dark for two or more, so a gap shows at a glance. A read counts
   where its base is at or above the confident quality (Confident from, in
-  the Reads options); a read with no qualities counts everywhere it
+  the Align page's Reads group); a read with no qualities counts everywhere it
   reaches, and a read of either strand counts.
 - **Samples that disagree.** With two or more samples, a column where
   samples carry different bases from each other (not only from the

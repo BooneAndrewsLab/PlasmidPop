@@ -23,13 +23,39 @@ import {
   analysisClient,
 } from '@/workers/analysisClient';
 
+import { forgetAlignSessions } from '../alignSession';
+import { type AlignPage, openAlignWorkspace } from '../alignWorkspace';
 import { editorStore } from '../state/editorStore';
+import { forgetPanels } from '../state/panelMemory';
+import { useEditorState } from '../state/useEditorStore';
 import type { PointerEvent } from 'react';
 import type { ReadAlignment } from '../readAlignment';
 import { AlignPanel } from './AlignPanel';
+import { AlignWorkspace } from './AlignWorkspace';
 import { useAlignedRegionPointer } from './useAlignedRegionPointer';
 
 const doc = SeqDocument.create({ name: 'target', sequence: 'TTTTACGTACGTGGCCAATTGGCCTTTT' });
+
+/** The Align tab as the app mounts it: the slim panel, or the workspace while it is open (item 129). */
+function Host({ doc: d }: { doc: SeqDocument }) {
+  const { workspace } = useEditorState();
+  return workspace === 'align' ? <AlignWorkspace doc={d} /> : <AlignPanel doc={d} />;
+}
+
+/** Renders the tab with the workspace open on `page`, where every option and result is. */
+function renderAlign(d: SeqDocument = doc, page: AlignPage = 'align') {
+  act(() => {
+    openAlignWorkspace(editorStore.getState().documentId, page);
+  });
+  return render(<Host doc={d} />);
+}
+
+/** Goes to one of the workspace's pages by its rail tab. */
+function page(name: 'Align' | 'Results' | 'Assemble' | 'Multiple'): void {
+  act(() => {
+    fireEvent.click(screen.getByRole('tab', { name: new RegExp(`^${name}`) }));
+  });
+}
 
 function box(): HTMLElement {
   return screen.getByRole('textbox', { name: 'Sequence to align' });
@@ -49,10 +75,32 @@ describe('AlignPanel', () => {
     act(() => {
       editorStore.closeDocument();
     });
+    forgetAlignSessions();
+    forgetPanels();
   });
 
-  it('puts the common path first and the rest in labelled groups (#107)', () => {
-    render(<AlignPanel doc={doc} />);
+  it('the slim panel is the box, the reference and one Align; the rest is a link away (item 129)', () => {
+    render(<Host doc={doc} />);
+    const align = screen.getByRole('button', { name: 'Align' });
+    const choose = screen.getByRole('button', { name: 'Choose file…' });
+    const before = (a: Node, b: Node): boolean =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(before(box(), choose)).toBe(true);
+    expect(before(choose, align)).toBe(true);
+    expect(screen.getByText(/^Reference: target, 28 bp\.$/)).toBeInTheDocument();
+    expect(align).toBeDisabled(); // nothing to align yet
+    // No options in the panel: they are the workspace's.
+    expect(screen.queryByRole('group', { name: 'Options' })).toBeNull();
+    expect(screen.queryByRole('combobox', { name: 'Alignment mode' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Align workspace' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Options and more ›' }));
+    expect(editorStore.getState()).toMatchObject({ workspace: 'align', sidebarTab: 'align' });
+    expect(screen.getByRole('region', { name: 'Align workspace' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Align to the document' })).toHaveFocus();
+  });
+
+  it('puts the common path first and the rest in labelled groups on the workspace (#107)', () => {
+    renderAlign(doc);
     const align = screen.getByRole('button', { name: 'Align' });
     const choose = screen.getByRole('button', { name: 'Choose file…' });
     const options = screen.getByRole('group', { name: 'Options' });
@@ -69,36 +117,54 @@ describe('AlignPanel', () => {
     expect(selection).toBeDisabled(); // nothing selected
     expect(screen.queryByRole('group', { name: 'Reads' })).toBeNull();
     expect(align).toBeDisabled(); // nothing to align yet
+    // The rail: four pages, Results and Assemble empty until there is something.
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual([
+      'Align',
+      'Results',
+      'Assemble',
+      'Multiple',
+    ]);
+    page('Results');
+    expect(screen.getByText(/^Nothing aligned yet\./)).toBeInTheDocument();
+    page('Assemble');
+    expect(screen.getByRole('button', { name: 'Assemble reads' })).toBeDisabled();
   });
 
   it('offers a multiple alignment once the box holds several records (#207)', () => {
-    render(<AlignPanel doc={doc} />);
-    expect(screen.queryByRole('group', { name: 'Multiple alignment' })).toBeNull();
+    renderAlign(doc);
+    page('Multiple');
+    expect(screen.getByRole('button', { name: /^Align \d+ together/ })).toBeDisabled();
+    page('Align');
     fireEvent.change(box(), {
       target: { value: '>one\nACGTACGTAC\n>two\nACGTACGAAC\n' },
     });
-    const group = screen.getByRole('group', { name: 'Multiple alignment' });
-    expect(within(group).getByRole('button', { name: 'Align 3 together' })).toBeEnabled();
+    page('Multiple');
+    expect(screen.getByRole('button', { name: 'Align 3 together' })).toBeEnabled();
+    // The slim panel offers the page by name once there are records.
+    act(() => {
+      editorStore.setWorkspace(null);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Multiple alignment ›' }));
+    expect(screen.getByRole('heading', { name: 'Multiple alignment' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Align 3 together' })).toBeEnabled();
   });
 
   it('says plainly when the document is left out of protein records (#369)', () => {
-    render(<AlignPanel doc={doc} />);
+    renderAlign(doc);
     fireEvent.change(box(), {
       target: {
         value:
           '>a\nMKTAYIAKQRQISFVKSHFSRQ\n>b\nMKTAYIAKQRQISFVKSHFSRA\n>c\nMKTAYIAKQRQISFVKSHFSRL\n',
       },
     });
-    const group = screen.getByRole('group', { name: 'Multiple alignment' });
-    expect(
-      within(group).getByText(/not included\. It is a nucleotide document/),
-    ).toBeInTheDocument();
-    expect(within(group).getByRole('checkbox', { name: 'Include this document' })).toBeDisabled();
-    expect(within(group).getByText(/Scored as protein/)).toBeInTheDocument();
+    page('Multiple');
+    expect(screen.getByText(/not included\. It is a nucleotide document/)).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Include this document' })).toBeDisabled();
+    expect(screen.getByText(/Scored as protein/)).toBeInTheDocument();
   });
 
   it('groups the read settings apart from the options (#107)', async () => {
-    render(<AlignPanel doc={doc} />);
+    renderAlign(doc);
     const fastq = new File(['@r\nACGTACGTACGT\n+\nIIIIIIIIIIII\n'], 'r.fastq');
     fireEvent.drop(box(), fileDrop(fastq));
     const reads = await screen.findByRole('group', { name: 'Reads' });
@@ -110,23 +176,31 @@ describe('AlignPanel', () => {
     );
   });
 
-  it('puts the result in a group of its own under the options (#118)', async () => {
-    render(<AlignPanel doc={doc} />);
-    expect(screen.queryByRole('group', { name: 'Result' })).toBeNull();
+  it('lands on the Results page when a run starts, and sums it up in the slim panel (#118, item 129)', async () => {
+    renderAlign(doc);
     fireEvent.change(box(), { target: { value: 'GGCCAATTGGCC' } });
     fireEvent.click(screen.getByRole('button', { name: 'Align' }));
-    const result = await screen.findByRole('group', { name: 'Result' });
-    const options = screen.getByRole('group', { name: 'Options' });
-    expect(
-      Boolean(options.compareDocumentPosition(result) & Node.DOCUMENT_POSITION_FOLLOWING),
-    ).toBe(true);
-    expect(options).not.toContainElement(result);
+    expect(screen.getByRole('heading', { name: 'Results' })).toHaveFocus();
+    const result = await screen.findByRole('group', { name: 'Alignment results' });
+    expect(screen.queryByRole('group', { name: 'Options' })).toBeNull();
     expect(result).toContainElement(screen.getByRole('button', { name: 'Large view' }));
     expect(result).toContainElement(screen.getByText(/identity 100%/));
+    expect(screen.getByRole('tab', { name: /^Results ?1$/ })).toBeInTheDocument();
+    // Shut, the slim panel carries the summary and a way back to the page.
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /close the align workspace/i }));
+    });
+    expect(screen.getByRole('button', { name: 'Options and more ›' })).toHaveFocus();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      /(Global|Local) alignment: score .*identity 100%/,
+    );
+    expect(screen.queryByRole('button', { name: 'Large view' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Results ›' }));
+    expect(screen.getByRole('button', { name: 'Large view' })).toBeInTheDocument();
   });
 
   it('offers every record of a multi-record FASTA and aligns the one chosen', async () => {
-    render(<AlignPanel doc={doc} />);
+    renderAlign(doc);
     fireEvent.change(box(), { target: { value: '>one\nCCCCCCCC\n>two\nGGCCAATTGGCC\n' } });
     const picker = screen.getByRole('combobox', { name: 'Record to align' });
     expect(screen.getAllByRole('option', { name: /bp\)$/ }).map((o) => o.textContent)).toEqual([
@@ -145,7 +219,7 @@ describe('AlignPanel', () => {
   });
 
   it('opens the alignment in a large view that Esc closes, focus going back (#103)', async () => {
-    render(<AlignPanel doc={doc} />);
+    renderAlign(doc);
     fireEvent.change(box(), { target: { value: 'GGCCAATTGGCC' } });
     fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
       target: { value: 'local' },
@@ -168,7 +242,7 @@ describe('AlignPanel', () => {
   });
 
   it("switches the large view's display options with toggle buttons (#114)", async () => {
-    render(<AlignPanel doc={doc} />);
+    renderAlign(doc);
     fireEvent.change(box(), { target: { value: 'GGCCAATTGGCC' } });
     fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
       target: { value: 'local' },
@@ -201,7 +275,7 @@ describe('AlignPanel', () => {
         createFeature({ type: 'terminator', name: 'term', segments: [rangeSegment(24, 28)] }),
       ],
     });
-    render(<AlignPanel doc={featured} />);
+    renderAlign(featured);
     // Covers 8..24 of the document, with one base changed in the promoter-free part.
     fireEvent.change(box(), { target: { value: 'ACGTGGCCAATTGGCC' } });
     fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
@@ -264,7 +338,7 @@ describe('AlignPanel', () => {
       sequence: 'TTTTACGTACGTGGCCAATTGGCCTTTT',
       features: [createFeature({ type: 'CDS', name: 'gfp', segments: [rangeSegment(12, 24)] })],
     });
-    render(<AlignPanel doc={featured} />);
+    renderAlign(featured);
     // One base of the CDS changed (G at 18 of the document read as C).
     fireEvent.change(box(), { target: { value: 'ACGTGGCCAACTGGCC' } });
     fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
@@ -302,7 +376,7 @@ describe('AlignPanel', () => {
         createFeature({ type: 'CDS', name: 'gfp', segments: [rangeSegment(12, 24)] }),
       ],
     });
-    render(<AlignPanel doc={featured} />);
+    renderAlign(featured);
     // Covers 8..24, with the base at 17 changed inside gfp.
     fireEvent.change(box(), { target: { value: 'ACGTGGCCAACTGGCC' } });
     fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
@@ -343,7 +417,7 @@ describe('AlignPanel', () => {
   it('lists the differences in a table that jumps to a row and copies as text (#121)', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
-    render(<AlignPanel doc={doc} />);
+    renderAlign(doc);
     fireEvent.change(box(), { target: { value: 'GGACAATTGGAC' } });
     fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
       target: { value: 'local' },
@@ -380,7 +454,7 @@ describe('AlignPanel', () => {
     // Two reads differ from the document at base 21 in different ways, two share one change at 41.
     const shared = (s: string): string => s.slice(0, 40) + 'T' + s.slice(41);
     const fasta = `>a\n${shared(at('C'))}\n>b\n${shared(at('T'))}\n`;
-    render(<AlignPanel doc={refDoc} />);
+    renderAlign(refDoc);
     fireEvent.drop(box(), fileDrop(new File([fasta], 'reads.fa')));
     await waitFor(() => {
       expect(screen.getByRole('combobox', { name: 'Record to align' })).toBeInTheDocument();
@@ -405,7 +479,7 @@ describe('AlignPanel', () => {
   });
 
   it('goes to a position and finds a motif in the large view, keys staying in the window (#125)', async () => {
-    render(<AlignPanel doc={doc} />);
+    renderAlign(doc);
     fireEvent.change(box(), { target: { value: 'GGACAATTGGAC' } });
     fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
       target: { value: 'local' },
@@ -473,7 +547,7 @@ describe('AlignPanel', () => {
     const click = vi
       .spyOn(HTMLAnchorElement.prototype, 'click')
       .mockImplementation(() => undefined);
-    render(<AlignPanel doc={doc} />);
+    renderAlign(doc);
     fireEvent.change(box(), { target: { value: 'GGACAATTGGAC' } });
     fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
       target: { value: 'local' },
@@ -541,7 +615,7 @@ describe('AlignPanel', () => {
   });
 
   it("groups the large view's controls, counts differences and follows a rebound key (#119)", async () => {
-    render(<AlignPanel doc={doc} />);
+    renderAlign(doc);
     // Two bases differ from the document's GGCCAATTGGCC, a run apart.
     fireEvent.change(box(), { target: { value: 'GGACAATTGGAC' } });
     fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
@@ -583,7 +657,7 @@ describe('AlignPanel', () => {
   });
 
   it('marks a difference reviewed and takes a sample base into the document (#123)', async () => {
-    render(<AlignPanel doc={doc} />);
+    renderAlign(doc);
     // Two bases differ from the document's GGCCAATTGGCC: positions 15 and 23.
     fireEvent.change(box(), { target: { value: 'GGACAATTGGAC' } });
     fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
@@ -647,7 +721,7 @@ describe('AlignPanel', () => {
   });
 
   it("closes the large view's popovers on a click outside, and leaves its tables open", async () => {
-    render(<AlignPanel doc={doc} />);
+    renderAlign(doc);
     fireEvent.change(box(), { target: { value: 'GGACAATTGGAC' } });
     fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
       target: { value: 'local' },
@@ -679,7 +753,7 @@ describe('AlignPanel', () => {
   });
 
   it('starts in Local for a much shorter sequence, saying why, and keeps a mode picked by hand (#86)', () => {
-    render(<AlignPanel doc={doc} />);
+    renderAlign(doc);
     const mode = (): HTMLElement => screen.getByRole('combobox', { name: 'Alignment mode' });
     expect(mode()).toHaveValue('global');
     // 12 of the document's 28 bases: under half.
@@ -707,7 +781,7 @@ describe('AlignPanel', () => {
   });
 
   it('reads a dropped file into the box and claims the drop', async () => {
-    render(<AlignPanel doc={doc} />);
+    renderAlign(doc);
     const file = new File(['>read\nACGTACGT\n'], 'read.fa', { type: 'text/plain' });
     const event = fileDrop(file);
     const notCancelled = fireEvent.drop(box(), event);
@@ -719,7 +793,7 @@ describe('AlignPanel', () => {
   });
 
   it('takes the records of several dropped files as the samples, naming each by its file', async () => {
-    render(<AlignPanel doc={SeqDocument.create({ name: 'pRef', sequence: 'ACGTACGTAC' })} />);
+    renderAlign(SeqDocument.create({ name: 'pRef', sequence: 'ACGTACGTAC' }));
     fireEvent.drop(
       box(),
       fileDrop(
@@ -749,11 +823,20 @@ describe('AlignPanel', () => {
       genome += 'ACGT'.charAt((x >>> 8) % 4);
     }
     const fasta = `>a\n${genome.slice(0, 80)}\n>b\n${reverseComplement(genome.slice(50, 130))}\n>c\n${genome.slice(100)}\n`;
-    render(<AlignPanel doc={doc} />);
+    renderAlign(doc);
     fireEvent.drop(box(), fileDrop(new File([fasta], 'reads.fa')));
-    fireEvent.click(await screen.findByRole('button', { name: 'Assemble reads' }));
+    await screen.findByText(/From reads\.fa\./);
+    page('Assemble');
+    fireEvent.click(screen.getByRole('button', { name: 'Assemble reads' }));
     await screen.findByText('3 reads in 1 contig', undefined, { timeout: 30_000 });
     expect(screen.getByText('The reads agree wherever they overlap.')).toBeVisible();
+    expect(screen.getByRole('tab', { name: /^Assemble ?1$/ })).toBeInTheDocument();
+    // The slim panel sums it up and leads back to the page.
+    act(() => {
+      editorStore.setWorkspace(null);
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('3 reads in 1 contig.');
+    fireEvent.click(screen.getByRole('button', { name: 'Assembly ›' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save consensus as document' }));
     const saved = editorStore.getState().history?.present;
     expect(saved?.sequence.toString()).toBe(genome);
@@ -788,21 +871,31 @@ describe('AlignPanel', () => {
       [730, 870],
     ] as const;
     const fasta = spans.map(([a, b], i) => `>r${i + 1}\n${truth.slice(a, b)}\n`).join('');
-    render(<AlignPanel doc={SeqDocument.create({ name: 'pTruth', sequence: truth })} />);
+    renderAlign(SeqDocument.create({ name: 'pTruth', sequence: truth }));
     fireEvent.drop(box(), fileDrop(new File([fasta], 'reads.fa')));
-    fireEvent.click(await screen.findByRole('button', { name: 'Assemble reads' }));
+    await screen.findByText(/From reads\.fa\./);
+    page('Assemble');
+    fireEvent.click(screen.getByRole('button', { name: 'Assemble reads' }));
     const offer = await screen.findByRole(
       'button',
       { name: 'Align these reads to pTruth' },
       { timeout: 30_000 },
     );
-    expect(screen.queryByRole('group', { name: 'Results' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Results' })).not.toBeInTheDocument();
     fireEvent.click(offer);
-    await screen.findByText('Results', { selector: 'legend' }, { timeout: 30_000 });
+    // The batch runs and the workspace goes to Results, where the reads are listed.
+    expect(screen.getByRole('heading', { name: 'Results' })).toBeInTheDocument();
+    await screen.findByRole('button', { name: 'Large view of all' }, { timeout: 30_000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText(/6 reads · against pTruth/)).toBeInTheDocument();
+      },
+      { timeout: 30_000 },
+    );
   }, 90_000);
 
   it('keeps the readable files and names one that cannot be read', async () => {
-    render(<AlignPanel doc={SeqDocument.create({ name: 'pRef', sequence: 'ACGTACGTAC' })} />);
+    renderAlign(SeqDocument.create({ name: 'pRef', sequence: 'ACGTACGTAC' }));
     fireEvent.drop(
       box(),
       fileDrop(
@@ -823,7 +916,7 @@ describe('AlignPanel', () => {
       editorStore.openDocument(other);
       editorStore.activateDocument(editorStore.getState().documents[0]?.documentId ?? '');
     });
-    render(<AlignPanel doc={doc} />);
+    renderAlign(doc);
     fireEvent.click(screen.getByRole('button', { name: 'Open tab…' }));
     expect(screen.getAllByRole('checkbox', { name: 'pOther' })).toHaveLength(1);
     fireEvent.click(screen.getByRole('checkbox', { name: 'pOther' }));
@@ -840,7 +933,7 @@ describe('AlignPanel', () => {
       editorStore.openDocument(SeqDocument.create({ name: 'tabC', sequence: 'GGCCGGCCAA' }));
       editorStore.activateDocument(editorStore.getState().documents[0]?.documentId ?? '');
     });
-    render(<AlignPanel doc={doc} />);
+    renderAlign(doc);
     fireEvent.click(screen.getByRole('button', { name: 'Open tab…' }));
     expect(screen.getByRole('button', { name: 'Use 0 tabs' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Select all' }));
@@ -853,7 +946,7 @@ describe('AlignPanel', () => {
   });
 
   it('says why a dropped file could not be read', async () => {
-    render(<AlignPanel doc={doc} />);
+    renderAlign(doc);
     fireEvent.drop(box(), fileDrop(new File(['%PDF-1.7 not a sequence'], 'paper.pdf')));
     await waitFor(() => {
       expect(screen.getByText(/Could not read "paper.pdf"/)).toBeInTheDocument();
@@ -862,7 +955,7 @@ describe('AlignPanel', () => {
   });
 
   it('leaves dragged text to the browser', () => {
-    render(<AlignPanel doc={doc} />);
+    renderAlign(doc);
     const notCancelled = fireEvent.drop(box(), {
       dataTransfer: { files: [], types: ['text/plain'] },
     });
@@ -883,7 +976,7 @@ describe('AlignPanel', () => {
           });
         });
       });
-    render(<AlignPanel doc={doc} />);
+    renderAlign(doc);
     fireEvent.change(box(), { target: { value: 'ACGTACGT' } });
     fireEvent.click(screen.getByRole('button', { name: 'Align' }));
     expect(screen.queryByRole('progressbar')).toBeNull(); // nothing until it first reports
@@ -895,6 +988,7 @@ describe('AlignPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(long.signal?.aborted).toBe(true);
+    page('Align');
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Align' })).toBeEnabled();
     });
@@ -906,7 +1000,7 @@ describe('AlignPanel', () => {
 
   describe('a result belongs to the input it was made from (#117)', () => {
     async function alignedOnce(text = 'GGCCAATTGGCC') {
-      render(<AlignPanel doc={doc} />);
+      renderAlign(doc);
       fireEvent.change(box(), { target: { value: text } });
       fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
         target: { value: 'local' },
@@ -919,18 +1013,22 @@ describe('AlignPanel', () => {
 
     it('clears the result when the box is edited', async () => {
       await alignedOnce();
+      page('Align');
       fireEvent.change(box(), { target: { value: 'GGCCAATTGGCCA' } });
+      page('Results');
       expect(screen.queryByText(/identity/)).toBeNull();
       expect(screen.queryByRole('button', { name: 'Large view' })).toBeNull();
-      expect(screen.queryByRole('group', { name: 'Result' })).toBeNull();
+      expect(screen.getByText(/^Nothing aligned yet\./)).toBeInTheDocument();
+      expect(screen.queryByRole('tab', { name: /^Results \d/ })).toBeNull();
     });
 
     it('clears the result when a file is dropped', async () => {
       await alignedOnce();
+      page('Align');
       fireEvent.drop(box(), fileDrop(new File(['>f\nGGCCAATT\n'], 'f.fa')));
-      await waitFor(() => {
-        expect(screen.queryByText(/identity/)).toBeNull();
-      });
+      await screen.findByText('From f.fa.');
+      page('Results');
+      expect(screen.queryByText(/identity/)).toBeNull();
     });
 
     it('clears the result when an open tab is chosen', async () => {
@@ -939,20 +1037,22 @@ describe('AlignPanel', () => {
         editorStore.openDocument(other);
         editorStore.activateDocument(editorStore.getState().documents[0]?.documentId ?? '');
       });
-      render(<AlignPanel doc={doc} />);
+      renderAlign(doc);
       fireEvent.change(box(), { target: { value: 'GGCCAATTGGCC' } });
       fireEvent.click(screen.getByRole('button', { name: 'Align' }));
       await waitFor(() => {
         expect(screen.getByText(/identity 100%/)).toBeInTheDocument();
       });
+      page('Align');
       fireEvent.click(screen.getByRole('button', { name: 'Open tab…' }));
       fireEvent.click(screen.getByRole('checkbox', { name: 'tab two' }));
       fireEvent.click(screen.getByRole('button', { name: 'Use 1 tab' }));
+      page('Results');
       expect(screen.queryByText(/identity/)).toBeNull();
     });
 
     it('clears the result when another record is picked', async () => {
-      render(<AlignPanel doc={doc} />);
+      renderAlign(doc);
       fireEvent.change(box(), { target: { value: '>one\nGGCCAATTGGCC\n>two\nCCCCCCCC\n' } });
       fireEvent.change(screen.getByRole('combobox', { name: 'Record to align' }), {
         target: { value: '0' },
@@ -961,31 +1061,38 @@ describe('AlignPanel', () => {
       await waitFor(() => {
         expect(screen.getByText(/score/)).toBeInTheDocument();
       });
+      page('Align');
       fireEvent.change(screen.getByRole('combobox', { name: 'Record to align' }), {
         target: { value: '1' },
       });
+      page('Results');
       expect(screen.queryByRole('button', { name: 'Large view' })).toBeNull();
     });
 
     it('marks the result stale, with its actions disabled, when the mode changes', async () => {
       await alignedOnce();
       expect(screen.getByRole('button', { name: 'Large view' })).toBeEnabled();
-      expect(screen.queryByText(/Input changed, align again/)).toBeNull();
+      expect(screen.queryByText(/Input changed/)).toBeNull();
+      page('Align');
       fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
         target: { value: 'global' },
       });
-      expect(screen.getByText(/Input changed, align again/)).toBeInTheDocument();
+      page('Results');
+      // The mark sits under the page's heading, with the way back (#118).
+      expect(screen.getByRole('status')).toHaveTextContent(/Input changed — Align again/);
       expect(screen.getByRole('button', { name: 'Large view' })).toBeDisabled();
       expect(screen.getByText(/identity 100%/).closest('button')).toBeDisabled();
-      // The mark sits in the Result group, under its header (#118).
-      expect(screen.getByRole('group', { name: 'Result' })).toContainElement(
-        screen.getByText(/Input changed, align again/),
-      );
-      // Aligning again makes it current.
+      // The slim panel says so too.
+      act(() => {
+        editorStore.setWorkspace(null);
+      });
+      expect(screen.getByText('Input changed, align again.')).toBeInTheDocument();
+      // Aligning again, from the panel, makes it current.
       fireEvent.click(screen.getByRole('button', { name: 'Align' }));
       await waitFor(() => {
-        expect(screen.queryByText(/Input changed, align again/)).toBeNull();
+        expect(screen.queryByText(/Input changed/)).toBeNull();
       });
+      fireEvent.click(screen.getByRole('button', { name: 'Results ›' }));
       expect(screen.getByRole('button', { name: 'Large view' })).toBeEnabled();
     });
 
@@ -993,14 +1100,16 @@ describe('AlignPanel', () => {
       act(() => {
         editorStore.setSelection({ start: 4, end: 12 });
       });
-      render(<AlignPanel doc={doc} />);
+      renderAlign(doc);
       fireEvent.change(box(), { target: { value: 'GGCCAATTGGCC' } });
       fireEvent.click(screen.getByRole('button', { name: 'Align' }));
       await waitFor(() => {
         expect(screen.getByText(/identity/)).toBeInTheDocument();
       });
+      page('Align');
       fireEvent.click(screen.getByRole('checkbox', { name: 'Against selection only' }));
-      expect(screen.getByText(/Input changed, align again/)).toBeInTheDocument();
+      page('Results');
+      expect(screen.getByRole('status')).toHaveTextContent(/Input changed — Align again/);
       expect(screen.getByRole('button', { name: 'Large view' })).toBeDisabled();
     });
 
@@ -1016,9 +1125,10 @@ describe('AlignPanel', () => {
             });
           });
         });
-      render(<AlignPanel doc={doc} />);
+      renderAlign(doc);
       fireEvent.change(box(), { target: { value: 'ACGTACGT' } });
       fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+      page('Align');
       fireEvent.change(box(), { target: { value: 'ACGTACGTA' } });
       expect(long.signal?.aborted).toBe(true);
       await waitFor(() => {
@@ -1029,7 +1139,7 @@ describe('AlignPanel', () => {
     });
   });
 
-  it('stops a running alignment when the panel goes away', () => {
+  it('stops a running alignment when the tab goes away, but not when the workspace takes over from the panel (item 129)', async () => {
     let long: LongRequestOptions = {};
     const spy = vi
       .spyOn(analysisClient, 'alignEitherStrand')
@@ -1037,11 +1147,21 @@ describe('AlignPanel', () => {
         long = options;
         return new Promise<StrandedAlignment>(() => undefined);
       });
-    const view = render(<AlignPanel doc={doc} />);
+    const view = render(<Host doc={doc} />);
     fireEvent.change(box(), { target: { value: 'ACGTACGT' } });
     fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+    expect(screen.getByRole('button', { name: 'Aligning…' })).toBeDisabled();
+    // The panel gives way to the workspace: the run goes on, on its Results page.
+    fireEvent.click(screen.getByRole('button', { name: 'Options and more ›' }));
+    await new Promise((r) => setTimeout(r, 5));
+    expect(long.signal?.aborted).toBe(false);
+    expect(screen.getByText('Aligning…')).toBeInTheDocument();
+    page('Align');
+    expect(screen.getByRole('button', { name: 'Aligning…' })).toBeDisabled();
     view.unmount();
-    expect(long.signal?.aborted).toBe(true);
+    await waitFor(() => {
+      expect(long.signal?.aborted).toBe(true);
+    });
     spy.mockRestore();
   });
 
@@ -1065,7 +1185,7 @@ describe('AlignPanel', () => {
     });
 
     async function alignDropped(): Promise<void> {
-      render(<AlignPanel doc={refDoc} />);
+      renderAlign(refDoc);
       const fastq = new File([`@read1\n${read}\n+\n${quality}\n`], 'read1.fastq');
       fireEvent.drop(box(), fileDrop(fastq));
       await waitFor(() => {
@@ -1084,10 +1204,11 @@ describe('AlignPanel', () => {
 
     it('trims the poor ends and says so', async () => {
       await alignDropped();
-      expect(screen.getByRole('checkbox', { name: 'Trim poor ends' })).toBeChecked();
       expect(
         screen.getByText(/Trimmed 5 bases from the start of the read and 5 from the end/),
       ).toBeInTheDocument();
+      page('Align');
+      expect(screen.getByRole('checkbox', { name: 'Trim poor ends' })).toBeChecked();
     });
 
     it('tells a confident difference from a doubtful one, and selects it', async () => {
@@ -1101,7 +1222,7 @@ describe('AlignPanel', () => {
     });
 
     it('says when a dropped FASTQ looks like the old Phred + 64 encoding (#146)', async () => {
-      render(<AlignPanel doc={refDoc} />);
+      renderAlign(refDoc);
       const old = quality.replace(/#/g, 'B').replace(/\+/g, 'J').replace(/I/g, 'h');
       fireEvent.drop(box(), fileDrop(new File([`@read1\n${read}\n+\n${old}\n`], 'old.fastq')));
       await waitFor(() => {
@@ -1113,7 +1234,7 @@ describe('AlignPanel', () => {
     it('turns the qualities round with a read that aligns reversed', async () => {
       const rc = reverseComplement(read);
       const reversedQuality = quality.split('').reverse().join('');
-      render(<AlignPanel doc={refDoc} />);
+      renderAlign(refDoc);
       fireEvent.drop(
         box(),
         fileDrop(new File([`@read1\n${rc}\n+\n${reversedQuality}\n`], 'read1.fastq')),
@@ -1167,17 +1288,19 @@ describe('AlignPanel', () => {
     it('counts and lists differences from the threshold set (#56)', async () => {
       await alignDropped();
       // The Q10 base becomes confident at Q10, and the count follows at once.
+      page('Align');
       fireEvent.change(screen.getByRole('combobox', { name: 'Confident from' }), {
         target: { value: '10' },
       });
       expect(editorStore.getState().readConfidentQuality).toBe(10);
+      page('Results');
       expect(
         screen.getByText(/^2 differences at confident bases \(Q10\+\)\.$/),
       ).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Mismatch at 21, Q10/ })).toBeInTheDocument();
       // At Q50 even the Q40 bases are doubtful.
-      fireEvent.change(screen.getByRole('combobox', { name: 'Confident from' }), {
-        target: { value: '50' },
+      act(() => {
+        editorStore.setReadConfidentQuality(50);
       });
       expect(screen.getByText(/No differences at confident bases \(Q50\+\)/)).toBeInTheDocument();
       act(() => {
@@ -1188,6 +1311,7 @@ describe('AlignPanel', () => {
     it('trims at the cutoff set (#56)', async () => {
       await alignDropped();
       // At 0.1% the Q10 base ten bases in costs more than those ten earn.
+      page('Align');
       fireEvent.change(screen.getByRole('combobox', { name: 'Trim at' }), {
         target: { value: '0.001' },
       });
@@ -1220,8 +1344,12 @@ describe('AlignPanel', () => {
         act(() => {
           editorStore.openDocument(d);
         });
-        render(<AlignPanel doc={d} />);
+        renderAlign(d);
         fireEvent.change(box(), { target: { value: `>pRef\n${reference}\n` } });
+        expect(
+          screen.getByText(/is a read: it is aligned to the sequence in the box/),
+        ).toBeInTheDocument();
+        expect(screen.getByRole('checkbox', { name: 'This document is the read' })).toBeChecked();
         fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
           target: { value: 'local' },
         });
@@ -1233,10 +1361,6 @@ describe('AlignPanel', () => {
 
       it('aligns the document as the read, with its qualities, to the box', async () => {
         await alignToBox(readDoc);
-        expect(
-          screen.getByText(/read1 is a read: it is aligned to the sequence in the box/),
-        ).toBeInTheDocument();
-        expect(screen.getByRole('checkbox', { name: 'This document is the read' })).toBeChecked();
         expect(
           screen.getByText(/Trimmed 5 bases from the start of the read and 5 from the end/),
         ).toBeInTheDocument();
@@ -1264,7 +1388,7 @@ describe('AlignPanel', () => {
         act(() => {
           editorStore.openDocument(readDoc);
         });
-        render(<AlignPanel doc={readDoc} />);
+        renderAlign(readDoc);
         fireEvent.change(box(), { target: { value: `>pRef\n${reference}\n` } });
         fireEvent.click(screen.getByRole('checkbox', { name: 'This document is the read' }));
         expect(screen.getByText(/Align sequences to read1/)).toBeInTheDocument();
@@ -1280,7 +1404,7 @@ describe('AlignPanel', () => {
         act(() => {
           editorStore.openDocument(readDoc);
         });
-        render(<AlignPanel doc={readDoc} />);
+        renderAlign(readDoc);
         fireEvent.drop(
           box(),
           fileDrop(new File([`@read2\n${read}\n+\n${quality}\n`], 'read2.fastq')),
@@ -1295,6 +1419,7 @@ describe('AlignPanel', () => {
 
     it('forgets the qualities once the text is edited', async () => {
       await alignDropped();
+      page('Align');
       fireEvent.change(box(), { target: { value: `>read1\n${read}` } });
       expect(screen.queryByRole('checkbox', { name: 'Trim poor ends' })).toBeNull();
     });
@@ -1313,7 +1438,7 @@ describe('AlignPanel', () => {
       act(() => {
         editorStore.openDocument(refDoc);
       });
-      render(<AlignPanel doc={refDoc} />);
+      renderAlign(refDoc);
       fireEvent.drop(box(), fileDrop(new File([fastq], 'plate.fastq')));
       await waitFor(() => {
         expect(
@@ -1340,7 +1465,7 @@ describe('AlignPanel', () => {
       act(() => {
         editorStore.openDocument(refDoc);
       });
-      render(<AlignPanel doc={refDoc} />);
+      renderAlign(refDoc);
       fireEvent.drop(box(), fileDrop(new File([text], 'plate.fastq')));
       await waitFor(() => {
         expect(screen.getByRole('combobox', { name: 'Record to align' })).toBeInTheDocument();
@@ -1419,10 +1544,11 @@ describe('AlignPanel', () => {
       });
       expect(screen.getByText(/1 could not be aligned/)).toBeInTheDocument();
       expect(screen.getByText(/good enough quality/)).toBeInTheDocument();
-      // A batch's list is its own group, named for more than one (#118).
-      expect(screen.getByRole('group', { name: 'Results' })).toContainElement(
+      // A batch's list is the Results page's (#118), its tab counting the aligned.
+      expect(screen.getByRole('group', { name: 'Alignment results' })).toContainElement(
         screen.getByRole('button', { name: 'Large view of all' }),
       );
+      expect(screen.getByRole('tab', { name: /^Results ?2$/ })).toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'clone2' }));
       // The picked read has no section of its own; the large view shows it.
       expect(screen.queryByText(/Local alignment of clone2/)).not.toBeInTheDocument();
@@ -1465,12 +1591,13 @@ describe('AlignPanel', () => {
         expect(screen.getByText(/cancelled after 0/)).toBeInTheDocument();
       });
       expect(calls).toBe(1);
+      page('Align');
       expect(screen.getByRole('button', { name: 'Align all' })).toBeEnabled();
       spy.mockRestore();
     });
 
     it('takes at most a plate of records, and says so', () => {
-      render(<AlignPanel doc={doc} />);
+      renderAlign(doc);
       const many = Array.from({ length: 97 }, (_, i) => `>r${i}\nACGTACGT`).join('\n');
       fireEvent.change(box(), { target: { value: many } });
       expect(screen.queryByRole('option', { name: /All 97 records/ })).not.toBeInTheDocument();
@@ -1492,7 +1619,7 @@ describe('AlignPanel', () => {
     act(() => {
       editorStore.openDocument(circle);
     });
-    render(<AlignPanel doc={circle} />);
+    renderAlign(circle);
     // 300 bases before the origin and 400 after it.
     fireEvent.change(box(), { target: { value: plasmid.slice(700) + plasmid.slice(0, 400) } });
     fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
@@ -1584,7 +1711,7 @@ describe('aligning two proteins (#95)', () => {
     act(() => {
       editorStore.openDocument(protein);
     });
-    render(<AlignPanel doc={protein} />);
+    renderAlign(protein);
     expect(box()).toHaveAttribute('placeholder', expect.stringContaining('Paste residues'));
     fireEvent.change(box(), { target: { value: OTHER } });
     fireEvent.click(screen.getByRole('button', { name: 'Align' }));
@@ -1593,15 +1720,16 @@ describe('aligning two proteins (#95)', () => {
     // so nothing is said about one.
     expect(heading.textContent).toContain('identity 98%');
     expect(heading.textContent).not.toContain('reverse');
-    // The conservative substitution is marked as one, not as a mismatch.
-    expect(document.body.textContent).toContain(OTHER.slice(0, 40));
+    // The box keeps the residues as pasted.
+    page('Align');
+    expect(box()).toHaveValue(OTHER);
   });
 
   it('aligns a pasted protein FASTA record', async () => {
     act(() => {
       editorStore.openDocument(protein);
     });
-    render(<AlignPanel doc={protein} />);
+    renderAlign(protein);
     fireEvent.change(box(), { target: { value: `>variant\n${OTHER}\n` } });
     fireEvent.click(screen.getByRole('button', { name: 'Align' }));
     expect((await screen.findByText(/Global alignment/)).textContent).toContain('identity 98%');

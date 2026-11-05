@@ -7172,7 +7172,8 @@ button {
 }
 
 .primers__last,
-.primers__more {
+.primers__more,
+.align__more {
   display: block;
   margin: 6px 0 2px;
   font-size: 12.5px;
@@ -7180,8 +7181,49 @@ button {
 }
 
 .primers__last:hover,
-.primers__more:hover {
+.primers__more:hover,
+.align__more:hover {
   text-decoration: underline;
+}
+
+/* The slim Align tab and the Align workspace's pages (item 129, #354). */
+.align--slim .align-run .button--primary {
+  min-width: 120px;
+}
+
+.align__reference {
+  margin-top: 4px;
+}
+
+.align__summary {
+  margin: 8px 0 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.align__summary .panel__note {
+  margin: 0 0 4px;
+}
+
+.align__links {
+  margin-top: 6px;
+}
+
+.align--page .panel__textarea {
+  max-width: 720px;
+}
+
+.align--page .align-results {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.align--page .msa-controls {
+  max-width: 720px;
 }
 
 .primers__paste {

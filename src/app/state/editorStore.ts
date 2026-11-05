@@ -147,6 +147,9 @@ export type SidebarTab =
 /** The three things the phone reader shows, one at a time (`PhoneShell`, item 15). */
 export type PhonePane = 'map' | 'sequence' | 'details';
 
+/** The workspaces, each standing in for the sidebar tab of the same name while open. */
+export type Workspace = 'primers' | 'align';
+
 export const PHONE_PANES: readonly PhonePane[] = ['map', 'sequence', 'details'];
 
 export function isPhonePane(v: unknown): v is PhonePane {
@@ -568,13 +571,14 @@ export interface DocumentState {
    */
   readonly phonePane: PhonePane;
   /**
-   * Whether the primer workspace (item 107) is open on this document: a
-   * modeless region in the sidebar's column, widened, beside the live map.
-   * Open only while the sidebar is on its Primers tab, and shut by choosing
+   * Which workspace (the primer workspace, item 107, or the Align
+   * workspace, item 129) is open on this document, if one is: a modeless
+   * region in the sidebar's column, widened, beside the live map. Open only
+   * while the sidebar is on the tab of the same name, and shut by choosing
    * another tab or putting the sidebar away; which of its pages it is on
-   * and what each holds is the panels' own memory (`primers.workspace`).
+   * and what each holds is the panels' own memory.
    */
-  readonly primerWorkspace: boolean;
+  readonly workspace: Workspace | null;
 }
 
 /** State of the app as a whole, the same whichever document is in front. */
@@ -1008,7 +1012,7 @@ type ActiveDocumentFields = {
     // value; `NO_DOCUMENT` carries the one a new tab would start on.
     | 'sidebarTab'
     | 'phonePane'
-    | 'primerWorkspace'
+    | 'workspace'
     ? DocumentState[K]
     : DocumentState[K] | null;
 };
@@ -1164,7 +1168,7 @@ const NO_DOCUMENT: ActiveDocumentFields = {
   findOpen: false,
   sidebarTab: 'features',
   phonePane: 'map',
-  primerWorkspace: false,
+  workspace: null,
 };
 
 /**
@@ -1428,7 +1432,7 @@ export class EditorStore {
       // Translate tab goes to the one that is about it.
       sidebarTab: inheritedSidebarTab(doc, this.documentState()?.sidebarTab ?? 'features'),
       phonePane: this.takeRememberedPane(storage.id),
-      primerWorkspace: false,
+      workspace: null,
     };
     if (storage.shownEnzymes !== undefined) {
       const seed = resolveSeed([...storage.shownEnzymes], activeEnzymes());
@@ -2178,24 +2182,28 @@ export class EditorStore {
   setSidebarTab(tab: SidebarTab): void {
     // A protein has no Enzymes tab, and DNA no Protein one (#66).
     if (tab !== this.state.sidebarTab && hasSidebarTab(this.document, tab)) {
-      // Choosing another tab shuts the primer workspace (item 107, point 4).
-      this.setActive({ sidebarTab: tab, primerWorkspace: false });
+      // Choosing another tab shuts the workspace (item 107, point 4).
+      this.setActive({ sidebarTab: tab, workspace: null });
     }
   }
 
   /**
-   * Opens or shuts the primer workspace (item 107) on the document in
-   * front. Opening it puts the sidebar on Primers and brings it out, since
-   * the workspace stands in the sidebar's column; the slim Primers panel
-   * comes back when it shuts.
+   * Opens a workspace (item 107, item 129) on the document in front, or
+   * shuts whichever is open. Opening one puts the sidebar on the tab of the
+   * same name and brings it out, since the workspace stands in the
+   * sidebar's column; the slim panel comes back when it shuts.
    */
+  setWorkspace(kind: Workspace | null): void {
+    if (kind === this.state.workspace) return;
+    if (kind !== null && !hasSidebarTab(this.document, kind)) return;
+    this.setActive(kind === null ? { workspace: null } : { workspace: kind, sidebarTab: kind });
+    if (kind !== null) this.setSidebarOpen(true);
+  }
+
+  /** Opens or shuts the primer workspace (item 107). */
   setPrimerWorkspace(open: boolean): void {
-    if (open === this.state.primerWorkspace) return;
-    if (open && !hasSidebarTab(this.document, 'primers')) return;
-    this.setActive(
-      open ? { primerWorkspace: true, sidebarTab: 'primers' } : { primerWorkspace: false },
-    );
-    if (open) this.setSidebarOpen(true);
+    if (open) this.setWorkspace('primers');
+    else if (this.state.workspace === 'primers') this.setWorkspace(null);
   }
 
   setPhonePane(pane: PhonePane): void {
@@ -2393,7 +2401,7 @@ export class EditorStore {
 
   setSidebarOpen(open: boolean): void {
     // The workspace stands where the panel does: putting the sidebar away shuts it.
-    if (!open && this.state.primerWorkspace) this.setActive({ primerWorkspace: false });
+    if (!open && this.state.workspace !== null) this.setActive({ workspace: null });
     if (open !== this.state.sidebarOpen) this.setShared({ sidebarOpen: open });
   }
 

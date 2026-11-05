@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useEffect, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 
 import { type SeqDocument, isEmptyRange } from '@/core';
 import { type OverlaySpan } from '@/view/overlay';
@@ -11,7 +11,6 @@ import {
   type WorkspacePage,
   closePrimerWorkspace,
 } from '../primerWorkspace';
-import { SHORT_WINDOW_QUERY } from '../state/layout';
 import { useRemembered } from '../state/panelMemory';
 import { usePrimerCollection } from '../state/primerCollection';
 import { useEditorState } from '../state/useEditorStore';
@@ -19,16 +18,12 @@ import { useCloneCheck } from './cloneCheck';
 import { CloneCheckPage } from './CloneCheckPage';
 import { CloningCandidates } from './CloningCandidates';
 import { designRows, useCloningDesign } from './cloningDesign';
-import { MapStrip } from './MapStrip';
 import { PrimerCandidates } from './PrimerCandidates';
 import { PrimerCheck } from './PrimerCheck';
 import { PrimerCollection } from './PrimerCollection';
 import { PrimerDesignPage } from './PrimerDesignPage';
 import { searchWindows, usePrimerDesign, usePrimerProbe, usePrimersPreview } from './primerDesign';
-import { useMediaQuery } from './useMediaQuery';
-
-/** The strip's height: a phone's rows are dear, a laptop's less so. */
-const STRIP_HEIGHT: Readonly<Record<WorkspaceLayout, number>> = { split: 0, full: 72, phone: 56 };
+import { WorkspaceShell } from './WorkspaceShell';
 
 const LABELS: Readonly<Record<WorkspacePage, string>> = {
   design: 'Design',
@@ -64,13 +59,10 @@ interface Props {
 }
 
 /**
- * The primer workspace (item 107, #300): a modeless `region` — no focus
- * trap, no backdrop — in the sidebar's column, with a left rail of four
- * pages that each have a heading of their own. Escape shuts it only with
- * the keyboard inside it and nothing inner having taken the key; the slim
- * Primers panel then takes the keyboard back on "Design primers…". Opening
- * it puts the keyboard on the page's heading; the rail is a `tablist`
- * walked with the arrow keys.
+ * The primer workspace (item 107, #300): the shared shell
+ * (`WorkspaceShell`: region, rail, Escape, map strip) around five pages
+ * that each have a heading of their own. The slim Primers panel takes the
+ * keyboard back on "Design primers…" when it shuts.
  */
 export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
   const { documentId, selection } = useEditorState();
@@ -94,10 +86,6 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
   const cloneCheck = useCloneCheck(doc);
   const { primerCriteria } = useEditorState();
   const collection = usePrimerCollection();
-  const region = useRef<HTMLDivElement>(null);
-  const rail = useRef<HTMLDivElement>(null);
-  /** Whether the next render of a page should put the keyboard on its heading. */
-  const focusHeading = useRef(true);
 
   // What the views draw for the page in front: the search windows around
   // the target while designing, the pair looked at on Results, the binding
@@ -136,43 +124,8 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
   ]);
   usePrimersPreview(preview);
 
-  useEffect(() => {
-    if (!focusHeading.current) return;
-    focusHeading.current = false;
-    region.current?.querySelector<HTMLElement>('.ws__heading')?.focus();
-  }, [page]);
-
-  const goTo = (next: WorkspacePage, focus: boolean): void => {
-    focusHeading.current = focus;
+  const goTo = (next: WorkspacePage): void => {
     setMemory((m) => ({ ...m, page: next }));
-  };
-
-  const horizontal = layout === 'phone';
-  // The map strip (point 5), where the map cannot be beside the workspace:
-  // folded to begin with on a window too short to spare its rows, and
-  // remembered either way.
-  const short = useMediaQuery(SHORT_WINDOW_QUERY);
-  const [stripFolded, setStripFolded] = useRemembered('primers.stripFolded', null, short);
-  const onRailKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
-    const back = horizontal ? 'ArrowLeft' : 'ArrowUp';
-    const on = horizontal ? 'ArrowRight' : 'ArrowDown';
-    const at = WORKSPACE_PAGES.indexOf(page);
-    const n = WORKSPACE_PAGES.length;
-    const to =
-      e.key === back
-        ? (at - 1 + n) % n
-        : e.key === on
-          ? (at + 1) % n
-          : e.key === 'Home'
-            ? 0
-            : e.key === 'End'
-              ? n - 1
-              : null;
-    const next = to === null ? undefined : WORKSPACE_PAGES[to];
-    if (next === undefined || e.altKey || e.ctrlKey || e.metaKey) return;
-    e.preventDefault();
-    goTo(next, false);
-    rail.current?.querySelector<HTMLElement>(`#ws-tab-${next}`)?.focus();
   };
 
   const badge = (p: WorkspacePage): number | null => {
@@ -188,104 +141,28 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
   };
 
   return (
-    <div
-      className={`ws ws--${layout}`}
-      role="region"
-      aria-label="Primer workspace"
-      ref={region}
-      onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-        if (e.key !== 'Escape' || e.defaultPrevented) return;
-        e.preventDefault();
-        closePrimerWorkspace(true);
-      }}
-    >
-      <div className="ws__top">
-        {layout === 'phone' && (
-          <button
-            type="button"
-            className="button button--quiet ws__back"
-            aria-label={`Back to ${doc.name}`}
-            onClick={() => {
-              closePrimerWorkspace(false);
-            }}
-          >
-            ‹
-          </button>
-        )}
-        <span className="ws__title">
-          Primers <span className="ws__title-doc">· {doc.name}</span>
-        </span>
-        <button
-          type="button"
-          className="button button--quiet ws__close"
-          aria-label="Close the primer workspace"
-          data-tip="Close (Esc)"
-          onClick={() => {
-            closePrimerWorkspace(true);
-          }}
-        >
-          ✕
-        </button>
-      </div>
-      {layout !== 'split' && (
-        <details
-          className="ws__strip"
-          open={!stripFolded}
-          onToggle={(e) => {
-            setStripFolded(!e.currentTarget.open);
-          }}
-        >
-          <summary
-            className="ws__strip-summary"
-            data-tip="The document as a ribbon: fold or unfold"
-          >
-            Map
-          </summary>
-          {!stripFolded && <MapStrip doc={doc} height={STRIP_HEIGHT[layout]} />}
-        </details>
-      )}
-      <div
-        className="ws__rail"
-        role="tablist"
-        aria-label="Primer workspace pages"
-        aria-orientation={horizontal ? 'horizontal' : 'vertical'}
-        ref={rail}
-        onKeyDown={onRailKeyDown}
-      >
-        {WORKSPACE_PAGES.map((p) => {
-          const active = p === page;
-          const count = badge(p);
-          return (
-            <button
-              key={p}
-              id={`ws-tab-${p}`}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              aria-controls="ws-page"
-              tabIndex={active ? 0 : -1}
-              className={`ws__tab${active ? ' ws__tab--on' : ''}`}
-              onClick={() => {
-                goTo(p, false);
-              }}
-            >
-              <svg className="ws__icon" viewBox="0 0 15 15" aria-hidden="true">
-                <path d={ICONS[p]} />
-              </svg>
-              <span className="ws__tab-label">{LABELS[p]}</span>
-              {count !== null && <span className="ws__badge">{count.toLocaleString()}</span>}
-            </button>
-          );
-        })}
-      </div>
-      <section className="ws__body" id="ws-page" role="tabpanel" aria-labelledby={`ws-tab-${page}`}>
-        <header className="ws__head">
-          <h2 className="ws__heading" tabIndex={-1}>
-            {HEADINGS[page]}
-            {page === 'mine' && collection.status === 'ready' && (
-              <span className="panel__heading-note">{collection.primers.length}</span>
-            )}
-          </h2>
+    <WorkspaceShell
+      doc={doc}
+      name="Primer"
+      title="Primers"
+      layout={layout}
+      pages={WORKSPACE_PAGES.map((p) => ({
+        id: p,
+        label: LABELS[p],
+        heading: HEADINGS[p],
+        icon: ICONS[p],
+        badge: badge(p),
+      }))}
+      page={page}
+      onPage={goTo}
+      onClose={closePrimerWorkspace}
+      headingNote={
+        page === 'mine' && collection.status === 'ready' ? (
+          <span className="panel__heading-note">{collection.primers.length}</span>
+        ) : undefined
+      }
+      head={
+        <>
           {page === 'clone' && (
             <span className="ws__sub">
               Colony PCR: a pair across each junction, and one flanking the insert
@@ -312,7 +189,7 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
                 type="button"
                 className="link"
                 onClick={() => {
-                  goTo('design', true);
+                  goTo('design');
                 }}
               >
                 Design again
@@ -329,46 +206,45 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
                   type="button"
                   className="link"
                   onClick={() => {
-                    goTo('design', true);
+                    goTo('design');
                   }}
                 >
                   Design again
                 </button>
               </span>
             )}
-        </header>
-        <div className="ws__page">
-          {page === 'design' && (
-            <PrimerDesignPage
-              doc={doc}
-              design={design}
-              cloning={cloning}
-              mode={mode}
-              setMode={(next) => {
-                setMemory((m) => ({ ...m, mode: next }));
-              }}
-              layout={layout}
-              onDesigned={() => {
-                setResultsKind(mode);
-                goTo('results', true);
-              }}
-              onResults={() => {
-                setResultsKind(mode);
-                goTo('results', true);
-              }}
-            />
-          )}
-          {page === 'results' &&
-            (cloningResults ? (
-              <CloningCandidates cloning={cloning} layout={layout} />
-            ) : (
-              <PrimerCandidates doc={doc} design={design} layout={layout} />
-            ))}
-          {page === 'check' && <PrimerCheck doc={doc} probe={probe} />}
-          {page === 'clone' && <CloneCheckPage doc={doc} state={cloneCheck} layout={layout} />}
-          {page === 'mine' && <PrimerCollection doc={doc} />}
-        </div>
-      </section>
-    </div>
+        </>
+      }
+    >
+      {page === 'design' && (
+        <PrimerDesignPage
+          doc={doc}
+          design={design}
+          cloning={cloning}
+          mode={mode}
+          setMode={(next) => {
+            setMemory((m) => ({ ...m, mode: next }));
+          }}
+          layout={layout}
+          onDesigned={() => {
+            setResultsKind(mode);
+            goTo('results');
+          }}
+          onResults={() => {
+            setResultsKind(mode);
+            goTo('results');
+          }}
+        />
+      )}
+      {page === 'results' &&
+        (cloningResults ? (
+          <CloningCandidates cloning={cloning} layout={layout} />
+        ) : (
+          <PrimerCandidates doc={doc} design={design} layout={layout} />
+        ))}
+      {page === 'check' && <PrimerCheck doc={doc} probe={probe} />}
+      {page === 'clone' && <CloneCheckPage doc={doc} state={cloneCheck} layout={layout} />}
+      {page === 'mine' && <PrimerCollection doc={doc} />}
+    </WorkspaceShell>
   );
 }

@@ -21,10 +21,12 @@ export interface LayoutSizes {
    */
   readonly sidebarHeightStacked: number;
   /**
-   * The primer workspace's width in px (item 107): it takes the sidebar's
-   * column, widened, while it is open, and has a splitter of its own.
+   * The workspace column's width in px (items 107 and 129): the primer or
+   * the Align workspace takes the sidebar's column, widened, while it is
+   * open, and has a splitter of its own. One width for both: a user who
+   * widened the column widened it.
    */
-  readonly primerWorkspaceWidth: number;
+  readonly workspaceWidth: number;
 }
 
 /** The ratios the stylesheet had before the splitters: 2fr/3fr and 1fr/1.4fr. */
@@ -33,7 +35,7 @@ export const DEFAULT_LAYOUT: LayoutSizes = {
   viewsSplitStacked: 1 / 2.4,
   sidebarWidth: 330,
   sidebarHeightStacked: 200,
-  primerWorkspaceWidth: 900,
+  workspaceWidth: 900,
 };
 
 /**
@@ -81,12 +83,12 @@ export const MIN_EDITOR_PX = 360;
 export const MIN_SIDEBAR_HEIGHT_PX = 120;
 export const MIN_EDITOR_HEIGHT_PX = 200;
 /**
- * The primer workspace beside a live map (item 107): the workspace needs
+ * A workspace beside a live map (items 107 and 129): the workspace needs
  * its results table, the map the user's view of the target.
  */
-export const MIN_PRIMER_WORKSPACE_PX = 560;
+export const MIN_WORKSPACE_PX = 560;
 export const MIN_WORKSPACE_MAP_PX = 280;
-export const MAX_PRIMER_WORKSPACE_PX = 1400;
+export const MAX_WORKSPACE_PX = 1400;
 
 export function clampFraction(f: number): number {
   if (!Number.isFinite(f)) return DEFAULT_LAYOUT.viewsSplit;
@@ -103,9 +105,9 @@ export function clampSidebarHeight(px: number): number {
   return Math.min(900, Math.max(MIN_SIDEBAR_HEIGHT_PX, Math.round(px)));
 }
 
-export function clampPrimerWorkspaceWidth(px: number): number {
-  if (!Number.isFinite(px)) return DEFAULT_LAYOUT.primerWorkspaceWidth;
-  return Math.min(MAX_PRIMER_WORKSPACE_PX, Math.max(MIN_PRIMER_WORKSPACE_PX, Math.round(px)));
+export function clampWorkspaceWidth(px: number): number {
+  if (!Number.isFinite(px)) return DEFAULT_LAYOUT.workspaceWidth;
+  return Math.min(MAX_WORKSPACE_PX, Math.max(MIN_WORKSPACE_PX, Math.round(px)));
 }
 
 /** Sanity-checks a patch on its way into the store or out of storage. */
@@ -119,8 +121,8 @@ export function clampLayout(patch: Partial<LayoutSizes>): Partial<LayoutSizes> {
   if (patch.sidebarHeightStacked !== undefined) {
     next.sidebarHeightStacked = clampSidebarHeight(patch.sidebarHeightStacked);
   }
-  if (patch.primerWorkspaceWidth !== undefined) {
-    next.primerWorkspaceWidth = clampPrimerWorkspaceWidth(patch.primerWorkspaceWidth);
+  if (patch.workspaceWidth !== undefined) {
+    next.workspaceWidth = clampWorkspaceWidth(patch.workspaceWidth);
   }
   return next;
 }
@@ -132,6 +134,6 @@ export function sameLayout(a: LayoutSizes, b: LayoutSizes): boolean {
     a.viewsSplitStacked === b.viewsSplitStacked &&
     a.sidebarWidth === b.sidebarWidth &&
     a.sidebarHeightStacked === b.sidebarHeightStacked &&
-    a.primerWorkspaceWidth === b.primerWorkspaceWidth
+    a.workspaceWidth === b.workspaceWidth
   );
 }

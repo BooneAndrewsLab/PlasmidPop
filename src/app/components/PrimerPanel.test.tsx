@@ -44,7 +44,7 @@ describe('the slim Primers tab (item 107)', () => {
     expect(button).toBeEnabled();
     fireEvent.click(button);
     const state = editorStore.getState();
-    expect(state).toMatchObject({ primerWorkspace: true, sidebarTab: 'primers' });
+    expect(state).toMatchObject({ workspace: 'primers', sidebarTab: 'primers' });
     expect(recallWorkspace(state.documentId).page).toBe('design');
   });
 
@@ -59,7 +59,7 @@ describe('the slim Primers tab (item 107)', () => {
     fireEvent.click(button);
     const state = editorStore.getState();
     expect(state).toMatchObject({
-      primerWorkspace: true,
+      workspace: 'primers',
       sidebarTab: 'primers',
       sidebarOpen: true,
     });
@@ -82,7 +82,7 @@ describe('the slim Primers tab (item 107)', () => {
     expect(editorStore.getState().selection).toEqual({ start: 100, end: 122 });
     // The full check, with the warnings and the actions, is the workspace's Check page.
     fireEvent.click(screen.getByRole('button', { name: 'Full check ›' }));
-    expect(editorStore.getState().primerWorkspace).toBe(true);
+    expect(editorStore.getState().workspace).toBe('primers');
     expect(recallWorkspace(editorStore.getState().documentId).page).toBe('check');
   });
 
@@ -135,7 +135,7 @@ describe('the slim Primers tab (item 107)', () => {
     // Shut with Escape, the keyboard comes back to the button that opens it.
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Design primers…' }));
     fireEvent.click(screen.getByRole('button', { name: /^Last design · \d+ pairs ›$/ }));
-    expect(editorStore.getState().primerWorkspace).toBe(true);
+    expect(editorStore.getState().workspace).toBe('primers');
     expect(recallWorkspace(editorStore.getState().documentId).page).toBe('results');
     act(() => {
       closePrimerWorkspace();

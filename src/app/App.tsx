@@ -1,4 +1,4 @@
-import { type DragEvent, useLayoutEffect, useState } from 'react';
+import { type DragEvent, type ReactNode, useLayoutEffect, useState } from 'react';
 
 import { hasTool } from '@/core';
 
@@ -15,7 +15,8 @@ import { NcbiDialog } from './components/NcbiDialog';
 import { VerifyClonesDialog } from './components/VerifyClonesDialog';
 import { NewDocumentDialog } from './components/NewDocumentDialog';
 import { PhoneShell } from './components/PhoneShell';
-import { PrimerWorkspace } from './components/PrimerWorkspace';
+import { AlignWorkspace } from './components/AlignWorkspace';
+import { PrimerWorkspace, type WorkspaceLayout } from './components/PrimerWorkspace';
 import { CopyBanner } from './components/CopyBanner';
 import { CompareDialog } from './components/CompareDialog';
 import { DownloadNotice } from './components/DownloadNotice';
@@ -35,11 +36,11 @@ import { useMediaQuery } from './components/useMediaQuery';
 import { openFiles } from './openFile';
 import {
   DEFAULT_LAYOUT,
-  MAX_PRIMER_WORKSPACE_PX,
+  MAX_WORKSPACE_PX,
   MIN_EDITOR_HEIGHT_PX,
   MIN_EDITOR_PX,
   MIN_MAP_PX,
-  MIN_PRIMER_WORKSPACE_PX,
+  MIN_WORKSPACE_PX,
   MIN_SEQUENCE_HEIGHT_PX,
   MIN_SEQUENCE_PX,
   MIN_SIDEBAR_HEIGHT_PX,
@@ -48,7 +49,7 @@ import {
   PHONE_QUERY,
   SIDEBAR_STACKED_QUERY,
   VIEWS_STACKED_QUERY,
-  clampPrimerWorkspaceWidth,
+  clampWorkspaceWidth,
   clampSidebarHeight,
   clampSidebarWidth,
 } from './state/layout';
@@ -75,15 +76,22 @@ export function App() {
     layout,
     sidebarOpen,
     front,
-    primerWorkspace,
+    workspace: workspaceKind,
   } = useEditorState();
   const doc = history?.present ?? null;
   // A protein has no map (#66): its residues are the whole view, whatever DNA's switcher says.
   const chosen = doc !== null && !hasTool(doc, 'circular') ? 'sequence' : chosenView;
-  // The primer workspace (item 107) takes the sidebar's column, widened, and
+  // A workspace (items 107 and 129) takes the sidebar's column, widened, and
   // the sequence pane yields to it: the map is what a design is judged on.
-  const workspace = doc !== null && primerWorkspace;
+  const kind = doc === null ? null : workspaceKind;
+  const workspace = kind !== null;
   const view = workspace && chosen === 'both' ? 'map' : chosen;
+  const workspaceAt = (layout: WorkspaceLayout): ReactNode =>
+    doc === null || kind === null ? null : kind === 'primers' ? (
+      <PrimerWorkspace doc={doc} layout={layout} />
+    ) : (
+      <AlignWorkspace doc={doc} layout={layout} />
+    );
   useAnalysis();
   useAutosave();
   useAutosaveShelf();
@@ -159,7 +167,7 @@ export function App() {
         <main className="app__main app__main--phone">
           {workspace ? (
             // Full screen on a phone (item 107, points 5 and 6), the rail across the top.
-            <PrimerWorkspace doc={doc} layout="phone" />
+            workspaceAt('phone')
           ) : (
             <div className="phone-editor" key={documentId}>
               <CopyBanner />
@@ -185,7 +193,7 @@ export function App() {
               : { gridTemplateColumns: 'minmax(0, 1fr) auto' }
           }
         >
-          <PrimerWorkspace doc={doc} layout="full" />
+          {workspaceAt('full')}
           <Sidebar doc={doc} />
         </main>
       ) : (
@@ -196,7 +204,7 @@ export function App() {
               ? {
                   // The workspace in the sidebar's column, widened, with a
                   // splitter of its own; the sidebar is its rail alone (item 107).
-                  gridTemplateColumns: `minmax(0, 1fr) ${SPLITTER_SIZE}px ${layout.primerWorkspaceWidth}px auto`,
+                  gridTemplateColumns: `minmax(0, 1fr) ${SPLITTER_SIZE}px ${layout.workspaceWidth}px auto`,
                 }
               : stackedSidebar
                 ? {
@@ -274,29 +282,29 @@ export function App() {
             <>
               <Splitter
                 axis="x"
-                label="Resize the primer workspace"
+                label={`Resize the ${kind === 'primers' ? 'primer' : 'Align'} workspace`}
                 minBefore={MIN_WORKSPACE_MAP_PX}
-                minAfter={MIN_PRIMER_WORKSPACE_PX}
-                value={layout.primerWorkspaceWidth}
-                min={MIN_PRIMER_WORKSPACE_PX}
-                max={MAX_PRIMER_WORKSPACE_PX}
-                valueText={`The primer workspace is ${layout.primerWorkspaceWidth} pixels wide`}
+                minAfter={MIN_WORKSPACE_PX}
+                value={layout.workspaceWidth}
+                min={MIN_WORKSPACE_PX}
+                max={MAX_WORKSPACE_PX}
+                valueText={`The workspace is ${layout.workspaceWidth} pixels wide`}
                 onMove={(before, extent, handle) => {
                   // What is after the handle is the workspace and the sidebar's rail.
                   const rail =
                     handle.parentElement?.querySelector('.sidebar')?.getBoundingClientRect()
                       .width ?? 0;
                   editorStore.setLayout({
-                    primerWorkspaceWidth: clampPrimerWorkspaceWidth(extent - before - rail),
+                    workspaceWidth: clampWorkspaceWidth(extent - before - rail),
                   });
                 }}
                 onReset={() => {
                   editorStore.setLayout({
-                    primerWorkspaceWidth: DEFAULT_LAYOUT.primerWorkspaceWidth,
+                    workspaceWidth: DEFAULT_LAYOUT.workspaceWidth,
                   });
                 }}
               />
-              <PrimerWorkspace doc={doc} layout="split" />
+              {workspaceAt('split')}
             </>
           )}
           {!workspace && sidebarOpen && !stackedSidebar && (

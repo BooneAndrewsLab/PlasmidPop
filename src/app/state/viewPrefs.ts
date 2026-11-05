@@ -286,7 +286,7 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
       'viewsSplitStacked',
       'sidebarWidth',
       'sidebarHeightStacked',
-      'primerWorkspaceWidth',
+      'workspaceWidth',
     ] as const) {
       if (typeof l[key] === 'number') numbers[key] = l[key];
     }

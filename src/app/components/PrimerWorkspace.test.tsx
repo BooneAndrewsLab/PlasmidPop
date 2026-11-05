@@ -417,12 +417,12 @@ describe('the workspace shell (item 107)', () => {
       fireEvent.keyDown(summary, { key: 'Escape' });
     });
     expect(summary.closest('details')).not.toHaveAttribute('open');
-    expect(editorStore.getState().primerWorkspace).toBe(true);
+    expect(editorStore.getState().workspace).toBe('primers');
     // With nothing inner to take it, Escape shuts the workspace.
     act(() => {
       fireEvent.keyDown(heading, { key: 'Escape' });
     });
-    expect(editorStore.getState().primerWorkspace).toBe(false);
+    expect(editorStore.getState().workspace).toBe(null);
   });
 
   it('closes from its own button too', () => {
@@ -430,7 +430,7 @@ describe('the workspace shell (item 107)', () => {
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: 'Close the primer workspace' }));
     });
-    expect(editorStore.getState().primerWorkspace).toBe(false);
+    expect(editorStore.getState().workspace).toBe(null);
   });
 
   it('says the target changed on Results and hides the preview, keeping the rows (point 3)', () => {

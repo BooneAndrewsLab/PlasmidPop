@@ -92,7 +92,17 @@ describe('PhoneShell', () => {
     expect(editorStore.getState().sidebarTab).toBe('primers');
     expect(screen.getByText('101–900 · 800 bp')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Design primers…' }));
-    expect(editorStore.getState().primerWorkspace).toBe(true);
+    expect(editorStore.getState().workspace).toBe('primers');
+  });
+
+  it('offers Align as a fifth Details subtab, whose Options and more opens the workspace (item 129)', () => {
+    setup();
+    fireEvent.click(pane('Details'));
+    fireEvent.click(screen.getByRole('tab', { name: 'Align' }));
+    expect(editorStore.getState().sidebarTab).toBe('align');
+    expect(screen.getByRole('textbox', { name: 'Sequence to align' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Options and more ›' }));
+    expect(editorStore.getState().workspace).toBe('align');
   });
 
   it('goes back to the view last looked at when a list reveals a position', () => {

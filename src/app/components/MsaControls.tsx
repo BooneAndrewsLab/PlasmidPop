@@ -18,7 +18,8 @@ interface Props {
  * this document as one more (#207): three to fifty sequences, in the
  * worker, shown in a window of its own. The plan is `planMsa`'s and the run
  * `useMultipleAlignment`'s, shared with the window that needs no document
- * (#369, `MsaWindow`).
+ * (#369, `MsaWindow`). The Align workspace's Multiple page (item 129) is
+ * this and a heading.
  */
 export function MsaControls({ doc, records }: Props) {
   const [withDoc, setWithDoc] = useState(true);
@@ -45,8 +46,7 @@ export function MsaControls({ doc, records }: Props) {
   };
 
   return (
-    <fieldset className="panel__group">
-      <legend>Multiple alignment</legend>
+    <div className="panel__section msa-controls">
       <p className="panel__note">
         Align the {records.length.toLocaleString()} records of the box with each other
         {include ? ' and with this document' : ''}, all in one view with a consensus.
@@ -108,6 +108,6 @@ export function MsaControls({ doc, records }: Props) {
       {msa.shown !== null && (
         <MsaDialog names={msa.shown.names} alignment={msa.shown.alignment} onClose={msa.dismiss} />
       )}
-    </fieldset>
+    </div>
   );
 }

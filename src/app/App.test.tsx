@@ -484,7 +484,7 @@ describe('previews', () => {
     // panel then offers the last design, which brings the workspace back on
     // Results with the pair that was shown (#32, item 107 point 4).
     fireEvent.click(screen.getByRole('tab', { name: 'Features' }));
-    expect(editorStore.getState()).toMatchObject({ preview: null, primerWorkspace: false });
+    expect(editorStore.getState()).toMatchObject({ preview: null, workspace: null });
     fireEvent.click(screen.getByRole('tab', { name: 'Primers' }));
     expect(screen.queryByRole('region', { name: 'Primer workspace' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /^Last design · \d+ pairs/ }));
@@ -506,7 +506,7 @@ describe('previews', () => {
     const region = screen.getByRole('region', { name: 'Primer workspace' });
     expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Design primers' }));
     const main = document.querySelector('.app__main');
-    expect(main?.getAttribute('style')).toContain(`${DEFAULT_LAYOUT.primerWorkspaceWidth}px`);
+    expect(main?.getAttribute('style')).toContain(`${DEFAULT_LAYOUT.workspaceWidth}px`);
     expect(
       screen.getByRole('separator', { name: 'Resize the primer workspace' }),
     ).toBeInTheDocument();
@@ -529,6 +529,35 @@ describe('previews', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Design primers…' }));
     fireEvent.keyDown(document.body, { key: 'Escape' });
     expect(screen.getByRole('region', { name: 'Primer workspace' })).toBeInTheDocument();
+  });
+
+  it('gives the Align workspace the same column, one workspace at a time (item 129)', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    act(() => {
+      editorStore.setSidebarTab('align');
+    });
+    expect(screen.getByText(/^Reference: SYNPBR322, 4,361 bp, circular\.$/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Options and more ›' }));
+    const region = screen.getByRole('region', { name: 'Align workspace' });
+    expect(document.activeElement).toBe(
+      screen.getByRole('heading', { name: 'Align to the document' }),
+    );
+    expect(
+      screen.getByRole('separator', { name: 'Resize the Align workspace' }),
+    ).toBeInTheDocument();
+    expect(document.querySelector('.app__views--map')).not.toBeNull();
+    const sidebarRail = screen.getByRole('tablist', { name: 'Sidebar' });
+    expect(within(sidebarRail).getByRole('tab', { name: 'Align' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.queryByRole('button', { name: 'Options and more ›' })).toBeNull();
+    // The Primers tab shuts it and opens its own slim panel, not a second workspace.
+    fireEvent.click(within(sidebarRail).getByRole('tab', { name: 'Primers' }));
+    expect(region).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Design primers…' })).toBeInTheDocument();
+    expect(editorStore.getState().workspace).toBeNull();
   });
 });
 

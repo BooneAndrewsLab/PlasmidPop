@@ -90,7 +90,7 @@ target chooser's mode and the settings disclosure's state are panel memory
 under `primers.*` (`primerWorkspace.ts`: `recallWorkspace`,
 `rememberWorkspacePage`), so the slim panel's "Last design ›", "Full check
 ›" and "My primers…" land on a page without the store knowing the pages.
-The width is `layout.primerWorkspaceWidth` (560–1400 px, default 900),
+The width is `layout.workspaceWidth` (560–1400 px, default 900; `primerWorkspaceWidth` until item 129 gave the column to the Align workspace too),
 persisted with the other boundaries.
 
 **One owner of the design at a time.** The design, the probe and the
