@@ -503,7 +503,10 @@ not penalised for being short. It does not match the best programs
 sequences that differ by a few substitutions and indels. The sequences are
 taken as they are: it does not reverse-complement one that is on the other
 strand, and a circular plasmid is aligned from the first base it is written
-from. All of it runs in your browser.
+from. All of it runs in your browser. Sequences that are much alike, such
+as copies of one plasmid with a few changes, are aligned along a narrow
+band about the words they share, so four copies of a 10 kb plasmid take
+about two seconds; the result is the one aligning them in full would give.
 
 A run that goes on for more than about 15 seconds says **This is taking a
 while**; the **Cancel** button beside the progress bar stops it whenever

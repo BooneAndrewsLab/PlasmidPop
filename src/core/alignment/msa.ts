@@ -28,10 +28,15 @@
  *   new alignment is kept when its sum-of-pairs score is higher (Gotoh 1996;
  *   the "tree-dependent restricted partitioning" of MUSCLE and MAFFT). A
  *   work budget bounds it, so a long alignment is refined less, not slowly.
+ * - A join of long, similar profiles is filled along a band (#372): one
+ *   about the words their consensus shares, as `banded.ts` does for a pair,
+ *   then the diagonals a path as good could reach, which hold the full
+ *   fill's own path. The same alignment, from a few percent of the cells.
  */
 
+import { bandAround, chainAnchors, dropStrays } from './banded';
 import { at, sumOfPairs } from './msaFormat';
-import { AlignmentTooLargeError, DEFAULT_MAX_CELLS } from './pairwise';
+import { AlignmentTooLargeError, type Band, DEFAULT_MAX_CELLS, bandCells } from './pairwise';
 import {
   CODES,
   PROTEIN_CODES,
@@ -43,10 +48,12 @@ import {
 
 export const MAX_MSA_SEQUENCES = 50;
 
-/** Cells the refinement may fill in all: a few seconds in the worker. */
+/** Cells the refinement may fill in all, counted as filled: a few seconds in the worker. */
 export const REFINE_CELLS = 300_000_000;
 /** Most passes over the tree the refinement makes. */
 const REFINE_PASSES = 3;
+/** A join with more cells than this is tried along a band first (#372): about 1 kb by 1 kb. */
+export const BAND_ABOVE = 1_000_000;
 
 export interface MsaOptions {
   readonly alphabet?: 'nucleotide' | 'protein';
@@ -58,6 +65,10 @@ export interface MsaOptions {
   readonly maxCells?: number;
   /** Refine the progressive result (default true). */
   readonly refine?: boolean;
+  /** Try a band first for a join of more cells than this (default `BAND_ABOVE`; 0 always, Infinity never). */
+  readonly bandAbove?: number;
+  /** After each join, the cells filled for it and the cells of its full matrix. */
+  readonly onJoin?: (filled: number, full: number) => void;
   readonly onProgress?: (fraction: number) => void;
 }
 
@@ -273,25 +284,39 @@ const NEG = -1e18;
  */
 const openShare = (g: number): number => (1 - g) * (1 - g);
 
-/** Aligns two profiles; returns the merged profile. */
-function joinProfiles(
-  a: Profile,
-  b: Profile,
-  weights: readonly number[],
-  table: Float64Array,
-  k: number,
-  gapOpen: number,
-  gapExtend: number,
-  maxCells: number,
-): Profile {
-  const A = columnsOf(a, weights, k);
-  const B = columnsOf(b, weights, k);
-  const n = A.length;
-  const m = B.length;
-  const cells = (n + 1) * (m + 1);
-  if (cells > maxCells) throw new AlignmentTooLargeError(cells, maxCells);
+/** What a join needs besides its two profiles. */
+interface JoinContext {
+  readonly weights: readonly number[];
+  readonly table: Float64Array;
+  readonly k: number;
+  readonly gapOpen: number;
+  readonly gapExtend: number;
+  readonly maxCells: number;
+  readonly alphabet: 'nucleotide' | 'protein';
+  /** A join whose full matrix has more cells than this is tried along a band first. */
+  readonly bandAbove: number;
+  readonly onJoin: ((filled: number, full: number) => void) | undefined;
+}
 
-  // Per column of B, its score against each symbol: Σ_b f_b S(symbol, b).
+type Columns = ReturnType<typeof columnsOf>;
+
+/** The two profiles' columns and what a cell of their matrix reads. */
+interface Grid {
+  readonly A: Columns;
+  readonly B: Columns;
+  readonly table: Float64Array;
+  readonly k: number;
+  /** Per column of B, its score against each symbol: Σ_b f_b S(symbol, b). */
+  readonly against: Float64Array;
+  /** The symbols present in each column of A. */
+  readonly present: readonly Int32Array[];
+}
+
+function gridOf(a: Profile, b: Profile, ctx: JoinContext): Grid {
+  const { table, k } = ctx;
+  const A = columnsOf(a, ctx.weights, k);
+  const B = columnsOf(b, ctx.weights, k);
+  const m = B.length;
   const against = new Float64Array(m * k);
   for (let j = 0; j < m; j++) {
     for (let s = 0; s < k; s++) {
@@ -303,24 +328,54 @@ function joinProfiles(
       against[j * k + s] = v;
     }
   }
-  // The symbols present in each column of A.
   const present: Int32Array[] = [];
-  for (let i = 0; i < n; i++) {
+  for (let i = 0; i < A.length; i++) {
     const list: number[] = [];
     for (let s = 0; s < k; s++) if ((A.freq[i * k + s] ?? 0) !== 0) list.push(s);
     present.push(Int32Array.from(list));
   }
+  return { A, B, table, k, against, present };
+}
 
+/** A path through the matrix: 0 both, 1 A only, 2 B only; its score; the cells filled for it. */
+interface Path {
+  readonly ops: readonly number[];
+  readonly score: number;
+  readonly cells: number;
+}
+
+/** Every cell of an n by m matrix, as a band. */
+function wholeMatrix(n: number, m: number): Band {
+  return { lo: new Int32Array(n + 1), hi: new Int32Array(n + 1).fill(m) };
+}
+
+/**
+ * The best path through the cells of `band` (rows 0 to n, each from lo to hi,
+ * both edges never falling; the corners in it), with the same recurrence,
+ * order of comparison and traceback as over the whole matrix: a cell
+ * outside the band is −∞. Over `wholeMatrix` it is the full fill.
+ */
+function fillBand(g: Grid, band: Band, gapOpen: number, gapExtend: number): Path {
+  const { A, B, against, present, k } = g;
+  const n = A.length;
+  const m = B.length;
+  const { lo, hi } = band;
+  // Row i's cells in the traceback start at start[i], for column lo[i].
+  const start = new Int32Array(n + 2);
+  for (let i = 0; i <= n; i++) start[i + 1] = (start[i] ?? 0) + (hi[i] ?? 0) - (lo[i] ?? 0) + 1;
+  const cells = start[n + 1] ?? 0;
   const trace = new Uint8Array(cells);
   // Traceback, two bits per state: M from (0 M, 1 X, 2 Y); X from (0 M, 1 X); Y from (0 M, 1 Y).
+  // A column a row never reaches keeps −∞: the edges only rise, so no row
+  // reads past its predecessor's end a value written there for an earlier row.
   let prevM = new Float64Array(m + 1).fill(NEG);
   let prevX = new Float64Array(m + 1).fill(NEG);
   let prevY = new Float64Array(m + 1).fill(NEG);
-  let curM = new Float64Array(m + 1);
-  let curX = new Float64Array(m + 1);
-  let curY = new Float64Array(m + 1);
+  let curM = new Float64Array(m + 1).fill(NEG);
+  let curX = new Float64Array(m + 1).fill(NEG);
+  let curY = new Float64Array(m + 1).fill(NEG);
   prevM[0] = 0;
-  for (let j = 1; j <= m; j++) {
+  for (let j = 1; j <= (hi[0] ?? 0); j++) {
     // Along the top edge: a gap in A before it starts costs extension only.
     prevY[j] =
       Math.max(prevM[j - 1] ?? NEG, prevY[j - 1] ?? NEG) + gapExtend * openShare(B.gap[j - 1] ?? 0);
@@ -330,12 +385,22 @@ function joinProfiles(
     const fa = openShare(A.gap[i - 1] ?? 0);
     const sym = at(present, i - 1);
     const rowTerminal = i === n;
-    curM[0] = NEG;
-    curY[0] = NEG;
-    curX[0] = Math.max(prevM[0] ?? NEG, prevX[0] ?? NEG) + gapExtend * fa;
-    trace[i * (m + 1)] = 1 << 2;
-    for (let j = 1; j <= m; j++) {
-      const idx = i * (m + 1) + j;
+    const left = lo[i] ?? 0;
+    const right = hi[i] ?? 0;
+    const base = (start[i] ?? 0) - left;
+    if (left === 0) {
+      curM[0] = NEG;
+      curY[0] = NEG;
+      curX[0] = Math.max(prevM[0] ?? NEG, prevX[0] ?? NEG) + gapExtend * fa;
+      trace[base] = 1 << 2;
+    } else {
+      // The cell left of the band: what this row's first Y, and the next row's first M, read.
+      curM[left - 1] = NEG;
+      curX[left - 1] = NEG;
+      curY[left - 1] = NEG;
+    }
+    for (let j = Math.max(1, left); j <= right; j++) {
+      const idx = base + j;
       // M: diagonal.
       const dm = prevM[j - 1] ?? NEG;
       const dx = prevX[j - 1] ?? NEG;
@@ -383,17 +448,19 @@ function joinProfiles(
   }
   // Traceback from the best state of the last cell.
   let state: 0 | 1 | 2 = 0;
-  let top = prevM[m] ?? NEG;
-  if ((prevX[m] ?? NEG) > top) {
-    top = prevX[m] ?? NEG;
+  let score = prevM[m] ?? NEG;
+  if ((prevX[m] ?? NEG) > score) {
+    score = prevX[m] ?? NEG;
     state = 1;
   }
-  if ((prevY[m] ?? NEG) > top) state = 2;
-  const ops: number[] = []; // 0 both, 1 A only, 2 B only; reversed
+  if ((prevY[m] ?? NEG) > score) {
+    score = prevY[m] ?? NEG;
+    state = 2;
+  }
+  const ops: number[] = []; // reversed
   let i = n;
   let j = m;
   while (i > 0 || j > 0) {
-    const bits = trace[i * (m + 1) + j] ?? 0;
     if (i === 0) {
       ops.push(2);
       j--;
@@ -404,6 +471,7 @@ function joinProfiles(
       i--;
       continue;
     }
+    const bits = trace[(start[i] ?? 0) + j - (lo[i] ?? 0)] ?? 0;
     if (state === 0) {
       ops.push(0);
       state = (bits & 3) as 0 | 1 | 2;
@@ -420,6 +488,211 @@ function joinProfiles(
     }
   }
   ops.reverse();
+  return { ops, score, cells };
+}
+
+/** Margin of the first band about the anchors, as `alignBanded` starts with. */
+const BAND_MARGIN = 64;
+/** A word met more often than this in a profile is a repeat, not an anchor. */
+const MAX_OCCURRENCES = 4;
+/** The fewest anchors worth banding around. */
+const MIN_ANCHORS = 10;
+
+/**
+ * Where the two profiles share a word: words of their consensus (the symbol
+ * that holds more than half of a column's weight; a column without one, or
+ * whose symbol is an ambiguity code, breaks the word), 15 long for bases as
+ * in `banded.ts`, 5 for residues; chained and cleaned as there. Null when
+ * they share too few to band around.
+ */
+function profileAnchors(
+  g: Grid,
+  alphabet: 'nucleotide' | 'protein',
+): { i: number; j: number }[] | null {
+  const radix = alphabet === 'protein' ? 20 : 4;
+  const word = alphabet === 'protein' ? 5 : 15;
+  const size = radix ** word;
+  const words = (c: Columns, visit: (w: number, start: number) => void): void => {
+    let w = 0;
+    let run = 0;
+    for (let p = 0; p < c.length; p++) {
+      let best = -1;
+      for (let s = 0; s < radix; s++) if ((c.freq[p * g.k + s] ?? 0) > 0.5) best = s;
+      if (best < 0) {
+        run = 0;
+        continue;
+      }
+      w = (w * radix + best) % size;
+      if (++run >= word) visit(w, p - word + 1);
+    }
+  };
+  const index = new Map<number, number[]>();
+  words(g.A, (w, i) => {
+    const list = index.get(w);
+    if (list === undefined) index.set(w, [i]);
+    else if (list.length <= MAX_OCCURRENCES) list.push(i);
+  });
+  const found: { i: number; j: number }[] = [];
+  words(g.B, (w, j) => {
+    const list = index.get(w);
+    if (list === undefined || list.length > MAX_OCCURRENCES) return;
+    for (const i of list) found.push({ i, j });
+  });
+  const links = dropStrays(chainAnchors(found));
+  return links.length >= MIN_ANCHORS ? links : null;
+}
+
+/**
+ * The diagonals d = i − j a path scoring at least `score` can touch, as a
+ * band (design note 85, #372). Each column of A is used once, in a pair or
+ * against a gap, and so is each column of B. A pair scores at most half of
+ * what its column of A can score against the best column of B, plus half
+ * the same for B's; a column against a gap scores at most one extension
+ * scaled by its share of residues (`openShare`), as opening costs more.
+ * So a path scores at most U, the sum over all columns of the better of
+ * the two, less, for each column it puts against a gap, that column's loss
+ * ≥ 0. A path from diagonal 0 to n − m that touches d has at least
+ * |d| + |d − (n − m)| gap columns, so many of A's and of B's: at least the
+ * cheapest that many cost. Diagonals where U less that loss is below
+ * `score` hold no such path. A little slack keeps rounding on the safe,
+ * wider side.
+ */
+function reachable(g: Grid, score: number, gapExtend: number): Band {
+  const { A, B, table, k } = g;
+  const n = A.length;
+  const m = B.length;
+  // The best each symbol scores against any column of the other profile.
+  const bestB = new Float64Array(k).fill(NEG);
+  for (let j = 0; j < m; j++) {
+    for (let s = 0; s < k; s++) bestB[s] = Math.max(bestB[s] ?? NEG, g.against[j * k + s] ?? NEG);
+  }
+  const bestA = new Float64Array(k).fill(NEG);
+  const row = new Float64Array(k);
+  for (let i = 0; i < n; i++) {
+    row.fill(0);
+    for (const s of at(g.present, i)) {
+      const f = A.freq[i * k + s] ?? 0;
+      for (let t = 0; t < k; t++) row[t] = (row[t] ?? 0) + f * (table[s * k + t] ?? 0);
+    }
+    for (let t = 0; t < k; t++) bestA[t] = Math.max(bestA[t] ?? NEG, row[t] ?? 0);
+  }
+  let upper = 0;
+  const losses = (c: Columns, best: Float64Array): Float64Array => {
+    const out = new Float64Array(c.length);
+    for (let p = 0; p < c.length; p++) {
+      let gain = 0;
+      for (let s = 0; s < k; s++) {
+        const f = c.freq[p * k + s] ?? 0;
+        if (f !== 0) gain += f * (best[s] ?? 0);
+      }
+      const gap = gapExtend * openShare(c.gap[p] ?? 0);
+      const keep = Math.max(gain / 2, gap);
+      upper += keep;
+      out[p] = keep - gap;
+    }
+    out.sort();
+    // Prefix sums: the least `t` gap columns can cost.
+    const sums = new Float64Array(c.length + 1);
+    for (let t = 0; t < c.length; t++) sums[t + 1] = (sums[t] ?? 0) + (out[t] ?? 0);
+    return sums;
+  };
+  const lossA = losses(A, bestB);
+  const lossB = losses(B, bestA);
+  const slack = 1e-6 * (Math.abs(upper) + Math.abs(score) + 1);
+  const shift = n - m;
+  const fits = (d: number): boolean => {
+    const gaps = Math.abs(d) + Math.abs(d - shift);
+    const x = (gaps + shift) / 2;
+    const y = (gaps - shift) / 2;
+    return upper - (lossA[x] ?? Infinity) - (lossB[y] ?? Infinity) >= score - slack;
+  };
+  let high = Math.max(0, shift);
+  while (high < n && fits(high + 1)) high++;
+  let low = Math.min(0, shift);
+  while (low > -m && fits(low - 1)) low--;
+  const lo = new Int32Array(n + 1);
+  const hi = new Int32Array(n + 1);
+  for (let i = 0; i <= n; i++) {
+    lo[i] = Math.max(0, i - high);
+    hi[i] = Math.min(m, i - low);
+  }
+  return { lo, hi };
+}
+
+/** Whether every row of `inner` lies within the same row of `outer`. */
+function within(inner: Band, outer: Band): boolean {
+  for (let i = 0; i < inner.lo.length; i++) {
+    if ((inner.lo[i] ?? 0) < (outer.lo[i] ?? 0) || (inner.hi[i] ?? 0) > (outer.hi[i] ?? 0)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * The full fill's path, found along a band (#372), or null when the band
+ * cannot be shown to hold it; `cells` counts what was filled either way.
+ * A band about the profiles' shared words gives a path and its score; no
+ * better path, nor one that ties with it, can leave the diagonals
+ * `reachable` gives for that score, so the path filled over them, every
+ * cell and choice on it the full fill's own, is the full fill's path. When
+ * the first band already holds them its path is that path.
+ */
+function alongBand(
+  g: Grid,
+  ctx: JoinContext,
+  budget: number,
+): { path: Path | null; cells: number } {
+  const { gapOpen, gapExtend } = ctx;
+  const n = g.A.length;
+  const m = g.B.length;
+  const full = (n + 1) * (m + 1);
+  // The bound needs a gap to cost at least an extension, wherever it opens.
+  if (!(gapOpen <= gapExtend && gapExtend <= 0)) return { path: null, cells: 0 };
+  const links = profileAnchors(g, ctx.alphabet);
+  if (links === null) return { path: null, cells: 0 };
+  const first = bandAround(links, n, m, 'global', BAND_MARGIN);
+  const firstCells = bandCells(first);
+  if (2 * firstCells > full || firstCells > budget) return { path: null, cells: 0 };
+  const guess = fillBand(g, first, gapOpen, gapExtend);
+  const region = reachable(g, guess.score, gapExtend);
+  if (within(region, first)) return { path: guess, cells: guess.cells };
+  const regionCells = bandCells(region);
+  if (regionCells >= full || guess.cells + regionCells > budget) {
+    return { path: null, cells: guess.cells };
+  }
+  const exact = fillBand(g, region, gapOpen, gapExtend);
+  return { path: exact, cells: guess.cells + exact.cells };
+}
+
+/** A join's merged profile and the cells filled for it. */
+interface Joined {
+  readonly joined: Profile;
+  readonly cells: number;
+}
+
+/**
+ * Aligns two profiles; returns the merged profile and the cells filled, or,
+ * given a `budget`, null when the join would fill more cells than that.
+ */
+function joinProfiles(a: Profile, b: Profile, ctx: JoinContext): Joined;
+function joinProfiles(a: Profile, b: Profile, ctx: JoinContext, budget: number): Joined | null;
+function joinProfiles(a: Profile, b: Profile, ctx: JoinContext, budget = Infinity): Joined | null {
+  const g = gridOf(a, b, ctx);
+  const n = g.A.length;
+  const m = g.B.length;
+  const full = (n + 1) * (m + 1);
+  if (full > ctx.maxCells) throw new AlignmentTooLargeError(full, ctx.maxCells);
+  const tried = full > ctx.bandAbove ? alongBand(g, ctx, budget) : { path: null, cells: 0 };
+  let cells = tried.cells;
+  let path = tried.path;
+  if (path === null) {
+    if (cells + full > budget) return null;
+    path = fillBand(g, wholeMatrix(n, m), ctx.gapOpen, ctx.gapExtend);
+    cells += path.cells;
+  }
+  ctx.onJoin?.(cells, full);
+  const { ops } = path;
 
   const build = (p: Profile, side: 0 | 1): { rows: string[]; codes: Uint8Array[] } => {
     const rows: string[] = [];
@@ -447,11 +720,14 @@ function joinProfiles(
   };
   const ra = build(a, 0);
   const rb = build(b, 1);
-  return profileOf(
-    [...a.members, ...b.members],
-    [...ra.rows, ...rb.rows],
-    [...ra.codes, ...rb.codes],
-  );
+  return {
+    joined: profileOf(
+      [...a.members, ...b.members],
+      [...ra.rows, ...rb.rows],
+      [...ra.codes, ...rb.codes],
+    ),
+    cells,
+  };
 }
 
 /** The score table as doubles, side `k`. */
@@ -485,6 +761,17 @@ export function alignMultiple(
   const encoder = alphabet === 'protein' ? encodeProtein : encode;
   const codes = clean.map((s) => encoder(s));
   const { table, k } = tableOf(alphabet);
+  const join = (weights: readonly number[]): JoinContext => ({
+    weights,
+    table,
+    k,
+    gapOpen,
+    gapExtend,
+    maxCells,
+    alphabet,
+    bandAbove: options.bandAbove ?? BAND_ABOVE,
+    onJoin: options.onJoin,
+  });
 
   const shortest = Math.min(...clean.map((s) => s.length));
   const word = kmerLength(alphabet, shortest);
@@ -495,6 +782,7 @@ export function alignMultiple(
   // One progressive pass along a tree; `from` to `to` is its share of the progress.
   const progressive = (root: TreeNode, weights: readonly number[], from: number, to: number) => {
     let done = 0;
+    const ctx = join(weights);
     const run = (node: TreeNode): Profile => {
       if (node.left === null || node.right === null) {
         const i = node.leaf ?? 0;
@@ -502,7 +790,7 @@ export function alignMultiple(
       }
       const l = run(node.left);
       const r = run(node.right);
-      const joined = joinProfiles(l, r, weights, table, k, gapOpen, gapExtend, maxCells);
+      const { joined } = joinProfiles(l, r, ctx);
       done++;
       report?.(from + ((to - from) * done) / (n - 1));
       return joined;
@@ -530,13 +818,7 @@ export function alignMultiple(
       weights = againWeights;
     }
     rows = refine(rows, root, (r) => encodeRow(r, encoder), {
-      weights,
-      table,
-      k,
-      gapOpen,
-      gapExtend,
-      maxCells,
-      alphabet,
+      ...join(weights),
       onProgress: (f) => report?.(0.7 + 0.3 * f),
     });
   }
@@ -574,14 +856,7 @@ function encodeRow(row: string, encoder: (s: string) => Uint8Array): Uint8Array 
   return codes;
 }
 
-interface RefineContext {
-  readonly weights: readonly number[];
-  readonly table: Float64Array;
-  readonly k: number;
-  readonly gapOpen: number;
-  readonly gapExtend: number;
-  readonly maxCells: number;
-  readonly alphabet: 'nucleotide' | 'protein';
+interface RefineContext extends JoinContext {
   readonly onProgress: (fraction: number) => void;
 }
 
@@ -629,24 +904,16 @@ function refine(
       };
       const a = cut(group);
       const b = cut(rest);
-      const cells = (a.rows[0]?.length ?? 0) * (b.rows[0]?.length ?? 0);
-      spent += cells;
-      if (spent > REFINE_CELLS) return rows;
-      let joined: Profile;
+      let out: Joined | null;
       try {
-        joined = joinProfiles(
-          a,
-          b,
-          ctx.weights,
-          ctx.table,
-          ctx.k,
-          ctx.gapOpen,
-          ctx.gapExtend,
-          ctx.maxCells,
-        );
+        // The cells actually filled count, so a band's join costs what it took (#372).
+        out = joinProfiles(a, b, ctx, REFINE_CELLS - spent);
       } catch {
         continue;
       }
+      if (out === null) return rows;
+      spent += out.cells;
+      const { joined } = out;
       const candidate = new Array<string>(n).fill('');
       joined.members.forEach((m, r) => {
         candidate[m] = at(joined.rows, r);

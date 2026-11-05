@@ -42,6 +42,8 @@ describe('multiple alignment against MAFFT', () => {
         const m = pairAccuracy(set.truth, set.mafft);
         rows.push({ name: set.name, ours: a, mafft: m });
         expect(a).toBeGreaterThan(m - 0.12);
+        // Every join tried along a band first (#372) gives the same alignment.
+        expect(alignMultiple(set.sequences, { alphabet, bandAbove: 0 }).rows).toEqual(ours.rows);
         // Better than the guide alone: never below what the true alignment scores for itself, halved.
         expect(sumOfPairs(ours.rows, alphabet)).toBeGreaterThan(
           sumOfPairs(set.truth, alphabet) - Math.abs(sumOfPairs(set.truth, alphabet)) * 5,

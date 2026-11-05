@@ -23,8 +23,8 @@ extension only. (4) One more pass with the tree rebuilt from the first
 alignment's identities, kept when its sum of pairs is higher, then
 tree-dependent restricted-partition refinement (each branch's two sides
 re-aligned as profiles, kept when the sum of pairs rises, up to three
-passes, bounded by a 300 M-cell budget so long alignments are refined less,
-never slowly). Not done: consistency scoring, a strand check (a sequence on
+passes, bounded by a 300 M-cell budget, counted as filled, so long
+alignments are refined less, never slowly). Not done: consistency scoring, a strand check (a sequence on
 the other strand is not reverse-complemented), anything over 50 sequences
 (refused), anything whose single join exceeds 150 M cells (an
 `AlignmentTooLargeError`, as in pairwise).
@@ -99,3 +99,72 @@ points lower on proteins and the same within noise on bases; the cube
 and fourth power were within a point of the square. Time in the worker (not
 asserted): 0.1 to 0.4 s for 8 sequences, 1 to 2 s for 12 of 400 bases, about
 4 s for 30 of 250 bases with refinement (0.3 s without).
+
+**Joining along a band (#372).** Four ~9.4 kb copies of one plasmid with a
+few indels took 43 s in the worker: every join filled the whole profile
+matrix (about 88 M cells), although the path keeps to a narrow strip. A
+join whose full matrix exceeds `BAND_ABOVE` (1 M cells) is now tried along
+a band first, falling back to the full fill whenever it cannot be shown to
+give the same answer:
+
+1. Anchors: 15-mers (bases) or 5-mers (residues) of each profile's
+   consensus, a column's symbol only when it holds over half the weight;
+   chained and cleaned with `banded.ts`'s own `chainAnchors` and
+   `dropStrays`. Fewer than 10 anchors: the full fill.
+2. A first band about them (`bandAround`, margin 64), filled only when it
+   is under half the matrix, gives a path and its score S.
+3. The check, the profile analogue of `boundBand`: each column of A is used
+   once, in a pair or against a gap, and so is each column of B. A pair
+   scores at most half of what its column of A can score against the best
+   column of B plus half the same for B's column; a column against a gap
+   scores at most one extension times its `openShare` (opening costs more,
+   so a gap costing less to extend than to open voids the bound and the
+   join is filled in full). So a path scores at most U, less, for each
+   column it puts against a gap, that column's loss. Touching diagonal d
+   takes at least |d| + |d - (n - m)| gap columns, split between A and B,
+   so at least the cheapest that many losses. The diagonals where U less
+   that loss stays at or above S (with 1e-6 relative slack, on the wide
+   side) are the only ones a path at least as good as S can touch.
+4. If they lie inside the first band, its path is the answer; else that
+   diagonal strip is filled, with the same recurrence and the same order of
+   comparison. Every cell on the full fill's path has the same value in the
+   strip, and every predecessor it did not choose is either the same or,
+   when its best way in leaves the strip, strictly worse (a whole path
+   through it would score below S), so each choice and the traceback are
+   the full fill's own: **the same rows, not just the same score**, up to
+   floating-point rounding the slack covers. The tests compare rows, the
+   tree included, against a fill with banding off (`bandAbove: Infinity`)
+   on random similar bases and proteins with indels, a 400-base insertion,
+   halves in swapped order (a path 600 diagonals off), identical sequences,
+   a 25-base fragment and the eight MAFFT oracle sets (`bandAbove: 0`).
+
+The refinement's re-joins go through the same join, and its budget now
+counts the cells actually filled (the full matrix when it falls back)
+instead of n x m per re-join. That is the one change of result: a long
+alignment the old budget cut short after three 88 M-cell re-joins is now
+refined to the end of a pass, which can only raise its sum of pairs; one
+under the budget before refines exactly as before. Dissimilar sequences
+share too few words, so they are filled in full as before, nothing spent
+on a band; a pair whose first band would be most of the matrix is too.
+
+Measured in Node (Vitest) on the workstation, on the set the last test of
+`msa.test.ts` generates (a random 9.4 kb sequence and four copies, each
+with four deletions, insertions or substitutions of 1 to 20 bases; seed
+372), two runs after; the same rows before and after:
+
+| stage                        | before    | after          |
+| ---------------------------- | --------- | -------------- |
+| first progressive pass       | 15 043 ms | 573-629 ms     |
+| second pass (alignment tree) | 14 709 ms | 472-528 ms     |
+| refinement                   | 15 270 ms | 969-1 133 ms   |
+| total                        | 45 022 ms | 2 070-2 234 ms |
+| `refine: false`              | 13 714 ms | 429-433 ms     |
+| cells filled                 | ~796 M    | 28.1 M         |
+
+Before, nine joins filled 88 M cells each, the refinement stopping after
+three of its six re-joins on the budget; after, twelve joins fill 2.6% of
+their 1 061 M, the refinement completing its pass (nothing improves, so it
+stops there).
+A join's traceback is now the band's size (about 2 MB here, not 88 MB).
+`msa.test.ts` counts cells on that set (under 5% of the full matrices) rather
+than timing it, so a return to the full fill fails the test on any machine.

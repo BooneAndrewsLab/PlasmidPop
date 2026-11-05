@@ -168,6 +168,9 @@ function dropStrays(links: Anchor[]): Anchor[] {
   });
 }
 
+/** The two steps above, for the multiple alignment's profiles (#372), whose words are its own. */
+export { chain as chainAnchors, dropStrays };
+
 /**
  * Against a repeated circle (`wrap`) a word near the origin occurs in both
  * copies, so the longest chain may start in one copy and finish in the next:

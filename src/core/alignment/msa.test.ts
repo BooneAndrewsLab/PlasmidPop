@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   AlignmentTooLargeError,
   MAX_MSA_SEQUENCES,
+  type MsaOptions,
   alignMultiple,
   msaFasta,
   msaClustal,
@@ -147,6 +148,199 @@ describe('alignMultiple', () => {
     const out = alignMultiple(seqs, { refine: false });
     expect(strip(out.rows)).toEqual(seqs);
   });
+});
+
+describe('joins along a band (#372)', () => {
+  /** A seeded generator (mulberry32), so every set is the same on every run. */
+  const random = (seed: number): (() => number) => {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6d2b79f5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  };
+  const BASES = 'ACGT';
+  const RESIDUES = 'ACDEFGHIKLMNPQRSTVWY';
+  const letters = (rnd: () => number, alphabet: string, length: number): string =>
+    Array.from({ length }, () => alphabet.charAt(Math.floor(rnd() * alphabet.length))).join('');
+  /** `count` copies of `root`, each with `edits` deletions, insertions or substitutions of 1 to `longest` letters. */
+  const copies = (
+    rnd: () => number,
+    alphabet: string,
+    root: string,
+    count: number,
+    edits: number,
+    longest = 20,
+  ): string[] =>
+    Array.from({ length: count }, () => {
+      let s = root;
+      for (let e = 0; e < edits; e++) {
+        const p = Math.floor(rnd() * (s.length - longest));
+        const len = 1 + Math.floor(rnd() * longest);
+        const kind = Math.floor(rnd() * 3);
+        if (kind === 0) s = s.slice(0, p) + s.slice(p + len);
+        else if (kind === 1) s = s.slice(0, p) + letters(rnd, alphabet, len) + s.slice(p);
+        else s = s.slice(0, p) + letters(rnd, alphabet, 1) + s.slice(p + 1);
+      }
+      return s;
+    });
+  /** The alignment with every join tried along a band, the one with none, and the cells each filled. */
+  const both = (seqs: readonly string[], options: MsaOptions = {}) => {
+    const banded = { filled: 0, full: 0, joins: 0, narrower: 0 };
+    const count = (filled: number, full: number): void => {
+      banded.filled += filled;
+      banded.full += full;
+      banded.joins++;
+      if (filled < full) banded.narrower++;
+    };
+    const along = alignMultiple(seqs, { ...options, bandAbove: 0, onJoin: count });
+    const whole = alignMultiple(seqs, { ...options, bandAbove: Infinity });
+    return { along, whole, banded };
+  };
+
+  it(
+    'gives the full fill’s alignment for similar bases with indels, filling a fraction of it',
+    { timeout: 60_000 },
+    () => {
+      for (const seed of [1, 2, 3, 4, 5]) {
+        const rnd = random(seed);
+        const seqs = copies(rnd, BASES, letters(rnd, BASES, 900), 3 + (seed % 3), 4);
+        const { along, whole, banded } = both(seqs);
+        expect(along.rows).toEqual(whole.rows);
+        expect(along.tree).toBe(whole.tree);
+        expect(banded.narrower).toBe(banded.joins);
+        expect(banded.filled).toBeLessThan(banded.full / 2);
+      }
+    },
+  );
+
+  it(
+    'gives the full fill’s alignment for similar proteins with indels',
+    { timeout: 60_000 },
+    () => {
+      for (const seed of [11, 12, 13]) {
+        const rnd = random(seed);
+        const seqs = copies(rnd, RESIDUES, letters(rnd, RESIDUES, 700), 4, 3, 8);
+        const { along, whole, banded } = both(seqs, { alphabet: 'protein' });
+        expect(along.rows).toEqual(whole.rows);
+        expect(banded.narrower).toBe(banded.joins);
+      }
+    },
+  );
+
+  it(
+    'fills a second, wider band when the path leaves the first, as for a long insertion',
+    { timeout: 60_000 },
+    () => {
+      const rnd = random(21);
+      const root = letters(rnd, BASES, 1200);
+      // One copy carries 400 bases more: the path runs 400 diagonals off the corners' line.
+      const seqs = [root, root, root.slice(0, 500) + letters(rnd, BASES, 400) + root.slice(500)];
+      const { along, whole, banded } = both(seqs);
+      expect(along.rows).toEqual(whole.rows);
+      expect(along.rows[0]?.match(/-+/g)).toEqual(['-'.repeat(400)]);
+      expect(banded.narrower).toBe(banded.joins);
+    },
+  );
+
+  it(
+    'falls back to the full fill when no band is worth trying, with nothing spent on one',
+    { timeout: 60_000 },
+    () => {
+      const rnd = random(31);
+      const x = letters(rnd, BASES, 600);
+      const y = letters(rnd, BASES, 600);
+      // Unrelated sequences share no words.
+      const unrelated = both([x, y, letters(rnd, BASES, 600)]);
+      expect(unrelated.along.rows).toEqual(unrelated.whole.rows);
+      expect(unrelated.banded.filled).toBe(unrelated.banded.full);
+      // One shared core far from both corners: the rectangles from the corners to it are most of the matrix.
+      const core = letters(rnd, BASES, 100);
+      const lopsided = both(
+        [0, 1, 2].map(() => letters(rnd, BASES, 1000) + core + letters(rnd, BASES, 250)),
+        { refine: false },
+      );
+      expect(lopsided.along.rows).toEqual(lopsided.whole.rows);
+      expect(lopsided.banded.filled).toBe(lopsided.banded.full);
+      // A gap that costs less to extend than to open has no bound the band can use.
+      const odd = both([x, x, x + y], { gapOpen: -0.5, gapExtend: -2 });
+      expect(odd.along.rows).toEqual(odd.whole.rows);
+      expect(odd.banded.filled).toBe(odd.banded.full);
+    },
+  );
+
+  it(
+    'holds a best path that runs far from the corners’ diagonal in the region the bound leaves',
+    { timeout: 60_000 },
+    () => {
+      const rnd = random(32);
+      const x = letters(rnd, BASES, 600);
+      const y = letters(rnd, BASES, 600);
+      // The same halves in the other order: the best path pairs one half 600 diagonals off.
+      const swapped = both([x + y, y + x, x + y]);
+      expect(swapped.along.rows).toEqual(swapped.whole.rows);
+      expect(swapped.banded.narrower).toBe(swapped.banded.joins);
+    },
+  );
+
+  it(
+    'bands identical sequences to their diagonal and keeps a very short one exact',
+    { timeout: 60_000 },
+    () => {
+      const rnd = random(41);
+      const root = letters(rnd, BASES, 1000);
+      const same = both([root, root, root, root]);
+      expect(same.along.rows).toEqual([root, root, root, root]);
+      // The first band about the shared words holds every path as good: nothing more is filled.
+      expect(same.banded.filled).toBeLessThan(same.banded.full / 4);
+      const short = both([root, root.slice(0, 300) + root.slice(320), root.slice(400, 425)]);
+      expect(short.along.rows).toEqual(short.whole.rows);
+      expect(strip(short.along.rows)[2]).toBe(root.slice(400, 425));
+    },
+  );
+
+  it(
+    'refines along the band too, cutting out columns of mostly gaps and back',
+    { timeout: 60_000 },
+    () => {
+      const rnd = random(51);
+      const root = letters(rnd, BASES, 800);
+      const seqs = [
+        ...copies(rnd, BASES, root, 3, 3),
+        root.slice(0, 200) + letters(rnd, BASES, 60) + root.slice(200),
+      ];
+      const { along, whole } = both(seqs);
+      expect(along.rows).toEqual(whole.rows);
+      for (let c = 0; c < along.columns; c++) {
+        expect(along.rows.some((r) => r.charAt(c) !== '-')).toBe(true);
+      }
+    },
+  );
+
+  it(
+    'aligns four 9.4 kb copies of one plasmid filling a few percent of the full matrices',
+    { timeout: 60_000 },
+    () => {
+      // The set of #372 (four samples of one plasmid, a few indels each), made up: 43 s before.
+      const rnd = random(372);
+      const seqs = copies(rnd, BASES, letters(rnd, BASES, 9400), 4, 4);
+      let filled = 0;
+      let full = 0;
+      const out = alignMultiple(seqs, {
+        onJoin: (f, all) => {
+          filled += f;
+          full += all;
+        },
+      });
+      expect(strip(out.rows)).toEqual(seqs);
+      // Counted, not timed: a return to the full fill is 88 M cells a join.
+      expect(full).toBeGreaterThan(500_000_000);
+      expect(filled).toBeLessThan(full / 20);
+    },
+  );
 });
 
 describe('guide tree', () => {
