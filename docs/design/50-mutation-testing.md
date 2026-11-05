@@ -1280,5 +1280,13 @@ All on the workstation, idle (load under 1), `npm run mutate:changed`.
 4. **`--skip-loops` stays opt-in.** On changed lines the 1.22 pass had no
    timeouts to save, so the default buys nothing there; it matters for
    whole-file runs only.
-5. **Not measured:** the second machine reusing the workstation's report
-   (`--incremental-from`), and a loaded-machine count of false timeouts.
+5. **The second machine reuses the workstation's report completely.** The
+   1.22 pre-release pass (`mutate:changed v1.21.0 --without pairwise.ts
+   --without quality.ts --incremental-from <workstation report>`) on duncan:
+   6 files, 55 line ranges, 364 of 364 mutant results reused, dry run 4 min
+   56 s (5,679 tests), 5 min 10 s in all, score 92.49 as on the workstation.
+   The checkout there was synced by `rsync` (with `.git`, without
+   `node_modules` and `reports`), so `git diff` against the tag sees the same
+   lines.
+6. **Not measured:** a loaded-machine count of false timeouts. It only
+   decides whether `timeoutFactor` could go below 1.5, which nothing asks for.
