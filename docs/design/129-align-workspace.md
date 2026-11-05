@@ -171,3 +171,19 @@ the lines.
 through the DOM in tests; the look of the slim panel and the pages at
 desktop and phone widths, and the chips in the MSA window, were not seen
 by eye.
+
+**When the worker fails, and when a run is slow (#373).** The client's
+`onerror` used to answer every pending request with a fixed "Analysis
+worker failed" and drop the event, so the cause was lost. It now keeps
+`ev.message` and `filename:line` in the answer (`uncaught: true` in the
+protocol's error), and `alignMultiple` throws it as `AnalysisWorkerError`,
+told apart from a request's own error. `useMultipleAlignment` turns that
+into `stopped` (the technical text, and whether Try again is still on
+offer: once per run, never a loop) and times the run (`SLOW_RUN_MS`, 15 s)
+for a "taking a while" notice beside Cancel. `MsaRunNotices` shows them in
+both the group and the window; the technical text is behind a `<details>`,
+never a stack. Only the multiple alignment has the notices so far; other
+long requests get the fuller message in their error. Tests:
+`analysisClient.test.ts` (fake worker firing `onerror`: message kept,
+pending answered, new worker next time) and `MsaRunNotices.test.tsx`.
+Not seen in a browser.

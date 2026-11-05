@@ -10,6 +10,7 @@ import { pickerAccept } from '../pickerAccept';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { MsaDialog } from './MsaDialog';
+import { MsaRunNotices } from './MsaRunNotices';
 import { useMultipleAlignment } from './useMultipleAlignment';
 import { EMPTY_RECORD_BOX, useRecordBox } from './useRecordBox';
 
@@ -176,7 +177,7 @@ function MsaWindowBody() {
         )}
         {plan.alphabetNote !== null && <p className="panel__note">{plan.alphabetNote}</p>}
         {reason !== null && !msa.busy && <p className="panel__note">{reason}</p>}
-        {msa.error !== null && <p className="panel__error">{msa.error}</p>}
+        <MsaRunNotices msa={msa} />
         {msa.busy && (
           <div className="align-progress">
             <progress

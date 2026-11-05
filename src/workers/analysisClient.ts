@@ -71,6 +71,28 @@ export class AnalysisCancelledError extends Error {
   }
 }
 
+/**
+ * The worker failed with an error nothing caught (out of memory, a throw
+ * outside a request, the browser stopping it), as opposed to a request it
+ * answered with an error (#373). The message keeps what the event gave.
+ */
+export class AnalysisWorkerError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AnalysisWorkerError';
+  }
+}
+
+/** What an uncaught worker error says: its message, and where it came from when it says. */
+function describeWorkerFailure(ev: Partial<ErrorEvent>): string {
+  const where =
+    ev.filename === undefined || ev.filename === ''
+      ? ''
+      : ` (${ev.filename}${ev.lineno === undefined || ev.lineno === 0 ? '' : `:${ev.lineno}`})`;
+  const what = ev.message === undefined || ev.message === '' ? '' : `: ${ev.message}`;
+  return `Analysis worker failed${what}${where}`;
+}
+
 /** Omit that distributes over a union, so each request variant keeps its own fields. */
 type DistributiveOmit<T, K extends keyof T> = T extends unknown ? Omit<T, K> : never;
 type RequestBody = DistributiveOmit<AnalysisRequest, 'id'>;
@@ -111,9 +133,11 @@ export class AnalysisClient {
     if (this.enzymeSet !== null) {
       this.worker.postMessage({ id: this.nextId++, kind: 'setEnzymes', set: this.enzymeSet });
     }
-    this.worker.onerror = () => {
+    this.worker.onerror = (ev: ErrorEvent) => {
+      // Keep the event's own text: it is the only sign of the cause (#373).
+      const message = describeWorkerFailure(ev);
       for (const p of this.pending.values())
-        p.resolve({ id: -1, kind: 'error', message: 'Analysis worker failed' });
+        p.resolve({ id: -1, kind: 'error', message, uncaught: true });
       this.pending.clear();
       this.worker = null;
     };
@@ -315,7 +339,8 @@ export class AnalysisClient {
     long: LongRequestOptions = {},
   ): Promise<MultipleAlignment> {
     const res = await this.send({ kind: 'msa', sequences, options }, long);
-    if (res.kind === 'error') throw new Error(res.message);
+    if (res.kind === 'error')
+      throw res.uncaught === true ? new AnalysisWorkerError(res.message) : new Error(res.message);
     if (res.kind !== 'msa') throw new Error('Unexpected analysis response');
     return res.alignment;
   }

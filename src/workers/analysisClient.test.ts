@@ -13,7 +13,7 @@ import {
   sitesByEnzyme,
 } from '@/core';
 import { handleAnalysisRequest } from './analysis.worker';
-import { AnalysisCancelledError, AnalysisClient } from './analysisClient';
+import { AnalysisCancelledError, AnalysisClient, AnalysisWorkerError } from './analysisClient';
 import { packCutSites, packEnzymeDigest, unpackCutSites, unpackScan } from './analysisProtocol';
 
 describe('AnalysisClient (inline fallback)', () => {
@@ -396,5 +396,49 @@ describe('AnalysisClient.start (#276)', () => {
     const client = new AnalysisClient(null);
     client.start();
     expect(await client.orfs('ATG', 'linear')).toEqual([]);
+  });
+});
+
+describe('AnalysisClient uncaught worker errors (#373)', () => {
+  const fail = (w: ReturnType<typeof heldWorker>, init: Partial<ErrorEvent>): void => {
+    (w.onerror as unknown as (ev: Partial<ErrorEvent>) => void)(init);
+  };
+
+  it('keeps the event message and where it came from, and answers every pending request', async () => {
+    const w = heldWorker();
+    const client = new AnalysisClient(() => w as unknown as Worker);
+    const msa = client.alignMultiple(['ACGT', 'ACGT', 'ACGT']);
+    const orfs = client.orfs('ATG', 'linear');
+    fail(w, { message: 'Uncaught RangeError: out of memory', filename: 'worker.js', lineno: 12 });
+    const err: unknown = await msa.catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(AnalysisWorkerError);
+    expect((err as Error).message).toBe(
+      'Analysis worker failed: Uncaught RangeError: out of memory (worker.js:12)',
+    );
+    // other requests are answered too, with the same text
+    await expect(orfs).rejects.toThrow('out of memory');
+  });
+
+  it('says only that the worker failed when the event says nothing', async () => {
+    const w = heldWorker();
+    const client = new AnalysisClient(() => w as unknown as Worker);
+    const msa = client.alignMultiple(['A', 'A', 'A']);
+    fail(w, { message: '', filename: '', lineno: 0 });
+    await expect(msa).rejects.toThrow(/^Analysis worker failed$/);
+  });
+
+  it('starts a new worker for the next request', async () => {
+    const dead = heldWorker();
+    const next = heldWorker();
+    const workers = [dead, next];
+    let started = 0;
+    const client = new AnalysisClient(() => workers[started++] as unknown as Worker);
+    const first = client.orfs('ATG', 'linear');
+    fail(dead, { message: 'boom' });
+    await expect(first).rejects.toThrow('boom');
+    const second = client.orfs('ATG', 'linear');
+    expect(started).toBe(2);
+    next.reply({ id: next.posted[0]?.id, kind: 'orfs', orfs: [] });
+    expect(await second).toEqual([]);
   });
 });

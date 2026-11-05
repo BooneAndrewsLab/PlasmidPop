@@ -5,6 +5,7 @@ import type { SeqDocument } from '@/core';
 import { type AlphabetChoice } from '../msaAlphabet';
 import { type MsaRecord, planMsa } from '../msaPlan';
 import { MsaDialog } from './MsaDialog';
+import { MsaRunNotices } from './MsaRunNotices';
 import { useMultipleAlignment } from './useMultipleAlignment';
 
 interface Props {
@@ -104,7 +105,7 @@ export function MsaControls({ doc, records }: Props) {
       {plan.alphabetNote !== null && <p className="panel__note">{plan.alphabetNote}</p>}
       {plan.docNote !== null && <p className="panel__note">{plan.docNote}</p>}
       {reason !== null && !msa.busy && <p className="panel__note">{reason}</p>}
-      {msa.error !== null && <p className="panel__error">{msa.error}</p>}
+      <MsaRunNotices msa={msa} />
       {msa.shown !== null && (
         <MsaDialog names={msa.shown.names} alignment={msa.shown.alignment} onClose={msa.dismiss} />
       )}

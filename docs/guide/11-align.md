@@ -505,6 +505,15 @@ taken as they are: it does not reverse-complement one that is on the other
 strand, and a circular plasmid is aligned from the first base it is written
 from. All of it runs in your browser.
 
+A run that goes on for more than about 15 seconds says **This is taking a
+while**; the **Cancel** button beside the progress bar stops it whenever
+you like. If the browser stops the alignment's worker part-way (usually for
+want of memory with long or many sequences), the panel says **The analysis
+stopped (probably memory or size)** with a **Try again** button, which sends
+the same sequences once more. If that fails too, align fewer or shorter
+sequences. The browser's own words for the failure, and where it came from,
+are under **Technical details**, closed until you open them.
+
 ### Without a document
 
 Several records can be aligned with each other without opening any of them:

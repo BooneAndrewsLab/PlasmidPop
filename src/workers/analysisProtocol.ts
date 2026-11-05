@@ -202,7 +202,13 @@ export type AnalysisResponse =
       readonly kind: 'progress';
       readonly fraction: number;
     }
-  | { readonly id: number; readonly kind: 'error'; readonly message: string };
+  | {
+      readonly id: number;
+      readonly kind: 'error';
+      readonly message: string;
+      /** The worker itself failed (its `onerror`), not the request: a retry may work (#373). */
+      readonly uncaught?: true;
+    };
 
 /**
  * Cut sites as four integers each, so the answer crosses to the main thread
