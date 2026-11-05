@@ -103,6 +103,23 @@ describe('InputQuiet', () => {
     }
   });
 
+  it('sleeps until the input has been quiet that long, asking for no idle moment meanwhile', async () => {
+    const p = page();
+    const idle: (() => void)[] = [];
+    vi.stubGlobal('requestIdleCallback', (cb: () => void) => idle.push(cb));
+    try {
+      p.input('wheel');
+      p.wait();
+      await vi.advanceTimersByTimeAsync(900);
+      // Polling for idle moments every turn would wake the page for nothing.
+      expect(idle).toHaveLength(0);
+      await vi.advanceTimersByTimeAsync(100);
+      expect(idle).toHaveLength(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('gives up at the deadline itself, not a moment after it', async () => {
     // On a clock that stands still the deadline is now: one idle moment, then done.
     const target = new EventTarget();

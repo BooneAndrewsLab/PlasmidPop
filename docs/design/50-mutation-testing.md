@@ -1204,3 +1204,55 @@ Equivalent:
   uses `compareCheckAll` with no wrong lane at all, whose summaries are equal
   (nothing apart, weakest 1, faintest 0) and whose last rule is
   `compareDiagnostic(a.product, b.product)`, the very call the guard makes.
+
+### Old timeouts re-checked at 1.22 (#356)
+
+`mutate:recheck-timeouts` listed 15 survivors of old timeouts in five files; the
+three in `alignment/msa.ts` are in "At 1.22 pre-release: `alignment/msa.ts`".
+The other 12 were each applied by hand (an exact replacement, then `git checkout
+-- <file>`) and run against the test files that covered them in `report.json`:
+`search.ts` against all 98 (1,653 tests, about 27 s), `primerDesign.ts` against 4,
+`structure.ts` against 17 to 22. One was a gap and is killed by a new test; the
+other 11 only slow the code down and are equivalent.
+
+Killed, in `inputQuiet.test.ts`: `whenQuiet`'s wait, L90 `{ await sleep(...);
+continue; }` to `{}`. The mutant does not sleep until the input has been quiet; it
+falls through to `whenIdle` and asks for an idle moment on every turn, polling
+until `sinceInput()` reaches `quietMs`. It is not a busy loop in the tests (each
+turn waits on a fake timer or an idle callback, so it ends and gives the same
+resolution time), only a wake-up on every turn in a page, which is why the covering
+tests passed. "sleeps until the input has been quiet that long, asking for no idle
+moment meanwhile" counts the idle requests while 900 of 1,000 quiet ms pass: none,
+where the mutant has asked once already.
+
+Equivalent, by kind:
+
+- **Fast path.** `search.ts` L22 in `codeMask`, `c < 128` to `false` and to
+  `c <= 128`: `ASCII_MASKS` is `lookupMask` of each of the 128 characters, so
+  `false` sends every single character to `lookupMask` itself, the answer the
+  table holds; and for code 128, `ASCII_MASKS[128]` is undefined (`?? 0`) and
+  `lookupMask` of U+0080 is 0 (no IUPAC set has that key). A table lookup instead
+  of an object lookup and an upper-casing, item 99.
+- **Prefilter.** `primerDesign.ts` L413 and L430, `failsBasics(bases, c)` to
+  `false`, and L290, the body of `failsBasics` to `{}` (returns `undefined`, the
+  same as `false`): `failsBasics` applies GC, homopolymer and Tm bounds to the
+  same cleaned sequence with the same measures that `analyzePrimer` reports and
+  `candidatePenalty` checks first (`report.gc`, `report.homopolymer`, and
+  `report.tm`, which is NaN for a degenerate window, so refused there too). What
+  it rejects, `candidatePenalty` returns null for, so the candidate list is the
+  same; the prefilter only spares the free-energy scans of `analyzePrimer`.
+- **Cache.** `structure.ts` `remembered`: L175 `seen !== undefined` to `false`,
+  L177 `memo.size >= MEMO_LIMIT` to `true` and to `memo.size < MEMO_LIMIT`, L178
+  `memo.set(key, value)` removed. Each computes again where the memo would have
+  answered (`true` and `<` clear it before every store, which is no memo until it
+  holds 50,000 answers), and the fold is a pure function of its arguments. Nothing
+  outside the module reads the memo, so only the time differs.
+- **Cache key.** `structure.ts` L372 (`hairpinFold`) and L477 (`dimerEnergy`),
+  `p !== STRUCTURE_PARAMS || maxLoop !== MAX_LOOP` to `true`: the condition sends a
+  call with custom parameters or a custom loop limit round the memo. Always `true`
+  means never using it, which is the uncached fold for every call. These are the
+  safe side of the guard: the gap #356 feared (a cache keyed on the sequence only,
+  so a second call with other parameters reads the first one's answer) is the
+  mutant that makes the condition `false`, and "the fold cache is keyed on the
+  sequence only for the default model" in `structure.test.ts` (1.21) already kills
+  that one. No new test is possible for `true`: the result is the same.
