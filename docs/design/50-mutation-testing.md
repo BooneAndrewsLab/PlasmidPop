@@ -1112,3 +1112,48 @@ child-proxy`): busy is a loop waiting out its timeout, idle is a hang. Then
    was thin (661 mutants). `--incremental-from` fixes that; check that the
    first run there reuses nearly everything (the log's "mutant result(s) are
    reused" line).
+
+### At 1.22 pre-release: `annotate/detect.ts` (#355)
+
+The 11 survivors on lines changed since v1.21.0 (the `hidden` option of
+`detectFeatures` and `keepBest`, item 131: L493 the `answer` shortcut, L971 the
+host's name, L986 the `host !== undefined` branch, L1010-1012 `byPlace`) were each
+applied by hand and run against `detect.test.ts` (new tests) and, for the
+equivalent ones, all of `src/core/annotate` (552 tests, corpus included). Seven
+mutants were gaps and are killed by two new tests there; the other four are
+equivalent.
+
+Killed:
+
+- L986 `host !== undefined` to `true`: a hit dropped for another reason (a part
+  inside a longer one of its type, which is no gene's segment) was returned as
+  `hidden: "a segment of undefined"`. "returns only what a segment of a gene
+  displaced, not every dropped hit".
+- L1010-1012, `byPlace` as it orders the hidden segments (the arrow function to
+  `() => undefined`, the whole expression to `true` and to `false`, `||` to `&&`,
+  `x.range.start - y.range.start` to a sum; the `hidden.sort(byPlace)` call
+  itself is the same gap, L1012 `hidden.sort` to `hidden`): segments are found
+  longest first, so two of them in sequence order differ from that order only
+  when a long one starts after a short one. "lists the segments it returns in
+  sequence order, the longer first from one start" has a segment at base 100 that
+  is the longest, and two from base 0.
+
+Equivalent, by kind:
+
+- **Value always defined.** L971 `library.parts[k.part]?.name` to
+  `library.parts[k.part].name`: the part of a kept hit is in the library (the
+  optional chain only satisfies the type checker, as on the lines around it).
+- **Fast path.** L493 `hiddenHits.length === 0` to `false`: with nothing hidden
+  the spread appends nothing, and the answer is an equal copy of `hits`.
+- **Tie, already in order.** L1011 `size(y) - size(x)` to `size(y) + size(x)`:
+  the hits come from `ranked`, longest first, so two from one start are already
+  longer first and a stable sort leaves them. Not distinguishable for the hidden
+  list either, which is also in `ranked` order. L1012 `finest.sort` to `finest`
+  (kept): `withRepeats` sorts its answer by start and then longest first
+  regardless of its input, and is the next step in `detectFeatures`.
+
+The `// Stryker disable next-line ArithmeticOperator` above `byPlace` sits two
+lines above the `size(y) - size(x)` it describes (the arrow's body went to its
+own line when the sort was shared with the hidden list), so it disables
+nothing; the survivor is reported as if it were new. Moving it onto the line of the
+body would do; production code was not touched here.

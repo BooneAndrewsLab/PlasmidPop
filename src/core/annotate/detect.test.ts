@@ -369,6 +369,36 @@ describe('detectFeatures', () => {
       expect(plain.some((h) => 'hidden' in h)).toBe(false);
     });
 
+    it('returns only what a segment of a gene displaced, not every dropped hit (#289)', () => {
+      const lib = library(part('outer', PART, 'CDS'), part('inner', PART.slice(50, 150), 'CDS'));
+      // `inner` is dropped for being inside a longer part of its type, which is
+      // no gene's segment: it is not hidden, it is not there.
+      const asked = detectFeatures(PART, 'linear', lib, { hidden: true });
+      expect(asked.map((h) => [lib.parts[h.part]?.name, h.hidden])).toEqual([['outer', undefined]]);
+    });
+
+    it('lists the segments it returns in sequence order, the longer first from one start (#289)', () => {
+      // Found longest first (`late`, then `long`, then `short`), but placed
+      // `long` and `short` from base 0 and `late` from base 100.
+      const lib = library(
+        part('gene', PART, 'CDS'),
+        {
+          ...part('short', PART.slice(0, 60), 'sig_peptide'),
+          segmentOf: ['gene'],
+        },
+        {
+          ...part('long', PART.slice(0, 90), 'sig_peptide'),
+          segmentOf: ['gene'],
+        },
+        {
+          ...part('late', PART.slice(100, 220), 'sig_peptide'),
+          segmentOf: ['gene'],
+        },
+      );
+      const asked = detectFeatures(PART, 'linear', lib, { hidden: true });
+      expect(asked.map((h) => lib.parts[h.part]?.name)).toEqual(['gene', 'long', 'short', 'late']);
+    });
+
     it('drops a segment of another type inside its gene (#282)', () => {
       // The AmpR signal peptide: the first bases of the gene, a sig_peptide.
       const signal = PART.slice(0, 69);
