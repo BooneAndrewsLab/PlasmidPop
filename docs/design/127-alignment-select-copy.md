@@ -200,14 +200,14 @@ the scroller's size stubbed) and the dialog's Esc ladder
 
 ## The range guide (#371)
 
-While a selection exists, both windows shade its columns at alpha 0.07
+While a selection exists, both windows shade its columns at alpha 0.12
 (`SELECTION_GUIDE_ALPHA`, the accent colour as the selection's fill, so it
 follows the theme) on every row from the reference (large view) or consensus
 (MSA) down: one rectangle, clipped to the columns beside the names and to the
 rows below the ruler (and, in the large view, the feature track). The ruler,
 the feature track and the conservation bar are left alone: the guide is
 about the rows being compared, and a band across the bar would read as
-conservation. It is well under the navigation marker's 0.16, so the two do
+conservation. It is under the navigation marker's 0.16, so the two do
 not read as one thing. The selected row keeps its 0.3 fill and outline. An
 amino-acid selection uses the same column range as its fill. It is drawn only
 inside the selection's block, which exports never reach, so it is not in a

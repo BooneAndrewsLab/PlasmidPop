@@ -28,8 +28,8 @@ export const RULER_HEIGHT = 18;
 export const LANE_HEIGHT = 16;
 export const NAME_WIDTH = 168;
 export const OVERVIEW_HEIGHT = 44;
-/** The faint band over a selection's columns on the other rows (#371); well under the marker's 0.16. */
-export const SELECTION_GUIDE_ALPHA = 0.07;
+/** The faint band over a selection's columns on the other rows (#371); under the marker's 0.16. */
+export const SELECTION_GUIDE_ALPHA = 0.12;
 
 /** The coverage band under the overview's marks (#120). */
 export const COVERAGE_HEIGHT = 6;
