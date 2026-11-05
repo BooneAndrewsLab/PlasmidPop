@@ -4,7 +4,7 @@ import { createFeature, rangeSegment } from '../features';
 import { type Topology } from '../range';
 import { reverseComplement } from '../sequence';
 import { randomDna, seededRandom } from '@/test/random';
-import { RUN_IN_BASES, inUseStrands } from './bidirectional';
+import { RUN_IN_BASES, inUseStrands, splitStrands } from './bidirectional';
 import { detectFeatures } from './detect';
 import { type FeatureLibrary, type LibraryPart, loadFeatureLibrary } from './library';
 
@@ -86,6 +86,19 @@ describe('inUseStrands (#282)', () => {
     expect(offered(far)).toEqual(['gene forward', 'early reverse']);
     const near = spacer(40) + GENE + spacer(RUN_IN_BASES) + LATE + spacer(40);
     expect(offered(near)).toEqual(['gene forward', 'late forward']);
+  });
+
+  it('keeps the strand it leaves out, with the reason (#289)', () => {
+    const seq = spacer(40) + GENE + spacer(RUN_IN_BASES + 1) + LATE + spacer(40);
+    const found = detectFeatures(seq, 'linear', LIB).flatMap((hit) => {
+      const p = LIB.parts[hit.part];
+      return p === undefined ? [] : [{ hit, part: p }];
+    });
+    const { shown, hidden } = splitStrands(found, seq, 'linear');
+    expect(shown).toEqual(inUseStrands(found, seq, 'linear'));
+    expect(hidden.map((h) => [h.item.part.name, h.item.hit.strand, h.reason])).toEqual([
+      ['late', 'forward', 'the late strand no gene runs into'],
+    ]);
   });
 
   it('offers both where a gene runs into each strand', () => {

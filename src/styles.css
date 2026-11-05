@@ -4996,6 +4996,14 @@ button {
   color: var(--warn);
 }
 
+.detect__hidden {
+  font-style: italic;
+}
+
+.detect__hidden-toggle {
+  margin: 4px 0;
+}
+
 .detect__actions {
   display: flex;
   flex-wrap: wrap;

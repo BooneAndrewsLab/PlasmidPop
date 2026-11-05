@@ -143,6 +143,73 @@ describe('Detect features', () => {
     expect(await names()).toEqual(['Add SV40 late poly(A) signal']);
   });
 
+  it('counts what the rules hid, shows it on request and never ticks it (#289)', async () => {
+    const lib = await loadFeatureLibrary();
+    const late = lib.parts.find((p) => p.name === 'SV40 late poly(A) signal')?.sequence ?? '';
+    // No gene runs into the late signal: only the early strand is offered.
+    openBare('C'.repeat(60) + late + 'C'.repeat(60), 'pCI-like');
+    render(<Tab />);
+    fireEvent.click(screen.getByRole('button', { name: 'Detect features' }));
+    await screen.findByText(/^Found/);
+    const panel = screen.getByRole('region', { name: 'Detect features' });
+    expect(
+      within(panel).queryByRole('checkbox', { name: 'Add SV40 late poly(A) signal' }),
+    ).toBeNull();
+    expect(within(panel).queryByText(/Hidden:/)).toBeNull();
+    const toggle = within(panel).getByRole('checkbox', { name: /1 hidden/ });
+    expect(toggle).not.toBeChecked();
+    fireEvent.click(toggle);
+    const row = within(panel).getByRole('checkbox', { name: 'Add SV40 late poly(A) signal' });
+    expect(row).not.toBeChecked();
+    expect(
+      within(panel).getByText('Hidden: the SV40 late poly(A) signal strand no gene runs into'),
+    ).toBeInTheDocument();
+    // Adding what is ticked adds the early signal, not the hidden one.
+    fireEvent.click(within(panel).getByRole('button', { name: 'Add 2 features' }));
+    const names = (): string[] =>
+      editorStore
+        .getState()
+        .history?.present.features.all()
+        .map((f) => f.name) ?? [];
+    expect(names()).toEqual(['SV40 poly(A) signal', 'SV40pA rev']);
+    // Run again, and pick the hidden one: it is added like any other.
+    act(() => {
+      editorStore.undo();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Detect features' }));
+    await screen.findByText(/^Found/);
+    const again = screen.getByRole('region', { name: 'Detect features' });
+    fireEvent.click(within(again).getByRole('checkbox', { name: /1 hidden/ }));
+    fireEvent.click(within(again).getByRole('checkbox', { name: 'Add SV40 late poly(A) signal' }));
+    fireEvent.click(within(again).getByRole('button', { name: 'Add 3 features' }));
+    expect(names().sort()).toEqual([
+      'SV40 late poly(A) signal',
+      'SV40 poly(A) signal',
+      'SV40pA rev',
+    ]);
+  });
+
+  it('names the gene a hidden segment belongs to, and "Tick all" leaves it alone (#289)', async () => {
+    openBare(bases());
+    render(<Tab />);
+    fireEvent.click(screen.getByRole('button', { name: 'Detect features' }));
+    await screen.findByText(/^Found/);
+    const panel = screen.getByRole('region', { name: 'Detect features' });
+    expect(within(panel).queryByText(/^Hidden:/)).toBeNull();
+    fireEvent.click(within(panel).getByRole('checkbox', { name: /\d+ hidden/ }));
+    const reasons = within(panel).getAllByText(/^Hidden: a segment of AmpR$/);
+    expect(reasons.length).toBeGreaterThan(0);
+    const hiddenBoxes = within(panel)
+      .getAllByRole('checkbox')
+      .filter((c) => c.closest('li')?.textContent.includes('Hidden:'));
+    expect(hiddenBoxes.length).toBeGreaterThan(0);
+    for (const c of hiddenBoxes) expect(c).not.toBeChecked();
+    // Unticking all and ticking all again leaves them as they were.
+    fireEvent.click(within(panel).getByRole('button', { name: 'Untick all' }));
+    fireEvent.click(within(panel).getByRole('button', { name: 'Tick all' }));
+    for (const c of hiddenBoxes) expect(c).not.toBeChecked();
+  });
+
   it('says so when nothing is found, and can be dismissed', async () => {
     openBare('ACGT'.repeat(50));
     render(<Tab />);

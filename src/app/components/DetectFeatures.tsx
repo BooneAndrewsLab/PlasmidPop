@@ -11,7 +11,7 @@ import {
 import { featureColor } from '@/view/featureColors';
 
 import { analytics } from '../analytics';
-import { type Offer, detectionStore, offered, useDetection } from '../state/detection';
+import { type Offer, detectionStore, offeredWithHidden, useDetection } from '../state/detection';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
@@ -82,8 +82,8 @@ export function DetectFeaturesPanel({ documentId, doc }: Props) {
       </section>
     );
   }
-  const offers = offered(state, doc);
-  if (offers === null) {
+  const everything = offeredWithHidden(state, doc);
+  if (everything === null) {
     return (
       <section className="detect" aria-label="Detect features">
         <p className="detect__message">The sequence has changed since it was searched.</p>
@@ -102,7 +102,7 @@ export function DetectFeaturesPanel({ documentId, doc }: Props) {
       </section>
     );
   }
-  return <OfferList documentId={documentId} doc={doc} offers={offers} />;
+  return <OfferList documentId={documentId} doc={doc} offers={everything} />;
 }
 
 function DismissButton({ documentId }: { readonly documentId: string }) {
@@ -127,33 +127,55 @@ function OfferList({
   readonly offers: readonly Offer[];
 }) {
   const { detectOnOpen, detectMinIdentity } = useEditorState();
-  const fresh = offers.filter((o) => !o.duplicate);
-  const known = offers.length - fresh.length;
+  // What the rules hid (#289) is counted, and listed on request; it is
+  // never ticked until the user ticks it, and never part of "all".
+  const hiddenOffers = offers.filter((o) => o.hidden !== null && !o.duplicate);
+  const [showHidden, setShowHidden] = useState(false);
+  const [tickedHidden, setTickedHidden] = useState<ReadonlySet<Offer['detection']>>(new Set());
+  const ordinary = offers.filter((o) => o.hidden === null);
+  const fresh = ordinary.filter((o) => !o.duplicate);
+  const known = ordinary.length - fresh.length;
   // Unticked rather than ticked, so a hit that turns into a duplicate (the
   // user annotated it meanwhile) simply drops out of the count.
   const [unticked, setUnticked] = useState<ReadonlySet<Offer['detection']>>(new Set());
-  const chosen = fresh.filter((o) => !unticked.has(o.detection));
+  const chosenOrdinary = fresh.filter((o) => !unticked.has(o.detection));
+  const chosenHidden = showHidden ? hiddenOffers.filter((o) => tickedHidden.has(o.detection)) : [];
+  const chosen = [...chosenOrdinary, ...chosenHidden];
+  const rows = showHidden
+    ? [...fresh, ...hiddenOffers].sort(
+        (x, y) => x.detection.hit.range.start - y.detection.hit.range.start,
+      )
+    : fresh;
+  const isTicked = (o: Offer): boolean =>
+    o.hidden === null ? !unticked.has(o.detection) : tickedHidden.has(o.detection);
   const toggle = (o: Offer, on: boolean): void => {
-    const next = new Set(unticked);
-    if (on) next.delete(o.detection);
-    else next.add(o.detection);
-    setUnticked(next);
+    if (o.hidden === null) {
+      const next = new Set(unticked);
+      if (on) next.delete(o.detection);
+      else next.add(o.detection);
+      setUnticked(next);
+    } else {
+      const next = new Set(tickedHidden);
+      if (on) next.add(o.detection);
+      else next.delete(o.detection);
+      setTickedHidden(next);
+    }
   };
 
   const summary =
-    offers.length === 0
+    ordinary.length === 0
       ? 'No common features found.'
       : fresh.length === 0
-        ? `Found ${plural(offers.length, 'common feature')}, all of them already annotated.`
+        ? `Found ${plural(ordinary.length, 'common feature')}, all of them already annotated.`
         : `Found ${plural(fresh.length, 'common feature')}` +
           (known === 0 ? '.' : `, and ${known} already annotated.`);
 
   return (
     <section className="detect" aria-label="Detect features">
       <p className="detect__message">{summary}</p>
-      {fresh.length > 0 && (
+      {rows.length > 0 && (
         <ul className="detect__list">
-          {fresh.map((o, i) => {
+          {rows.map((o, i) => {
             const { hit, part } = o.detection;
             const feature = featureFromHit(hit, part);
             const source = hitSource(part);
@@ -162,7 +184,7 @@ function OfferList({
                 <label className="detect__check">
                   <input
                     type="checkbox"
-                    checked={!unticked.has(o.detection)}
+                    checked={isTicked(o)}
                     aria-label={`Add ${feature.name}`}
                     onChange={(e) => {
                       toggle(o, e.target.checked);
@@ -191,6 +213,9 @@ function OfferList({
                   />
                   <span className="feature-row__text">
                     <span className="feature-row__name">{feature.name}</span>
+                    {o.hidden !== null && (
+                      <span className="feature-row__detail detect__hidden">Hidden: {o.hidden}</span>
+                    )}
                     <span className="feature-row__detail">
                       <span>{part.type} </span>
                       <span className="feature-row__location">
@@ -214,8 +239,20 @@ function OfferList({
           })}
         </ul>
       )}
+      {hiddenOffers.length > 0 && (
+        <label className="panel__form-check detect__hidden-toggle">
+          <input
+            type="checkbox"
+            checked={showHidden}
+            onChange={(e) => {
+              setShowHidden(e.target.checked);
+            }}
+          />
+          {hiddenOffers.length} hidden. Show them
+        </label>
+      )}
       <div className="detect__actions">
-        {fresh.length > 0 && (
+        {rows.length > 0 && (
           <button
             type="button"
             className="button button--primary button--small"
@@ -224,7 +261,7 @@ function OfferList({
               detectionStore.accept(
                 documentId,
                 chosen.map((o) => o.detection),
-                chosen.length === fresh.length,
+                chosenHidden.length === 0 && chosenOrdinary.length === fresh.length,
               );
             }}
           >
@@ -236,10 +273,12 @@ function OfferList({
             type="button"
             className="button button--quiet button--small"
             onClick={() => {
-              setUnticked(chosen.length === 0 ? new Set() : new Set(fresh.map((o) => o.detection)));
+              setUnticked(
+                chosenOrdinary.length === 0 ? new Set() : new Set(fresh.map((o) => o.detection)),
+              );
             }}
           >
-            {chosen.length === 0 ? 'Tick all' : 'Untick all'}
+            {chosenOrdinary.length === 0 ? 'Tick all' : 'Untick all'}
           </button>
         )}
         <DismissButton documentId={documentId} />

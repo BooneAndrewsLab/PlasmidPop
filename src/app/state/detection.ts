@@ -7,7 +7,7 @@ import {
   duplicatesExisting,
   featureFromHit,
   hasTool,
-  inUseStrands,
+  splitStrands,
   myPartToLibraryPart,
 } from '@/core';
 import { AnalysisCancelledError, analysisClient } from '@/workers/analysisClient';
@@ -43,6 +43,8 @@ export type DetectionState =
 export interface Offer {
   readonly detection: Detection;
   readonly duplicate: boolean;
+  /** Why the rules hide it ("a segment of AmpR"); null for an ordinary offer (#289). */
+  readonly hidden: string | null;
 }
 
 /**
@@ -55,26 +57,49 @@ export interface Offer {
  * say nothing.
  */
 export function offered(state: DetectionState, doc: SeqDocument): readonly Offer[] | null {
+  const all = offeredWithHidden(state, doc);
+  return all === null ? null : all.filter((o) => o.hidden === null);
+}
+
+/**
+ * `offered` and, after each in its place along the sequence, the hits the
+ * rules hid (#289): a segment of a gene that is called (flagged by the
+ * search), and the strand of a bidirectional element no gene runs into. Each
+ * says why in `hidden`. Hidden hits are never part of `offered`.
+ */
+export function offeredWithHidden(
+  state: DetectionState,
+  doc: SeqDocument,
+): readonly Offer[] | null {
   if (state.status !== 'done' || !sameBases(state.doc, doc)) return null;
   const features = doc.features.all();
+  const present = state.detections.filter(
+    (d) => !antisenseToCds(d.hit, features, doc.length, doc.topology),
+  );
   // At a bidirectional element (the SV40 poly(A) region) only the strand a
   // gene runs into, found or annotated, is offered (#282).
-  const shown = inUseStrands(
-    state.detections.filter((d) => !antisenseToCds(d.hit, features, doc.length, doc.topology)),
+  const { shown, hidden } = splitStrands(
+    present.filter((d) => d.hit.hidden === undefined),
     doc.sequence,
     doc.topology,
     features,
   );
-  return shown.map((detection) => ({
-    detection,
-    duplicate: duplicatesExisting(
-      detection.hit,
-      detection.part,
-      features,
-      doc.length,
-      doc.topology,
-    ),
-  }));
+  const reasons = new Map<Detection, string>(hidden.map((h) => [h.item, h.reason]));
+  for (const d of present) if (d.hit.hidden !== undefined) reasons.set(d, d.hit.hidden);
+  const shownSet = new Set<Detection>(shown);
+  return present
+    .filter((d) => shownSet.has(d) || reasons.has(d))
+    .map((detection) => ({
+      detection,
+      hidden: reasons.get(detection) ?? null,
+      duplicate: duplicatesExisting(
+        detection.hit,
+        detection.part,
+        features,
+        doc.length,
+        doc.topology,
+      ),
+    }));
 }
 
 function sameBases(a: SeqDocument, b: SeqDocument): boolean {

@@ -325,3 +325,5 @@ the Bench, item 49). The rest stand.
 129. [The Align workspace, and the multiple alignment window with no document](129-align-workspace.md)
 
 130. [Read pairs in assembly](130-assembly-read-pairs.md)
+
+131. [Detect features: show what the rules hid](131-detect-hidden-calls.md)

@@ -153,6 +153,8 @@ export function handleAnalysisRequest(
         if (lib === null) throw new Error('The feature library is not loaded');
         const searched = libraryWith(lib, req.userParts);
         const hits = detectFeatures(req.sequence, req.topology, searched, {
+          // Segments the rules drop come back flagged, for the list to show on request (#289).
+          hidden: true,
           ...(req.minIdentity === undefined ? {} : { minIdentity: req.minIdentity }),
           ...(onProgress === undefined ? {} : { onProgress }),
         });

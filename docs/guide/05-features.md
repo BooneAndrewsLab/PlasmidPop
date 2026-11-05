@@ -214,6 +214,13 @@ for the parts plasmids are made of and offers what it finds:
    **Add N features**. They are added as one edit, so a single **Undo** takes
    them all away again. **Dismiss** puts the list away without adding
    anything.
+4. Below the list, a line such as _2 hidden. Show them_ counts the calls the
+   rules below set aside (a segment of a gene that is found, the SV40
+   strand no gene runs into). Tick it and they join the list, each marked
+   _Hidden_ with the reason, such as _a segment of AmpR_. They are never
+   ticked, **Tick all** and **Untick all** leave them as they are, and
+   **Add N features** adds one only after you tick it. They are not on the
+   map, and there is no setting for them.
 
 What is found:
 
@@ -344,6 +351,13 @@ What is found:
   searching again. A gene of no part of ours that you have not annotated
   cannot count, and neither can one whose stop is further than 500 bases
   away (a long 3′ untranslated region): the region is then labelled early.
+  The strand left out is one of the _hidden_ calls: tick **Show them** to add
+  it instead, or as well. This matters for pCI-neo-like vectors (pCI-neo
+  FLAG-SMN, KU870447.1): the insert's CDS ends 646 bases before the signal,
+  beyond the 500, so no gene counts and the region is labelled early, where
+  the vector's own record labels the late strand. No window fixes that
+  without bringing back double labels on other vectors, so the rule stays,
+  and the late signal is one click away.
 - Two variants of one protein that differ in length by only a few bases (EGFP
   and ECFP) are one locus: the one that matches better is offered, even if
   it is the slightly shorter.
@@ -367,7 +381,8 @@ What is found:
   matches exactly and the gene around it has a mismatch somewhere else.
   Where the gene is not there — a signal peptide or an NLS fused to
   something else — the segment is offered as itself. A segment hidden this
-  way is not listed at all; the gene's feature covers its bases.
+  way is not in the list unless you ask: it is one of the _hidden_ calls, and
+  the gene's feature covers its bases.
 
 A feature added this way is named after the part and carries two notes: what
 the part is, and _Detected by PlasmidPop_ with how well it matched and the

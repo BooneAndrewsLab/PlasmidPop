@@ -352,6 +352,23 @@ describe('detectFeatures', () => {
       expect(hits.map((h) => lib.parts[h.part]?.name)).toEqual(['outer']);
     });
 
+    it('returns the segment it drops, flagged with why, only when asked (#289)', () => {
+      const signal = PART.slice(0, 69);
+      const lib = library(part('gene', PART, 'CDS'), {
+        ...part('signal', signal, 'sig_peptide'),
+        segmentOf: ['gene'],
+      });
+      const asked = detectFeatures(PART, 'linear', lib, { hidden: true });
+      expect(asked.map((h) => [lib.parts[h.part]?.name, h.hidden])).toEqual([
+        ['gene', undefined],
+        ['signal', 'a segment of gene'],
+      ]);
+      // The default answer holds no flagged hit, and the others are the same.
+      const plain = detectFeatures(PART, 'linear', lib);
+      expect(plain).toEqual(asked.filter((h) => h.hidden === undefined));
+      expect(plain.some((h) => 'hidden' in h)).toBe(false);
+    });
+
     it('drops a segment of another type inside its gene (#282)', () => {
       // The AmpR signal peptide: the first bases of the gene, a sig_peptide.
       const signal = PART.slice(0, 69);

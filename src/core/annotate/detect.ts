@@ -84,6 +84,12 @@ export interface DetectOptions {
    * default.
    */
   readonly gapped?: boolean;
+  /**
+   * Whether to return, after the others and flagged with `FeatureHit.hidden`,
+   * the hits the rules drop as a segment of a gene or element that is called
+   * (#282, #289). Off by default: the answer is then unchanged.
+   */
+  readonly hidden?: boolean;
 }
 
 /**
@@ -154,6 +160,12 @@ export interface FeatureHit {
    * then of all the copies together.
    */
   readonly repeats?: number;
+  /**
+   * Why the rules would not offer this hit, when it was kept anyway (#289):
+   * "a segment of AmpR". Set only on a hit `detectFeatures` returns under
+   * `DetectOptions.hidden`; the default answer does not hold these hits.
+   */
+  readonly hidden?: string;
 }
 
 /**
@@ -468,20 +480,25 @@ export function detectFeatures(
   // hit shows what the name claims (#284).
   // Touching copies of one repeated tag are one feature (#284), settled
   // after the hits are reduced, so each copy is the one `keepBest` kept.
-  const kept = withRepeats(
-    keepBest(withVariantNames(withProtein, sequence, topology, library), library, n, topology),
+  const best = keepBest(
+    withVariantNames(withProtein, sequence, topology, library),
     library,
     n,
     topology,
   );
-  if (options.protein === false || options.homologues === false) return kept;
+  const kept = withRepeats(best.kept, library, n, topology);
+  // The segments `keepBest` set aside follow the answer, flagged (#289).
+  const hiddenHits = options.hidden === true ? best.hidden : [];
+  const answer = (hits: FeatureHit[]): FeatureHit[] =>
+    hiddenHits.length === 0 ? hits : [...hits, ...hiddenHits];
+  if (options.protein === false || options.homologues === false) return answer(kept);
   const homologues = withVariantNames(
     withoutAntisense(detectHomologues(sequence, topology, library), sequence, topology),
     sequence,
     topology,
     library,
   );
-  return withHomologues(kept, homologues, library, n, topology);
+  return answer(withHomologues(kept, homologues, library, n, topology));
 }
 
 /**
@@ -900,7 +917,7 @@ function keepBest(
   library: FeatureLibrary,
   length: number,
   topology: Topology,
-): FeatureHit[] {
+): { readonly kept: FeatureHit[]; readonly hidden: FeatureHit[] } {
   const size = (h: FeatureHit): number => h.range.end - h.range.start;
   // A protein hit's mismatches are residues, so its identity is the
   // comparable number: what share of the part was matched.
@@ -921,6 +938,8 @@ function keepBest(
       x.range.start - y.range.start,
   );
   const kept: FeatureHit[] = [];
+  // Segments set aside for the gene that holds them (#289).
+  const hidden: FeatureHit[] = [];
   // Whatever displaces a hit overlaps it, so only the kept hits near it are asked (#288).
   const nearKept = new OverlapIndex<FeatureHit>(length, topology);
   for (const h of ranked) {
@@ -930,6 +949,7 @@ function keepBest(
     const segmentOf = library.parts[h.part]?.segmentOf;
     // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
     const name = library.parts[h.part]?.name;
+    let host: string | undefined;
     const displaced = nearKept.some(h.range, (k) => {
       const shared = overlapLength(k.range, h.range, length, topology);
       if (k.part === h.part) return shared > 0;
@@ -947,8 +967,10 @@ function keepBest(
         segmentOf.includes(library.parts[k.part]?.name ?? '') &&
         size(k) > size(h) &&
         shared >= size(h)
-      )
+      ) {
+        host = library.parts[k.part]?.name;
         return true;
+      }
       return (
         // On the other strand only the same bases displace: a part inside a longer one there is another feature (the SV40 early poly(A) signal is the late one's complement).
         (k.strand === h.strand || shared >= 0.9 * size(k)) &&
@@ -961,6 +983,8 @@ function keepBest(
     if (!displaced) {
       kept.push(h);
       nearKept.add(h);
+    } else if (host !== undefined) {
+      hidden.push({ ...h, hidden: `a segment of ${host}` });
     }
   }
   // Two variants of one protein a few bases apart in length, where the longer
@@ -983,5 +1007,7 @@ function keepBest(
     (h) => !keptNear.some(h.range, (k) => k !== h && k.identity > h.identity && sameLocus(k, h)),
   );
   // Stryker disable next-line ArithmeticOperator: equivalent, `kept` is already longest first, and the sort is stable
-  return finest.sort((x, y) => x.range.start - y.range.start || size(y) - size(x));
+  const byPlace = (x: FeatureHit, y: FeatureHit): number =>
+    x.range.start - y.range.start || size(y) - size(x);
+  return { kept: finest.sort(byPlace), hidden: hidden.sort(byPlace) };
 }

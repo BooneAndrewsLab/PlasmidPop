@@ -115,6 +115,20 @@ export function inUseStrands<T extends PairedHit>(
   topology: Topology,
   annotated: Iterable<Feature> = [],
 ): T[] {
+  return splitStrands(found, bases, topology, annotated).shown;
+}
+
+/**
+ * `inUseStrands` with what it leaves out kept (#289): `hidden` holds each
+ * left-out hit and the reason, "the SV40 late poly(A) signal strand no gene
+ * runs into", for a list that offers them on request.
+ */
+export function splitStrands<T extends PairedHit>(
+  found: readonly T[],
+  bases: Bases,
+  topology: Topology,
+  annotated: Iterable<Feature> = [],
+): { readonly shown: T[]; readonly hidden: { readonly item: T; readonly reason: string }[] } {
   const length = bases.length;
   const circular = topology === 'circular';
   const size = (h: FeatureHit): number => h.range.end - h.range.start;
@@ -131,7 +145,7 @@ export function inUseStrands<T extends PairedHit>(
         pairs.push({ one, generic });
     }
   }
-  if (pairs.length === 0) return [...found];
+  if (pairs.length === 0) return { shown: [...found], hidden: [] };
   const ends: { readonly strand: Strand; readonly at: number }[] = [];
   for (const f of annotated) {
     if (f.type !== 'CDS') continue;
@@ -151,5 +165,10 @@ export function inUseStrands<T extends PairedHit>(
     if (!oneUsed) hidden.add(one);
     else if (!inUse(generic.hit)) hidden.add(generic);
   }
-  return found.filter((d) => !hidden.has(d));
+  return {
+    shown: found.filter((d) => !hidden.has(d)),
+    hidden: found
+      .filter((d) => hidden.has(d))
+      .map((item) => ({ item, reason: `the ${item.part.name} strand no gene runs into` })),
+  };
 }
