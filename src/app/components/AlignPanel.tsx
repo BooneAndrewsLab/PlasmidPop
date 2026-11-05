@@ -1,6 +1,6 @@
 import { analytics } from '../analytics';
 import { pickerAccept } from '../pickerAccept';
-import { type DragEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   type AlignmentMode,
@@ -20,14 +20,7 @@ import { writeFastaRecords } from '@/io';
 import { AnalysisCancelledError, analysisClient } from '@/workers/analysisClient';
 
 import { SEQUENCE_FILE_ACCEPT } from '../openFile';
-import {
-  type LoadedFile,
-  type Records,
-  type SequenceRecord,
-  readFile,
-  featuresOf,
-  readRecords,
-} from '../sequenceRecords';
+import { type SequenceRecord, featuresOf } from '../sequenceRecords';
 import {
   type ReadAlignment,
   type ReferenceInput,
@@ -51,6 +44,7 @@ import { ReadBatchList } from './ReadBatchList';
 import { MsaControls } from './MsaControls';
 import { AssemblyResult } from './AssemblyResult';
 import { UNCHECKED_NOTE } from '../readAlignment';
+import { EMPTY_RECORD_BOX, useRecordBox } from './useRecordBox';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -61,13 +55,6 @@ function sampleFeaturesOf(r: SequenceRecord): { readonly features?: SampleFeatur
   return r.features === undefined
     ? {}
     : { features: { features: r.features, circular: r.circular } };
-}
-
-/** The reader's warnings about a loaded file, as sentences after the note. */
-function warned(read: LoadedFile, fileName?: string): string {
-  return (read.warnings ?? [])
-    .map((w) => ` ${fileName === undefined ? '' : `${fileName}: `}${w}.`)
-    .join('');
 }
 
 const KIND_LABEL: Readonly<Record<ReadDifference['kind'], string>> = {
@@ -328,11 +315,8 @@ export function AlignPanel({ doc }: Props) {
     documents: openTabs,
     documentId,
   } = useEditorState();
-  const [other, setOther] = useState('');
+  const [box, setBox] = useState(EMPTY_RECORD_BOX);
   const [picked, setPicked] = useState(0);
-  const [dragging, setDragging] = useState(false);
-  const [fileNote, setFileNote] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState<LoadedFile | null>(null);
   const [trim, setTrim] = useState(true);
   const fileInput = useRef<HTMLInputElement>(null);
   /**
@@ -388,21 +372,27 @@ export function AlignPanel({ doc }: Props) {
   );
 
   const hasSelection = selection !== null && !isEmptyRange(selection);
-  // A file's records, qualities and all, while the box still shows its text;
-  // once the text is edited it is read afresh and the qualities are gone.
-  const parsed = useMemo<Records>(
-    () =>
-      loaded !== null && loaded.text === other
-        ? { ok: true, records: loaded.records }
-        : readRecords(other, doc.alphabet),
-    [loaded, other, doc.alphabet],
-  );
-  const records = parsed.ok ? parsed.records : [];
+  /**
+   * The input changed, so what was aligned no longer belongs to it (#117):
+   * stop a running alignment and drop the result or the batch. Several
+   * files or tabs are a batch: align them all unless one is picked.
+   */
+  const clearResults = (): void => {
+    running.current?.abort();
+    setResult(null);
+    setBatch(null);
+    setBatchPicked(null);
+    setAssembly(null);
+  };
+  const rb = useRecordBox(box, setBox, doc.alphabet, (batch) => {
+    clearResults();
+    setPicked(batch ? -1 : 0);
+    setError(null);
+  });
+  const { parsed, records, several } = rb;
   /** "All records" chosen in the picker: the one button then aligns each of them. */
   const all = picked === -1 && records.length > 1 && records.length <= BATCH_LIMIT;
   const record = records[all ? 0 : Math.min(Math.max(picked, 0), records.length - 1)];
-  /** Records from more than one file, each named with its file in the batch. */
-  const several = new Set(records.map((r) => r.file)).size > 1;
 
   // The other open tabs of the same alphabet, to align against (#105).
   const otherTabs = useMemo(
@@ -425,104 +415,14 @@ export function AlignPanel({ doc }: Props) {
     const [only] = docs;
     if (only === undefined) return;
     if (records.length === 1) {
-      setText(writeFastaRecords([only]));
-      setLoaded({ text: writeFastaRecords([only]), records });
-      setFileNote(
+      rb.loadRecords(
+        { text: writeFastaRecords([only]), records },
         `From the open tab ${only.name}${only.read === null ? '' : ', with base qualities'}.`,
       );
       return;
     }
     // The box is emptied, as for several files; their records are the samples.
-    setText('');
-    setLoaded({ text: '', records });
-    setPicked(-1);
-    setFileNote(`${records.length} open tabs.`);
-  };
-
-  /**
-   * The input changed, so what was aligned no longer belongs to it (#117):
-   * stop a running alignment and drop the result or the batch.
-   */
-  const clearResults = (): void => {
-    running.current?.abort();
-    setResult(null);
-    setBatch(null);
-    setBatchPicked(null);
-    setAssembly(null);
-  };
-  const setText = (text: string): void => {
-    clearResults();
-    setOther(text);
-    setPicked(0);
-    setError(null);
-    setBatch(null);
-  };
-
-  const load = (files: readonly File[]): void => {
-    if (files.length === 0) return;
-    // Every file is read; one that cannot be is named and the rest are kept.
-    Promise.all(
-      files.map((file) =>
-        readFile(file).then(
-          (read) => ({ file, read }),
-          (e: unknown) => ({
-            file,
-            failure: `Could not read "${file.name}": ${e instanceof Error ? e.message : String(e)}`,
-          }),
-        ),
-      ),
-    )
-      .then((results) => {
-        const good = results.flatMap((r) => ('read' in r ? [{ file: r.file, read: r.read }] : []));
-        const failures = results.flatMap((r) => ('failure' in r ? [r.failure] : []));
-        if (good.length === 0) {
-          setError(failures.join(' '));
-          return;
-        }
-        const [only] = good;
-        if (good.length === 1 && only !== undefined) {
-          setText(only.read.text);
-          setLoaded(only.read);
-          const withQualities = only.read.records.some((r) => r.read !== undefined);
-          setFileNote(
-            `From ${only.file.name}${withQualities ? ', with base qualities' : ''}.` +
-              warned(only.read),
-          );
-        } else {
-          // Several files: their records are the samples, file order then record
-          // order. The box is emptied; its text would be unwieldy (AB1 especially).
-          const records = good.flatMap((g) =>
-            g.read.records.map((r) => ({ ...r, file: g.file.name })),
-          );
-          setText('');
-          setLoaded({ text: '', records });
-          // Several files are a batch: align them all unless one is picked.
-          setPicked(-1);
-          setFileNote(
-            `${good.length} files, ${records.length} ${records.length === 1 ? 'record' : 'records'}.` +
-              good.map((g) => warned(g.read, g.file.name)).join(''),
-          );
-        }
-        if (failures.length > 0) setError(failures.join(' '));
-      })
-      .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : String(e));
-      });
-  };
-
-  // A dragged file is claimed here with preventDefault, so the app-wide
-  // handler (which would open it in a new tab) leaves it alone; dragged
-  // text drops into the box as usual.
-  const onDragOver = (e: DragEvent): void => {
-    if (!e.dataTransfer.types.includes('Files')) return;
-    e.preventDefault();
-    if (!dragging) setDragging(true);
-  };
-  const onDrop = (e: DragEvent): void => {
-    if (!e.dataTransfer.types.includes('Files')) return;
-    e.preventDefault();
-    setDragging(false);
-    load(Array.from(e.dataTransfer.files));
+    rb.loadRecords({ text: '', records }, `${records.length} open tabs.`);
   };
 
   // The document is itself a read (an opened AB1 or FASTQ, still as it came
@@ -823,22 +723,16 @@ export function AlignPanel({ doc }: Props) {
           : `Align sequences to ${useSelection && hasSelection ? 'the selection' : doc.name}. Paste one below, or choose or drop files. Pick several at once to align them all together; a new pick replaces the ones loaded. Whichever orientation of each aligns better is shown.`}
       </p>
       <textarea
-        className={`panel__textarea${dragging ? ' panel__textarea--over' : ''}`}
+        className={`panel__textarea${rb.dragging ? ' panel__textarea--over' : ''}`}
         rows={5}
         spellCheck={false}
         placeholder={`Paste ${unitName(doc.alphabet, true)}, FASTA or GenBank, or drop one or more files here`}
         aria-label="Sequence to align"
-        value={other}
+        value={rb.text}
         onChange={(e) => {
-          setText(e.target.value);
-          setFileNote(null);
-          setLoaded(null);
+          rb.setText(e.target.value);
         }}
-        onDragOver={onDragOver}
-        onDragLeave={() => {
-          setDragging(false);
-        }}
-        onDrop={onDrop}
+        {...rb.dragHandlers}
       />
       <div className="panel__controls">
         <button
@@ -856,7 +750,7 @@ export function AlignPanel({ doc }: Props) {
           multiple
           hidden
           onChange={(e) => {
-            load(Array.from(e.target.files ?? []));
+            rb.load(Array.from(e.target.files ?? []));
             e.target.value = '';
           }}
         />
@@ -891,10 +785,10 @@ export function AlignPanel({ doc }: Props) {
           </label>
         )}
       </div>
-      {(fileNote !== null || records.length > 1) && (
+      {(rb.note !== null || records.length > 1) && (
         <p className="panel__note">
           {[
-            fileNote,
+            rb.note,
             records.length > BATCH_LIMIT
               ? `${records.length.toLocaleString()} records; the one chosen is aligned. Aligning all takes at most ${BATCH_LIMIT} at a time (a plate): split the file to align them all.`
               : records.length > 1
@@ -909,7 +803,7 @@ export function AlignPanel({ doc }: Props) {
         <button
           type="button"
           className="button button--small"
-          disabled={busy || (!all && other.trim() === '' && record === undefined)}
+          disabled={busy || (!all && rb.text.trim() === '' && record === undefined)}
           data-tip={
             all
               ? 'Align every record against this document, one after another, and list them'
@@ -956,6 +850,7 @@ export function AlignPanel({ doc }: Props) {
           </button>
         </div>
       )}
+      {rb.problem !== null && <p className="panel__error">{rb.problem}</p>}
       {error !== null && <p className="panel__error">{error}</p>}
       {records.length > 1 && <MsaControls doc={doc} records={records} />}
       <fieldset className="panel__group">

@@ -163,6 +163,14 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
           >
             Verify clones…
           </Item>
+          <Item
+            tip="Align three to fifty sequences with each other, from a box of records, without opening them"
+            onClick={run(() => {
+              editorStore.requestMsa();
+            })}
+          >
+            Multiple alignment…
+          </Item>
           {example !== undefined && (
             <Item
               onClick={run(() => {

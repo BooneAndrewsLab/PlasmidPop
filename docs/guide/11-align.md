@@ -332,7 +332,9 @@ Pairwise alignment lines two sequences up. To compare several variants of a
 construct, or several homologous coding sequences or proteins, align them
 all at once: paste a multi-record FASTA or GenBank text into the box, or drop
 or choose several files (or tick several open tabs), and the **Multiple alignment** group appears under
-the Align button.
+the Align button. With no document to start from, **File ▸ Multiple
+alignment…** opens the same thing in a window of its own (see
+[Without a document](#without-a-document)).
 
 1. Put three to fifty sequences in the box (one record each). **Include this
    document** adds the open document as one more, so a box of two records is
@@ -408,6 +410,25 @@ sequences that differ by a few substitutions and indels. The sequences are
 taken as they are: it does not reverse-complement one that is on the other
 strand, and a circular plasmid is aligned from the first base it is written
 from. All of it runs in your browser.
+
+### Without a document
+
+Several records can be aligned with each other without opening any of them:
+**File ▸ Multiple alignment…**, or on the start page, **align several
+sequences together**. A window opens with its own box: paste FASTA or
+GenBank records, or drop or choose files (several at once are fine). The
+records go under the box as a row of chips, counted (**3 sequences**), each
+with its name, its length and, when several files were dropped, its file;
+the **×** on a chip leaves that record out. Files that were dropped empty
+the box, which then says so, and a paste replaces them. **Letters are**
+reads nucleotide or protein from the records' letters, as the Align tab's
+group does, and takes the other choice when they are mixed or too short to
+tell. **Align N together** opens the same results window as above, with the
+consensus, the shading, the exports and the selection and copy. Closing
+the results brings the box back with its records, so a change of records
+or of alphabet is a click away; **Close** or `Esc` puts the window away
+and forgets them. The open document, if there is one, takes no part: for
+that, use the Align tab.
 
 ## Scoring and limits
 

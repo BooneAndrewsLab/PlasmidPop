@@ -1567,6 +1567,19 @@ describe('EditorStore preview', () => {
   });
 });
 
+describe('EditorStore multiple alignment window (#369)', () => {
+  it('is asked for and dismissed with no document open', () => {
+    const store = new EditorStore();
+    expect(store.getState().msaDialog).toBe(false);
+    store.requestMsa();
+    expect(store.getState().msaDialog).toBe(true);
+    store.requestMsa();
+    expect(store.getState().msaDialog).toBe(true);
+    store.dismissMsa();
+    expect(store.getState().msaDialog).toBe(false);
+  });
+});
+
 describe('EditorStore primer workspace (item 107)', () => {
   it('opens on Primers with the sidebar out, and shuts with another tab or the sidebar put away', () => {
     const store = new EditorStore();

@@ -107,3 +107,38 @@ export async function readFile(file: File): Promise<LoadedFile> {
   }));
   return { text, records, warnings: parsed.warnings.map((w) => w.message) };
 }
+
+/** Several picked or dropped files read at once: the ones read, and why each of the others was not. */
+export interface LoadedFiles {
+  readonly good: readonly { readonly file: File; readonly read: LoadedFile }[];
+  readonly failures: readonly string[];
+}
+
+/**
+ * Reads every file; one that cannot be read is named in `failures` and the
+ * rest are kept, so one bad file on a plate does not lose the plate.
+ */
+export async function readFiles(files: readonly File[]): Promise<LoadedFiles> {
+  const results = await Promise.all(
+    files.map((file) =>
+      readFile(file).then(
+        (read) => ({ file, read }),
+        (e: unknown) => ({
+          file,
+          failure: `Could not read "${file.name}": ${e instanceof Error ? e.message : String(e)}`,
+        }),
+      ),
+    ),
+  );
+  return {
+    good: results.flatMap((r) => ('read' in r ? [{ file: r.file, read: r.read }] : [])),
+    failures: results.flatMap((r) => ('failure' in r ? [r.failure] : [])),
+  };
+}
+
+/** The reader's warnings about a loaded file, as sentences after a note. */
+export function warned(read: LoadedFile, fileName?: string): string {
+  return (read.warnings ?? [])
+    .map((w) => ` ${fileName === undefined ? '' : `${fileName}: `}${w}.`)
+    .join('');
+}

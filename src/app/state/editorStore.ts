@@ -880,6 +880,8 @@ export interface SharedState {
   readonly ncbiDialog: boolean;
   /** Whether the Verify clones dialog is up (#218, item 80). */
   readonly verifyDialog: boolean;
+  /** Whether the multiple alignment window, which needs no document, is up (#369, item 129). */
+  readonly msaDialog: boolean;
   /** Where the draggable boundaries sit; see `LayoutSizes`. */
   readonly layout: LayoutSizes;
 }
@@ -1118,6 +1120,7 @@ const SHARED_INITIAL: SharedState = {
   newDialog: false,
   ncbiDialog: false,
   verifyDialog: false,
+  msaDialog: false,
   layout: DEFAULT_LAYOUT,
   enzymeSetInfo: {
     label: BUNDLED_ENZYME_SET.label,
@@ -2478,6 +2481,15 @@ export class EditorStore {
 
   dismissVerifyClones(): void {
     if (this.shared.verifyDialog) this.setShared({ verifyDialog: false });
+  }
+
+  /** Opens the multiple alignment window, which takes its records from a box, not a document (#369). */
+  requestMsa(): void {
+    if (!this.shared.msaDialog) this.setShared({ msaDialog: true });
+  }
+
+  dismissMsa(): void {
+    if (this.shared.msaDialog) this.setShared({ msaDialog: false });
   }
 
   /** Opens Compare with… on its first question: what to compare with. */

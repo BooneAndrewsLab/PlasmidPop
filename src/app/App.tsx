@@ -10,6 +10,7 @@ import { EmptyState } from './components/EmptyState';
 import { FindBar } from './components/FindBar';
 import { LinearSequenceView } from './components/LinearSequenceView';
 import { KeyBindingsDialog } from './components/KeyBindings';
+import { MsaWindow } from './components/MsaWindow';
 import { NcbiDialog } from './components/NcbiDialog';
 import { VerifyClonesDialog } from './components/VerifyClonesDialog';
 import { NewDocumentDialog } from './components/NewDocumentDialog';
@@ -355,6 +356,7 @@ export function App() {
       <CompareDialog />
       <NewDocumentDialog />
       <NcbiDialog />
+      <MsaWindow />
       <KeyBindingsDialog />
       <TooltipLayer />
     </div>

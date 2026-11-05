@@ -765,6 +765,7 @@ describe('toolbar', () => {
       'Open file…',
       'Open from NCBI…',
       'Verify clones…',
+      'Multiple alignment…',
       'Open example',
       'Download GenBank…Ctrl+S', // the two ways a document leaves the app:
       'Download SnapGene…', // (the same file, written for the other program too, #204)

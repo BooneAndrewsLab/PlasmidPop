@@ -6062,6 +6062,106 @@ button {
   margin: 6px 0 0;
 }
 
+/* Multiple alignment with no document (#369, item 129) */
+
+.msa-window {
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+.msa-window .panel__textarea {
+  margin-bottom: 8px;
+}
+
+.msa-window .panel__controls {
+  margin-bottom: 8px;
+}
+
+.msa-window .panel__textarea--filled {
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  border-style: dashed;
+}
+
+.msa-window__records {
+  margin: 0 0 10px;
+}
+
+.msa-window__count {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.msa-window__count .panel__heading-note {
+  margin-left: 8px;
+  font-weight: 400;
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+
+/* The loaded records as chips, the Advanced copy panel's look with a way out on each. */
+.msa-window__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 9rem;
+  overflow-y: auto;
+}
+
+.msa-window__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  height: 26px;
+  max-width: 100%;
+  padding: 0 4px 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.msa-window__chip-name {
+  color: var(--ink);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 14rem;
+}
+
+.msa-window__chip-meta {
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.msa-window__chip-remove {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-3);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.msa-window__chip-remove:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+
+.msa-window__chip-remove:focus-visible {
+  outline: 2px solid var(--accent);
+}
+
 /* Verify clones (#218) */
 
 .verify {

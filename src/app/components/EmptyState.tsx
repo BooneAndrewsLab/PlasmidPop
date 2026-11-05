@@ -204,7 +204,17 @@ export function EmptyState() {
               >
                 open a record from NCBI
               </button>{' '}
-              by its accession number.
+              by its accession number. Or{' '}
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  editorStore.requestMsa();
+                }}
+              >
+                align several sequences together
+              </button>{' '}
+              without opening any of them.
             </p>
             <p className="empty__hint">
               Everything stays in your browser: documents are kept here as you work and never
@@ -269,7 +279,17 @@ export function EmptyState() {
               >
                 open a record from NCBI
               </button>{' '}
-              by its accession number.
+              by its accession number. Or{' '}
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  editorStore.requestMsa();
+                }}
+              >
+                align several sequences together
+              </button>{' '}
+              without opening any of them.
             </p>
             <p className="empty__hint">
               Everything stays in your browser: documents are kept here as you work and never

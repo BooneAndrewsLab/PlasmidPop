@@ -4,6 +4,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { type DocumentSummary, SCRATCH_LIFETIME_DAYS } from '@/storage';
 
 import { onOpenGuide } from '../help/openGuide';
+import { editorStore } from '../state/editorStore';
 import { persistence } from '../state/persistence';
 import { EmptyState } from './EmptyState';
 
@@ -43,6 +44,19 @@ describe('EmptyState start buttons', () => {
     fireEvent.click(screen.getByRole('button', { name: 'User guide' }));
     off();
     expect(opened).toEqual(['01-getting-started']);
+  });
+
+  it('offers the multiple alignment window, which needs no document (#369)', async () => {
+    const listed = Promise.resolve([]);
+    vi.spyOn(persistence, 'listStored').mockReturnValue(listed);
+    vi.spyOn(persistence, 'pruneScratch').mockResolvedValue(0);
+    render(<EmptyState />);
+    await act(() => listed);
+    fireEvent.click(screen.getByRole('button', { name: 'align several sequences together' }));
+    expect(editorStore.getState().msaDialog).toBe(true);
+    act(() => {
+      editorStore.dismissMsa();
+    });
   });
 });
 

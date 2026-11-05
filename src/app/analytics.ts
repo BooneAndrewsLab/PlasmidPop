@@ -153,7 +153,11 @@ export const EVENTS = {
    * its references and comments left out; `open` is a link opened.
    */
   share: ['copy', 'open', 'without-references'],
-  /** Which sidebar tab the user opened. */
+  /**
+   * Which sidebar tab the user opened; also `primer-workspace` and
+   * `align-workspace` (items 107 and 129), and `msa-window`, the multiple
+   * alignment window that needs no document (#369).
+   */
   panel: ['open'],
   /** The view switcher, the toolbar toggles and the Format menu options. */
   view: ['mode', 'toggle', 'format'],

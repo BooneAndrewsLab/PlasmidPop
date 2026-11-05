@@ -468,6 +468,13 @@ back on, and an issue with the file attached helps.
 consensuses against the open constructs they should be, and says which match;
 see [Verifying a plate of clones](11-align.md#verifying-a-plate-of-clones).
 
+## Aligning several sequences together
+
+**File ▸ Multiple alignment…** aligns three to fifty records with each other
+without opening any of them, from a box they are pasted or dropped into; the
+start page offers the same under **align several sequences together**. See
+[Without a document](11-align.md#without-a-document).
+
 ## Comparing with another document
 
 **File ▸ Compare with…** (`Alt+K`) shows how the open document differs from
