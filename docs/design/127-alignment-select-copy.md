@@ -214,3 +214,24 @@ inside the selection's block, which exports never reach, so it is not in a
 saved picture. The large view's overview canvas gets no matching range: it is
 a separate drawing, and a second faint mark beside the marker's would crowd
 it.
+
+## Zoom (#263)
+
+The large view's column width is `baseCharWidth * zoom` and its letter size
+`min(16, 13 * zoom)`; the parent window holds the zoom (the toolbar group
+shows it) and the view anchors the scroll with `zoomedScroll` so the column
+under the pointer (Ctrl+wheel) or the middle of the view (buttons, keys) stays
+put. Everything that reads a column from a pixel (`columnUnder`, the selection
+bar, `visibleColumns`, the overview's rectangle) already went through
+`charWidth`, so selection, the marker and the range guide needed no change.
+Two things did: the focus effect re-ran whenever `charWidth` changed (it
+would have jumped back to the last Go to), so it now runs once per focus; and
+a picture export takes the drawing at the base size, not the zoomed one.
+
+Below a 7 px font (`lettersLegible`, a column under 4.2 px) bases and residue
+letters are not drawn; a row's bases become bars, merged along runs of one base
+so a 20 kb read costs a few rectangles, a dash a thin line. Differences, the
+poor-quality block, the trace and the tracks are drawn as before. The bp ruler
+and the protein ruler take their step from `rulerStep` (smallest of 10, 20, 50,
+100 … that clears the widest label by 10 px). The change tags' collision rule
+already thinned them out. Pure arithmetic is in `alignmentZoom.ts`.

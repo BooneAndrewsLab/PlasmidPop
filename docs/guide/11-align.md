@@ -754,6 +754,17 @@ once the ORFs panel has found them. With no document behind the reference
   **Copy** puts the whole table on the clipboard as tab-separated text with a
   header line, ready for a lab notebook or a spreadsheet. With no document
   behind the reference there is no feature or effect.
+- **Zoom.** The **Zoom** group in the toolbar has **−**, the percentage
+  (click it to go back to 100%), **+** and **Fit**, which zooms out until
+  every column is in view. With the alignment focused, `+` and `-` zoom and
+  `0` goes back to 100%; **Ctrl+wheel**, or a pinch on a trackpad, zooms about
+  the pointer, and the column under it stays put. The position ruler (and the
+  protein ruler) widen their step to 20, 50, 100 … as the columns narrow, so
+  their numbers never touch. Once the letters would be smaller than 7 px the
+  bases give way to coloured bars (a dash a thin line); differences, the
+  trace, the feature track and the amino-acid tints stay. Selecting, the
+  selection bar, copying and the overview's rectangle work at every zoom. A
+  figure saved from Export figure is drawn at 100%, whatever the zoom.
 - Click a name, or click into the alignment and press `↑` or `↓`, to pick
   a sample. Its score and identity show under the toolbar, with
   **Select in document** beside them to select the region it aligned to.
