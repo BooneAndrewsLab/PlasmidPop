@@ -116,20 +116,21 @@ npm install
 npm run dev
 ```
 
-| Command                 | What it does                                    |
-| ----------------------- | ----------------------------------------------- |
-| `npm run dev`           | Vite dev server with HMR                        |
-| `npm run build`         | Typecheck, then production build to `dist/`     |
-| `npm run test`          | Run the Vitest suite once                       |
-| `npm run test:watch`    | Vitest in watch mode                            |
-| `npm run test:coverage` | Tests with V8 coverage in `coverage/`, floors   |
-| `npm run typecheck`     | `tsc -b --noEmit` across all project configs    |
-| `npm run lint`          | ESLint (type-aware, strict)                     |
-| `npm run format`        | Prettier, write mode                            |
-| `npm run check`         | Typecheck + lint + format check + covered tests |
-| `npm run mutate`        | Stryker, before a release; fails under 90%      |
-| `npm run bench`         | Build, then the open-and-scan benchmark         |
-| `npm run oracle:*`      | Regenerate or run the independent-oracle checks |
+| Command                  | What it does                                    |
+| ------------------------ | ----------------------------------------------- |
+| `npm run dev`            | Vite dev server with HMR                        |
+| `npm run build`          | Typecheck, then production build to `dist/`     |
+| `npm run test`           | Run the Vitest suite once                       |
+| `npm run test:watch`     | Vitest in watch mode                            |
+| `npm run test:coverage`  | Tests with V8 coverage in `coverage/`, floors   |
+| `npm run typecheck`      | `tsc -b --noEmit` across all project configs    |
+| `npm run lint`           | ESLint (type-aware, strict)                     |
+| `npm run format`         | Prettier, write mode                            |
+| `npm run check`          | Typecheck + lint + format check + covered tests |
+| `npm run mutate:changed` | Stryker on what changed, before a release (50)  |
+| `npm run mutate`         | Stryker on the whole list; fails under 90%      |
+| `npm run bench`          | Build, then the open-and-scan benchmark         |
+| `npm run oracle:*`       | Regenerate or run the independent-oracle checks |
 
 ## Building and deploying
 

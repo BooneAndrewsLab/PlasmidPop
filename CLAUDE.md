@@ -74,8 +74,9 @@ server round-trip.
 Few, large, themed releases, one GitHub milestone each; current is 1.21.0
 (2026-11-02). Each GitHub Release gets a Zenodo DOI; the concept DOI in
 `CITATION.cff` stands for all of them. Before a release run
-`npm run mutate` (Stryker, incremental, never in CI, score floor 90; item 50)
-and triage its survivors. Bump `package.json` and `CITATION.cff` together. **The site
+`npm run mutate:changed` (Stryker on the changed lines, incremental, on an idle
+machine, never in CI, score floor 90) and triage its survivors and timeouts;
+item 50 has the steps. Bump `package.json` and `CITATION.cff` together. **The site
 deploys only when a GitHub Release is published** (`deploy.yml`); a push to
 main reaches no user until a release carries it. The guide's header shows
 `__APP_VERSION__`, defined from `package.json` in `vite.config.ts`.

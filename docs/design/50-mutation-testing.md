@@ -12,13 +12,17 @@ tests reach but do not check.
 
 ## When it runs
 
-Only as the step before a release: `npm run mutate`, after `npm run check`
-passes and before the version is bumped. It is not part of `npm test`,
-`npm run check` or CI, because it takes too long for any of them. The run
-is incremental: `reports/mutation/stryker-incremental.json` (gitignored,
-kept on the machine that ran it) records every verdict, and a later run
-retests only the mutants whose code or covering tests changed. The first
-full run took 60 minutes; the incremental run after the new tests took 25.
+Only as the step before a release, after `npm run check` passes and before
+the version is bumped: **`npm run mutate:changed`** (see "A cheap dry run
+(#355)" below for what it does, its flags and the steps that follow). It is
+not part of `npm test`, `npm run check` or CI, because it takes too long for
+any of them. `npm run mutate` is the whole list, for a first baseline or a
+change to the mutators or config that touches every file; it is not the
+pre-release default. The run is incremental:
+`reports/mutation/stryker-incremental.json` (gitignored, kept on the machine
+that ran it) records every verdict, and a later run retests only the mutants
+whose code or covering tests changed. The first full run took 60 minutes; the
+incremental run after the new tests took 25.
 
 Survivors in the HTML report (`reports/mutation/mutation.html`) are triaged
 as a missing test, an equivalent mutant (no observable change), dead code
@@ -760,3 +764,171 @@ The rerun mutated only the 50 line ranges that had survivors (481 mutants in 6 f
 Those 20 are an artefact of the first run, not a regression. Their kills had come almost entirely from two slow tests (the Against picker test in `ligationCheck.test.tsx`, 30 s, and the primer pair oracle, 60 s) that timed out under instrumentation; once their mutation-mode limit was raised (a0fae00, cdc0673) the mutants that only slow the code down survive, as they should. Applied by hand, they sort as: equivalent, guard covered by another guard or table default (`structure.ts` 217 x5, since `a + b === 3` already excludes the value 4; 235 x6, since `MISMATCH[...] ?? -1` gives -1 for an unknown base; 308, unreachable; 552, extra unknown bases add no energy; 497 `pi >= 0` to true, a negative index reads INF) and performance-only (177 x2, the memo; primerDesign 293 and 296, the `failsBasics` prefilter). Three were real: the loop bound at 497 and 499 written `>` for `>=` passed because the bulge tests only compared two energies; `structure.test.ts` now pins -12.34 and -21.65 for loop limits 0, 1 and 2, on either strand. One stays undecided: the first row of `foldDimer` started one row too far down (`let pi = i + 1`) survives every test; a fold that reads a not-yet-computed row gives INF, so the path may simply never win.
 
 Lesson for the script of #355: a short test timeout in mutation mode turns every slower mutant into a kill, so the limits of the slow tests must be raised before a run, not after.
+
+## A cheap dry run (#355, #320, 2026-11-05)
+
+The 1.21.0 pre-release `npm run mutate` took 53 minutes in its dry run alone
+(1.20: 21.5), after ten suites had been skipped and several timeouts scaled.
+The dry run runs every test once on one worker with the instrumentation on, so
+it grows with both the number of tests and the number of instrumented files
+(#320: 252 s with 4 files instrumented, 1,558 s with 81).
+
+**`mutate:changed` already avoided most of that**, since #320: it instruments
+only the files changed since the tag, and a two-file run's dry run took
+8 min 41 s (5 min 21 s on the second machine). What it still did was run all
+~6,300 tests. Now it is the pre-release default and does three more things:
+
+- **Only the changed lines are mutated.** `git diff -U0 <tag> HEAD` gives each
+  file's new-side line ranges, passed as `--mutate src/a.ts:10-20,...`. That
+  is what the survivor policy triages anyway, and the dry run instruments
+  fewer sites. The incremental file keeps the verdicts of every other mutant
+  (Stryker's differ carries old mutants outside the mutated scope into the
+  new report), so the score still covers the whole list. A file of the list
+  with no result in the incremental report (new to the list, or a thin report)
+  has no baseline, so it is mutated whole; with no incremental file at all the
+  script says it is a full run. `--whole-files` mutates the whole of each
+  changed file instead. Not done: a test change in unchanged lines does not
+  retest the mutants there; use `--whole-files` or a full run when the tests
+  of a file were reworked rather than added to.
+- **Only the tests that can reach those files run in the dry run.**
+  `relatedTests` (`scripts/mutationTools.mjs`) follows imports (static,
+  dynamic, `vi.mock`, worker URLs, the `@/` alias, barrels, the setup file's
+  imports) backwards from the changed files; the script hands the list to
+  `vite.config.ts` in `PLASMIDPOP_MUTATION_TESTS` and everything else is
+  excluded from both projects. It names a superset of the tests that cover a
+  mutant, so no kill is lost; checked against Vitest's own `--changed` on the
+  89 files changed since 1.21.0, it found all 334 tests Vitest did and 7 more.
+  How much it saves depends on the file: `exportLinear.ts` is reached by 24 of
+  the 448 test files and `staticGuide.ts` by 2, but a core module such as
+  `digest.ts` or `structure.ts` by about 320, because the app tests import the
+  `@/core` barrel. That is a limit of the method, not a fault: Vitest's own
+  `related` selection gives the same sets. `--all-tests` runs everything.
+- **The ceiling for the dry run** is 45 minutes (`--dryRunTimeoutMinutes`),
+  since `stryker.config.json`'s 20 is for a run of a few files and a ceiling
+  costs nothing when it is not reached.
+
+Also in the script: workers are the config's `concurrency` (8) but never more
+than the cores minus two (it was cores minus two even above the config, which
+on the 16-thread workstation meant 14); a warning when the one-minute load is
+above a quarter of the threads, since contention turns slow mutants into
+timeouts (6 in 333 on an idle machine, 82 in 402 beside other work) and each
+timeout costs its full budget, so run it on an idle machine; the incremental
+file is copied to `reports/mutation/logs/incremental-before-<time>.json` and
+the output to `mutate-<time>.log` before and during every run;
+`--incremental-from <file>` copies a report (the workstation's) over the local
+one first, for a run on the second machine; and the run ends with the listing
+of `npm run mutate:triage`.
+
+**`npm run mutate:triage [-- <ref>]`** reads `reports/mutation/mutation.json`
+and the lines changed since the ref and prints (a) the survivors and
+uncovered mutants on changed lines per file, with the skipped suites (below)
+that import the file or a module that does, and (b) the timeouts on changed
+lines, per file and mutator, with loops split off. A timeout counts as
+detected and so hides gaps; the standing step "At 1.21: mutants that timed
+out" above is what to do with the second list. The split is a heuristic: a
+loop is an `UpdateOperator` mutant or any mutant on a line that opens a
+`for`, `while` or `do` (a one-line `for` with its body on the same line is
+miscounted as a loop). The unit tests are in
+`src/test/scripts/mutationTools.test.ts`.
+
+### The pre-release steps
+
+1. `npm run check` passes and the working tree is the commit to release.
+2. Add the modules the release added to `mutate` in `stryker.config.json` (a
+   new file is mutated whole, as it has no baseline), and put the slow tests
+   of changed files in `PLASMIDPOP_MUTATION` mode with a limit that does not
+   turn slowness into a kill (#355's lesson: a short test timeout in mutation
+   mode makes every slower mutant a kill).
+3. On an idle machine: `npm run mutate:changed`. On the second machine, copy
+   the workstation's `stryker-incremental.json` first
+   (`--incremental-from`). Do not start it alongside other work.
+4. Triage per "Keeping a pass affordable": survivors on changed lines (the
+   listing above), then the timeouts that are not loops. Write the missing
+   tests, list the equivalents in this note by kind.
+5. One confirming rerun of `mutate:changed` (it reuses what it can), then the
+   version bump.
+
+### What a mutation run skips, and what that means for survivors
+
+A mutation run never runs the suites in `MUTATION_SKIP`
+(`scripts/mutationTools.mjs`, used by `vite.config.ts`). They run in `npm
+test` and CI as always, but a mutant that only they would kill is reported as
+a survivor.
+
+| Skipped suite                                                                                                                                           | Why                                                                                                                | Mutants it can kill (from its imports)                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/test/oracle/sangerAssembly[0-9]*.test.ts` (4 files, through `sangerAssemblyHarness.ts`)                                                            | 20 s plain, 5-11 min instrumented, per file; `perTest` coverage would rerun them for every mutant of the assembler | `assembly/assemble.ts`, `consensus.ts`, `overlapBound.ts`, and the alignment they call: the Sanger read assembler against simulated reads |
+| `src/test/oracle/alignment.test.ts`                                                                                                                     | the Biopython alignment oracle, ~5,000 s instrumented                                                              | `alignment/*` (through `@/core/alignment`), `app/alignmentStack.ts`, `alignmentTrack.ts`, `readAlignment.ts`, `readBatch.ts`              |
+| `src/test/oracle/msa.test.ts`                                                                                                                           | the MSA oracle                                                                                                     | `alignment/msa.ts` and what it uses                                                                                                       |
+| `src/core/alignment/banded.test.ts`                                                                                                                     | 9 s plain, ~2,400 s instrumented                                                                                   | `alignment/banded.ts`                                                                                                                     |
+| `src/core/alignment/strands.test.ts`                                                                                                                    | slow instrumented                                                                                                  | `alignment/strands.ts`, `pairwise.ts`                                                                                                     |
+| `src/app/readAlignment.test.ts`, `readAlignment.mapping.test.ts`, `readBatch.timing.test.ts`, `alignmentOrigin.test.ts`, `alignmentOriginIndel.test.ts` | the read-alignment and origin batches                                                                              | `app/readAlignment.ts`, `readBatch.ts`, `alignmentStack.ts`, `alignmentTrack.ts` and the alignment they call                              |
+| `src/core/cloning/mutagenesis.property.test.ts`, `overlapPrimers.property.test.ts`                                                                      | property tests, many runs each                                                                                     | `cloning/mutagenesis.ts`, `overlapPrimers.ts`, and `digest.ts`, `ligate.ts`, `pcr.ts` through them                                        |
+
+So in `alignment/*` and `assembly/*` the survivors of a pass include mutants
+that these suites would kill, and the unit tests that do run are the only
+check inside a mutation run. Triage them like any survivor, but before calling
+a survivor in those directories a gap or an equivalent, apply it by hand and
+run the skipped suites that name the file, plainly (`npx vitest run
+src/test/oracle/sangerAssembly1.test.ts ...`, the `PLASMIDPOP_MUTATION` limits
+are not needed without instrumentation): if one fails, the mutant is killed
+and only the mutation run could not see it; if none does, it is a real
+survivor. This is the "run the heavy suites uninstrumented" option of #355,
+done by hand and only for the survivors, which is a handful of runs of 20 s
+rather than 50 minutes of instrumented ones. Only the mutants of those few
+files need it; `mutate:triage` prints the skipped suites that import a
+survivor's file, and for `assembly/*` they are the four `sangerAssembly`
+files (the harness reaches the assembler three imports away, too far for the
+listing).
+
+### What is not decided: to measure with a real run
+
+None of these was run (no mutation run was started in this work); each needs
+one pass on an idle machine, and the first four of #320's ideas depend on
+them.
+
+1. **The dry run with the allowlist and ranges.** Run `npm run mutate:changed`
+   on the changes of a real release and note from the log: files and ranges,
+   test files in the dry run, the dry run's wall time and its net time, mutants
+   run and reused. Expectation, not a result: well under the 8 min 41 s of the
+   two-file run for a few leaf files, close to it for core ones. If a core
+   change still costs 20+ minutes, the next step is selecting tests by the
+   previous report's coverage (`coveredBy` of the old mutants in the changed
+   files, plus the tests new or changed since the tag), which is tighter than
+   imports but unsafe for new code, so it needs a fallback.
+2. **The last mutant that stalls (#320 idea 2).** The reading so far (note
+   "Cutting the pass down") is that the wait is a loop mutant's timeout, whose
+   budget is the net time of its covering tests times `timeoutFactor` (1.5)
+   plus `timeoutMS` (30 s), tens of minutes when hundreds of tests cover it;
+   the report does not hold the budgets. To confirm: when one mutant is left,
+   look at the runner child's CPU (`ps -eo pid,ppid,pcpu,etime,args | grep
+child-proxy`): busy is a loop waiting out its timeout, idle is a hang. Then
+   interrupt once (Ctrl-C): Stryker writes a partial incremental report, and
+   the mutant still without a verdict in
+   `reports/mutation/stryker-incremental.json` (compare with the copy taken
+   before the run) is the stalled one; its file, line, mutator and replacement
+   are what to record here and in #320. Not verified that an unfinished
+   mutant shows as such in the partial report; if not, run again with
+   `--logLevel trace` and read the mutant ids the runner starts, last
+   one first. Whether it is excluded (in `stryker.config.json`, never by
+   editing production code) or `timeoutFactor` is lowered depends on that: the
+   1.19.0 report points to hundreds of loop timeouts, not one mutant, so
+   `--skip-loops` or a lower `timeoutFactor` is the likelier fix.
+3. **`timeoutFactor`.** Not changed, on purpose: a lower factor turns
+   slowness under load into kills, and the issue's evidence (6 timeouts idle,
+   82 loaded) is about load, not about the factor. To measure: the JSON report
+   has no test durations, so run once with `--logLevel debug` and read the
+   per-mutant budget and the time of each mutant that finished, if Stryker
+   prints them (not checked); the question is how close the slowest mutants
+   that were killed by an assertion came to their budget. Repeat once on a
+   loaded machine (a test suite beside it) to count the false timeouts a given
+   factor makes. Keep 1.5 unless the gain is more than a few minutes and the
+   loaded run shows no false timeouts.
+4. **`--skip-loops` as the default.** It cuts the timeouts that wait out
+   their budget (43 % of all 1.19.0 timeouts) at the price of 90 kills on loop
+   counters. Decide after item 2 shows how much of the wait is loops.
+5. **A bigger machine (#320 idea 6).** Done on the second machine, which has
+   Node installed since 2026-10-29; the open point is that its incremental file
+   was thin (661 mutants). `--incremental-from` fixes that; check that the
+   first run there reuses nearly everything (the log's "mutant result(s) are
+   reused" line).
