@@ -4,7 +4,9 @@ import {
   type AlignmentMode,
   type SeqDocument,
   type SequencingRead,
+  type PairNames,
   assembleReads,
+  findReadPairs,
   isEmptyRange,
 } from '@/core';
 import { writeFastaRecords } from '@/io';
@@ -85,6 +87,12 @@ export interface AlignRun {
   readonly batchPickedRow: BatchRow | undefined;
   readonly setPicked: (index: number) => void;
   readonly setTrim: (trim: boolean) => void;
+  /** The read pairs the records' names give (#347): who is whose mate, and names that could not be told. */
+  readonly readPairs: PairNames;
+  /** The insert size as typed, and as a number of bases (null when blank or not a size). */
+  readonly insertSize: string;
+  readonly insertBases: number | null;
+  readonly setInsertSize: (text: string) => void;
   readonly setPickedMode: (mode: AlignmentMode) => void;
   readonly setUseSelection: (on: boolean) => void;
   readonly setDocAsRead: (on: boolean) => void;
@@ -99,6 +107,14 @@ export interface AlignRun {
   readonly batchLarge: (index: number | undefined) => LargeView | null;
   /** The one result in the large view. */
   readonly resultLarge: () => LargeView | null;
+}
+
+/** The insert size typed, in bases, or null when it is blank or is no size (under 50 or over a million). */
+export function parseInsertSize(text: string): number | null {
+  const t = text.trim().replace(/,/g, '');
+  if (!/^\d+(\.\d+)?$/.test(t)) return null;
+  const n = Math.round(Number(t));
+  return n >= 50 && n <= 1_000_000 ? n : null;
 }
 
 /** How many hooks are on a document's session, so a run is stopped only when the last one goes. */
@@ -165,10 +181,13 @@ export function useAlignRun(doc: SeqDocument): AlignRun {
     },
   );
   const { parsed, records, several } = box;
-  const { picked, trim, pickedMode, useSelection, docAsRead, result, batch } = session;
+  const { picked, trim, pickedMode, useSelection, docAsRead, result, batch, insertSize } = session;
   const all = picked === -1 && records.length > 1 && records.length <= BATCH_LIMIT;
   const record = records[all ? 0 : Math.min(Math.max(picked, 0), records.length - 1)];
   const hasSelection = selection !== null && !isEmptyRange(selection);
+  // Mates by name (#347); the insert size is bases between the outer ends of two mates.
+  const readPairs = useMemo(() => findReadPairs(records.map((r) => r.name)), [records]);
+  const insertBases = parseInsertSize(insertSize);
 
   const otherTabs = useMemo(
     () =>
@@ -331,6 +350,8 @@ export function useAlignRun(doc: SeqDocument): AlignRun {
           analysisClient.alignEitherStrand(a, b, options, { signal: controller.signal }),
         trimCutoff: trim ? readTrimCutoff : null,
         confidentFrom: readConfidentQuality,
+        pairs: readPairs.pairs,
+        insertSize: insertBases,
         onProgress: setProgress,
         signal: controller.signal,
       },
@@ -509,6 +530,12 @@ export function useAlignRun(doc: SeqDocument): AlignRun {
     },
     setTrim: (on) => {
       update({ trim: on });
+    },
+    readPairs,
+    insertSize,
+    insertBases,
+    setInsertSize: (text) => {
+      update({ insertSize: text });
     },
     setPickedMode: (next) => {
       update({ pickedMode: next });

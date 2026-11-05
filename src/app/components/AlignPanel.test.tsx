@@ -846,6 +846,59 @@ describe('AlignPanel', () => {
     });
   }, 60_000);
 
+  it('finds read pairs by name, takes an insert size and reports the pairs in the result (#347)', async () => {
+    let x = 2463534242;
+    let genome = '';
+    for (let i = 0; i < 160; i++) {
+      x ^= x << 13;
+      x >>>= 0;
+      x ^= x >>> 17;
+      x ^= x << 5;
+      x >>>= 0;
+      genome += 'ACGT'.charAt((x >>> 8) % 4);
+    }
+    // One pair: a forward read from 0-80 and a reverse one ending at 130, a template of 130.
+    const fasta = `>c1_F\n${genome.slice(0, 80)}\n>c1_R\n${reverseComplement(genome.slice(50, 130))}\n>other\n${genome.slice(100)}\n`;
+    renderAlign(doc);
+    fireEvent.drop(box(), fileDrop(new File([fasta], 'reads.fa')));
+    await screen.findByText(/From reads\.fa\./);
+    page('Assemble');
+    expect(screen.getByText(/1 read pair found by name \(c1\)/)).toBeVisible();
+    const insert = screen.getByRole('textbox', { name: 'Insert size in bases' });
+    fireEvent.change(insert, { target: { value: 'abc' } });
+    expect(screen.getByText(/The insert size is not used/)).toBeVisible();
+    fireEvent.change(insert, { target: { value: '130' } });
+    expect(screen.queryByText(/The insert size is not used/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Assemble reads' }));
+    await screen.findByText(
+      /1 read pair: 1 face each other in a contig at the insert size\./,
+      undefined,
+      {
+        timeout: 30_000,
+      },
+    );
+    expect(screen.queryByRole('list', { name: 'Contig warnings' })).not.toBeInTheDocument();
+    act(() => {
+      editorStore.closeDocument();
+    });
+  }, 60_000);
+
+  it('shows no pair controls when no names pair, and names ambiguous ones (#347)', async () => {
+    renderAlign(doc);
+    fireEvent.drop(
+      box(),
+      fileDrop(
+        new File(['>alpha\nACGTACGTAC\n>beta\nGGCCAATTGG\n>g_F\nACGT\n>g_fwd\nTTGG\n'], 'r.fa'),
+      ),
+    );
+    await screen.findByText(/From r\.fa\./);
+    page('Assemble');
+    expect(screen.queryByRole('textbox', { name: 'Insert size in bases' })).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Not paired, as the names do not say which two are mates: g_F, g_fwd/),
+    ).toBeVisible();
+  });
+
   it('offers to align the assembled reads to the open document when a repeat warning shows (#347)', async () => {
     let x = 99991;
     const bases = (n: number): string => {

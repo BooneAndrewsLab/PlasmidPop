@@ -9,6 +9,7 @@ import { reverseComplement } from '../sequence/alphabet';
 
 import { type ColumnVote, callColumn } from './consensus';
 import { OverlapScreen } from './overlapBound';
+import { type PairReport, type ReadPair, checkPairs, judgePair } from './pairing';
 
 /**
  * Assembling Sanger reads into contigs with no reference (#208): greedy
@@ -49,6 +50,14 @@ export interface AssemblyOptions {
   readonly minIdentity?: number;
   /** Quality from which a dissenting base is flagged. Default Q20. */
   readonly confidentFrom?: number;
+  /**
+   * Reads that are the two ends of one template (#347, item 130; see
+   * `findReadPairs`). They place a read that fits a repeat at more than one
+   * place by where its mate is, and the contigs are checked against them.
+   */
+  readonly pairs?: readonly ReadPair[];
+  /** The insert size, in bases between the outer ends of two mates, or null when it is not known. */
+  readonly insertSize?: number | null;
   /** Told the fraction of the work done. */
   readonly onProgress?: (fraction: number) => void;
   readonly signal?: AbortSignal;
@@ -109,12 +118,17 @@ export interface ContigWarning {
    * `possible-repeat-collapse`: the stretch is covered far deeper than the
    * rest, as when reads from two copies of a repeat are laid on one, so the
    * contig may lack what lies between the copies.
+   * `pair-distance`: two mates (`read` is one) are nearer or farther apart
+   * than the insert size allows (item 130); the stretch is what lies between
+   * them. `pair-orientation`: two mates are on one strand, or face away from
+   * each other, so that they are not the two ends of one template.
    */
-  readonly kind: 'ambiguous-join' | 'possible-repeat-collapse';
+  readonly kind:
+    'ambiguous-join' | 'possible-repeat-collapse' | 'pair-distance' | 'pair-orientation';
   /** The stretch of the consensus concerned, 0-based half-open. */
   readonly start: number;
   readonly end: number;
-  /** Index of the read, for `ambiguous-join`. */
+  /** Index of the read, for `ambiguous-join` and the pair warnings. */
   readonly read?: number;
   readonly message: string;
 }
@@ -144,6 +158,8 @@ export interface Assembly {
   }[];
   /** Whether any read had qualities; if none did the call qualities are only a model of Q20 reads. */
   readonly hasQualities: boolean;
+  /** How the pairs given fell in the contigs; absent when none were given. */
+  readonly pairing?: PairReport;
 }
 
 interface Prepared {
@@ -251,6 +267,35 @@ class Layout {
       quals.push(c.quality);
     });
     return { text, column, quals };
+  }
+
+  /**
+   * Where a placed read lies along the consensus `cons` (0-based half-open,
+   * in consensus bases), or null when it is not in this layout.
+   */
+  extentOf(
+    index: number,
+    cons: { column: number[] },
+  ): { start: number; end: number; strand: 'forward' | 'reverse' } | null {
+    const row = this.rows.find((r) => r.read.index === index);
+    if (row === undefined) return null;
+    const covered = row.cells.map((ch) => ch !== ' ');
+    const first = covered.indexOf(true);
+    const last = covered.lastIndexOf(true);
+    if (first < 0) return null;
+    // The consensus bases before a column: the columns the consensus kept
+    // that come first (a binary search, `cons.column` rises).
+    const before = (col: number): number => {
+      let lo = 0;
+      let hi = cons.column.length;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if ((cons.column[mid] ?? 0) < col) lo = mid + 1;
+        else hi = mid;
+      }
+      return lo;
+    };
+    return { start: before(first), end: before(last + 1), strand: row.strand };
   }
 
   /** Inserts `count` columns before `at`; a row has a gap there if it covers both sides. */
@@ -628,10 +673,10 @@ async function findPlacements(
 }
 
 /**
- * Whether the read, placed at `chosen`, fits the consensus as well somewhere
- * else (#347): the whole read aligned to what is left of the consensus either
- * side of the chosen place, valid there too. A read inside a sequence the
- * consensus has twice does.
+ * Where the read, placed at `chosen`, fits the consensus as well somewhere
+ * else (#347), or null: the whole read aligned to what is left of the
+ * consensus either side of the chosen place, valid there too. A read inside
+ * a sequence the consensus has twice has one.
  */
 async function fitsElsewhere(
   cons: Consensus,
@@ -640,7 +685,7 @@ async function fitsElsewhere(
   align: AssemblyAlign,
   minOverlap: number,
   minIdentity: number,
-): Promise<boolean> {
+): Promise<Candidate | null> {
   const { startA, endA } = chosen.alignment;
   for (const span of [
     [0, startA],
@@ -656,9 +701,15 @@ async function fitsElsewhere(
       minOverlap,
       minIdentity,
     );
-    if (other?.valid === true) return true;
+    if (other?.valid === true) return other;
   }
-  return false;
+  return null;
+}
+
+/** Where a candidate puts the read along the consensus, ends it hangs over the consensus with included. */
+function extentOfCandidate(c: Candidate): { start: number; end: number } {
+  const { alignment: a, o } = c;
+  return { start: a.startA - a.startB, end: a.endA + (o.bases.length - a.endB) };
 }
 
 interface Hit {
@@ -759,13 +810,92 @@ export async function assembleReads(
     !first.hasQualities ||
     trimCutoff >= TAIL_CEILING
   ) {
-    return first;
+    return withPairs(first, options);
   }
   const looser = Math.min(TAIL_CEILING, trimCutoff * TAIL_FACTOR);
   // Not reported as progress: the first pass already reached the end of the bar.
   const { onProgress: _quiet, ...quiet } = options;
   const second = await assembleWith(reads, quiet, looser);
-  return second.contigs.length < first.contigs.length ? second : first;
+  return withPairs(second.contigs.length < first.contigs.length ? second : first, options);
+}
+
+/**
+ * The assembly with its pairs checked against the contigs it came to: a pair
+ * that does not fit adds a warning to its contig, and the report says where
+ * every pair fell and which contigs they link (item 130).
+ */
+function withPairs(assembly: Assembly, options: AssemblyOptions): Assembly {
+  const { pairs, insertSize = null } = options;
+  if (pairs === undefined || pairs.length === 0) return assembly;
+  const pairing = checkPairs(assembly.contigs, pairs, insertSize);
+  const extra = new Map<number, ContigWarning[]>();
+  for (const check of pairing.checks) {
+    if (check.contig === null) continue;
+    const contig = assembly.contigs[check.contig];
+    if (contig === undefined) continue;
+    const warning = pairWarning(contig, check, insertSize);
+    if (warning === null) continue;
+    extra.set(check.contig, [...(extra.get(check.contig) ?? []), warning]);
+  }
+  const contigs = assembly.contigs.map((c, i) => {
+    const more = extra.get(i);
+    return more === undefined ? c : { ...c, warnings: [...c.warnings, ...more] };
+  });
+  return { ...assembly, contigs, pairing };
+}
+
+function pairWarning(
+  contig: Contig,
+  check: PairReport['checks'][number],
+  insert: number | null,
+): ContigWarning | null {
+  const { state, pair, template } = check;
+  if (
+    state !== 'too-short' &&
+    state !== 'too-long' &&
+    state !== 'same-strand' &&
+    // Facing away is a circle's ends only when the insert is known not to say so.
+    !(state === 'facing-away' && insert !== null)
+  ) {
+    return null;
+  }
+  const a = contig.reads.find((r) => r.index === pair.first);
+  const b = contig.reads.find((r) => r.index === pair.second);
+  if (a === undefined || b === undefined) return null;
+  const who = `${a.name} and ${b.name}`;
+  const start = Math.min(a.start, b.start);
+  const end = Math.max(a.end, b.end);
+  const base = { start, end, read: pair.first };
+  const about =
+    insert === null ? '' : ` (the insert is about ${insert.toLocaleString('en-US')} bp)`;
+  if (state === 'too-short') {
+    const t = template ?? 0;
+    return {
+      ...base,
+      kind: 'pair-distance',
+      message: `${who} are mates, but only ${t.toLocaleString('en-US')} bp apart here${about}: about ${Math.max(0, (insert ?? 0) - t).toLocaleString('en-US')} bp between them may be missing from this contig, as when two copies of a repeat are laid on one.`,
+    };
+  }
+  if (state === 'too-long') {
+    const t = template ?? 0;
+    return {
+      ...base,
+      kind: 'pair-distance',
+      message: `${who} are mates, but ${t.toLocaleString('en-US')} bp apart here${about}: the layout may hold a stretch twice, or they are not from one template.`,
+    };
+  }
+  if (state === 'same-strand') {
+    return {
+      ...base,
+      kind: 'pair-orientation',
+      message: `${who} are mates, but both read the same strand here, so they are not the two ends of one template as laid out (an inverted repeat, or a join that turned a read over wrongly).`,
+    };
+  }
+  return {
+    ...base,
+    kind: 'pair-orientation',
+    message: `${who} are mates, but face away from each other here${about}, so they are not the two ends of one template as laid out.`,
+  };
 }
 
 async function assembleWith(
@@ -778,9 +908,15 @@ async function assembleWith(
     minOverlap = 25,
     minIdentity = 0.9,
     confidentFrom = CONFIDENT_QUALITY,
+    insertSize = null,
     onProgress,
     signal,
   } = options;
+  const mates = new Map<number, number>();
+  for (const p of options.pairs ?? []) {
+    mates.set(p.first, p.second);
+    mates.set(p.second, p.first);
+  }
   const { prepared, skipped } = prepare(reads, trimCutoff);
   const hasQualities = reads.some((r) => r.qualities !== undefined && r.qualities !== null);
   // Longest first: the seed, and the order reads are tried in.
@@ -828,10 +964,30 @@ async function assembleWith(
       let ambiguous = true;
       for (const p of picks) {
         const elsewhere = await fitsElsewhere(cons, p.read, p.pick, align, minOverlap, minIdentity);
-        if (!elsewhere) {
+        if (elsewhere === null) {
           chosen = p;
           ambiguous = false;
           break;
+        }
+        // Two places fit; where its mate is may settle which (item 130).
+        const mate = mates.get(p.read.index);
+        const at = mate === undefined ? null : layout.extentOf(mate, cons);
+        if (at !== null) {
+          const length = cons.text.length;
+          const fits = (c: Candidate): boolean => {
+            const e = extentOfCandidate(c);
+            return (
+              judgePair({ ...e, strand: c.o.strand }, at, length, insertSize).verdict ===
+              'consistent'
+            );
+          };
+          const first = fits(p.pick);
+          const second = fits(elsewhere);
+          if (first !== second) {
+            chosen = first ? p : { ...p, pick: elsewhere };
+            ambiguous = false;
+            break;
+          }
         }
       }
       if (chosen === undefined) break;

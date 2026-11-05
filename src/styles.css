@@ -2443,6 +2443,11 @@ button {
   font-size: 12.5px;
 }
 
+/* The insert size of the Assemble page's read pairs (#347). */
+.panel__input--number {
+  width: 7em;
+}
+
 /* Changing the key bindings (#79). */
 .keybindings__list {
   margin: 4px 0 12px;

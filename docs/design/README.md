@@ -323,3 +323,5 @@ the Bench, item 49). The rest stand.
 128. [The multiple alignment's alphabet](128-msa-alphabet.md)
 
 129. [The Align workspace, and the multiple alignment window with no document](129-align-workspace.md)
+
+130. [Read pairs in assembly](130-assembly-read-pairs.md)

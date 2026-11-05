@@ -66,10 +66,16 @@ assemble`, `align / assemble-save` and `align / assemble-to-reference`
   takes it as the optional `reference` prop (name, busy, `onAlign`); the
   panel passes `runAll`.
 
+**Read pairs (#347, item 130).** `AssemblyOptions.pairs` (found by name,
+`findReadPairs`) and `insertSize` place a read that fits two places by where
+its mate is, judge every pair against its contig (warnings `pair-distance`,
+`pair-orientation`) and report the contigs the pairs link
+(`Assembly.pairing`). Nothing changes without pairs.
+
 **Left out, on purpose:** the traces under the layout (the layout shows reads
 as bars, not bases, and no trace view of a read that is not the document);
 bases only a minority of reads have, in columns the consensus drops, are not
-shown in the stack; no repeat resolution (a possible repeat is warned of, item 123) or paired ends; no quality-weighted
+shown in the stack; no repeat resolution beyond what read pairs give (item 130; a possible repeat is warned of, item 123); no quality-weighted
 choice among several contigs a read fits. Each is an issue if users ask.
 
 **Tails kept when it helps (#349, item 123).** Reads are trimmed as above, and

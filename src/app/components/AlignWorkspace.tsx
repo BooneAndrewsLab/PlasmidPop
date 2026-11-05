@@ -350,6 +350,47 @@ export function AlignWorkspace({ doc, layout = 'split' }: Props) {
               </>
             )}
           </div>
+          {align.readPairs.pairs.length > 0 && (
+            <div className="panel__controls">
+              <label
+                className="panel__field panel__field--row"
+                data-tip="Bases from the outer end of one mate to the outer end of the other, as the template is. Blank: the pairs are checked only for facing each other"
+              >
+                <span>Insert size</span>
+                <input
+                  className="panel__input panel__input--number"
+                  aria-label="Insert size in bases"
+                  inputMode="numeric"
+                  placeholder="unknown"
+                  value={align.insertSize}
+                  onChange={(e) => {
+                    align.setInsertSize(e.target.value);
+                  }}
+                />
+                <span>bp</span>
+              </label>
+            </div>
+          )}
+          {align.readPairs.pairs.length > 0 && (
+            <p className="panel__note">
+              {`${align.readPairs.pairs.length} read ${align.readPairs.pairs.length === 1 ? 'pair' : 'pairs'} found by name (${align.readPairs.pairs
+                .slice(0, 3)
+                .map((p) => p.stem)
+                .join(
+                  ', ',
+                )}${align.readPairs.pairs.length > 3 ? ', …' : ''}). Mates face each other about an insert size apart, which places a read that fits a repeat in more than one place and shows a contig that lost the stretch between two mates.`}
+              {align.insertSize.trim() !== '' && align.insertBases === null
+                ? ' The insert size is not used: enter a number of bases, 50 or more.'
+                : ''}
+            </p>
+          )}
+          {align.readPairs.ambiguous.length > 0 && (
+            <p className="panel__note">
+              {`Not paired, as the names do not say which two are mates: ${align.readPairs.ambiguous
+                .map((a) => a.names.join(', '))
+                .join('; ')}.`}
+            </p>
+          )}
           {!canAssemble && records.length < 2 && (
             <p className="panel__note">
               Nothing to assemble yet:{' '}

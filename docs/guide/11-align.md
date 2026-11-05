@@ -225,7 +225,7 @@ shaded stretch in the layout. There are two:
   The warning gives the depths it saw (for example "covered 3.5× deep where the
   contig is 1× deep"), so you can judge how strong the evidence is.
 
-Under the warnings, **Align these reads to** _document name_ aligns the same
+Under the warnings (repeat or read-pair), **Align these reads to** _document name_ aligns the same
 reads to the document open in the editor, as **Align all** does, and lists
 them below. A reference helps for reads that reach out of the repeat into
 unique sequence: each is placed by its flank. A read that lies wholly inside
@@ -233,8 +233,58 @@ one copy is the same in both, so it is drawn on one of them (usually the
 first) and its copy stays unknown. When there is no document with sequence, the warning says to open the
 plasmid or reference the reads came from and align them to it.
 
-A repeat longer than the reads cannot be resolved by assembly: separate
-reads, or reads long enough to reach unique sequence on both sides, are
+**Read pairs.** The two reads of one template, a forward and a reverse
+primer on one clone, lie on opposite strands, facing each other, about one
+insert size apart. That is what a repeat cannot hide, so when the names of
+the records say which are mates the Assemble page uses it. Two records are
+mates when their names are the same but for a trailing token, one forward
+(`F`, `fwd`, `for`, `forward`, `FP`, `1`) and one reverse (`R`, `rev`,
+`reverse`, `RP`, `2`), after `_`, `.`, `-`, `/` or a space, or joined to a
+digit as in `M13F` and `M13R`; a file extension and case do not matter, so
+`clone7_F.ab1` and `clone7_R.ab1` are a pair, as are the `/1` and `/2` of a
+FASTQ and an Illumina header's `1:N:0` and `2:N:0`. Names that share a stem
+but are not exactly one forward and one reverse (two `F`s, a `_F` beside a
+`_2`, a series `clone_1`, `clone_2`, `clone_3`) are not guessed at: they are
+listed as not paired. The page says how many pairs it found.
+
+- **Insert size.** The field appears when pairs are found. It is the bases
+  from the outer end of one mate to the outer end of the other, as the
+  template is, measured between the ends kept after trimming, so the mates
+  may be a little nearer than the true template. A pair fits when its mates
+  are within a tenth of the insert size (at least 100 bases) of it. Left
+  blank, nothing is checked for distance; the result lists the distances the
+  mates are at so you can enter one.
+- **A read that fits two places.** When a read lies in a sequence the contig
+  has twice and its mate is already in the contig, the copy where the two face
+  each other, the right distance apart, is the one it goes to, and there is
+  no warning. With no insert size only the facing is used, which decides it only
+  when the other copy would put the mates on one strand or facing away. A read
+  whose mate is in another contig, or not yet placed, still waits as before.
+- **Pairs that do not fit.** After assembly each pair in one contig is
+  judged, and a contig that holds a pair that does not fit says so as a
+  read-pair warning (in the **Contig** picker, in amber above the layout and
+  as a shaded stretch between the mates): mates nearer than the insert size
+  (a stretch between them may be missing, as when two copies of a repeat are
+  laid on one), farther (a stretch may be doubled, or they are not from one
+  template), on the same strand, or facing away from each other. Mates that
+  face away at exactly the distance the insert size gives round the ends of
+  the contig are a template that spans the origin of a circular molecule, and
+  are not warned.
+- **Contigs the pairs link.** A pair with one mate in each of two contigs says
+  they follow one another, with one turned over if the mates read the same
+  way. The result lists each arrangement with how many pairs say it and, with
+  an insert size, the bases between the contigs (or how far they overlap,
+  which is what a repeat both contigs contain looks like). Two arrangements
+  that put each contig after the other are a repeat's signature. The contigs
+  are not joined for you.
+
+Pairs do not change which reads join, only where a read goes that fits two
+places, and they are not used by Align all. An insert size that is wrong
+makes every pair of a right layout look wrong, so a warning on every pair is
+a reason to check the number first.
+
+A repeat longer than the reads cannot be resolved by the reads alone: reads
+long enough to reach unique sequence on both sides, or mates that do, are
 what do. A contig without a warning can still be wrong, but no repeat was
 seen.
 

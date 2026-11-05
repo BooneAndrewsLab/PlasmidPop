@@ -61,13 +61,20 @@ export function batchLine(batch: AlignBatch, against: string): string {
 /** "6 reads in 2 contigs, 1 left out; a repeat may have fooled 1 contig". */
 export function assemblyLine(assembly: Assembly): string {
   const total = assembly.contigs.reduce((n, c) => n + c.reads.length, 0);
-  const warned = assembly.contigs.filter((c) => c.warnings.length > 0).length;
+  const warned = assembly.contigs.filter((c) =>
+    c.warnings.some((w) => w.kind !== 'pair-distance' && w.kind !== 'pair-orientation'),
+  ).length;
+  const unfit = assembly.contigs.filter((c) =>
+    c.warnings.some((w) => w.kind === 'pair-distance' || w.kind === 'pair-orientation'),
+  ).length;
   const contigs = assembly.contigs.length;
   if (contigs === 0) return 'Nothing to assemble.';
   const leftOut = assembly.skipped.length > 0 ? `, ${assembly.skipped.length} left out` : '';
   const fooled =
     warned > 0 ? `; a repeat may have fooled ${warned === 1 ? 'it' : `${warned} contigs`}` : '';
-  return `${total} ${total === 1 ? 'read' : 'reads'} in ${contigs} ${contigs === 1 ? 'contig' : 'contigs'}${leftOut}${fooled}`;
+  const pairs =
+    unfit > 0 ? `; read pairs do not fit ${unfit === 1 ? 'one contig' : `${unfit} contigs`}` : '';
+  return `${total} ${total === 1 ? 'read' : 'reads'} in ${contigs} ${contigs === 1 ? 'contig' : 'contigs'}${leftOut}${fooled}${pairs}`;
 }
 
 /** An error rate as a percentage for a label: 5%, 0.1%. */

@@ -75,7 +75,7 @@ describe('alignSummary (item 129)', () => {
     const contig = (reads: number, warnings = 0) =>
       ({
         reads: Array.from({ length: reads }),
-        warnings: Array.from({ length: warnings }),
+        warnings: Array.from({ length: warnings }, () => ({ kind: 'ambiguous-join' })),
       }) as unknown as Assembly['contigs'][number];
     expect(assemblyLine({ contigs: [], skipped: [] } as unknown as Assembly)).toBe(
       'Nothing to assemble.',
@@ -89,5 +89,28 @@ describe('alignSummary (item 129)', () => {
     expect(
       assemblyLine({ contigs: [contig(4, 1), contig(2, 2)], skipped: [] } as unknown as Assembly),
     ).toBe('6 reads in 2 contigs; a repeat may have fooled 2 contigs');
+  });
+
+  it('says when read pairs do not fit a contig, apart from a repeat warning (#347)', () => {
+    const contig = (reads: number, kinds: string[] = []) =>
+      ({
+        reads: Array.from({ length: reads }),
+        warnings: kinds.map((kind) => ({ kind })),
+      }) as unknown as Assembly['contigs'][number];
+    expect(
+      assemblyLine({ contigs: [contig(4, ['pair-distance'])], skipped: [] } as unknown as Assembly),
+    ).toBe('4 reads in 1 contig; read pairs do not fit one contig');
+    expect(
+      assemblyLine({
+        contigs: [contig(4, ['pair-orientation']), contig(2, ['pair-distance'])],
+        skipped: [],
+      } as unknown as Assembly),
+    ).toBe('6 reads in 2 contigs; read pairs do not fit 2 contigs');
+    expect(
+      assemblyLine({
+        contigs: [contig(4, ['pair-distance', 'ambiguous-join'])],
+        skipped: [],
+      } as unknown as Assembly),
+    ).toBe('4 reads in 1 contig; a repeat may have fooled it; read pairs do not fit one contig');
   });
 });

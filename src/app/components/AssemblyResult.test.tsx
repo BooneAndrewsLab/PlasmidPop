@@ -2,7 +2,13 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { type Assembly, alignEitherStrand, assembleReads } from '@/core';
+import {
+  type Assembly,
+  alignEitherStrand,
+  assembleReads,
+  findReadPairs,
+  reverseComplement,
+} from '@/core';
 
 import { AssemblyResult } from './AssemblyResult';
 
@@ -161,5 +167,105 @@ describe('AssemblyResult warnings (#347)', () => {
       ).not.toBeInTheDocument();
       expect(screen.queryByText(/open the plasmid or reference/)).not.toBeInTheDocument();
     });
+  });
+});
+
+describe('AssemblyResult read pairs (#347, item 130)', () => {
+  const pairedReads = (spans: readonly (readonly [string, number, number, boolean])[]) =>
+    spans.map(([name, a, b, reverse]) => {
+      const piece = repeated.slice(a, b);
+      return {
+        name,
+        sequence: reverse ? reverseComplement(piece) : piece,
+        qualities: new Array<number>(b - a).fill(40),
+      };
+    });
+  const run = async (
+    reads: ReturnType<typeof pairedReads>,
+    insertSize: number | null,
+  ): Promise<{ assembly: Assembly; names: string[] }> => ({
+    assembly: await assembleReads(reads, {
+      align: (a, b, o) => Promise.resolve(alignEitherStrand(a, b, o)),
+      pairs: findReadPairs(reads.map((r) => r.name)).pairs,
+      insertSize,
+    }),
+    names: reads.map((r) => r.name),
+  });
+
+  it('says the read pairs do not fit a contig that lost the stretch between mates, and marks it in the picker', async () => {
+    const reads = pairedReads([
+      ['p_F', 100, 480, false],
+      ['p_R', 800, 1160, true],
+    ]);
+    const { assembly, names } = await run(reads, 1060);
+    render(<AssemblyResult assembly={assembly} readNames={names} />);
+    expect(screen.getByText(/Read pairs do not fit this layout/)).toBeVisible();
+    expect(screen.queryByText(/A repeat may have fooled/)).not.toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Contig warnings' })).toHaveTextContent(
+      /p_F and p_R are mates, but only .* bp apart/,
+    );
+    expect(screen.getByText(/the shaded stretches are warnings/)).toBeVisible();
+    expect(screen.getByText(/1 read pair: 1 does not fit\./)).toBeVisible();
+  });
+
+  it('names the picker option of a contig with a pair warning', async () => {
+    const reads = pairedReads([
+      ['p_F', 100, 480, false],
+      ['p_R', 800, 1160, true],
+    ]);
+    const { assembly, names } = await run(reads, 1060);
+    const other = await assemble(randomBases(500, 5), [
+      [0, 300],
+      [200, 500],
+    ]);
+    render(
+      <AssemblyResult
+        assembly={{ ...assembly, contigs: [...assembly.contigs, ...other.assembly.contigs] }}
+        readNames={names}
+      />,
+    );
+    expect(
+      screen.getByRole('option', { name: /Contig 1: .*read pair warning/ }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /repeat warning/ })).not.toBeInTheDocument();
+  });
+
+  it('with no insert size, says what distances the mates are at and warns of nothing', async () => {
+    const reads = pairedReads([
+      ['p_F', 100, 480, false],
+      ['p_R', 800, 1160, true],
+    ]);
+    const { assembly, names } = await run(reads, null);
+    render(<AssemblyResult assembly={assembly} readNames={names} />);
+    expect(screen.queryByRole('list', { name: 'Contig warnings' })).not.toBeInTheDocument();
+    expect(screen.getByText(/1 read pair: 1 face each other in a contig\./)).toBeVisible();
+    expect(screen.getByText(/are \d+ bp apart; enter the insert size/)).toBeVisible();
+  });
+
+  it('lists the contigs the pairs link, with the gap or the overlap', async () => {
+    const reads = pairedReads([
+      ['x1', 0, 350, false],
+      ['k_F', 300, 600, false],
+      ['y1', 900, 1200, false],
+      ['k_R', 900, 1200, true],
+    ]);
+    const { assembly, names } = await run(reads, 1000);
+    expect(assembly.contigs).toHaveLength(2);
+    render(<AssemblyResult assembly={assembly} readNames={names} />);
+    const list = screen.getByRole('list', { name: 'Contigs the pairs link' });
+    expect(list).toHaveTextContent(
+      /Contig 1.* then contig 2.*: 1 pair, (about [\d,]+ bp between them|overlapping by about [\d,]+ bp)/,
+    );
+    expect(screen.getByText(/1 read pair: 1 join two contigs\./)).toBeVisible();
+  });
+
+  it('shows nothing about pairs when none were given', async () => {
+    const clean = await assemble(randomBases(500, 5), [
+      [0, 300],
+      [200, 500],
+    ]);
+    render(<AssemblyResult assembly={clean.assembly} readNames={clean.names} />);
+    expect(screen.queryByText(/read pair/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Contigs the pairs link' })).not.toBeInTheDocument();
   });
 });

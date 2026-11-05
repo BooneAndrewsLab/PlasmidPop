@@ -52,6 +52,8 @@ export interface AlignSession {
   /** The record picked in the box, or -1 for all of them (#59). */
   readonly picked: number;
   readonly trim: boolean;
+  /** The insert size typed for the Assemble page's read pairs (#347), as typed; blank when not known. */
+  readonly insertSize: string;
   /**
    * The mode picked by hand, kept whatever the box then holds; null until
    * then, for the one `suggestAlignMode` gives (#86).
@@ -79,6 +81,7 @@ export const INITIAL_SESSION: AlignSession = {
   box: EMPTY_RECORD_BOX,
   picked: 0,
   trim: true,
+  insertSize: '',
   pickedMode: null,
   useSelection: false,
   docAsRead: true,
