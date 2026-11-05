@@ -91,7 +91,7 @@ const wholeFiles = take('--whole-files');
 const allTests = take('--all-tests');
 const incrementalFrom = takeValue('--incremental-from');
 /** Files of the `mutate` list to leave out of this pass (repeatable). */
-const without = [];
+const without = /** @type {string[]} */ ([]);
 for (let file = takeValue('--without'); file !== undefined; file = takeValue('--without')) {
   without.push(file);
 }
