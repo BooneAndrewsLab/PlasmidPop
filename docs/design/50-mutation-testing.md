@@ -1256,3 +1256,29 @@ Equivalent, by kind:
   mutant that makes the condition `false`, and "the fold cache is keyed on the
   sequence only for the default model" in `structure.test.ts` (1.21) already kills
   that one. No new test is possible for `true`: the result is the same.
+
+### Measured at 1.22 (#355, #320)
+
+All on the workstation, idle (load under 1), `npm run mutate:changed`.
+
+1. **A core-file change costs about 7.5 minutes.** A one-line change in
+   `core/sequence/alphabet.ts`, which nearly everything imports (scratch
+   commit, never merged), ran 384 of 451 test files in the dry run: 6 min
+   30 s for 6,438 tests (net 203 s, the rest instrumentation overhead), then
+   4 mutants in under a minute; 7 min 27 s in all, no timeouts. The
+   expectation of 20+ minutes for a core change did not hold, so selecting
+   tests by the previous report's coverage is not needed. What made the dry
+   run long before was `pairwise.ts` and `quality.ts` (use `--without`).
+2. **No stalled last mutant** in the 1.22 runs (9-10 min for the whole pass).
+   The 1.19.0 stall was a loop mutant's timeout over a whole-file run, not a
+   hang.
+3. **`--logLevel debug` cannot be used here**: the vitest runner's child
+   process fails with "Converting circular structure to JSON" (the resolved
+   config, key `test`). So per-mutant timeout budgets cannot be read from a
+   debug log, and `timeoutFactor` stays 1.5. The 1.22 runs gave no evidence
+   against it (0 false timeouts idle on the changed lines).
+4. **`--skip-loops` stays opt-in.** On changed lines the 1.22 pass had no
+   timeouts to save, so the default buys nothing there; it matters for
+   whole-file runs only.
+5. **Not measured:** the second machine reusing the workstation's report
+   (`--incremental-from`), and a loaded-machine count of false timeouts.
