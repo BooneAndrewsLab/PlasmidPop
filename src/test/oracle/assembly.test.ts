@@ -3,6 +3,7 @@ import { ENZYMES } from '@/core/analysis/restriction';
 import { designOverlapPrimers, type OverlapKit } from '@/core/cloning/overlapPrimers';
 import { gibson } from '@/core/cloning/gibson';
 import { goldenGate } from '@/core/cloning/goldenGate';
+import { yeastAssembly } from '@/core/cloning/yeastAssembly';
 import { pcr } from '@/core/cloning/pcr';
 
 import oracle from './assembly.json';
@@ -13,7 +14,9 @@ import oracle from './assembly.json';
  * parts before it is recorded; PlasmidPop must too: Gibson (circular and
  * linear, reversed and shuffled parts, an overlap across the origin), Golden
  * Gate (BsaI, BsmBI, BbsI, SapI, reversed inserts, the origin inside the
- * recognition site) and the In-Fusion / NEBuilder overlap primers.
+ * recognition site), the In-Fusion / NEBuilder / yeast overlap primers, and
+ * yeast assembly by recombination (#411), whose repeat warning is held to the
+ * number of distinct circles pydna can close from the same parts.
  */
 
 /** The same molecule up to where the circle starts and which strand is read. */
@@ -79,7 +82,7 @@ describe('overlap primers (In-Fusion, NEBuilder) against pydna', () => {
       const reverse = design.reverse;
 
       // The kit's tail is the vector's end, and what follows it is the insert.
-      const tail = c.kit === 'in-fusion' ? 15 : 20;
+      const tail = { 'in-fusion': 15, nebuilder: 20, yeast: 40 }[c.kit] ?? 0;
       const fseq = forward.sequence.toUpperCase();
       const rseq = reverse.sequence.toUpperCase();
       const V = c.vector.toUpperCase();
@@ -96,6 +99,33 @@ describe('overlap primers (In-Fusion, NEBuilder) against pydna', () => {
       expect(design.amplicon?.sequence.toString().toUpperCase()).toBe(c.amplicon);
       expect(design.product?.isCircular).toBe(true);
       expect(sameCircle(design.product?.sequence.toString() ?? '', c.product)).toBe(true);
+    });
+  }
+});
+
+describe('yeast assembly against pydna (#411)', () => {
+  for (const c of oracle.yeast.assemblies) {
+    it(c.name, () => {
+      const docs = c.parts.map((p, i) => SeqDocument.create({ name: `part${i + 1}`, sequence: p }));
+      const result = yeastAssembly(docs, { minOverlap: c.minOverlap });
+      expect(result.problem).toBeNull();
+      const product = result.assembly?.product;
+      expect(product?.isCircular).toBe(true);
+      expect(sameCircle(product?.sequence.toString() ?? '', c.target)).toBe(true);
+    });
+  }
+
+  // pydna closes more than one circle from parts in which a junction's
+  // homology occurs a second time, and exactly one from parts in which it
+  // does not; the warning has to say the same.
+  for (const c of oracle.yeast.repeats) {
+    it(c.name, () => {
+      const docs = c.parts.map((p, i) => SeqDocument.create({ name: `part${i + 1}`, sequence: p }));
+      const result = yeastAssembly(docs, { minOverlap: c.minOverlap });
+      expect(result.problem).toBeNull();
+      const kinds = result.assembly?.warnings.map((w) => w.kind) ?? [];
+      expect(kinds.includes('repeat')).toBe(c.circles > 1);
+      expect(c.circles > 1).toBe(c.repeated);
     });
   }
 });

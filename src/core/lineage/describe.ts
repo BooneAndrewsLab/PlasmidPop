@@ -5,6 +5,7 @@ const KITS: Readonly<Record<HomologyKit, string>> = {
   'in-fusion': 'In-Fusion assembly',
   nebuilder: 'NEBuilder HiFi assembly',
   'overlap-extension': 'Overlap-extension PCR',
+  yeast: 'Yeast assembly',
 };
 
 function list(names: readonly string[]): string {
@@ -58,7 +59,9 @@ export function describeLineageStep(step: LineageStep): string {
     case 'golden-gate':
       return `Golden Gate with ${list(step.enzymes)} of ${parts(step.parents.length)}${flips(step.flipped)}`;
     case 'gibson':
-      return `${KITS[step.kit]} of ${parts(step.parents.length)}${step.circular ? '' : ', linear'}`;
+      // The cell does the joining, not a kit's enzyme mix, so it reads as what
+      // happened rather than as a product name (#411).
+      return `${step.kit === 'yeast' ? 'Assembled in yeast by homologous recombination' : KITS[step.kit]} of ${parts(step.parents.length)}${step.circular ? '' : ', linear'}`;
     case 'gateway':
       return `Gateway ${step.reaction} reaction${step.byproduct ? ', its byproduct' : ''}`;
     case 'mutagenesis':

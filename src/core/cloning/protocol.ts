@@ -390,6 +390,18 @@ function collectSteps(
         });
         return;
       }
+      // Yeast joins by the cell's own recombination, not in a 50 °C tube, so
+      // the Gibson recipe does not apply either (#411).
+      if (step.op === 'gibson' && step.kit === 'yeast') {
+        out.push({
+          kind: 'other',
+          product: node.name,
+          productLength: node.length,
+          description: `${describeLineageStep(step)}: co-transform the linearised vector and the other parts into yeast and select the transformants; no assembly mix is needed`,
+          parts: step.parents.map((p) => p.name),
+        });
+        return;
+      }
       out.push(assemblyStep(node, step, options));
       return;
     case 'mutagenesis':

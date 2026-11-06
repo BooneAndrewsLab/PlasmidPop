@@ -371,7 +371,8 @@ function finish(draft: Draft): LineageNode | null {
           kit !== 'gibson' &&
           kit !== 'in-fusion' &&
           kit !== 'nebuilder' &&
-          kit !== 'overlap-extension'
+          kit !== 'overlap-extension' &&
+          kit !== 'yeast'
         ) {
           return null;
         }

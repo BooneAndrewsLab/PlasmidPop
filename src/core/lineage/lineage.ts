@@ -40,7 +40,7 @@ export interface LineagePrimer {
 }
 
 /** Which kit a homology assembly was run as; the same reaction, at different overlaps. */
-export type HomologyKit = 'gibson' | 'in-fusion' | 'nebuilder' | 'overlap-extension';
+export type HomologyKit = 'gibson' | 'in-fusion' | 'nebuilder' | 'overlap-extension' | 'yeast';
 
 /** The polymerase a PCR was run with, as `pcr.ts` names it. */
 export type LineagePolymerase = 'proofreading' | 'taq';
@@ -437,7 +437,8 @@ function isStep(v: unknown, depth: number): boolean {
         (v['kit'] === 'gibson' ||
           v['kit'] === 'in-fusion' ||
           v['kit'] === 'nebuilder' ||
-          v['kit'] === 'overlap-extension') &&
+          v['kit'] === 'overlap-extension' ||
+          v['kit'] === 'yeast') &&
         typeof v['circular'] === 'boolean' &&
         isCount(v['overlap']) &&
         isFlags(v['flipped'], n)

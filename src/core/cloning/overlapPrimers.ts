@@ -2,8 +2,9 @@ import { type SeqDocument } from '../document';
 import { meltingTemperature } from '../primers/thermo';
 import { type Range } from '../range';
 import { reverseComplement } from '../sequence';
-import { gibson } from './gibson';
+import { YEAST_OVERLAP, gibson } from './gibson';
 import { type PcrProduct, pcr } from './pcr';
+import { yeastAssembly } from './yeastAssembly';
 
 /**
  * Primers that carry a linearised vector's ends on their own 5′ tails, so
@@ -18,19 +19,23 @@ import { type PcrProduct, pcr } from './pcr';
  * design that failed, not a sentence.
  *
  * The kits differ in how much homology they ask for, and that is all they
- * differ in here: In-Fusion's 15 bases, NEBuilder's 20.
+ * differ in here: In-Fusion's 15 bases, NEBuilder's 20. Yeast assembly by
+ * recombination (#411) is the same design with 40 (`YEAST_OVERLAP`), run and
+ * checked as the cell would join it rather than as an enzyme mix.
  */
-export type OverlapKit = 'in-fusion' | 'nebuilder';
+export type OverlapKit = 'in-fusion' | 'nebuilder' | 'yeast';
 
 /** Homology each kit's protocol asks the primer tails to carry. */
 export const KIT_OVERLAP: Readonly<Record<OverlapKit, number>> = {
   'in-fusion': 15,
   nebuilder: 20,
+  yeast: YEAST_OVERLAP.default,
 };
 
 export const KIT_NAMES: Readonly<Record<OverlapKit, string>> = {
   'in-fusion': 'In-Fusion',
   nebuilder: 'NEBuilder HiFi',
+  yeast: 'Yeast assembly',
 };
 
 export interface OverlapPrimer {
@@ -171,11 +176,16 @@ export function designOverlapPrimers(
         `The primers amplify ${reaction.products.length} other ${reaction.products.length === 1 ? 'product' : 'products'} of ${template.name} but not the selection; they are not specific to it.`,
     };
   }
-  const assembly = gibson([vector, amplicon.document], {
-    minOverlap: overlap,
-    circular: true,
-    ...(options.name === undefined ? {} : { name: options.name }),
-  });
+  const name = options.name === undefined ? {} : { name: options.name };
+  const assembly =
+    kit === 'yeast'
+      ? yeastAssembly([vector, amplicon.document], {
+          minOverlap: overlap,
+          circular: true,
+          vector,
+          ...name,
+        })
+      : gibson([vector, amplicon.document], { minOverlap: overlap, circular: true, ...name });
   if (assembly.assembly === null) {
     return {
       kit,
@@ -227,8 +237,12 @@ function designWarnings(vector: SeqDocument, products: number, kit: OverlapKit):
   // A blunt end has nothing for the tails to mismatch; only an overhang is worth a look.
   const ends = vector.ends;
   if (ends !== null && (ends.left.kind !== 'blunt' || ends.right.kind !== 'blunt')) {
+    const chews =
+      kit === 'yeast'
+        ? "the cell's own resection trims them"
+        : "the kit's exonuclease chews them back";
     out.push(
-      `${vector.name} has sticky ends; the tails match its top strand, and the kit's exonuclease chews them back either way, but check the ends are where you meant to cut.`,
+      `${vector.name} has sticky ends; the tails match its top strand, and ${chews} either way, but check the ends are where you meant to cut.`,
     );
   }
   if (products > 1) {

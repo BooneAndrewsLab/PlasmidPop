@@ -16,6 +16,12 @@ reach the same construct from the same parts; the generator asserts that.
   are fixed by the kit; pydna's pcr must give tail + insert + tail from the
   canonical primers, and Gibson of vector and amplicon must give vector +
   insert. The test then checks the primers PlasmidPop designs against those.
+* Yeast assembly by homologous recombination (#411): the same chaining with
+  20-80 bp of homology, and Yeast tails of 40 bp for the overlap-primer
+  designer. A repeat of a junction's homology elsewhere in the tube is the
+  case the warnings exist for, so pydna is also asked how many distinct
+  circles come out of a tube with such a repeat (more than one) and without
+  (exactly one); PlasmidPop must warn in the first and not in the second.
 """
 from Bio.Restriction import BbsI, BsaI, BsmBI, SapI
 from pydna.amplify import pcr as pydna_pcr
@@ -255,7 +261,7 @@ def golden_gate_cases(rng):
 
 # --- In-Fusion / NEBuilder overlap primers -------------------------------------
 
-TAIL = {'in-fusion': 15, 'nebuilder': 20}
+TAIL = {'in-fusion': 15, 'nebuilder': 20, 'yeast': 40}
 
 
 def overlap_case(rng, name, kit, vlen, tlen, start, end, template_circular=False):
@@ -294,7 +300,78 @@ def overlap_cases(rng):
         overlap_case(rng, 'nebuilder-circular-template', 'nebuilder', 900, 1500, 300, 800, True),
         overlap_case(rng, 'nebuilder-insert-across-origin', 'nebuilder', 900, 1500, 1300, 1700, True),
         overlap_case(rng, 'in-fusion-insert-across-origin', 'in-fusion', 900, 1500, 1200, 1650, True),
+        overlap_case(rng, 'yeast-basic', 'yeast', 900, 1500, 300, 800),
+        overlap_case(rng, 'yeast-circular-template-across-origin', 'yeast', 900, 1500, 1200, 1650, True),
     ]
+
+
+# --- Yeast assembly ------------------------------------------------------------
+
+
+def circles(frags, limit):
+    """The distinct circles pydna can close from the parts, up to rotation and strand."""
+    found = []
+    for r in Assembly(frags, limit=limit).assemble_circular():
+        seq = str(r.seq).upper()
+        if not any(same_circle(seq, other) for other in found):
+            found.append(seq)
+    return found
+
+
+def yeast_case(rng, name, n, k, overlap, **kw):
+    case = circular_gibson(rng, name, n, k, overlap, **kw)
+    # The kit's own floor is 20 bp whatever the case's overlap, and pydna is
+    # asked at the same.
+    case['minOverlap'] = 20
+    check_gibson(case)
+    return case
+
+
+def yeast_repeat_case(rng, name, repeated):
+    """Three parts joined by 40 bp, the first junction's homology copied (or not) into the third part."""
+    target = random_dna(rng, 1500)
+    cuts = [0, 500, 1000]
+    n = len(target)
+    overlap = 40
+    parts = []
+    for i, start in enumerate(cuts):
+        nxt = cuts[(i + 1) % 3]
+        end = (nxt if nxt > start else nxt + n) + overlap
+        parts.append(''.join(target[p % n] for p in range(start, end)))
+    junction = parts[0][-overlap:]
+    if repeated:
+        # inside the third part, away from both its ends, and on the same strand
+        third = parts[2]
+        parts[2] = third[:200] + junction + third[200 + overlap :]
+    frags = [Dseqrecord(p, name=f'p{i}') for i, p in enumerate(parts)]
+    found = circles(frags, 30)
+    assert (len(found) > 1) == repeated, f'pydna finds {len(found)} circles for {name}'
+    return {
+        'name': name,
+        'parts': parts,
+        'minOverlap': 20,
+        'repeated': repeated,
+        'circles': len(found),
+    }
+
+
+def yeast_cases(rng):
+    return {
+        'assemblies': [
+            yeast_case(rng, 'yeast-circ-3-parts-40bp', 1500, 3, 40),
+            yeast_case(rng, 'yeast-circ-2-parts-40bp', 1200, 2, 40),
+            yeast_case(rng, 'yeast-circ-4-parts-30bp', 2000, 4, 30),
+            yeast_case(rng, 'yeast-circ-3-parts-20bp', 1500, 3, 20),
+            yeast_case(rng, 'yeast-circ-3-parts-80bp', 1800, 3, 80),
+            yeast_case(rng, 'yeast-circ-5-parts-60bp-two-reversed', 2500, 5, 60, flip=(1, 3)),
+            yeast_case(rng, 'yeast-circ-3-parts-40bp-out-of-order', 1500, 3, 40, shift=1),
+            yeast_case(rng, 'yeast-circ-3-parts-40bp-across-origin', 1500, 3, 40, cuts=[1470, 400, 900]),
+        ],
+        'repeats': [
+            yeast_repeat_case(rng, 'yeast-junction-repeated-in-a-part', True),
+            yeast_repeat_case(rng, 'yeast-no-repeat', False),
+        ],
+    }
 
 
 def generate():
@@ -303,4 +380,5 @@ def generate():
         'gibson': gibson_cases(rng),
         'goldenGate': golden_gate_cases(rng),
         'overlapPrimers': overlap_cases(rng),
+        'yeast': yeast_cases(rng),
     }

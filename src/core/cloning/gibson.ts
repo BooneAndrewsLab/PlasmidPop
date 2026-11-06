@@ -68,8 +68,18 @@ export interface GibsonAssembly {
   readonly warnings: readonly GibsonWarning[];
 }
 
+/** What `yeastWarnings` (`yeastAssembly.ts`) can say; Gibson itself never does. */
+export type YeastWarningKind =
+  | 'long-overlap'
+  | 'internal-repeat'
+  | 'gc'
+  | 'linear-product'
+  | 'no-marker'
+  | 'no-origin'
+  | 'no-bacterial';
+
 export interface GibsonWarning {
-  readonly kind: 'repeat' | 'short-part' | 'short-overlap';
+  readonly kind: 'repeat' | 'short-part' | 'short-overlap' | YeastWarningKind;
   readonly text: string;
 }
 
@@ -94,6 +104,13 @@ export interface GibsonOptions {
   /** Whether the product closes into a circle. A plasmid does. */
   readonly circular?: boolean;
   readonly name?: string;
+  /**
+   * Which reaction the homology is joined in. The default is Gibson's tube;
+   * `'yeast'` is recombination in the cell (#411): its own default and range
+   * for the overlap (`YEAST_OVERLAP`) and no warnings from here, because
+   * `yeastWarnings` reads the finished assembly and says what applies to it.
+   */
+  readonly kit?: 'yeast';
 }
 
 export const GIBSON_DEFAULTS = {
@@ -101,6 +118,20 @@ export const GIBSON_DEFAULTS = {
   maxOverlap: Number.POSITIVE_INFINITY,
   circular: true,
 } as const;
+
+/**
+ * Homology for an assembly by recombination in yeast (#411), in bases: the
+ * default, the range a design offers, and the floor below which a junction
+ * is flagged. There is no exonuclease and no 50 °C here, so Gibson's 15 and
+ * its pieces-by-overlap table do not apply.
+ */
+export const YEAST_OVERLAP = { min: 20, default: 40, max: 80, floor: 30 } as const;
+
+/** `n` held to the range a yeast assembly offers, and to a whole number of bases. */
+export function clampYeastOverlap(n: number): number {
+  if (!Number.isFinite(n)) return YEAST_OVERLAP.default;
+  return Math.min(YEAST_OVERLAP.max, Math.max(YEAST_OVERLAP.min, Math.round(n)));
+}
 
 /**
  * The longest suffix of `a` that is also a prefix of `b`, within the given
@@ -156,7 +187,14 @@ function joinOf(overlap: string): GibsonJoin {
  * order: which follows which is the answer, not the question.
  */
 export function gibson(parts: readonly SeqDocument[], options: GibsonOptions = {}): GibsonResult {
-  const { minOverlap, maxOverlap, circular } = { ...GIBSON_DEFAULTS, ...options };
+  const yeast = options.kit === 'yeast';
+  const settings = {
+    ...GIBSON_DEFAULTS,
+    ...(yeast ? { minOverlap: YEAST_OVERLAP.default } : {}),
+    ...options,
+  };
+  const { maxOverlap, circular } = settings;
+  const minOverlap = yeast ? clampYeastOverlap(settings.minOverlap) : settings.minOverlap;
   const usable: SeqDocument[] = [];
   const dropped: DroppedPart[] = [];
   for (const doc of parts) {
@@ -316,7 +354,7 @@ export function gibson(parts: readonly SeqDocument[], options: GibsonOptions = {
   const product = ligate(fragments, {
     name: options.name ?? defaultGibsonName(order.map((p) => p.document)),
     circular,
-    metadata: { description: describeGibson(order, joins, circular) },
+    metadata: { description: describeGibson(order, joins, circular, yeast) },
   });
   return {
     usable,
@@ -325,7 +363,7 @@ export function gibson(parts: readonly SeqDocument[], options: GibsonOptions = {
       order: order.map((p) => ({ document: p.document, flipped: p.flipped })),
       joins,
       product,
-      warnings: gibsonWarnings(order, joins, minOverlap),
+      warnings: yeast ? [] : gibsonWarnings(order, joins, minOverlap),
     },
     problem: null,
   };
@@ -371,25 +409,37 @@ function recommendedOverlap(pieces: number): number {
   return pieces <= 3 ? 15 : 20;
 }
 
+/** A stretch of the tube that a junction's homology also occurs in, outside the junction. */
+export interface HomologyHit {
+  /** Which junction's homology, as an index into the assembly's `joins`. */
+  readonly join: number;
+  /** Which part of the order it is in. */
+  readonly part: number;
+  /** Where it starts on that part's forward strand, 0-based. */
+  readonly start: number;
+  /** Whether it is the reverse complement of the homology that was found. */
+  readonly reverse: boolean;
+}
+
 /**
- * The risks in an assembly that did come together (#12).
+ * Where each junction's homology occurs elsewhere in the tube (#12).
  *
- * The exonuclease leaves each end as a long 3′ single strand, and what
- * anneals is whatever pairs with it, not only the partner it was designed
- * for. So each junction's homology is looked for everywhere else in the
- * tube, on both strands, in windows as long as the shortest overlap the
- * reaction accepts: a hit outside the junction itself is somewhere a
- * chewed-back end could anneal instead. The two length rules are NEB's
- * guidance rather than a model of the chew-back, whose rate depends on the
- * mix and the temperature.
+ * Whatever pairs with a junction's homology can take part, not only the
+ * partner it was designed for: an exonuclease leaves each Gibson end as a
+ * long 3′ single strand, and in yeast the cell's own machinery resects and
+ * invades wherever the homology is. So each junction's homology is looked
+ * for everywhere else in the tube, on both strands, in windows of `k` bases:
+ * a hit outside the junction itself is somewhere a chewed-back or invading
+ * end could pair instead. `order` is the parts as they go in, `joins[i]`
+ * the homology between `order[i]` and the next (the last closing a circle).
+ * Hits come in join order, each join's by part, strand and position.
  */
-function gibsonWarnings(
-  order: readonly Oriented[],
-  joins: readonly GibsonJoin[],
-  minOverlap: number,
-): GibsonWarning[] {
-  const out: GibsonWarning[] = [];
-  const k = minOverlap;
+export function junctionRepeats(
+  order: readonly { readonly sequence: string }[],
+  joins: readonly Pick<GibsonJoin, 'overlap' | 'length'>[],
+  k: number,
+): HomologyHit[] {
+  const out: HomologyHit[] = [];
   // Each part's two strands, upper case, searched in one pass each for
   // every junction window at once: a rolling 2-bit code of the first
   // `SEED` bases finds the candidates and `startsWith` confirms them. An
@@ -492,16 +542,33 @@ function gibsonWarnings(
     stretches.sort(
       (a, b) => a.part - b.part || Number(a.reverse) - Number(b.reverse) || a.start - b.start,
     );
-    for (const hit of stretches) {
-      const where = order[hit.part]?.document.name ?? 'a part';
-      const from = order[up]?.document.name ?? 'one part';
-      const to = order[down]?.document.name ?? 'the next';
-      out.push({
-        kind: 'repeat',
-        text: `The homology joining ${from} to ${to} also occurs in ${where} at ${(hit.start + 1).toLocaleString()}${hit.reverse ? ' (other strand)' : ''}, where a chewed-back end could anneal instead.`,
-      });
-    }
+    for (const hit of stretches) out.push({ join: j, ...hit });
   });
+  return out;
+}
+
+/**
+ * The risks in a Gibson assembly that did come together (#12): a junction's
+ * homology found elsewhere in the tube (`junctionRepeats`), pieces short
+ * enough to be chewed away, and overlaps short for the number of pieces. The
+ * two length rules are NEB's guidance rather than a model of the chew-back,
+ * whose rate depends on the mix and the temperature.
+ */
+function gibsonWarnings(
+  order: readonly Oriented[],
+  joins: readonly GibsonJoin[],
+  minOverlap: number,
+): GibsonWarning[] {
+  const out: GibsonWarning[] = [];
+  for (const hit of junctionRepeats(order, joins, minOverlap)) {
+    const where = order[hit.part]?.document.name ?? 'a part';
+    const from = order[hit.join]?.document.name ?? 'one part';
+    const to = order[(hit.join + 1) % order.length]?.document.name ?? 'the next';
+    out.push({
+      kind: 'repeat',
+      text: `The homology joining ${from} to ${to} also occurs in ${where} at ${(hit.start + 1).toLocaleString()}${hit.reverse ? ' (other strand)' : ''}, where a chewed-back end could anneal instead.`,
+    });
+  }
 
   for (const p of order) {
     if (p.sequence.length < GIBSON_SHORT_PART) {
@@ -533,6 +600,7 @@ function describeGibson(
   order: readonly Oriented[],
   joins: readonly GibsonJoin[],
   circular: boolean,
+  yeast: boolean,
 ): string {
   const parts = order.map((p, i) => {
     const turned = p.flipped ? ', flipped' : '';
@@ -540,7 +608,8 @@ function describeGibson(
     const into = join === undefined ? '' : `, ${join.length} bp overlap`;
     return `${p.document.name} (${p.document.length.toLocaleString()} bp${turned}${into})`;
   });
-  return `${circular ? 'Circular' : 'Linear'} Gibson assembly of ${parts.join(', ')}`;
+  const method = yeast ? 'yeast assembly by homologous recombination' : 'Gibson assembly';
+  return `${circular ? 'Circular' : 'Linear'} ${method} of ${parts.join(', ')}`;
 }
 
 /** What to say about a document the reaction cannot take. */

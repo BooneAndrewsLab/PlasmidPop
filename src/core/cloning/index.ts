@@ -5,6 +5,7 @@ export * from './fidelity';
 export * from './goldenGate';
 export * from './moclo';
 export * from './gibson';
+export * from './yeastAssembly';
 export * from './mutagenesis';
 export * from './gateway';
 export * from './overlapPrimers';
