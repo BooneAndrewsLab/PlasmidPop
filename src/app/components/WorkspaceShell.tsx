@@ -71,11 +71,14 @@ export function WorkspaceShell<P extends string>({
 }: Props<P>) {
   const region = useRef<HTMLDivElement>(null);
   const rail = useRef<HTMLDivElement>(null);
+  const body = useRef<HTMLElement>(null);
   /** Whether the next page change is the rail's own, which keeps the keyboard there. */
   const railChange = useRef(false);
   const current = pages.find((p) => p.id === page) ?? pages[0];
 
   useEffect(() => {
+    // A page opens at its top, not where the last one was scrolled to.
+    if (body.current !== null) body.current.scrollTop = 0;
     if (railChange.current) {
       railChange.current = false;
       return;
@@ -212,7 +215,13 @@ export function WorkspaceShell<P extends string>({
           );
         })}
       </div>
-      <section className="ws__body" id="ws-page" role="tabpanel" aria-labelledby={`ws-tab-${page}`}>
+      <section
+        ref={body}
+        className="ws__body"
+        id="ws-page"
+        role="tabpanel"
+        aria-labelledby={`ws-tab-${page}`}
+      >
         <header className="ws__head">
           <h2 className="ws__heading" tabIndex={-1}>
             {current?.heading}

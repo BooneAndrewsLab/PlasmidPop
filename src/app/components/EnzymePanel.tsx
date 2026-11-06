@@ -30,8 +30,19 @@ export function EnzymePanel({ doc }: Props) {
   const { documentId, shownEnzymes } = useEditorState();
   const gel = useGelOptions();
   const list = useEnzymeList(doc);
-  const { filter, setFilter, needle, ready, groups, rows, fragments, ticked, pairable, cuts } =
-    list;
+  const {
+    filter,
+    setFilter,
+    needle,
+    ready,
+    groups,
+    rows,
+    tickedRows,
+    fragments,
+    ticked,
+    pairable,
+    cuts,
+  } = list;
   const more = useRef<HTMLButtonElement>(null);
   // The workspace shut with Escape: the keyboard comes back here.
   useEffect(() => {
@@ -61,8 +72,8 @@ export function EnzymePanel({ doc }: Props) {
     return n;
   }, [groups, shownEnzymes, cuts]);
 
-  const shown =
-    needle === '' ? rows.filter((r) => r.members.some((e) => shownEnzymes.has(e.name))) : rows;
+  // Ticked enzymes are listed whatever the workspace table is filtered to (#406).
+  const shown = needle === '' ? tickedRows : rows;
   const capped = shown.slice(0, MAX_MATCHES);
 
   return (

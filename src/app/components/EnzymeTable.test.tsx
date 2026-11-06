@@ -103,7 +103,7 @@ describe('the enzyme table (item 133, E4)', () => {
       'Overhang',
       'Cuts',
       'Positions',
-      'Dam/Dcm',
+      // No Dam/Dcm column: nothing in this DNA has a site that methylation blocks.
       'Bands',
     ]);
     expect(rowEls()).toHaveLength(3);
@@ -386,7 +386,8 @@ describe('the enzyme table (item 133, E4)', () => {
       setup([site(a.name, 101), site(a.name, 2001)]);
       fireEvent.click(row(a.name));
       const pane = detail(a.name);
-      expect(within(pane).getByText(/overhang$/)).toBeVisible();
+      // The overhang is in the head; the list is for what the head does not say.
+      expect(within(pane).getByText(/overhang · cuts/)).toBeVisible();
       const sites = within(within(pane).getByRole('table', { name: `${a.name} sites` }));
       const body = sites.getAllByRole('row').slice(1);
       expect(body).toHaveLength(2);

@@ -392,6 +392,36 @@ export function useEnzymeList(doc: SeqDocument) {
     reversed,
     gel,
   ]);
+  /**
+   * The ticked enzymes as rows, whatever the Cuts and Sold by filters say:
+   * the slim panel lists what is ticked, and one the table's filters hide
+   * is still in the digest (#406).
+   */
+  const tickedRows = useMemo(
+    () =>
+      units
+        .flatMap((members) => {
+          if (!members.some((e) => shownEnzymes.has(e.name))) return [];
+          const entry = members[0] === undefined ? undefined : entryByName.get(members[0].name);
+          if (entry === undefined) return [];
+          const enzyme = members.find((e) => shownEnzymes.has(e.name)) ?? entry.enzyme;
+          return [
+            {
+              enzyme,
+              members,
+              count: entry.count,
+              cuts: entry.cuts,
+              host: entry.host,
+              site: entry.site,
+              sites: entry.sites,
+              cutting: entry.cutting,
+              profile: entry.profile,
+            },
+          ];
+        })
+        .sort((a, b) => a.enzyme.name.localeCompare(b.enzyme.name)),
+    [units, entryByName, shownEnzymes],
+  );
   const listedEnzymes = rows.reduce((n, r) => n + r.members.length, 0);
   const nonCutters = groups.filter((g) => g.count === 0).length;
   const cutters = groups.length - nonCutters;
@@ -426,6 +456,7 @@ export function useEnzymeList(doc: SeqDocument) {
     lanes,
     pairable,
     rows,
+    tickedRows,
     listedEnzymes,
     cutters,
     nonCutters,

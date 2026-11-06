@@ -475,7 +475,8 @@ such table in REBASE (BclI, DpnII, BssKI, BcgI, FspI and PhoI); for those,
 any Dam or Dcm methyl group inside the site counts. A cut position whose site a Dam or Dcm methyl
 group would fall in, in a way that enzyme is sensitive to, is marked with a small **m** and
 written in the warning colour; hovering it says which. The table's **Dam/Dcm**
-column says how many of its sites are affected — _1 of 2_ — and the enzyme's
+column (it is there only when some enzyme in the list has a site that could be
+blocked) says how many of its sites are affected — _1 of 2_ — and the enzyme's
 detail says it in words, _1 of 2 sites may be blocked by Dam/Dcm
 methylation_, and marks the sites, with the methylase, in its list of them.
 The enzyme's tooltip says it is a sensitive one.

@@ -553,6 +553,17 @@ describe('the slim EnzymePanel (item 133, E3)', () => {
     expect(listed()).toContain(names[0]);
   });
 
+  it('lists every ticked enzyme whatever the table is filtered to (#406)', () => {
+    setup(cutsEach(COUNTS), null);
+    expect(listed()).toEqual(names.slice(0, 3));
+    // The workspace's Cuts filter narrows its table, not what is ticked.
+    act(() => {
+      editorStore.setEnzymeCutFilter('twice');
+    });
+    expect(listed()).toEqual(names.slice(0, 3));
+    expect(screen.getByText(/3 ticked\./)).toBeInTheDocument();
+  });
+
   it('lists a dozen matches and links to the rest in the workspace, with the filter kept', () => {
     act(() => {
       editorStore.setEnzymeGroupIsoschizomers(false);

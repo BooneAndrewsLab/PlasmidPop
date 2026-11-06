@@ -93,7 +93,7 @@ function EnzymeFilterBar({ list }: { readonly list: EnzymeList }) {
   const { enzymeSetInfo, enzymeCutFilter, enzymeGroupIsoschizomers: grouped } = useEditorState();
   const { filter, setFilter, supplier, rows } = list;
   return (
-    <div className="panel__controls">
+    <div className="panel__controls enz-bar">
       <div className="panel__form">
         <label>
           <span>Filter</span>
@@ -291,6 +291,12 @@ function EnzymeGrid({ doc, list, layout, onPartner }: TableProps) {
     focusKey.current = rowKey(next);
   };
 
+  // The Dam/Dcm column is for the DNA that has a site it could block: on a
+  // plasmid with none it is a blank column's width taken from the bands.
+  const methylation = useMemo(
+    () => rows.some((r) => isHostMethylationSensitive(r.enzyme.name) && countMarked(r.host) > 0),
+    [rows],
+  );
   const sites = phone ? PHONE_SITES_SHOWN : MAX_SITES_SHOWN;
   return (
     <div className="enz-ws">
@@ -318,9 +324,11 @@ function EnzymeGrid({ doc, list, layout, onPartner }: TableProps) {
                 >
                   Positions
                 </th>
-                <th className="wst__th" data-tip="Sites Dam or Dcm methylation may block">
-                  Dam/Dcm
-                </th>
+                {methylation && (
+                  <th className="wst__th" data-tip="Sites Dam or Dcm methylation may block">
+                    Dam/Dcm
+                  </th>
+                )}
                 <SortTh
                   column="bands"
                   sort={sort}
@@ -344,6 +352,7 @@ function EnzymeGrid({ doc, list, layout, onPartner }: TableProps) {
                     on={on}
                     stop={key === stop}
                     sites={sites}
+                    methylation={methylation}
                     shownEnzymes={shownEnzymes}
                     trRef={attachRow(key)}
                     onPick={() => {
@@ -400,13 +409,25 @@ interface TrProps {
   readonly on: boolean;
   readonly stop: boolean;
   readonly sites: number;
+  /** Whether the table has the Dam/Dcm column. */
+  readonly methylation: boolean;
   readonly shownEnzymes: ReadonlySet<string>;
   readonly trRef: (el: HTMLElement | null) => void;
   readonly onPick: () => void;
 }
 
 /** One enzyme's row: ticked or not, its site, how often and where it cuts, and its bands. */
-function EnzymeTr({ row, doc, on, stop, sites, shownEnzymes, trRef, onPick }: TrProps) {
+function EnzymeTr({
+  row,
+  doc,
+  on,
+  stop,
+  sites,
+  methylation,
+  shownEnzymes,
+  trRef,
+  onPick,
+}: TrProps) {
   const { enzyme, members, count, host: marks, site, profile } = row;
   const ticked = members.some((e) => shownEnzymes.has(e.name));
   const marked = isHostMethylationSensitive(enzyme.name) ? countMarked(marks) : 0;
@@ -491,17 +512,19 @@ function EnzymeTr({ row, doc, on, stop, sites, shownEnzymes, trRef, onPick }: Tr
           </span>
         )}
       </td>
-      <td
-        className={marked > 0 ? 'dt__warn' : undefined}
-        data-tip={
-          marked > 0
-            ? 'Most laboratory E. coli strains methylate GATC (Dam) and CCWGG (Dcm). Grow the plasmid in a dam–/dcm– strain, or use an isoschizomer that is not sensitive, to cut these sites.'
-            : undefined
-        }
-      >
-        {marked > 0 ? `${marked} of ${count}` : ''}
-      </td>
-      <td>
+      {methylation && (
+        <td
+          className={marked > 0 ? 'dt__warn' : undefined}
+          data-tip={
+            marked > 0
+              ? 'Most laboratory E. coli strains methylate GATC (Dam) and CCWGG (Dcm). Grow the plasmid in a dam–/dcm– strain, or use an isoschizomer that is not sensitive, to cut these sites.'
+              : undefined
+          }
+        >
+          {marked > 0 ? `${marked} of ${count}` : ''}
+        </td>
+      )}
+      <td className="enz-bands">
         <BandLine profile={profile()} />
       </td>
     </tr>
@@ -586,9 +609,12 @@ function EnzymeDetail({ doc, list, row, onPartner }: DetailProps) {
       <div className="enz-detail__body">
         <div className="enz-detail__facts">
           <ul className="enz-detail__list">
-            {enzymeFacts(enzyme, Infinity, enzymeSetInfo.suppliers).map((fact) => (
-              <li key={fact}>{fact}</li>
-            ))}
+            {/* The first fact is the overhang, which the head above already says. */}
+            {enzymeFacts(enzyme, Infinity, enzymeSetInfo.suppliers)
+              .slice(1)
+              .map((fact) => (
+                <li key={fact}>{fact}</li>
+              ))}
             {others.length > 0 && <li>Same site and cut: {others.join(', ')}</li>}
             {marked > 0 && (
               <li className="enzyme-row__methylation">

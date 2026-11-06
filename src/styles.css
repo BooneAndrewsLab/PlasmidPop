@@ -7014,6 +7014,32 @@ button {
   padding: 1px 8px 1px 0;
 }
 
+/*
+ * The windowed tables (item 133) on a phone: the heading row is a strip of
+ * sort labels, a cell with nothing in it is not drawn, and the cells that
+ * run long (positions, bands, flags) take a line of their own.
+ */
+.ws--phone .wst thead tr {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+}
+
+.ws--phone .wst td {
+  vertical-align: baseline;
+}
+
+.ws--phone .wst td:empty {
+  display: none;
+}
+
+.ws--phone .wst td.enz-cuts,
+.ws--phone .wst td.enz-bands {
+  display: block;
+  min-width: 0;
+  max-width: none;
+}
+
 .ws--phone .dt__seq {
   display: block;
   white-space: normal;
@@ -7976,8 +8002,38 @@ button {
   min-width: 0;
 }
 
+/* Short enough that the detail pane's head shows under it on a laptop screen. */
 .enz-ws__scroll {
-  max-height: min(60vh, 560px);
+  max-height: min(42vh, 420px);
+}
+
+/* The filter bar is one wrapped row, not a label-and-input row for each. */
+.enz-bar .panel__form {
+  flex: 1 1 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 6px 12px;
+}
+
+.enz-bar .panel__form > label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.enz-bar .panel__form > label:first-child {
+  flex: 1 1 180px;
+}
+
+.enz-bar .panel__form .panel__select {
+  width: auto;
+}
+
+.enz-bar .panel__buttons {
+  margin-left: auto;
 }
 
 .enz-ws .detail {
@@ -7993,8 +8049,15 @@ button {
 
 /* The positions are the long column: they wrap rather than widen the table. */
 .wst td.enz-cuts {
-  min-width: 150px;
-  max-width: 22em;
+  min-width: 120px;
+  max-width: 14em;
+  white-space: normal;
+}
+
+/* The bands wrap too, so the table fits the workspace without a sideways scroll. */
+.wst td.enz-bands {
+  min-width: 11em;
+  max-width: 15em;
   white-space: normal;
 }
 
