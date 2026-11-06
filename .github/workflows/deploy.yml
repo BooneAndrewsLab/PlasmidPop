@@ -5,6 +5,8 @@ name: Deploy to GitHub Pages
 # names is the version users are running. A push to main is checked by
 # ci.yml and deploys nothing. "Run workflow" redeploys by hand; run it from
 # a release tag, since it builds whatever ref it is started on.
+# The tests are not run again here: the release commit must already have a
+# green ci.yml run, which the first step checks (#374).
 # Pages is enabled in the repository settings with "GitHub Actions" as
 # source. The site is served under /<repo>/, which BASE_PATH passes to Vite.
 
@@ -14,6 +16,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -33,7 +36,15 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npm run check
+      - name: Require a green CI run on this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          n=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$GITHUB_SHA" --status success --json databaseId --jq length)
+          if [ "$n" -eq 0 ]; then
+            echo "::error::No successful ci.yml run for $GITHUB_SHA; wait for CI on main, then publish."
+            exit 1
+          fi
       - name: Build
         run: npm run build
         env:
