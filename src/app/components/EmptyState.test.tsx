@@ -30,7 +30,7 @@ describe('EmptyState licence line', () => {
 });
 
 describe('EmptyState start buttons', () => {
-  it('puts the cloning tutorials and the user guide on the landing page', async () => {
+  it('puts the tutorials and the user guide on the landing page', async () => {
     const listed = Promise.resolve([]);
     vi.spyOn(persistence, 'listStored').mockReturnValue(listed);
     vi.spyOn(persistence, 'pruneScratch').mockResolvedValue(0);
@@ -38,7 +38,7 @@ describe('EmptyState start buttons', () => {
     const off = onOpenGuide((id) => opened.push(id));
     render(<EmptyState />);
     await act(() => listed);
-    const tutorials = screen.getByRole('link', { name: 'Cloning tutorials' });
+    const tutorials = screen.getByRole('link', { name: 'Tutorials' });
     expect(tutorials.getAttribute('href')).toBe(`${import.meta.env.BASE_URL}tutorials/`);
     expect(tutorials.getAttribute('target')).toBe('_blank');
     fireEvent.click(screen.getByRole('button', { name: 'User guide' }));

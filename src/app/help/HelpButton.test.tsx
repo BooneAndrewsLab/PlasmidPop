@@ -30,7 +30,7 @@ describe('HelpButton', () => {
   it('links the standalone tutorials, opened in a tab of their own (#312)', () => {
     render(<HelpButton />);
     fireEvent.click(screen.getByRole('button', { name: 'Help' }));
-    const link = screen.getByRole('link', { name: 'Cloning tutorials' });
+    const link = screen.getByRole('link', { name: 'Tutorials' });
     expect(link).toHaveAttribute('href', `${import.meta.env.BASE_URL}tutorials/`);
     expect(link).toHaveAttribute('target', '_blank');
   });
@@ -50,6 +50,16 @@ describe('HelpButton', () => {
       'aria-current',
       'page',
     );
+  });
+
+  it('sends a repo-relative tutorial link in a guide page to the site tutorial (item 137)', () => {
+    render(<HelpButton />);
+    act(() => {
+      openGuide('07-enzymes');
+    });
+    const link = screen.getByRole('link', { name: 'Enzymes tutorial' });
+    expect(link).toHaveAttribute('href', `${import.meta.env.BASE_URL}tutorials/enzymes/`);
+    expect(link).toHaveAttribute('target', '_blank');
   });
 
   it('opens at the page something else asked for', () => {

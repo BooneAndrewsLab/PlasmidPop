@@ -1,6 +1,7 @@
 import {
   anchorTarget,
   guideLinkTarget,
+  tutorialLinkTarget,
   headingSlug,
   parseMarkdown,
   plainText,
@@ -89,6 +90,12 @@ function guideContext(fromDir: string): LinkContext {
   return {
     fromDir,
     resolve: (href) => {
+      const tutorial = tutorialLinkTarget(href);
+      if (tutorial !== null)
+        return (
+          (tutorial === 'README' ? 'tutorials/' : `tutorials/${tutorial}/`) +
+          (href.includes('#') ? href.slice(href.indexOf('#')) : '')
+        );
       const page = guideLinkTarget(href);
       if (page === null) return null;
       return pagePath(page) + (href.includes('#') ? href.slice(href.indexOf('#')) : '');

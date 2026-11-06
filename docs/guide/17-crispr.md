@@ -8,7 +8,7 @@ kept per document while you look at another tab, so coming back does not
 scan again.
 A step-by-step exercise with a sample file, for picking a guide, adding guides
 as features, paired nickases and prime editing, is the
-[CRISPR tutorial](https://booneandrewslab.github.io/PlasmidPop/tutorials/crispr/).
+[CRISPR tutorial](../tutorials/crispr.md).
 
 The tab itself is short: the **Nuclease**, **Only cuts in the selection**, a
 line saying how many guides were found and how many have no flag, the first

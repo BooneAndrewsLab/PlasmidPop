@@ -6,6 +6,7 @@ import {
   parseInline,
   parseMarkdown,
   plainText,
+  tutorialLinkTarget,
 } from './markdown';
 
 describe('parseMarkdown', () => {
@@ -92,6 +93,17 @@ describe('helpers', () => {
     expect(guideLinkTarget('./05-features.md#editing')).toBe('05-features');
     expect(guideLinkTarget('https://example.org/x.md')).toBeNull();
     expect(guideLinkTarget('#anchor')).toBeNull();
+  });
+
+  it('recognises links to tutorials, and nothing else', () => {
+    expect(tutorialLinkTarget('../tutorials/enzymes.md')).toBe('enzymes');
+    expect(tutorialLinkTarget('../tutorials/README.md')).toBe('README');
+    expect(tutorialLinkTarget('../tutorials/golden-gate.md#steps')).toBe('golden-gate');
+    expect(tutorialLinkTarget('enzymes.md')).toBeNull();
+    expect(tutorialLinkTarget('../guide/07-enzymes.md')).toBeNull();
+    expect(tutorialLinkTarget('../tutorials/files/GG-gene.gb')).toBeNull();
+    expect(tutorialLinkTarget('https://example.org/tutorials/x.md')).toBeNull();
+    expect(guideLinkTarget('../tutorials/enzymes.md')).toBeNull();
   });
 
   it('keeps indented blocks inside a list item and the written numbering', () => {

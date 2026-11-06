@@ -13,7 +13,7 @@ below, or add a single enzyme of your own — see
 [Adding your own enzyme](#adding-your-own-enzyme).
 A step-by-step exercise with a sample file, for the enzymes that cut once, a
 double digest and Dam/Dcm methylation, is the
-[Enzymes tutorial](https://booneandrewslab.github.io/PlasmidPop/tutorials/enzymes/).
+[Enzymes tutorial](../tutorials/enzymes.md).
 
 ## The tab and the workspace
 

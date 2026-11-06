@@ -90,7 +90,7 @@ export function HelpDialog({ initialPage, onClose }: Props) {
             target="_blank"
             rel="noopener"
           >
-            Cloning tutorials
+            Tutorials
           </a>
           <button
             type="button"

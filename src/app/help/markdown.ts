@@ -314,3 +314,13 @@ export function guideLinkTarget(href: string): string | null {
   const m = /^(?:\.\/)?([\w-]+)\.md(?:#.*)?$/.exec(href);
   return m === null ? null : (m[1] ?? null);
 }
+
+/**
+ * The tutorial a guide link points at (`../tutorials/enzymes.md` → `enzymes`,
+ * `../tutorials/README.md` → `README`), or null. Item 137: GitHub resolves
+ * the same path, and both renderers send it to the site's `/tutorials/`.
+ */
+export function tutorialLinkTarget(href: string): string | null {
+  const m = /^\.\.\/tutorials\/([\w-]+)\.md(?:#.*)?$/.exec(href);
+  return m === null ? null : (m[1] ?? null);
+}

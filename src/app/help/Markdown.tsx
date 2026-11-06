@@ -5,6 +5,7 @@ import {
   type Inline,
   anchorTarget,
   guideLinkTarget,
+  tutorialLinkTarget,
   headingSlug,
   parseMarkdown,
   plainText,
@@ -75,6 +76,22 @@ function renderInlines(
             >
               {renderInlines(node.children, onNavigate, onAnchor)}
             </button>
+          );
+        }
+        const tutorial = tutorialLinkTarget(node.href);
+        if (tutorial !== null) {
+          // Item 137: a repo-relative tutorial link goes to the site this app
+          // runs on, so a tutorial not yet released works in dev and previews.
+          const path = tutorial === 'README' ? '' : `${tutorial}/`;
+          return (
+            <a
+              key={i}
+              href={`${import.meta.env.BASE_URL}tutorials/${path}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {renderInlines(node.children, onNavigate, onAnchor)}
+            </a>
           );
         }
         return (

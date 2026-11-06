@@ -15,6 +15,7 @@ import {
   SITE_URL,
   type SourcePage,
 } from './staticGuide';
+import { TUTORIAL_ORDER } from './staticTutorials';
 
 // Item 91 (#231): the guide as crawlable static pages, from docs/guide.
 const dir = new URL('../../../docs/guide/', import.meta.url);
@@ -74,6 +75,12 @@ describe('static guide pages', () => {
         const resolved =
           path === '' ? f.path : `${dirOfTarget === '.' ? '' : `${dirOfTarget}/`}index.html`;
         if (resolved === 'index.html') continue; // the app itself
+        if (resolved.startsWith('tutorials/')) {
+          // Emitted by the tutorials generator (item 137): the index or a listed page.
+          const id = /^tutorials\/(?:([\w-]+)\/)?index\.html$/.exec(resolved)?.[1];
+          expect(id === undefined || TUTORIAL_ORDER.includes(id), `${f.path}: ${href}`).toBe(true);
+          continue;
+        }
         const html = byPath.get(resolved);
         expect(html, `${f.path} links to ${href}`).toBeDefined();
         if (hash !== undefined) expect(html, `${f.path} -> ${href}`).toContain(`id="${hash}"`);
@@ -329,6 +336,25 @@ describe('static guide pages, exactly (item 91)', () => {
     expect(get(out, 'guide/alpha/index.html')).toBe(ALPHA);
     expect(get(out, 'guide/beta/index.html')).toBe(BETA);
     expect(get(out, 'guide/gamma/index.html')).toBe(GAMMA);
+  });
+});
+
+describe('tutorial links in guide pages (item 137)', () => {
+  it('resolve to the site tutorials, relative to the guide page', () => {
+    const out = generateGuideFiles([
+      {
+        id: '01-alpha',
+        markdown:
+          '# Alpha\n\n[t](../tutorials/enzymes.md) [i](../tutorials/README.md#x) [g](02-beta.md)',
+      },
+      { id: '02-beta', markdown: '# Beta\n\n[t](../tutorials/golden-gate.md)' },
+    ]);
+    const page = (path: string): string => out.find((f) => f.path === path)?.content ?? '';
+    const alpha = page('guide/alpha/index.html');
+    expect(alpha).toContain('<a href="../../tutorials/enzymes/">t</a>');
+    expect(alpha).toContain('<a href="../../tutorials/#x">i</a>');
+    expect(alpha).toContain('<a href="../beta/">g</a>');
+    expect(page('guide/beta/index.html')).toContain('<a href="../../tutorials/golden-gate/">t</a>');
   });
 });
 

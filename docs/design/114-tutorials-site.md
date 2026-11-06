@@ -56,6 +56,9 @@ which resolves only guide pages). The Help dialog has a Tutorials link beside
 the version that opens `${BASE_URL}tutorials/` in a new tab. The noscript
 notice in `index.html` and the repo README link it too.
 
+Superseded by item 137: the guide now links tutorials repo-relative
+(`../tutorials/<id>.md`), resolved by both renderers.
+
 ## The Markdown subset grew with the tutorials
 
 The tutorials put tables and notes inside numbered steps and use `[ ]`

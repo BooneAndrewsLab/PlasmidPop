@@ -5,7 +5,7 @@ a Sanger read against the plasmid, or a synthesised fragment against its
 design. In front of a [protein](16-proteins.md#aligning-two-proteins) it
 aligns two proteins, scored by BLOSUM62. A step-by-step exercise with sample
 files, for a read, several clones, proteins and copying a range, is the
-[Align tutorial](https://booneandrewslab.github.io/PlasmidPop/tutorials/align/).
+[Align tutorial](../tutorials/align.md).
 
 ## The tab and the workspace
 

@@ -11,18 +11,17 @@ PlasmidPop is free and open source under the
 [MIT licence](https://github.com/BooneAndrewsLab/PlasmidPop/blob/main/LICENSE);
 the [source](https://github.com/BooneAndrewsLab/PlasmidPop) is on GitHub.
 
-## Cloning tutorials
+## Tutorials
 
 The start page, the first thing you see with nothing open, has a large
-**Cloning tutorials** button and a **User guide** button, so you do not have to
+**Tutorials** button and a **User guide** button, so you do not have to
 find the **?** button first.
 
-New to cloning in PlasmidPop? The [cloning
-tutorials](https://booneandrewslab.github.io/PlasmidPop/tutorials/) are
-step-by-step exercises with sample files you can download: ligation, Golden
-Gate, modular cloning, Gibson and more, each ending in a checklist of what you
-should see. Pick the method you want on their index page. They are also behind
-the **Cloning tutorials** button at the top of this guide.
+New to PlasmidPop? The [tutorials](../tutorials/README.md) are step-by-step
+exercises with sample files you can download: ligation, Golden Gate, modular
+cloning, Gibson and more, and the Enzymes, Align and CRISPR tabs, each ending
+in a checklist of what you should see. Pick the one you want on their index
+page. They are also behind the **Tutorials** button at the top of this guide.
 
 ## Which browsers
 
@@ -125,7 +124,7 @@ editing controls. See [On a phone](03-viewing.md#on-a-phone).
 6. Press `Ctrl+S` to download the result as a GenBank file.
 
 For longer hands-on exercises, such as cloning a gene into a vector, see the
-[cloning tutorials](https://booneandrewslab.github.io/PlasmidPop/tutorials/).
+[tutorials](../tutorials/README.md).
 
 ## Where your data lives
 

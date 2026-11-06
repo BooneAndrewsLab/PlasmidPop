@@ -1,5 +1,12 @@
 import { GUIDE, guidePage } from './guide';
-import { guideLinkTarget, parseMarkdown, type Block, type Inline } from './markdown';
+import {
+  guideLinkTarget,
+  parseMarkdown,
+  tutorialLinkTarget,
+  type Block,
+  type Inline,
+} from './markdown';
+import { TUTORIAL_ORDER } from './staticTutorials';
 
 function links(inlines: readonly Inline[]): string[] {
   return inlines.flatMap((i) =>
@@ -47,9 +54,24 @@ describe('the user guide', () => {
     for (const p of GUIDE) {
       for (const href of parseMarkdown(p.markdown).flatMap(blockLinks)) {
         if (/^(https?:|#)/.test(href)) continue;
-        expect(guideLinkTarget(href), `${p.id} links to ${href}`).not.toBeNull();
+        const known = guideLinkTarget(href) ?? tutorialLinkTarget(href);
+        expect(known, `${p.id} links to ${href}`).not.toBeNull();
       }
     }
+  });
+
+  it('only links to tutorials that exist (item 137)', () => {
+    const ids = new Set([...TUTORIAL_ORDER, 'README']);
+    let seen = 0;
+    for (const p of GUIDE) {
+      for (const href of parseMarkdown(p.markdown).flatMap(blockLinks)) {
+        const target = tutorialLinkTarget(href);
+        if (target === null) continue;
+        seen++;
+        expect(ids.has(target), `${p.id} links to ${href}`).toBe(true);
+      }
+    }
+    expect(seen).toBeGreaterThanOrEqual(6);
   });
 
   it('mentions every sidebar tab and the main shortcuts', () => {

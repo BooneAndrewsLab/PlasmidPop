@@ -167,7 +167,7 @@ export function EmptyState() {
               target="_blank"
               rel="noopener"
             >
-              Cloning tutorials
+              Tutorials
             </a>
             <button
               type="button"
