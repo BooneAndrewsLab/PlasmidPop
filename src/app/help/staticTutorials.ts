@@ -22,25 +22,40 @@ import { guideLinkTarget, parseMarkdown, plainText } from './markdown.ts';
  */
 
 /**
- * The pages after the index, in reading order. The folder holds the pages
- * (`README.md` is the index, which is not in this list); a page missing from
- * here or from the folder fails the tests rather than vanishing from the site.
+ * The index's sections (item 137), in order: the `##` headings of
+ * `docs/tutorials/README.md` and the pages under each. A test ties the two,
+ * so a tutorial cannot reach the site without a row in the right table.
+ */
+export const TUTORIAL_SECTIONS: readonly { title: string; ids: readonly string[] }[] = [
+  {
+    title: 'Cloning',
+    ids: [
+      'digest-pcr',
+      'ligation',
+      'golden-gate',
+      'golden-gate-parts',
+      'modular',
+      'gibson',
+      'in-fusion',
+      'overlap-pcr',
+      'gateway',
+      'mutagenesis',
+    ],
+  },
+  { title: 'Analysis', ids: ['enzymes', 'align', 'crispr'] },
+  { title: 'Reference', ids: ['before-you-start', 'sample-files'] },
+];
+
+/**
+ * The pages after the index, in reading order (the pager's chain): Before you
+ * start, every tutorial in section order, then Sample files. The folder holds
+ * the pages (`README.md` is the index, which is not in this list); a page
+ * missing from here or from the folder fails the tests rather than vanishing
+ * from the site.
  */
 export const TUTORIAL_ORDER: readonly string[] = [
   'before-you-start',
-  'digest-pcr',
-  'ligation',
-  'golden-gate',
-  'golden-gate-parts',
-  'modular',
-  'gibson',
-  'in-fusion',
-  'overlap-pcr',
-  'gateway',
-  'mutagenesis',
-  'align',
-  'enzymes',
-  'crispr',
+  ...TUTORIAL_SECTIONS.filter((s) => s.title !== 'Reference').flatMap((s) => s.ids),
   'sample-files',
 ];
 
@@ -62,11 +77,11 @@ export function tutorialUrl(id: string | null): string {
 }
 
 const SECTION: SiteSection = {
-  name: 'PlasmidPop cloning tutorials',
+  name: 'PlasmidPop tutorials',
   indexPath: 'tutorials/',
-  indexLabel: 'All cloning tutorials',
+  indexLabel: 'All tutorials',
   footer: (home, fromDir) =>
-    `Step-by-step cloning exercises for <a href="${home}">PlasmidPop</a>, a free DNA sequence editor and plasmid viewer that runs in your browser. The sample files are synthetic. Reference: the <a href="${escapeHtml(relative(fromDir, 'guide/'))}">user guide</a>.`,
+    `Step-by-step exercises in cloning and sequence analysis for <a href="${home}">PlasmidPop</a>, a free DNA sequence editor and plasmid viewer that runs in your browser. The sample files are synthetic. Reference: the <a href="${escapeHtml(relative(fromDir, 'guide/'))}">user guide</a>.`,
 };
 
 /**
@@ -122,7 +137,7 @@ export function generateTutorialFiles(
       path: 'tutorials/index.html',
       content: document({
         section: SECTION,
-        title: `${indexTitle}: cloning step by step`,
+        title: `${indexTitle}: cloning and analysis, step by step`,
         description: describe(indexBlocks, indexTitle),
         canonical: tutorialUrl(null),
         fromDir: 'tutorials/',
@@ -139,13 +154,13 @@ export function generateTutorialFiles(
       t === undefined
         ? '<span></span>'
         : `<a href="${escapeHtml(relative(dir, pagePath(t.id)))}">${label}</a>`;
-    const up = `<a href="${escapeHtml(relative(dir, pagePath(null)))}">All cloning tutorials</a>`;
+    const up = `<a href="${escapeHtml(relative(dir, pagePath(null)))}">All tutorials</a>`;
     const pager = `<nav class="pager" aria-label="Tutorials">${link(prev, `&larr; ${escapeHtml(prev?.title ?? '')}`)}${up}${link(next, `${escapeHtml(next?.title ?? '')} &rarr;`)}</nav>`;
     files.push({
       path: `${dir}index.html`,
       content: document({
         section: SECTION,
-        title: `${p.title} | PlasmidPop cloning tutorials`,
+        title: `${p.title} | PlasmidPop tutorials`,
         description: describe(p.blocks, p.title),
         canonical: tutorialUrl(p.id),
         fromDir: dir,

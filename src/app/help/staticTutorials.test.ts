@@ -14,6 +14,7 @@ import {
 import {
   SAMPLE_FILE,
   TUTORIAL_ORDER,
+  TUTORIAL_SECTIONS,
   generateTutorialFiles,
   tutorialUrls,
   type SampleFile,
@@ -44,6 +45,28 @@ describe('static tutorial pages (#312)', () => {
     expect([...TUTORIAL_ORDER, 'README'].sort()).toEqual([...mdIds].sort());
   });
 
+  it('declare the index sections as the README headings, with exactly their pages in order (item 137)', () => {
+    const lines = index.markdown.split('\n');
+    for (const section of TUTORIAL_SECTIONS) {
+      const at = lines.indexOf(`## ${section.title}`);
+      expect(at, section.title).toBeGreaterThan(-1);
+      const rest = lines.slice(at + 1);
+      const end = rest.findIndex((l) => l.startsWith('## '));
+      const block = end < 0 ? rest : rest.slice(0, end);
+      // A table row's one link is its Page column; a list item's first link is
+      // its page. Prose such as the suggested order is not the index.
+      const ids = block
+        .filter((l) => l.startsWith('|') || l.startsWith('- '))
+        .map((l) => [...l.matchAll(/\]\(([\w-]+)\.md\)/g)].map((m) => m[1] ?? ''))
+        .filter((found) => found.length > 0)
+        .map((found) => found[0] ?? '');
+      expect(ids, section.title).toEqual(section.ids);
+    }
+    expect(TUTORIAL_ORDER[0]).toBe('before-you-start');
+    expect(TUTORIAL_ORDER.at(-1)).toBe('sample-files');
+    expect(TUTORIAL_ORDER).toHaveLength(15);
+  });
+
   it('emit an index, one page per tutorial and every sample file', () => {
     expect(byPath.has('tutorials/index.html')).toBe(true);
     for (const id of TUTORIAL_ORDER) expect(byPath.has(`tutorials/${id}/index.html`)).toBe(true);
@@ -54,9 +77,7 @@ describe('static tutorial pages (#312)', () => {
 
   it('render the index: a heading and a link to every tutorial', () => {
     const body = byPath.get('tutorials/index.html') ?? '';
-    expect(body).toContain(
-      '<h1 id="plasmidpop-cloning-tutorials">PlasmidPop cloning tutorials</h1>',
-    );
+    expect(body).toContain('<h1 id="plasmidpop-tutorials">PlasmidPop tutorials</h1>');
     for (const id of TUTORIAL_ORDER) expect(body, id).toContain(`href="./${id}/"`);
     expect(body).toContain('href="../guide/cloning/"');
   });
@@ -191,8 +212,8 @@ describe('tutorial links in the Markdown, exactly', () => {
     const page = out[1]?.content ?? '';
     expect(page).toContain('<a href="../">back</a>');
     expect(page).toContain('<a href="../files/X.gb" download>file</a>');
-    expect(page).toContain('<strong>PlasmidPop cloning tutorials</strong>');
-    expect(page).toContain('<a href="../">All cloning tutorials</a>');
+    expect(page).toContain('<strong>PlasmidPop tutorials</strong>');
+    expect(page).toContain('<a href="../">All tutorials</a>');
     expect(out[2]).toEqual({ path: 'tutorials/files/X.gb', content: 'LOCUS' });
   });
 });
