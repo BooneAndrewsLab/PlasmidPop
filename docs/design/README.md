@@ -341,3 +341,5 @@ the Bench, item 49). The rest stand.
 137. [One tutorials entry point, with categories](137-tutorials-hub.md)
 
 138. [Searching the guide](138-guide-search.md)
+
+139. [Yeast assembly: in vivo homologous recombination](139-yeast-assembly.md)
