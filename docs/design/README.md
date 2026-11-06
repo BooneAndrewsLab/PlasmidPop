@@ -333,3 +333,5 @@ the Bench, item 49). The rest stand.
 133. [The CRISPR, Enzymes and Cloning panels beside Primers and Align (plan)](133-panel-workspaces.md)
 
 134. [The Enzymes workspace, looked at in a browser (look pass of 133)](134-enzymes-look-pass.md)
+
+135. [The CRISPR workspace, looked at in a browser (look pass of 133)](135-crispr-look-pass.md)

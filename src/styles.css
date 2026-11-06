@@ -8121,8 +8121,36 @@ button {
   min-width: 0;
 }
 
+/* Short enough that the detail pane's head shows under it on a laptop screen. */
 .crispr-ws__scroll {
-  max-height: min(60vh, 560px);
+  max-height: min(42vh, 420px);
+}
+
+/* Two or three settings to a row, not one: the page is a table, not a form. */
+.crispr-ws__settings .panel__field--row,
+.crispr-filters .panel__field--row {
+  flex: 1 1 15em;
+}
+
+.crispr-ws__settings .panel__field--row .panel__select,
+.crispr-ws__settings .panel__field--row .panel__number,
+.crispr-ws__settings .panel__field--row .panel__mono-input,
+.crispr-filters .panel__field--row .panel__select,
+.crispr-filters .panel__field--row .panel__number {
+  width: 0;
+  flex: 1 1 8em;
+}
+
+/* The edit's replacement text has a placeholder that says what it takes. */
+.crispr-ws__settings .panel__field--row .panel__mono-input {
+  min-width: 14em;
+}
+
+/* The off-target counts are small numbers; the columns need not be wide. */
+.crispr-ws .wst__th,
+.crispr-ws .wst td {
+  padding-left: 4px;
+  padding-right: 4px;
 }
 
 .crispr-ws .detail {
