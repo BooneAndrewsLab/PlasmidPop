@@ -1,17 +1,13 @@
 import type { SeqDocument } from '@/core';
 
 import { type EnzymePage, enzymeWorkspace } from '../enzymeWorkspace';
+import { rememberPanel } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';
 import type { WorkspaceLayout } from '../workspaceController';
 import { DoubleDigests } from './DoubleDigestsPage';
 import { useEnzymeList } from './enzymeList';
-import {
-  EnzymeControls,
-  EnzymeFragments,
-  EnzymeRows,
-  EnzymeSource,
-  GrownIn,
-} from './EnzymeListView';
+import { EnzymeFragments, EnzymeSource, GrownIn } from './EnzymeListView';
+import { EnzymeTable } from './EnzymeTable';
 import { WorkspaceShell } from './WorkspaceShell';
 
 const LABELS: Readonly<Record<EnzymePage, string>> = {
@@ -43,7 +39,7 @@ interface Props {
 
 /**
  * The Enzyme workspace (item 133, E2): the shared shell around four pages.
- * Enzymes is the list with its filters; Digest the ticked enzymes'
+ * Enzymes is the table of what cuts, with its filters; Digest the ticked enzymes'
  * fragments on the gel; Double the best pairs of enzymes; Table the table
  * in use, to import into or add to. All over one `useEnzymeList`, the
  * panel's own, so the ticks and filters are the same ones in both; **Grown
@@ -54,6 +50,12 @@ export function EnzymeWorkspace({ doc, layout = 'split' }: Props) {
   const [page, setPage] = enzymeWorkspace.usePage(documentId);
   const list = useEnzymeList(doc);
   const { ready, rows, listedEnzymes, fragments, pairable, cuts } = list;
+
+  // The Double page opens with the enzyme asked about already chosen.
+  const findPartner = (name: string): void => {
+    rememberPanel('enzymes.anchor', documentId, name);
+    setPage('pairs');
+  };
 
   const badge = (p: EnzymePage): number | null => {
     if (!ready) return null;
@@ -89,8 +91,7 @@ export function EnzymeWorkspace({ doc, layout = 'split' }: Props) {
     >
       {page === 'enzymes' && (
         <div className="panel enzymes enzymes--page">
-          <EnzymeControls doc={doc} list={list} host={false} />
-          <EnzymeRows doc={doc} list={list} />
+          <EnzymeTable doc={doc} list={list} layout={layout} onPartner={findPartner} />
         </div>
       )}
       {page === 'digest' && (

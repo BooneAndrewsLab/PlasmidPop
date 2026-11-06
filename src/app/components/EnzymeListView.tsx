@@ -1,33 +1,34 @@
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import {
-  type CutSite,
-  type Enzyme,
-  type EnzymeSites,
   type SeqDocument,
-  cutLabel,
   describeBands,
-  formatInt,
-  getEnzyme,
   type HostMethylationState,
   describeHost,
   hostMarksFromBits,
   isHostMethylationSensitive,
-  isDoubleCutter,
-  overhangKind,
 } from '@/core';
 
-import { CUT_COUNT_OPTIONS, cutCountPhrase, isCutCountFilter } from '../state/cutFilter';
-import { ENZYME_SORT_OPTIONS, isEnzymeSort } from '../state/enzymeSort';
+import { cutCountPhrase } from '../state/cutFilter';
 import { editorStore } from '../state/editorStore';
 import { useGelOptions } from '../state/useGel';
 import { useEditorState } from '../state/useEditorStore';
 import { BandLine } from './BandLine';
 import { CustomEnzymeForm } from './CustomEnzymeForm';
 import { type EnzymeList, gelSentence } from './enzymeList';
+import {
+  MAX_SHOW_LISTED,
+  MAX_SITES_SHOWN,
+  countMarked,
+  describeEnzyme,
+  describeOthers,
+  describeSite,
+  firstSites,
+  selectCutSite,
+  tickRow,
+} from './enzymeRows';
 import { EnzymeImport } from './EnzymeImport';
 import { Gel } from './Gel';
-import { useRowWindow } from './useRowWindow';
 
 /**
  * The strains a document can say it came from (#45). Not every combination
@@ -40,75 +41,6 @@ const HOSTS: readonly HostMethylationState[] = [
   { dam: false, dcm: true },
   { dam: false, dcm: false },
 ];
-
-/**
- * Cut positions listed in one row before the rest become a count. An imported
- * REBASE table has four-base cutters that hit a plasmid a hundred times, and
- * a hundred numbers in a row is not a list anyone reads.
- */
-const MAX_SITES_SHOWN = 12;
-
-/** The sites a row lists, made one by one rather than all of the enzyme's (#281). */
-function firstSites(site: EnzymeSites['site'], count: number): CutSite[] {
-  const out: CutSite[] = [];
-  for (let i = 0; i < Math.min(count, MAX_SITES_SHOWN); i++) {
-    const s = site(i);
-    if (s !== undefined) out.push(s);
-  }
-  return out;
-}
-
-/**
- * Height assumed for a row not yet measured, in pixels: a name and one line
- * of cut positions. Only rows below the viewport are ever guessed at, so the
- * guess costs nothing but a slightly wrong scrollbar.
- */
-const ROW_ESTIMATE = 46;
-
-/** How many of a row's sites carry a Dam or Dcm mark. */
-function countMarked(marks: Iterable<number>): number {
-  let n = 0;
-  for (const bits of marks) if (bits !== 0) n++;
-  return n;
-}
-
-/**
- * How long a list "Show listed" will tick in one go. Ticking every enzyme of
- * an imported REBASE table is around 1,400 of them and 63,000 cut sites to
- * label, which no view can draw; past this the button asks for a narrower
- * list instead of taking the page down.
- */
-const MAX_SHOW_LISTED = 200;
-
-function describeSite(site: CutSite, doc: SeqDocument): string {
-  return formatInt(cutLabel(site.cut, doc.length, doc.topology));
-}
-
-/** Tooltip for an enzyme: the overhang, and whatever an import added. */
-function describeEnzyme(enzyme: Enzyme): string {
-  const lines = [`${overhangKind(enzyme)} overhang`];
-  if (isDoubleCutter(enzyme)) {
-    lines.push(
-      'Cuts on both sides of its site, so each site is two cuts and leaves on a short piece',
-    );
-  }
-  if (enzyme.suppliers !== undefined && enzyme.suppliers.length > 0) {
-    lines.push(`Suppliers: ${enzyme.suppliers.join('')}`);
-  }
-  if (enzyme.methylation !== undefined) {
-    lines.push(`Methylated by its own MTase at ${enzyme.methylation}`);
-  }
-  if (isHostMethylationSensitive(enzyme.name)) {
-    lines.push(
-      'Blocked or impaired by Dam or Dcm methylation where it overlaps the site (NEB); marked sites are those',
-    );
-  }
-  const iso = enzyme.isoschizomers ?? [];
-  if (iso.length > 0) {
-    lines.push(`Isoschizomers: ${iso.slice(0, 8).join(', ')}${iso.length > 8 ? ', …' : ''}`);
-  }
-  return lines.join('\n');
-}
 
 /**
  * "1 of 2 sites blocked by Dam/Dcm", under a row whose enzyme would not cut
@@ -125,23 +57,6 @@ function MethylationNote({ count, of }: { readonly count: number; readonly of: n
       be blocked by Dam/Dcm methylation
     </span>
   );
-}
-
-/** "BstI, AliI and 3 more", a row's other names. */
-function describeOthers(shown: Enzyme, members: readonly Enzyme[]): string {
-  const others = members.filter((e) => e !== shown).map((e) => e.name);
-  const named = others.slice(0, 8);
-  const rest = others.length - named.length;
-  if (rest > 0) return `${named.join(', ')} and ${rest} more`;
-  return named.length > 1
-    ? `${named.slice(0, -1).join(', ')} and ${named[named.length - 1] ?? ''}`
-    : named.join('');
-}
-
-/** The pieces of the Enzymes list the slim panel and the Enzyme workspace both mount (item 133). */
-interface ListProps {
-  readonly doc: SeqDocument;
-  readonly list: EnzymeList;
 }
 
 /**
@@ -231,166 +146,6 @@ export function EnzymeNotes({ list }: { readonly list: EnzymeList }) {
   );
 }
 
-/**
- * The filters, the order, the supplier, the ticks' buttons and the notes a
- * hidden or empty tick state needs. `host` puts **Grown in** among them: the
- * workspace has it in its head instead.
- */
-export function EnzymeControls({
-  doc,
-  list,
-  host = true,
-}: ListProps & { readonly host?: boolean }) {
-  const {
-    enzymeSetInfo,
-    enzymeCutFilter,
-    enzymeSort,
-    enzymeGroupIsoschizomers: grouped,
-    enzymeSortReversed: reversed,
-  } = useEditorState();
-  const orderId = useId();
-  const { filter, setFilter, supplier, rows } = list;
-  return (
-    <>
-      <div className="panel__controls">
-        <div className="panel__form">
-          <label>
-            <span>Filter</span>
-            <input
-              className="panel__search"
-              type="search"
-              placeholder="Enzyme or site"
-              aria-label="Filter enzymes"
-              value={filter}
-              onChange={(e) => {
-                setFilter(e.target.value);
-              }}
-            />
-          </label>
-          <label>
-            <span>Cuts</span>
-            <select
-              className="panel__select"
-              value={enzymeCutFilter}
-              data-tip="List only the enzymes that cut this many times — two for a diagnostic digest, one for a cloning site"
-              onChange={(e) => {
-                editorStore.setEnzymeCutFilter(
-                  isCutCountFilter(e.target.value) ? e.target.value : 'any',
-                );
-              }}
-            >
-              {CUT_COUNT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label htmlFor={orderId}>
-            <span>Order</span>
-            <span className="panel__form-pair">
-              <select
-                id={orderId}
-                className="panel__select"
-                value={enzymeSort}
-                data-tip="Alphabetically, or the enzymes whose fragments are furthest apart on a gel first"
-                onChange={(e) => {
-                  editorStore.setEnzymeSort(isEnzymeSort(e.target.value) ? e.target.value : 'name');
-                }}
-              >
-                {ENZYME_SORT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value} title={o.title}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className="button button--quiet button--small"
-                aria-pressed={reversed}
-                aria-label="Reverse the order"
-                data-tip={
-                  enzymeSort === 'name'
-                    ? 'List Z to A'
-                    : 'List the lanes that would be hardest to read first'
-                }
-                onClick={() => {
-                  editorStore.setEnzymeSortReversed(!reversed);
-                }}
-              >
-                {reversed ? '↑' : '↓'}
-              </button>
-            </span>
-          </label>
-          {host && <GrownIn doc={doc} />}
-          <span className="panel__form-label">Isoschizomers</span>
-          <span className="panel__form-range">
-            <label
-              className="panel__form-check"
-              data-tip="Enzymes that cut the same site in the same place give the same fragments and ends; list them as one row"
-            >
-              <input
-                type="checkbox"
-                checked={grouped}
-                onChange={(e) => {
-                  editorStore.setEnzymeGroupIsoschizomers(e.target.checked);
-                }}
-              />
-              share a row
-            </label>
-          </span>
-          {enzymeSetInfo.suppliers.length > 0 && (
-            <label>
-              <span>Sold by</span>
-              <select
-                className="panel__select"
-                value={supplier}
-                onChange={(e) => {
-                  editorStore.setEnzymeSupplier(e.target.value);
-                }}
-              >
-                <option value="">Any supplier</option>
-                {enzymeSetInfo.suppliers.map((sup) => (
-                  <option key={sup.code} value={sup.code}>
-                    {sup.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-        </div>
-        <div className="panel__buttons">
-          <button
-            type="button"
-            className="button button--quiet button--small"
-            disabled={rows.length > MAX_SHOW_LISTED}
-            data-tip={
-              rows.length > MAX_SHOW_LISTED
-                ? `${rows.length.toLocaleString()} enzymes is more than the views can label; filter the list first`
-                : 'Tick every enzyme in the list'
-            }
-            onClick={() => {
-              editorStore.setShownEnzymes(rows.map((g) => g.enzyme.name));
-            }}
-          >
-            Show listed
-          </button>
-          <button
-            type="button"
-            className="button button--quiet button--small"
-            onClick={() => {
-              editorStore.setShownEnzymes([]);
-            }}
-          >
-            Hide all
-          </button>
-        </div>
-      </div>
-      <EnzymeNotes list={list} />
-    </>
-  );
-}
-
 /** One enzyme's row: ticked or not, its site, where it cuts, and the bands it would give. */
 export function EnzymeRow({
   row: { enzyme, members, count, site, host: marks, profile },
@@ -403,13 +158,6 @@ export function EnzymeRow({
   readonly shownEnzymes: ReadonlySet<string>;
   readonly liRef?: (el: HTMLElement | null) => void;
 }) {
-  const selectSite = (site: CutSite): void => {
-    const enzyme = getEnzyme(site.enzyme);
-    const len = enzyme?.site.length ?? 1;
-    editorStore.setSelection({ start: site.siteStart, end: site.siteStart + len });
-    editorStore.revealPosition(site.siteStart);
-  };
-
   return (
     <li className="enzyme-row" ref={liRef}>
       <label
@@ -420,13 +168,7 @@ export function EnzymeRow({
           type="checkbox"
           checked={members.some((e) => shownEnzymes.has(e.name))}
           onChange={(e) => {
-            if (e.target.checked) editorStore.setEnzymeShown(enzyme.name, true);
-            else {
-              // Unticking the row unticks the whole group, or an
-              // isoschizomer ticked earlier would keep it ticked.
-              const names = new Set(members.map((m) => m.name));
-              editorStore.setShownEnzymes([...shownEnzymes].filter((name) => !names.has(name)));
-            }
+            tickRow(enzyme, members, shownEnzymes, e.target.checked);
           }}
         />
         <span className="enzyme-row__name">{enzyme.name}</span>
@@ -459,7 +201,7 @@ export function EnzymeRow({
                   : ''
               }`}
               onClick={() => {
-                selectSite(s);
+                selectCutSite(s);
               }}
             >
               {describeSite(s, doc)}
@@ -479,55 +221,6 @@ export function EnzymeRow({
       />
       <BandLine profile={profile()} />
     </li>
-  );
-}
-
-/** The list itself, windowed, with the line on how many enzymes it shows. */
-export function EnzymeRows({ doc, list }: ListProps) {
-  const {
-    shownEnzymes,
-    enzymeSetInfo,
-    enzymeCutFilter,
-    enzymeSort,
-    enzymeSortReversed: reversed,
-  } = useEditorState();
-  const { needle, supplier, ready, rows, listedEnzymes, nonCutters } = list;
-  // Only the rows on screen are rendered: an imported table lists thousands.
-  const { first, end, padTop, padBottom, attachScroller, attachRow, scrollToTop } = useRowWindow(
-    useMemo(() => rows.map((g) => g.enzyme.name), [rows]),
-    ROW_ESTIMATE,
-  );
-  // A new filter is a new list, and the old scroll position means nothing in it.
-  useEffect(() => {
-    scrollToTop();
-  }, [needle, supplier, enzymeCutFilter, enzymeSort, reversed, scrollToTop]);
-
-  if (!ready) return <p className="panel__note">Scanning for restriction sites…</p>;
-  return (
-    <>
-      <div className="enzyme-list__scroll" ref={attachScroller}>
-        <ul className="enzyme-list" style={{ paddingTop: padTop, paddingBottom: padBottom }}>
-          {rows.slice(first, end).map((row) => (
-            <EnzymeRow
-              key={row.enzyme.name}
-              row={row}
-              doc={doc}
-              shownEnzymes={shownEnzymes}
-              liRef={attachRow(row.enzyme.name)}
-            />
-          ))}
-        </ul>
-      </div>
-      <p className="panel__note">
-        {listedEnzymes.toLocaleString()} of {enzymeSetInfo.count.toLocaleString()} enzymes{' '}
-        {cutCountPhrase(enzymeCutFilter)}
-        {supplier === '' ? '' : ' and are sold by that supplier'}
-        {rows.length < listedEnzymes
-          ? `, in ${rows.length.toLocaleString()} rows with isoschizomers together`
-          : ''}
-        . {nonCutters.toLocaleString()} do not cut.
-      </p>
-    </>
   );
 }
 

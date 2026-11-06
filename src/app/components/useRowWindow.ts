@@ -11,6 +11,12 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react';
  * never yet seen counts as `estimate` tall, which is only ever used for rows
  * below the viewport, where being a few pixels out moves nothing the user
  * can see.
+ *
+ * A list in a `ul` puts `padTop` and `padBottom` on it as padding. A table
+ * (item 133, §3.6) puts them on two spacer rows, one before and one after the
+ * rows of `rows.slice(first, end)`, each `attachRow(key)` on its `tr`, with
+ * the `.tablewrap` around it as the scroller: the sticky header is the
+ * scroller's, so `scrollToIndex` allows for it.
  */
 export interface RowWindow {
   /** Index of the first row to render. */
@@ -26,6 +32,12 @@ export interface RowWindow {
   readonly attachRow: (key: string) => (node: HTMLElement | null) => void;
   /** Puts the scroll back to the top, for when the list itself changed. */
   readonly scrollToTop: () => void;
+  /**
+   * Scrolls just far enough that row `index` is in view, even when it is not
+   * rendered yet: a key that jumps to the last row of 1,500 has nothing to
+   * focus until the window has moved there. The window follows at once.
+   */
+  readonly scrollToIndex: (index: number) => void;
 }
 
 /**
@@ -108,6 +120,22 @@ export function useRowWindow(keys: readonly string[], estimate: number): RowWind
   offsets[keys.length] = acc;
 
   const viewport = scroll.viewport > 0 ? scroll.viewport : ASSUMED_VIEWPORT;
+  const scrollToIndex = (index: number): void => {
+    const current = node.current;
+    const from = offsets[index];
+    const to = offsets[index + 1];
+    if (current === null || from === undefined || to === undefined) return;
+    // Rows are measured from under a sticky header, which covers the top
+    // `head` pixels of what the scroller shows.
+    const head = current.querySelector('thead')?.offsetHeight ?? 0;
+    const shown = current.clientHeight > 0 ? current.clientHeight : ASSUMED_VIEWPORT;
+    let next = current.scrollTop;
+    if (from < next) next = from;
+    else if (head + to > next + shown) next = head + to - shown;
+    if (next === current.scrollTop) return;
+    current.scrollTop = next;
+    setScroll({ top: next, viewport: shown });
+  };
   // The scroll position can outrun the list when a filter shortens it; the
   // browser clamps its own scrollTop and tells us, but not before this render.
   const top = Math.max(0, Math.min(scroll.top, acc - viewport));
@@ -124,6 +152,7 @@ export function useRowWindow(keys: readonly string[], estimate: number): RowWind
     attachScroller,
     attachRow,
     scrollToTop,
+    scrollToIndex,
   };
 }
 

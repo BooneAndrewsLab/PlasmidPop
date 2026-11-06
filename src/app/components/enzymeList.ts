@@ -69,6 +69,28 @@ function describeBandFragments(band: GelBand): string {
   return rest > 0 ? `${shown.join(', ')} and ${rest} more` : shown.join(' and ');
 }
 
+/**
+ * What clicking a band of a lane does: selects the piece it is in the views.
+ * `pieces` are the fragments the lane was drawn from; `who` prefixes the
+ * tooltip, for a lane that is one of several.
+ */
+export function pickPiece(pieces: readonly Fragment[], who: string) {
+  return {
+    onPick: (band: GelBand) => {
+      const piece = pieces.find((f) => f.length === band.length);
+      if (piece === undefined) return;
+      editorStore.setSelection({ start: piece.start, end: piece.end });
+      editorStore.revealPosition(piece.start);
+    },
+    pickTitle: (band: GelBand) =>
+      `${who}${
+        band.fragments.length > 1
+          ? `${describeBandFragments(band)} bp run here; select the ${band.length.toLocaleString()} bp one`
+          : `Select the ${band.length.toLocaleString()} bp fragment in the views`
+      }`,
+  };
+}
+
 /** How everything ticked together would read on a gel, in a sentence. */
 export function gelSentence(ticked: DigestProfile, gel: GelOptions): string {
   return ticked.misleading
@@ -232,20 +254,6 @@ export function useEnzymeList(doc: SeqDocument) {
    * digest anyone runs, and one lane says as much as it can.
    */
   const lanes = useMemo((): GelLane[] => {
-    const pick = (pieces: readonly Fragment[], who: string) => ({
-      onPick: (band: GelBand) => {
-        const piece = pieces.find((f) => f.length === band.length);
-        if (piece === undefined) return;
-        editorStore.setSelection({ start: piece.start, end: piece.end });
-        editorStore.revealPosition(piece.start);
-      },
-      pickTitle: (band: GelBand) =>
-        `${who}${
-          band.fragments.length > 1
-            ? `${describeBandFragments(band)} bp run here; select the ${band.length.toLocaleString()} bp one`
-            : `Select the ${band.length.toLocaleString()} bp fragment in the views`
-        }`,
-    });
     const n = tickedGroups.length;
     const alone = n >= 2 && n <= MAX_SINGLE_LANES;
     // A lane is narrow, so the heading under it is a name or a count, never
@@ -260,14 +268,14 @@ export function useEnzymeList(doc: SeqDocument) {
               ? 'Both'
               : `All ${n}`
             : `${n} enzymes`,
-      ...pick(fragments, alone ? `${n === 2 ? 'Both' : `All ${n}`}: ` : ''),
+      ...pickPiece(fragments, alone ? `${n === 2 ? 'Both' : `All ${n}`}: ` : ''),
     };
     if (!alone) return [combined];
     return [
       ...tickedGroups.map((g) => ({
         profile: g.profile,
         label: g.name,
-        ...pick(digestFragments(cuts(g), doc.length, doc.topology), `${g.name} alone: `),
+        ...pickPiece(digestFragments(cuts(g), doc.length, doc.topology), `${g.name} alone: `),
       })),
       combined,
     ];

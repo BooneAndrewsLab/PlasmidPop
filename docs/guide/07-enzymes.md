@@ -26,7 +26,7 @@ the rest. The tab has:
   When the DNA's host methylation blocks some ticked sites, it says how many
   (see [Where the DNA was grown](#where-the-dna-was-grown));
 - with the box empty, the **ticked enzymes**, a row each (see
-  [Reading the list](#reading-the-list)), and **Hide all** under them;
+  [The enzyme table](#the-enzyme-table)), and **Hide all** under them;
 - **Grown in**;
 - how everything ticked would read on a gel, in a sentence, with **Digest ›**
   to the picture;
@@ -37,8 +37,9 @@ the rest. The tab has:
 Align workspace ›** does for [Align](11-align.md#the-tab-and-the-workspace).
 It has four pages down its left edge:
 
-- **Enzymes** — the whole list, with its filters, order and supplier, **Show
-  listed** and **Hide all**.
+- **Enzymes** — the [enzyme table](#the-enzyme-table): every enzyme that
+  cuts, with its filters and supplier, **Show listed** and **Hide all**, and
+  the selected enzyme in full beside it.
 - **Digest** — the **Fragments from ticked enzymes**: the gel, the sizes
   and how it would read.
 - **Double** — the best double digests (see
@@ -55,22 +56,29 @@ is set in the other. The workspace is a region of the window, not a dialog:
 **Open Enzyme workspace ›**, whichever link opened it, and choosing another
 sidebar tab closes it too. On a phone it fills the screen.
 
-## Reading the list
+## The enzyme table
 
-Each row is one enzyme that cuts the sequence — or, with isoschizomers
-sharing a row, every enzyme that cuts it identically (see
-[Isoschizomers](#isoschizomers)):
+The workspace's **Enzymes** page is a table of the enzymes that cut the
+sequence — or, with isoschizomers sharing a row, of every group of enzymes
+that cut it identically (see [Isoschizomers](#isoschizomers)). A row has:
 
 - a **tick box** that chooses the enzyme: its cut sites are drawn in the
   views, and the Cloning tab digests with it;
 - the **name**, with **+N** after it when N other enzymes share the row
   (hover it for their names);
-- the **recognition site**, 5′→3′ on the top strand (hover to see whether it
-  leaves a blunt end, a 5′ overhang or a 3′ overhang);
-- the **cut positions**: the base after which the top strand is cut (a cut
+- the **site**: the recognition site, 5′→3′ on the top strand (hover for
+  what else is known of the enzyme, such as its suppliers after a REBASE
+  import);
+- the **overhang** the cut leaves: blunt, 5′ or 3′ (hover for how many
+  bases);
+- **Cuts**: how many times it cuts;
+- the **positions**: the base after which the top strand is cut (a cut
   exactly at the origin of a circle is after its last base, so it reads as
   the sequence's length). Click one to select that recognition site in the
-  views;
+  views. A dozen are listed, then **+N** for the rest, and three on a phone;
+- **Dam/Dcm**, for an enzyme these methylations can block: how many of its
+  sites they may block, as _1 of 2_ (see
+  [Dam and Dcm methylation](#dam-and-dcm-methylation));
 - the **bands** this enzyme alone would give, largest first, as a gel would
   show them. Fragments within about 15 % of each other are written as one
   band (`2,181 ×2`), because that is what you would see. A ⚠ means the lane
@@ -79,14 +87,49 @@ sharing a row, every enzyme that cuts it identically (see
   simply linearises the plasmid gets no mark: there is nothing to tell
   apart, which is not a fault.
 
-The list scrolls inside the panel, so what is below it — the counts, the
-import link, the fragment sizes — stays where you left it however many
-enzymes cut. Only the rows on screen are drawn, which is what keeps an
-imported table of 1,500 enzymes responsive; a browser page search (Ctrl+F)
-will not find an enzyme that is scrolled out of sight, so use the filter box
-for that.
+The **Name** and **Bands** headings sort the table, and say which way with
+an arrow: **Name** is the catalogue, A to Z. **Bands** is _band separation_,
+which puts the enzymes whose bands are easiest to tell apart on a gel first
+and the ones whose bands would run together last, which is how a diagnostic
+digest is actually chosen (see
+[Choosing a diagnostic digest](#choosing-a-diagnostic-digest)). Click the
+heading again to turn the order round, Z to A or the lanes hardest to read
+first; click the other heading to start again from its top. The order is
+remembered between sessions.
 
-Below the list: how many enzymes cut, and how many do not cut at all.
+The table scrolls inside the page, so the line under it — how many enzymes
+cut, and how many do not cut at all — stays where you left it however many
+cut. Only the rows on screen are drawn, which is what keeps an imported
+table of 1,500 enzymes responsive; a browser page search (Ctrl+F) will not
+find an enzyme that is scrolled out of sight, so use the filter box for that.
+
+### One enzyme in full
+
+Click a row — anywhere but its tick box or a position — to see that enzyme
+beside the table, or under it where there is not room. Click it again, or
+press `Esc` with the keyboard in the table, to put it away; the next `Esc`
+closes the workspace. The pane has:
+
+- what is known of the enzyme: its overhang, its suppliers and every
+  isoschizomer when there are some, the other enzymes in its row, and how
+  many of its sites Dam or Dcm methylation may block;
+- **every site it cuts**, each with the ten bases of the top strand either
+  side of its recognition site, the methylation that overlaps it, and
+  **Select**, which selects that site in the views. A four-base cutter can
+  have thousands, so the first 200 are listed;
+- **its lane alone**, on a gel, with its own bands to click;
+- **Tick** or **Untick**, as the box in the row;
+- **Find a partner ›**, which opens the **Double** page with the best
+  partners for this enzyme already searched (see
+  [A partner for one enzyme](#a-partner-for-one-enzyme)). It is off for an
+  enzyme that cuts more than three times, which is not paired.
+
+The keys are in [Keyboard shortcuts](14-shortcuts.md#workspaces): the
+table is one stop in the tab order, `↑ ↓ Home End` walk the rows, and
+the detail follows the selected one.
+
+The tab's own rows, for the ticked enzymes and a search, carry the same tick,
+name, site, positions and bands in a list instead of a table.
 
 ## Choosing which to show
 
@@ -119,21 +162,18 @@ Below the list: how many enzymes cut, and how many do not cut at all.
   A **diagnostic digest** is the usual reason for wanting more than one — an
   enzyme that cuts twice gives two bands to check a construct against, where
   a unique cutter only linearises it. **Any number** is the default.
-- **Order** sorts the list. _Name_ is the catalogue. _Band separation_ puts
-  the enzymes whose bands are easiest to tell apart on a gel first, and the
-  ones whose bands would run together last, which is how a diagnostic digest
-  is actually chosen. Bands twice as long as each other are as distinct as
-  bands ever get, so past that the order prefers a lane whose smallest band
-  is bright — 500 bp or more on a 1 % gel — over one with a faint sliver at
-  the foot. The **↓** button beside it reverses either order: Z to A, or the
-  lanes hardest to read first (enzymes that do not cut stay at the end).
+- **Bands**, the table's heading, sorts by band separation. Bands twice as
+  long as each other are as distinct as bands ever get, so past that the
+  order prefers a lane whose smallest band is bright — 500 bp or more on a
+  1 % gel — over one with a faint sliver at the foot. Turned round, it
+  lists the lanes hardest to read first.
 - **Sold by** narrows the list to one supplier's catalogue. It appears only
   after you import a REBASE table, which is where the supplier information
   comes from.
 
-- **Isoschizomers: share a row** is described [below](#isoschizomers).
+- **Isoschizomers share a row** is described [below](#isoschizomers).
 
-**Cuts**, **Order** (and its direction), **Sold by** and **Isoschizomers** are remembered between sessions, like
+**Cuts**, the order (and its direction), **Sold by** and **Isoschizomers** are remembered between sessions, like
 the toolbar's view settings: they say what you are generally looking for
 rather than anything about the document. The name filter is not — it is a
 question about the list in front of you, not a standing choice.
@@ -145,17 +185,16 @@ they are included in **File ▸ Export figure…**, where the map's
 
 ## Choosing a diagnostic digest
 
-Set **Cuts** to _Twice_ and **Order** to _Band separation_. The enzyme at the
+Set **Cuts** to _Twice_ and click the **Bands** heading. The enzyme at the
 top gives the two bands easiest to read, which is the one to run. On pBR322
 that is HincII, at 3,254 + 1,107 bp, with BstAPI and DrdI (3,948 + 413) just
 behind it; BtsI also cuts twice, but its two cuts are 20 bp apart, so it is
 at the bottom with a ⚠ and one band you could see.
 
-When no single enzyme will do, **Double digests** under the list offers the
-five best pairs of the enzymes listed, judged by the same rule on the digest
-with both — on pBR322, EagI + MscI at 3,854 + 507 bp. It appears while the
-list is ordered by band separation, pairs only enzymes that cut three times
-or fewer, and follows the other filters, so _Sold by_ narrows the pairs to
+When no single enzyme will do, the **Double** page offers the five best
+pairs of the enzymes listed, judged by the same rule on the digest with
+both — on pBR322, EagI + MscI at 3,854 + 507 bp. It pairs only enzymes that
+cut three times or fewer, and follows the other filters, so _Sold by_ narrows the pairs to
 what you can buy from one place. A pair whose second enzyme cuts only where
 the first already does is left out, since it is the same digest as one
 enzyme alone. **Tick both** ticks that pair and nothing else, and the gel
@@ -165,15 +204,16 @@ then shows it beside each enzyme alone. With a big imported table only the
 ### A partner for one enzyme
 
 Often the question is narrower: _what do I cut with EcoRI to check this?_
-Set **Pair** above the double digests to _EcoRI with a partner_, and the
+Select EcoRI in the table and choose **Find a partner ›**, or set **Pair**
+above the double digests to _EcoRI with a partner_, and the
 five best partners for it are listed, looked for among **every** enzyme
 that cuts three times or fewer — the name filter and the **Cuts** filter do
 not narrow them, only **Sold by** does. With exactly one enzyme ticked, the
-section offers **Find a partner for** it in one click. Set **Pair** back to
+page offers **Find a partner for** it in one click. Set **Pair** back to
 _any two listed enzymes_ for the pairs of the list.
 
-Tick a candidate and the **Fragments from ticked enzymes** section below the
-list says what the whole digest would look like — several enzymes ticked
+Tick a candidate and the **Fragments from ticked enzymes** on the Digest page
+say what the whole digest would look like — several enzymes ticked
 together give a lane none of their own rows can predict.
 
 ### A double digest beside the single ones
@@ -192,8 +232,8 @@ and the gel goes back to one lane for them all.
 Enzymes from different organisms often recognise the same site and cut it
 in the same place — BamHI, BstI and a dozen others all cut `G^GATCC`. They
 give the same fragments with the same ends, so at the bench they are one
-choice whatever the label on the tube. With **Isoschizomers: share a row**
-ticked (the default), they are listed as one row: an imported REBASE table
+choice whatever the label on the tube. With **Isoschizomers share a row**
+on (the default), they are listed as one row: an imported REBASE table
 of about 1,580 enzymes becomes about 400 rows.
 
 - The row carries the best-known name: an enzyme from the bundled table if
@@ -204,14 +244,14 @@ of about 1,580 enzymes becomes about 400 rows.
   every enzyme in the row.
 - When a document opens and its single cutters are ticked, one enzyme per
   row is ticked, so one cut is drawn with one label rather than twelve.
-- The count under the list still counts enzymes, and says how many rows
+- The line under the table still counts enzymes, and says how many rows
   they take.
 
 Enzymes that recognise the same site but cut it differently —
 _neoschizomers_ such as SmaI (`CCC^GGG`, blunt) and XmaI (`C^CCGGG`, 5′
 overhang) — keep separate rows, because the ends they leave are what a
-cloning plan depends on. Untick **share a row** to list every enzyme on its
-own.
+cloning plan depends on. Turn **Isoschizomers share a row** off to list every enzyme on
+its own.
 
 ## Hiding the cut sites without losing the choice
 
@@ -283,8 +323,9 @@ tab.
 
 1. Open the **Enzymes** tab.
 2. Type the enzyme name in the filter box.
-3. Look at the number of cut positions in its row. To list all unique
-   cutters at once, open the workspace and set **Cuts** to _Once_.
+3. Look at the number of cut positions in its row; in the workspace's table
+   it is the **Cuts** column. To list all unique cutters at once, open the
+   workspace and set **Cuts** to _Once_.
 
 ## Importing the full REBASE table
 
@@ -395,9 +436,11 @@ GG of its `GGATG`, as in `CCAGGATG`, the one way Dcm reaches its site. A few enz
 such table in REBASE (BclI, DpnII, BssKI, BcgI, FspI and PhoI); for those,
 any Dam or Dcm methyl group inside the site counts. A cut position whose site a Dam or Dcm methyl
 group would fall in, in a way that enzyme is sensitive to, is marked with a small **m** and
-written in the warning colour; hovering it says which. The row says how many
-of its sites are affected — _1 of 2 sites may be blocked by Dam/Dcm
-methylation_ — and the enzyme's tooltip says it is a sensitive one.
+written in the warning colour; hovering it says which. The table's **Dam/Dcm**
+column says how many of its sites are affected — _1 of 2_ — and the enzyme's
+detail says it in words, _1 of 2 sites may be blocked by Dam/Dcm
+methylation_, and marks the sites, with the methylase, in its list of them.
+The enzyme's tooltip says it is a sensitive one.
 
 On pBR322, for example, the MscI site is inside a CCTGG and the BspEI site
 inside a GATC, so plasmid grown in an ordinary strain may not cut there.
@@ -416,7 +459,7 @@ whatever the host is, because "this would be blocked in a dam+ strain" is
 worth knowing about DNA that is not in one. But a site the host's
 methylation does block is left out of:
 
-- the fragments and the gel below the list;
+- the fragments and the gel on the Digest page;
 - the double-digest ranking, so an enzyme this DNA would silence is not
   offered as a partner;
 - the Cloning tab's digest, and so the shelf, the ligation and the gel

@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import { type Enzyme, type EnzymeSites, type SeqDocument, bestPairs, bestPartners } from '@/core';
 
 import { editorStore } from '../state/editorStore';
+import { useRemembered } from '../state/panelMemory';
+import { useEditorState } from '../state/useEditorStore';
 import { useGelOptions } from '../state/useGel';
 import { BandLine } from './BandLine';
 import { MAX_PAIR_CUTS, type PairRow } from './enzymeList';
@@ -41,7 +43,9 @@ interface DoubleDigestsProps {
  */
 export function DoubleDigests({ listed, pairable, cuts, doc, shownEnzymes }: DoubleDigestsProps) {
   const gel = useGelOptions();
-  const [anchorName, setAnchorName] = useState('');
+  const { documentId } = useEditorState();
+  // Remembered: the Enzymes page's **Find a partner ›** sets it before the page is shown.
+  const [anchorName, setAnchorName] = useRemembered('enzymes.anchor', documentId, '');
   const anchor =
     anchorName === '' ? undefined : pairable.find((r) => r.members.includes(anchorName));
   // Keyed on the names rather than on `listed`, a new array every render.

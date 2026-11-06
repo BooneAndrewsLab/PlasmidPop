@@ -8007,3 +8007,84 @@ button {
   color: var(--ink-3);
   font-size: 12.5px;
 }
+
+/*
+ * The Enzymes page's table and its detail pane (item 133, E4). The table
+ * scrolls in its own box, so the count line under it stays in reach however
+ * many enzymes cut; the detail sits beside it where there is room and wraps
+ * under it where there is not.
+ */
+.enz-ws {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.enz-ws__main {
+  flex: 1 1 520px;
+  min-width: 0;
+}
+
+.enz-ws__scroll {
+  max-height: min(60vh, 560px);
+}
+
+.enz-ws .detail {
+  flex: 1 1 320px;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.wst .wst__spacer td {
+  padding: 0;
+  border: 0;
+}
+
+/* The positions are the long column: they wrap rather than widen the table. */
+.wst td.enz-cuts {
+  min-width: 150px;
+  max-width: 22em;
+  white-space: normal;
+}
+
+.wst .enz-cuts .link {
+  margin-right: 8px;
+}
+
+.wst .enzyme-row__bands {
+  padding-left: 0;
+}
+
+.enz-detail__body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.enz-detail__facts {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.enz-detail__gel {
+  flex: 0 0 auto;
+}
+
+.enz-detail__list {
+  margin: 0 0 8px;
+  padding-left: 18px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.enz-detail__sites {
+  max-height: 220px;
+  overflow: auto;
+}
+
+.enz-detail__sites .dt th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-2);
+}

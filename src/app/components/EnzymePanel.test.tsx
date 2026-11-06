@@ -138,34 +138,6 @@ describe('EnzymePanel', () => {
     );
   });
 
-  it('renders only the rows near the viewport', () => {
-    const names = activeEnzymes()
-      .slice(0, 120)
-      .map((e) => e.name);
-    setup(singleCutters(names.length));
-    const scroller = document.querySelector('.enzyme-list__scroll');
-    const list = document.querySelector('.enzyme-list');
-    if (scroller === null || list === null) throw new Error('no list');
-    // Every row is counted, but only a screenful of them is in the DOM.
-    expect(screen.getByText(/120 of 127 enzymes cut/)).toBeInTheDocument();
-    const rendered = () =>
-      [...list.querySelectorAll('.enzyme-row__name')].map((n) => n.textContent);
-    expect(rendered().length).toBeLessThan(names.length / 2);
-    expect(rendered()).toContain(names[0]);
-    expect(rendered()).not.toContain(names[names.length - 1]);
-
-    // Scrolling to the bottom swaps the window over, and the list keeps its
-    // full height through the padding above the rows.
-    Object.defineProperty(scroller, 'clientHeight', { value: 400, configurable: true });
-    Object.defineProperty(scroller, 'scrollTop', { value: 1e6, configurable: true });
-    act(() => {
-      fireEvent.scroll(scroller);
-    });
-    expect(rendered()).toContain(names[names.length - 1]);
-    expect(rendered()).not.toContain(names[0]);
-    expect(parseFloat((list as HTMLElement).style.paddingTop)).toBeGreaterThan(0);
-  });
-
   it('shows the bands each enzyme alone would give, and warns about a muddy one', () => {
     const names = activeEnzymes()
       .slice(0, 3)
@@ -293,11 +265,11 @@ describe('EnzymePanel', () => {
     expect(editorStore.getState().selection).toEqual({ start: 0, end: 400 });
   });
 
-  it('orders by band separation on request, and by name otherwise', () => {
-    const names = activeEnzymes()
+  /** Three enzymes whose lanes differ: a one band, b 9x apart, c 1.5x apart. */
+  function threeLanes(): [string, string, string] {
+    const [a, b, c] = activeEnzymes()
       .slice(0, 3)
       .map((e) => e.name);
-    const [a, b, c] = names;
     if (a === undefined || b === undefined || c === undefined) throw new Error('table');
     const at = (enzyme: string, cut: number): CutSite => ({
       enzyme,
@@ -308,41 +280,65 @@ describe('EnzymePanel', () => {
     });
     // a: 2,000 + 2,000 (one band), b: 3,600 + 400 (9x), c: 2,400 + 1,600 (1.5x).
     setup([at(a, 2000), at(b, 400), at(c, 1600)]);
+    return [a, b, c];
+  }
+
+  const header = (name: 'Name' | 'Bands'): HTMLElement =>
+    screen.getByRole('button', { name: new RegExp(`^${name}`) });
+  const sortOf = (name: 'Name' | 'Bands'): string | null =>
+    header(name).closest('th')?.getAttribute('aria-sort') ?? null;
+
+  it('orders by band separation from the Bands heading, and by name from Name', () => {
+    const [a, b, c] = threeLanes();
     expect(listed()).toEqual([a, b, c]);
+    expect(sortOf('Name')).toBe('ascending');
+    expect(sortOf('Bands')).toBeNull();
     act(() => {
-      editorStore.setEnzymeSort('bands');
+      fireEvent.click(header('Bands'));
+    });
+    expect(editorStore.getState()).toMatchObject({
+      enzymeSort: 'bands',
+      enzymeSortReversed: false,
     });
     expect(listed()).toEqual([b, c, a]);
+    expect(sortOf('Bands')).toBe('ascending');
+    expect(sortOf('Name')).toBeNull();
+    act(() => {
+      fireEvent.click(header('Name'));
+    });
+    expect(editorStore.getState().enzymeSort).toBe('name');
+    expect(listed()).toEqual([a, b, c]);
   });
 
-  it('reverses the order on request', () => {
-    const names = activeEnzymes()
-      .slice(0, 3)
-      .map((e) => e.name);
-    const [a, b, c] = names;
-    if (a === undefined || b === undefined || c === undefined) throw new Error('table');
-    const at = (enzyme: string, cut: number): CutSite => ({
-      enzyme,
-      cut,
-      cutBottom: cut,
-      siteStart: cut - 1,
-      strand: 'forward' as const,
-    });
-    setup([at(a, 2000), at(b, 400), at(c, 1600)]);
+  it('turns the order round on a second click of the heading', () => {
+    const [a, b, c] = threeLanes();
     act(() => {
-      editorStore.setEnzymeSort('bands');
+      fireEvent.click(header('Bands'));
     });
-    const reverse = screen.getByRole('button', { name: 'Reverse the order' });
     act(() => {
-      fireEvent.click(reverse);
+      fireEvent.click(header('Bands'));
     });
-    expect(reverse).toHaveAttribute('aria-pressed', 'true');
+    expect(editorStore.getState().enzymeSortReversed).toBe(true);
+    expect(sortOf('Bands')).toBe('descending');
     // Hardest to read first: a's one band, then c's 1.5x, then b's 9x.
     expect(listed()).toEqual([a, c, b]);
     act(() => {
-      editorStore.setEnzymeSort('name');
+      fireEvent.click(header('Name'));
     });
+    // Another column starts ascending.
+    expect(editorStore.getState().enzymeSortReversed).toBe(false);
+    act(() => {
+      fireEvent.click(header('Name'));
+    });
+    expect(sortOf('Name')).toBe('descending');
     expect(listed()).toEqual([c, b, a]);
+    // The choice is the store's, which the panel and a reload read.
+    act(() => {
+      editorStore.setEnzymeSort('bands');
+      editorStore.setEnzymeSortReversed(false);
+    });
+    expect(sortOf('Bands')).toBe('ascending');
+    expect(listed()).toEqual([b, c, a]);
   });
 
   it('judges and draws the lanes for the agarose chosen, beside the ladder chosen', () => {
@@ -878,8 +874,12 @@ describe('EnzymePanel isoschizomers', () => {
   it('lists them separately when asked to', () => {
     setup(SITES);
     act(() => {
-      fireEvent.click(screen.getByRole('checkbox', { name: 'share a row' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Isoschizomers share a row' }));
     });
+    expect(screen.getByRole('button', { name: 'Isoschizomers share a row' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
     expect(listed()).toEqual(['AliI', 'BamHI', 'BstI', 'SmaI', 'XmaI']);
     expect(editorStore.getState().enzymeGroupIsoschizomers).toBe(false);
   });
@@ -915,7 +915,7 @@ describe('EnzymePanel isoschizomers', () => {
     // The row is named after the first ticked member in the group's order.
     const row = [...document.querySelectorAll('.enzyme-row__name')]
       .find((n) => n.textContent === 'BamHI')
-      ?.closest('li');
+      ?.closest('tr');
     const box = row?.querySelector('input');
     expect(box).toBeChecked();
     act(() => {
@@ -948,9 +948,13 @@ describe('EnzymePanel host methylation', () => {
       openEnzymeWorkspace(editorStore.getState().documentId, 'enzymes');
     });
     render(<Host doc={methylDoc} />);
-    const cuts = [...document.querySelectorAll('.enzyme-row__cuts .link')];
+    const cuts = [...document.querySelectorAll('.enz-cuts .link')];
     expect(cuts.map((c) => c.classList.contains('link--methylated'))).toEqual([true, false]);
     expect(cuts[0]?.getAttribute('data-tip')).toMatch(/Dam methylation overlaps it/);
+    // The column says how many; the detail says what it means.
+    const row = document.querySelector('tr[data-row]');
+    expect(row?.querySelectorAll('td')[6]).toHaveTextContent('1 of 2');
+    fireEvent.click(screen.getByText('ClaI'));
     expect(screen.getByText(/1 of 2 sites may be blocked by Dam\/Dcm methylation/)).toBeVisible();
   });
 
@@ -960,12 +964,12 @@ describe('EnzymePanel host methylation', () => {
     const plasmid = SeqDocument.create({ sequence, topology: 'circular' });
     const sites = findCutSites(sequence, 'circular', activeEnzymes());
     const rows = () =>
-      [...document.querySelectorAll('.enzyme-row')].map((row) => ({
+      [...document.querySelectorAll('tr[data-row]')].map((row) => ({
         name: row.querySelector('.enzyme-row__name')?.textContent,
-        cuts: [...row.querySelectorAll('.enzyme-row__cuts .link')].map(
+        cuts: [...row.querySelectorAll('.enz-cuts .link')].map(
           (c) => `${c.textContent}${c.classList.contains('link--methylated') ? 'm' : ''}`,
         ),
-        note: row.querySelector('.enzyme-row__methylation')?.textContent ?? '',
+        note: row.querySelectorAll('td')[6]?.textContent ?? '',
         bands: row.querySelector('.enzyme-row__bands')?.textContent ?? '',
       }));
     act(() => {

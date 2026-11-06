@@ -10,22 +10,6 @@
  */
 export type EnzymeSort = 'name' | 'bands';
 
-export interface EnzymeSortOption {
-  readonly value: EnzymeSort;
-  readonly label: string;
-  readonly title: string;
-}
-
-export const ENZYME_SORT_OPTIONS: readonly EnzymeSortOption[] = [
-  { value: 'name', label: 'Name', title: 'List the enzymes alphabetically' },
-  {
-    value: 'bands',
-    label: 'Band separation',
-    title:
-      'List the enzymes whose fragments would be furthest apart on a gel first — the ones a diagnostic digest is chosen from',
-  },
-];
-
 export function isEnzymeSort(v: unknown): v is EnzymeSort {
   return v === 'name' || v === 'bands';
 }
