@@ -1,0 +1,25 @@
+LOCUS       YA-Insert2            460 bp    DNA     linear   SYN 06-NOV-2026
+DEFINITION  YA-Insert2, second insert for the yeast assembly tutorial, 40 bp of
+            homology with insert 1 at its start and the first 40 bp of the
+            EcoRV-cut vector at its end (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     CDS             41..340
+                     /label="synthGene"
+                     /note="synthetic example gene, ATG to stop, 100 codons"
+     terminator      341..420
+                     /label="synthetic terminator"
+                     /note="synthetic example terminator"
+ORIGIN
+        1 gtctctccta cctgtaatag gccggggtca agtgatccca atggtactgg ctccacgggc
+       61 tcactgtcta gccatacccg cgaaaagcgc gtcccattcg aggtggccgg ccgcataccg
+      121 ggtcaagact gggtgcctcc tctgcatata ccacgaaaga agatcactat tccttcttat
+      181 cccgacaccc ctctttctcc gagagaggct aacgcaaaca cccgttatac aaatcagatt
+      241 tggcctacac caaagtatac ccacgatttg gctccacagg gggacgaaca gtgccttgag
+      301 gtatcgtcgc gttaacgata gaagcaccga gaagtgctaa ataaagtcgg ggcggagata
+      361 ccgaggcaga gcttctgaat cacgtccttt caagtttaga gaagatcgcc gtacatgtag
+      421 atcggttctc ttattccgtc gagagccctg tggaagtcca
+//

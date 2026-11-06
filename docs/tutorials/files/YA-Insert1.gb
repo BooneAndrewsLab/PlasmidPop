@@ -1,0 +1,18 @@
+LOCUS       YA-Insert1            240 bp    DNA     linear   SYN 06-NOV-2026
+DEFINITION  YA-Insert1, first insert for the yeast assembly tutorial, the last 40
+            bp of the EcoRV-cut vector at its start and 40 bp of homology with
+            insert 2 at its end (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     promoter        41..200
+                     /label="synthetic promoter"
+                     /note="synthetic example promoter"
+ORIGIN
+        1 tgaagcattc gcctgcctct ctaactgttg ctagaccgat aacttcagtc tttctcacgg
+       61 tccgaatttt ttctgttcta ttcgtgagat tcatactgaa gaatacggga cgaggagccc
+      121 ctatgagacc aaagcattca tcattgctga aaacctagtc aaggtagctc acgtgaaacc
+      181 gcaccggtgg gatctagcaa gtctctccta cctgtaatag gccggggtca agtgatccca
+//

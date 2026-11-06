@@ -892,6 +892,9 @@ panel starts at 40. The question that matters most is whether any of that
 homology occurs a second time anywhere in the tube, the vector's interior
 included, because the cell recombines there just as readily.
 
+A worked example with sample files, from cutting the vector to the warnings,
+is the [Yeast assembly tutorial](../tutorials/yeast-assembly.md).
+
 Choose **Yeast assembly** on the Bench, then:
 
 1. Put the parts in the tube, as for [Gibson](#gibson): open tabs and shelf

@@ -1,0 +1,25 @@
+LOCUS       YA-short-Insert2      445 bp    DNA     linear   SYN 06-NOV-2026
+DEFINITION  YA-short-Insert2, YA-Insert2 without the first 15 bases of its
+            homology with insert 1, so only 25 bp are shared (synthetic example,
+            invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     CDS             26..325
+                     /label="synthGene"
+                     /note="synthetic example gene, ATG to stop, 100 codons"
+     terminator      326..405
+                     /label="synthetic terminator"
+                     /note="synthetic example terminator"
+ORIGIN
+        1 aataggccgg ggtcaagtga tcccaatggt actggctcca cgggctcact gtctagccat
+       61 acccgcgaaa agcgcgtccc attcgaggtg gccggccgca taccgggtca agactgggtg
+      121 cctcctctgc atataccacg aaagaagatc actattcctt cttatcccga cacccctctt
+      181 tctccgagag aggctaacgc aaacacccgt tatacaaatc agatttggcc tacaccaaag
+      241 tatacccacg atttggctcc acagggggac gaacagtgcc ttgaggtatc gtcgcgttaa
+      301 cgatagaagc accgagaagt gctaaataaa gtcggggcgg agataccgag gcagagcttc
+      361 tgaatcacgt cctttcaagt ttagagaaga tcgccgtaca tgtagatcgg ttctcttatt
+      421 ccgtcgagag ccctgtggaa gtcca
+//

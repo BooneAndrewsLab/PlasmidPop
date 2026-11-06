@@ -64,7 +64,7 @@ describe('static tutorial pages (#312)', () => {
     }
     expect(TUTORIAL_ORDER[0]).toBe('before-you-start');
     expect(TUTORIAL_ORDER.at(-1)).toBe('sample-files');
-    expect(TUTORIAL_ORDER).toHaveLength(15);
+    expect(TUTORIAL_ORDER).toHaveLength(16);
   });
 
   it('emit an index, one page per tutorial and every sample file', () => {

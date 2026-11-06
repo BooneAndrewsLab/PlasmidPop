@@ -1,0 +1,63 @@
+LOCUS       YA-Vector            2217 bp    DNA     circular SYN 06-NOV-2026
+DEFINITION  YA-Vector, circular yeast/E. coli shuttle vector with URA3, CEN6,
+            ARSH4, ori and AmpR stand-ins and one EcoRV site (blunt) to linearise
+            it at (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     CDS             61..561
+                     /label="URA3"
+                     /note="synthetic stand-in for a yeast selectable marker"
+     centromere      622..741
+                     /label="CEN6"
+                     /note="synthetic stand-in for a yeast centromere"
+     rep_origin      782..931
+                     /label="ARSH4"
+                     /note="synthetic stand-in for a yeast replication origin"
+     CDS             complement(1118..1717)
+                     /label="AmpR"
+                     /note="synthetic stand-in for a resistance gene"
+     rep_origin      1758..2157
+                     /label="ori"
+                     /note="synthetic stand-in for an E. coli origin"
+ORIGIN
+        1 tcgcccaaaa atcgcaccca ctccccgagt gggcaggtct aacacagcta gtatggaagt
+       61 atgggaccgc tacggcacct cacatcactg gcgggtcgac gtgtaacagg gtcctgtact
+      121 tcggggttta atgatggtat aggtcctccg tctccgttcg attctgaaat cgtagcccag
+      181 gaacaattaa gatataccag cgctacccgt cagactaaaa acgtacatgg accatcatgg
+      241 tgtggtaaca tttatttaaa gccgagttac gagccttggc atagtgggga ctccgtccga
+      301 gcgtcctacc ccttcactag atacccccaa gtagtagcgt actctgaatg gcatcgcgaa
+      361 agtgacctgg agcgttgcga cctccattgt acatgtacta aaacgtcagt gacaaagggg
+      421 gtgcactacg tggccggctg tcccggggtc ttacacaggt accagttcgc aacagaattt
+      481 cgtgcccaat gtaatgatca tttctggctc ggaagttcga gccggcttga atgtaacggc
+      541 caattatcgc gcatcccata actgtatggc aaattccggg accgacgaag cagtgccctg
+      601 tctcgcatgc gcaaccacga ctccatgata cacggtggtt tactctttag ttcctctagg
+      661 gctagcatcc gtcctcatgc ttgatccagg aatacgccac gtaaggagat ggtcaggcac
+      721 agcaggagtc gtgcggctga cggctgaatg taaaatgcgc taatgtcaaa gcacgagggt
+      781 aaacggcctt agggcaaaaa tttattaagg tgtcccagtg gaccgacaaa gccgctttca
+      841 gcttcattga acgagtcgtc attttgcata cgatgcggct ccatgctacg aagataatgc
+      901 ttcgcagact cttgggttaa agtacttaag cacgttcccc cgtgctccct cacatgcgtc
+      961 ccgggcgccg gtactgtgtt attttgaagc attcgcctgc ctctctaact gttgctagac
+     1021 cgatatcggt tctcttattc cgtcgagagc cctgtggaag tccagtacag gactgcctgg
+     1081 acagagacta taaagctaca aaggttgacc cgtttgatta gccagatagc gggctcccaa
+     1141 cttgcgaacc ggtggagcgc ccatggaagc ctttccacac cccgatgtta ggaaagcgtg
+     1201 gcggtatgta gagaagacgc acgttgcgaa aattccctcc gctgcggcgc gattttactc
+     1261 caaacttccc tccaccgaag accttgaggc gtacatgcct atgttcttta tgcgtacatt
+     1321 taaagctgac tgacggggtc cgagacacac tacttacttt ggatacgcgg ctgaacagca
+     1381 ataggctgag ccttaaccgt cggaggcggt tgatccccca ttgctcatcc ccccgcgttc
+     1441 gtttgagtcc gacggttgaa gcggaagtta tagttctact gagagtagtt cggttccgca
+     1501 gccacgagat cgatttttcc cagttgcctg caatcctagt gagttgacta tacctttggc
+     1561 ttcccgaatg agccctgtgc tcccggagcg ggagacgttt ccgggaccat ctttgattgg
+     1621 ctgcgacatc ccgttgtatc tccacattgg cactaccaac ggacggaagc acgacgtggg
+     1681 tccttacaac atcaaacttg ggccctaatg tcaccattga taccgtgacc tgagcggtat
+     1741 caccggccgt tgatggctga tgacgtaagg cagcctccga acgctgcaca cgctaaatgc
+     1801 catagttttc agcgccacat atttaatatg ccaggcgcgg ttggaatttg catccgaatc
+     1861 aggtgatgca gagaccaggc cacatgatct caaaacgtag gggaattgaa ggtgtaggag
+     1921 gtagttgact tagcggatgt cggattgtcg tcgcccagtt ccgtccgtac ccaagaccga
+     1981 tgtggaccca attgtagctc tgtaagaaat ctcgaagaat atgagatact gtttccataa
+     2041 ctacatgaca tctaagaccg actgagcctt ccatttgaga atgttcttta ttcgacagta
+     2101 gatagagtcg tgcggcgccg gatctcaaga atcagtctca aacacgggga ccatagccct
+     2161 ctggaatccc ccgacgctct aaaatccaag tagctcaatc aatcaggggt cgcaaaa
+//

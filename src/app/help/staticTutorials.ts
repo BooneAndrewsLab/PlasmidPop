@@ -39,6 +39,7 @@ export const TUTORIAL_SECTIONS: readonly { title: string; ids: readonly string[]
       'in-fusion',
       'overlap-pcr',
       'gateway',
+      'yeast-assembly',
       'mutagenesis',
     ],
   },

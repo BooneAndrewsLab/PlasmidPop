@@ -1,0 +1,21 @@
+LOCUS       YA-gene               450 bp    DNA     linear   SYN 06-NOV-2026
+DEFINITION  YA-gene, a plain open reading frame for the yeast tail-primer design,
+            no cloning ends (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     CDS             1..450
+                     /label="synthProt"
+                     /note="synthetic example gene, ATG to stop, 150 codons"
+ORIGIN
+        1 atgagcttcg atgtgtatac ctacttcggc cggatcccac gtccaattta ttcattaagc
+       61 cagtggtacc tggttgtcga cacgttgcgt gcaaattatg ctatcccgga gccgggaaca
+      121 atacttagat ggttgcgctg gcgagcacgc tatccctggg cagctaccaa cagcttcgtt
+      181 tccctctcga cgcgtcgctt tgtcgcttgc ggcaccgtgt ccggcaaagc gacgttgcta
+      241 gatcgcttac gtgatgcatt tacaaatgat gcgctaaagg gaatatctac cttaattttg
+      301 tcctattcgt tccgtacctg tgtgcgtgtt aagttctgca gttcaggcat tggacgtacg
+      361 cccaacgagg taacacctga ggttacctgg ggagcgcggg aggaaggctt acaaccacca
+      421 gctcgaggaa caagggctgc gaagaactaa
+//
