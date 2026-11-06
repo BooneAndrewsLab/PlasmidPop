@@ -23,22 +23,29 @@ import {
 } from '@/core';
 
 import { type OverlaySpan } from '@/view/overlay';
-import { analysisClient } from '@/workers/analysisClient';
+import { AnalysisWorkerError, analysisClient } from '@/workers/analysisClient';
 
 import { analytics } from '../analytics';
 import {
   type Background,
   type CrisprSession,
   type Request,
+  type SortBy,
   readCrisprSession,
   updateCrisprSession,
   useCrisprSession,
 } from '../crisprSession';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { SLOW_RUN_MS } from './useMultipleAlignment';
 
 /** As the ORF list does, past this many the views are left alone (#32). */
 export const MAX_PREVIEWED = 200;
+
+/** What `RunNotices` tells the user to change when a scan stops, or is slow. */
+export const SCAN_ADVICE = 'narrow the scan to a selection or count fewer mismatches';
+export const SCAN_SLOW =
+  'This is taking a while. A long sequence, more mismatches or other documents to search make a scan slower; it finishes by itself.';
 
 export const guideId = (g: CrisprGuide): string => `${g.strand}:${String(g.range.start)}`;
 
@@ -50,6 +57,26 @@ export function addGuideAsFeature(guide: CrisprGuide): void {
   editorStore.requestRename(feature.id);
   editorStore.setSidebarTab('features');
 }
+
+/**
+ * Annotates guides where the user is, without leaving: a workspace is shut by
+ * the Features tab (item 133, D8), so it says what it did and offers Undo
+ * instead of switching. Returns the document the edit made, which is what
+ * Undo is still good for while it is the present one.
+ */
+export function addGuidesInPlace(guides: readonly CrisprGuide[]): SeqDocument | null {
+  const [only] = guides;
+  if (guides.length === 0 || only === undefined) return null;
+  if (guides.length === 1) {
+    analytics.track('crispr', 'add');
+    editorStore.apply({ type: 'addFeature', feature: guideFeature(only) }, only.range);
+  } else {
+    analytics.track('crispr', 'addAll');
+    editorStore.apply({ type: 'addFeatures', features: guides.map(guideFeature) });
+  }
+  return editorStore.getState().history?.present ?? null;
+}
+
 /** Everything wrong with a guide, worst first; empty when there is nothing to say. */
 export function flagsOf(g: CrisprGuide): string[] {
   const flags: string[] = [];
@@ -68,6 +95,20 @@ function byOffTargets(a: CrisprGuide, b: CrisprGuide): number {
     if (d !== 0) return d;
   }
   return a.range.start - b.range.start;
+}
+
+/**
+ * Whether a column's first click lists the high ones first, as GC and
+ * specificity do: the other columns begin with the fewest or the lowest.
+ */
+export function startsDescending(by: SortBy): boolean {
+  return by === 'gc' || by === 'specificity';
+}
+
+/** The count at `mismatches`, then the exact column's order, so ties fall in a known one. */
+function byMismatchCount(mismatches: number) {
+  return (a: CrisprGuide, b: CrisprGuide): number =>
+    (a.offTargets[mismatches] ?? 0) - (b.offTargets[mismatches] ?? 0) || byOffTargets(a, b);
 }
 
 const backgroundKey = (d: Background): string => `${d.name}\0${d.topology}\0${d.sequence}`;
@@ -98,6 +139,52 @@ function sameRequest(a: Request, b: Request): boolean {
       return p.sequence === n?.sequence && p.topology === n.topology;
     })
   );
+}
+
+/**
+ * Puts a question to the worker and files what comes back in the session. It
+ * is the session's to answer, not a host's: the answer lands whether or not
+ * anything is mounted, and one that is no longer the session's question
+ * when it comes back is dropped. `retried` is a second go at a worker that
+ * failed outright, which is not offered a third time (#373).
+ */
+function startScan(documentId: string | null, request: Request, retried: boolean): void {
+  updateCrisprSession(documentId, { request, answer: null });
+  const current = (): boolean => readCrisprSession(documentId).request === request;
+  analysisClient
+    .crisprGuides(request.sequence, request.topology, request.nuclease, {
+      maxMismatches: request.maxMismatches,
+      ...(request.region === null ? {} : { region: request.region }),
+      ...(request.background.length === 0 ? {} : { background: request.background }),
+    })
+    .then((guides) => {
+      if (current()) updateCrisprSession(documentId, { answer: { request, guides } });
+    })
+    .catch((e: unknown) => {
+      if (!current()) return;
+      updateCrisprSession(documentId, {
+        answer:
+          e instanceof AnalysisWorkerError
+            ? { request, stopped: { detail: e.message, canRetry: !retried } }
+            : { request, error: e instanceof Error ? e.message : String(e) },
+      });
+    });
+}
+
+/** Whether `busy` has gone on past `SLOW_RUN_MS` for this `run` of it. */
+function useSlow(busy: boolean, run: unknown): boolean {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    if (!busy) return;
+    const timer = setTimeout(() => {
+      setSlow(true);
+    }, SLOW_RUN_MS);
+    return () => {
+      clearTimeout(timer);
+      setSlow(false);
+    };
+  }, [busy, run]);
+  return busy && slow;
 }
 
 /**
@@ -207,36 +294,22 @@ export function useCrisprScan(doc: SeqDocument) {
   const request = asked !== null && kept !== null && sameRequest(asked, kept) ? kept : asked;
 
   // The scan itself, in the worker, so a big plasmid does not hold up typing.
-  // It is the session's to answer, not the panel's: the answer lands whether
-  // or not a host is mounted, and a question the session already holds (asked
-  // by an earlier mount, answered or still out) is not put again.
+  // A question the session already holds (asked by an earlier mount, answered
+  // or still out) is not put again.
   useEffect(() => {
     if (request === null || readCrisprSession(documentId).request === request) return;
-    updateCrisprSession(documentId, { request });
-    // Still the question asked for when it comes back, or it is dropped.
-    const current = (): boolean => readCrisprSession(documentId).request === request;
-    analysisClient
-      .crisprGuides(request.sequence, request.topology, request.nuclease, {
-        maxMismatches: request.maxMismatches,
-        ...(request.region === null ? {} : { region: request.region }),
-        ...(request.background.length === 0 ? {} : { background: request.background }),
-      })
-      .then((guides) => {
-        if (current()) updateCrisprSession(documentId, { answer: { request, guides } });
-      })
-      .catch((e: unknown) => {
-        if (current()) {
-          updateCrisprSession(documentId, {
-            answer: { request, error: e instanceof Error ? e.message : String(e) },
-          });
-        }
-      });
+    startScan(documentId, request, false);
   }, [request, documentId]);
 
   const answered = s.answer !== null && s.answer.request === request ? s.answer : null;
   const guides = answered?.guides ?? null;
   const error = answered?.error ?? null;
+  const stopped = answered?.stopped ?? null;
   const scanning = request !== null && answered === null;
+  const slow = useSlow(scanning, request);
+  const retry = (): void => {
+    if (request !== null && stopped?.canRetry === true) startScan(documentId, request, true);
+  };
 
   // Once per nuclease chosen, not once per keystroke of a custom PAM.
   const nucleaseKind = nuclease?.id ?? null;
@@ -249,7 +322,7 @@ export function useCrisprScan(doc: SeqDocument) {
   const pams = useMemo(() => [...new Set((guides ?? []).map((g) => g.pam))].sort(), [guides]);
   const pamChosen = pams.includes(s.pamFilter) ? s.pamFilter : '';
 
-  const { sortBy, spacerFilter, showFlagged, onlyEditable } = s;
+  const { sortBy, sortReversed, spacerFilter, showFlagged, onlyEditable } = s;
   const sorted = useMemo(() => {
     const pattern = spacerFilter.trim().toUpperCase();
     const masks = pattern === '' ? null : patternMasks(pattern);
@@ -275,10 +348,23 @@ export function useCrisprScan(doc: SeqDocument) {
       list.sort(
         (a, b) => (b.specificity ?? -1) - (a.specificity ?? -1) || a.range.start - b.range.start,
       );
-    }
-    return list;
-  }, [guides, sortBy, spacerFilter, pamChosen, showFlagged, baseEditor, onlyEditable]);
+    } else if (sortBy !== 'position') list.sort(byMismatchCount(Number(sortBy.slice(2))));
+    return sortReversed ? list.reverse() : list;
+  }, [
+    guides,
+    sortBy,
+    sortReversed,
+    spacerFilter,
+    pamChosen,
+    showFlagged,
+    baseEditor,
+    onlyEditable,
+  ]);
   const filtered = guides !== null && sorted.length !== guides.length;
+  const clean = useMemo(
+    () => (guides ?? []).filter((g) => flagsOf(g).length === 0).length,
+    [guides],
+  );
 
   const covered = sorted.filter(
     (g) => selection !== null && g.range.start === selection.start && g.range.end === selection.end,
@@ -300,9 +386,12 @@ export function useCrisprScan(doc: SeqDocument) {
           })),
     [sorted],
   );
+  // An edit clears every preview, since what it pointed at has moved: the
+  // guides stay where they were when it was a feature added from the list,
+  // so they are drawn again once the document has changed.
   useEffect(() => {
     editorStore.setPreview('crispr', previewed);
-  }, [previewed]);
+  }, [previewed, doc]);
   useEffect(
     () => () => {
       editorStore.clearPreview('crispr');
@@ -335,11 +424,15 @@ export function useCrisprScan(doc: SeqDocument) {
     narrowTo,
     guides,
     error,
+    stopped,
+    slow,
+    retry,
     scanning,
     pams,
     pamChosen,
     sorted,
     filtered,
+    clean,
     covered,
     selected,
     selectedId,

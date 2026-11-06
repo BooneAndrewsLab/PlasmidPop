@@ -13,7 +13,13 @@ import { createDocumentSession } from './state/documentSession';
  * reload starts clean, as the panel always did.
  */
 
-export type SortBy = 'position' | 'offTargets' | 'gc' | 'specificity';
+/**
+ * The column the guide list is in the order of. `offTargets` is the exact
+ * column's, fewest exact hits then fewest near ones; `mm1`…`mm4` order by the
+ * count at that many mismatches.
+ */
+export type SortBy =
+  'position' | 'offTargets' | 'gc' | 'specificity' | 'mm1' | 'mm2' | 'mm3' | 'mm4';
 
 /** One scan: the question put to the worker. */
 export interface Request {
@@ -40,6 +46,8 @@ export interface Answer {
   readonly request: Request;
   readonly guides?: readonly CrisprGuide[];
   readonly error?: string;
+  /** The worker failed outright on it (#373); Try again is on offer once. */
+  readonly stopped?: { readonly detail: string; readonly canRetry: boolean };
 }
 
 /** The pegRNA section's boxes, as typed (item 81). */
@@ -71,6 +79,8 @@ export interface CrisprSession {
   readonly request: Request | null;
   readonly answer: Answer | null;
   readonly sortBy: SortBy;
+  /** The column's order turned round: its natural one is the first click's. */
+  readonly sortReversed: boolean;
   // The filters sit on the result, not the scan: changing one is instant.
   readonly spacerFilter: string;
   readonly pamFilter: string;
@@ -103,6 +113,7 @@ export const INITIAL_CRISPR_SESSION: CrisprSession = {
   request: null,
   answer: null,
   sortBy: 'position',
+  sortReversed: false,
   spacerFilter: '',
   pamFilter: '',
   showFlagged: false,

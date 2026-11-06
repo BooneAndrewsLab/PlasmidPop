@@ -3,6 +3,7 @@ import { parseSequenceFile } from '@/io';
 import {
   type EnzymeDigest,
   type EnzymeSites,
+  NUCLEASES,
   SeqDocument,
   activeEnzymes,
   codonUsageTable,
@@ -417,6 +418,24 @@ describe('AnalysisClient uncaught worker errors (#373)', () => {
     );
     // other requests are answered too, with the same text
     await expect(orfs).rejects.toThrow('out of memory');
+  });
+
+  it('tells a CRISPR scan the worker died under from one the worker answered with an error', async () => {
+    const w = heldWorker();
+    const client = new AnalysisClient(() => w as unknown as Worker);
+    const nuclease = NUCLEASES[0];
+    if (nuclease === undefined) throw new Error('no nuclease');
+    const scan = client.crisprGuides('ACGT', 'linear', nuclease);
+    fail(w, { message: 'out of memory' });
+    await expect(scan).rejects.toBeInstanceOf(AnalysisWorkerError);
+
+    const answered = heldWorker();
+    const again = new AnalysisClient(() => answered as unknown as Worker);
+    const other = again.crisprGuides('ACGT', 'linear', nuclease);
+    answered.reply({ id: answered.posted[0]?.id, kind: 'error', message: 'Bad PAM' });
+    const err: unknown = await other.catch((e: unknown) => e);
+    expect(err).not.toBeInstanceOf(AnalysisWorkerError);
+    expect((err as Error).message).toBe('Bad PAM');
   });
 
   it('says only that the worker failed when the event says nothing', async () => {

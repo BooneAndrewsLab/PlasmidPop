@@ -5,7 +5,8 @@ import { type CrisprPage, crisprWorkspace } from '../crisprWorkspace';
 import { useEditorState } from '../state/useEditorStore';
 import type { WorkspaceLayout } from '../workspaceController';
 import { PairedNickases } from './CrisprPairedNickases';
-import { CrisprGuideList } from './CrisprGuideList';
+import { CrisprGuides, OffTargetNote } from './CrisprGuides';
+import { useOffTargetNote } from './crisprOffTargetNote';
 import { PrimeEditing } from './CrisprPrimeEditing';
 import { useCrisprScan } from './crisprScan';
 import { WorkspaceShell } from './WorkspaceShell';
@@ -36,17 +37,18 @@ interface Props {
 
 /**
  * The CRISPR workspace (item 133, C2): the shared shell around three pages,
- * each today's piece as it is. Guides is the options and the guide list;
- * Pairs the paired nickases; Prime the pegRNAs. All over one
- * `useCrisprScan`, the panel's own, whose state is the document's session:
- * a scan started in either place is the other's, and switching rescans
- * nothing.
+ * Guides is the settings, the filters and the guide table with its detail
+ * (C4); Pairs the paired nickases and Prime the pegRNAs, each today's piece
+ * as it is. All over one `useCrisprScan`, the panel's own, whose state is the
+ * document's session: a scan started in either place is the other's, and
+ * switching rescans nothing.
  */
 export function CrisprWorkspace({ doc, layout = 'split' }: Props) {
   const { documentId } = useEditorState();
   const [page, setPage] = crisprWorkspace.usePage(documentId);
   const scan = useCrisprScan(doc);
-  const { guides, nuclease, problem, scanning, sorted } = scan;
+  const { guides, nuclease, problem, scanning, sorted, filtered, clean } = scan;
+  const note = useOffTargetNote();
 
   const ready = problem === null && nuclease !== null && guides !== null;
   const prime = ready && supportsPrimeEditing(nuclease);
@@ -71,9 +73,19 @@ export function CrisprWorkspace({ doc, layout = 'split' }: Props) {
       page={page}
       onPage={setPage}
       onClose={crisprWorkspace.close}
+      headingNote={
+        page === 'guides' && guides !== null && guides.length > 0 && !scanning ? (
+          <span className="panel__heading-note">
+            {filtered
+              ? `${sorted.length.toLocaleString()} of ${guides.length.toLocaleString()}`
+              : `${guides.length.toLocaleString()} · ${clean.toLocaleString()} clean`}
+          </span>
+        ) : undefined
+      }
+      head={page === 'guides' && !note.seen ? <OffTargetNote onSeen={note.dismiss} /> : undefined}
     >
       <div className="panel">
-        {page === 'guides' && <CrisprGuideList doc={doc} scan={scan} />}
+        {page === 'guides' && <CrisprGuides doc={doc} scan={scan} noteSeen={note.seen} />}
         {page === 'pairs' &&
           (pairs ? (
             <PairedNickases doc={doc} guides={guides} />

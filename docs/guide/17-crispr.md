@@ -21,11 +21,13 @@ workspace's order, along the molecule unless you sorted it otherwise, so
 want; the flagged guides are left out until the workspace's **Show flagged**
 is pressed.
 
-While the tab or the workspace is open, every guide listed is drawn on the map and in the
-sequence view as an arrow on its own strand labelled with its PAM (see
-[Previews](03-viewing.md#previews)); clicking one there selects it, and it
-opens under its row in the tab or on the workspace's **Guides** page. Past 200 guides none are drawn — filter
-the list or narrow the scan to a selection to see them.
+While the tab or the workspace is open, every guide listed is drawn on the map
+and in the sequence view as an arrow on its own strand labelled with its PAM
+(see [Previews](03-viewing.md#previews)); clicking one there selects it, and
+it is the selected row in the tab or on the workspace's **Guides** page, with
+its details. Past 200 guides none are drawn on the views — the workspace's
+table still lists them all; filter the list or narrow the scan to a selection
+to see them drawn.
 
 ## The tab and the workspace
 
@@ -34,9 +36,9 @@ a larger view beside the map, as **Open Enzyme workspace ›** does for
 [Enzymes](07-enzymes.md#the-tab-and-the-workspace). It has three pages down
 its left edge:
 
-- **Guides** — the options (nuclease, off-targets, base editor), the
-  filters, the guide list with each guide's details, and **Add N listed as
-  features**.
+- **Guides** — [the guide table](#the-guide-table): the settings (nuclease,
+  off-targets, other documents, the region), the filters, every guide found
+  with the selected one in full beside it, and **Add N listed as features**.
 - **Pairs** — the [paired nickases](#paired-nickases); the tab's **Paired
   nickases ›** opens it, for the nucleases that allow them.
 - **Prime** — [prime editing](#prime-editing); the tab's **Prime editing ›**
@@ -51,25 +53,66 @@ keyboard inside closes it and puts the keyboard back on **Open CRISPR
 workspace ›**, and choosing another sidebar tab closes it too; the page it was
 left on is remembered. On a phone it fills the screen.
 
-## Filtering the list
+## The guide table
 
-In the workspace's **Guides** page, **Options** sets what is scanned for and
-**Guides** lists what was found, all of it rather than the tab's eight. The
-filters at the top of **Guides** work on the guides already found, so they
-are instant and the group's title says how many are shown, as in **139 of
-345**. The tab's rows follow them:
+The workspace's **Guides** page has, from the top, the **settings** that
+change what is scanned for — **Nuclease** (and the PAM and spacer length of a
+custom one), **Off-targets up to**, **Count off-targets in the other open
+documents too** and **Only cuts in the selection** — then the **filters**,
+then a table of every guide found, not the tab's eight. The page's heading
+says how many were found and how many have no flag, as in **578 · 112
+clean**, or **139 of 345** when the filters have left some out. The line
+under the table says the same in words, and how many of the guides found
+have no flag.
+
+The filters work on the guides already found, so they are instant:
 
 - **Spacer contains…** keeps the guides whose spacer has the bases typed, in
   IUPAC codes as in Find — `GRCC` or `TTTN` work — which is how to find a
   guide from a paper, or one starting with a `G` for a U6 promoter.
 - **PAM** keeps one PAM out of those found: SpCas9's `NGG` is four of them,
-  and the CRISPR literature prefers some over others.
+  and the CRISPR literature prefers some over others. It is offered when
+  more than one was found.
 - **Show flagged** lists the guides with a `!` too. They are hidden until
-  it is pressed, so the list opens on the clean ones and the title's
+  it is pressed, so the table opens on the clean ones and the heading's
   **139 of 345** says how many were set aside.
+- **Base editor** and **Only with a C to edit**, with SpCas9 (see
+  [Base editing](#base-editing)).
 
 Spacer length is not a filter: it is fixed by the nuclease, so every guide
 in a list has the same one.
+
+Each row of the table is a guide:
+
+- **#**, its place in the list as it is now ordered;
+- the strand (→ forward, ← reverse) and the **position** of the protospacer,
+  1-based;
+- the **spacer**, and its **PAM**;
+- **GC**, the share of the spacer that is G or C;
+- the off-target counts, a column each: **Exact** for the other places with
+  the same spacer and a PAM, then **1 mm**, **2 mm** and so on up to the
+  setting of **Off-targets up to** (see [Off-targets](#off-targets));
+- **Spec.**, the [specificity score](#specificity-score), with SpCas9
+  (NGG, 20 nt) only;
+- with a base editor chosen, the number of bases it would edit
+  (**C→T**, or **A→G**);
+- a `!` for a guide with a [flag](#flags): hover it for what.
+
+**Position**, **GC**, **Exact**, each of the mismatch columns and **Spec.**
+order the table; click a column again to turn it round. **Position**, the
+order along the molecule, is where it starts; **GC** and **Spec.** begin with
+the highest, and **Exact** with the fewest exact hits, then the fewest near
+ones. The order is shared with the tab, so the tab's eight are the first
+eight in it. A long list is drawn a screenful at a time, so a 200 kb
+sequence's thousands of guides cost no more than a plasmid's.
+
+Clicking a row selects the protospacer in the views and shows the guide in
+full beside the table (under it in a narrow window); clicking the open row
+again clears the selection. The keys walk the table as they do the others
+(see [Keyboard shortcuts](14-shortcuts.md#workspaces)): `↓` and `↑` select the
+next and the previous guide, `Home` and `End` the first and the last, and
+`Escape` puts the guide away. A guide clicked on the map or in the sequence
+is scrolled to.
 
 ## What it cannot tell you
 
@@ -78,9 +121,9 @@ genome and makes no network request to search one, so the counts say where
 else a guide would cut _this plasmid_ — which is what matters when the guide
 has to leave the backbone alone — and nothing whatever about specificity in
 a cell. Check a guide against the host genome with a genome-wide tool
-(CRISPOR, CHOPCHOP, Benchling) before ordering it. The workspace says this under
-its options until **Got it** is pressed; from then on the dotted
-**Off-targets up to** label keeps it as a tooltip.
+(CRISPOR, CHOPCHOP, Benchling) before ordering it. The workspace says this at the
+head of the **Guides** page until **Got it** is pressed; from then on the
+dotted **Off-targets up to** label keeps it as a tooltip.
 
 There is no on-target efficiency score. The published scores are trained
 models, and PlasmidPop ships a number only when it can be checked against
@@ -111,21 +154,24 @@ guide as a possible off-target, so an ambiguity never hides one.
 ## Off-targets
 
 **Off-targets up to _n_ mismatches** sets how different another site may be and
-still be counted, from 0 to 4. The counts in a row read exact, then one
-mismatch, then two, and so on: `1 · 0 · 2 · 0` is one exact second site and
-two sites differing in two bases. Only places with a real PAM are counted —
-a near-match with no PAM is not a target.
+still be counted, from 0 to 4, and how many count columns the table has. The
+counts in a row read exact, then one mismatch, then two, and so on: `1 · 0 ·
+2 · 0` is one exact second site and two sites differing in two bases. Only
+places with a real PAM are counted — a near-match with no PAM is not a
+target.
 
 **Count off-targets in the other open documents too** adds every other open
 nucleotide document to the search, which is how to check that a guide for an
 insert does not also cut the vector it is going into. The selected guide's
-**Other sites** list says which document each hit is in, and **Show** jumps
-to the ones in this one.
+**Other sites** table, under its details, says which document each hit is in
+and how many bases differ, and **Show** selects the ones in this document (the
+selection then no longer covers the guide, so its details close). At most 50
+sites, the closest first, are listed for a guide.
 
-**Sort by** orders the list along the molecule, worst-first by off-targets
-— fewest exact hits, then fewest near ones — or by GC content, highest
-first, or by specificity, highest first (SpCas9 only; guides without a score
-go last).
+The **Exact** column puts the guides in order of off-targets — fewest exact
+hits, then fewest near ones — and a mismatch column of that count; **GC** and
+**Spec.** by GC content and by specificity, highest first (SpCas9 only;
+guides without a score go last).
 
 ## Specificity score
 
@@ -169,13 +215,15 @@ selection now**, or untick and tick the box again.
 
 ## Base editing
 
-With SpCas9 (NGG), the workspace's **Base editor** marks where a base editor can act. Choose
+With SpCas9 (NGG), the **Base editor** in the Guides page's filters marks where
+a base editor can act. Choose
 **CBE** (C to T, protospacer positions 4–8), **ABE7.10** (A to G, 4–7) or
 **ABE8e** (A to G, 4–8). Positions count from the spacer's 5′ end, so the
-PAM is 21–23. Each row then shows how many bases of the right kind sit in the
-window, **Only with a C to edit** (or A) hides the guides with none, and a
-guide's details list the bases (such as `C4, C8`), where they are, and the
-spacer with all of them converted. More than one base listed means
+PAM is 21–23. The table then has a column, **C→T** or **A→G**, of how many bases of
+the right kind sit in the window (hover it for the editor), **Only with a C to
+edit** (or A) hides the guides with none, and a guide's details list the
+bases (such as `C4, C8`), where they are, and the spacer with all of them
+converted. More than one base listed means
 bystander edits: the window does not say how likely each is. On a
 reverse-strand guide the base in the sequence is the complement, so a C to T
 edit is a G to A there. The windows are measured for a 20 nt SpCas9 spacer, so
@@ -220,19 +268,25 @@ sequence.
 
 ## Ordering and annotating a guide
 
-The selected guide's box, under its row on the workspace's **Guides** page
-(**Details ›** in the tab opens it), gives its protospacer range, spacer,
-PAM, where both strands are cut, GC and flags, and the buttons below.
+The selected guide's pane, beside the table on the workspace's **Guides**
+page (**Details ›** in the tab opens it), is headed with the guide's place and
+strand. It gives the protospacer range, spacer, PAM, where both strands are
+cut, GC, flags and the buttons below, and under them every **Other site**.
 
-**Add as feature**, in the tab and in the box, annotates the protospacer on the document as a
-`misc_feature` on its strand, with the PAM in a note, and takes you to the
-feature list to name it. It is an ordinary edit, so undo takes it back.
+**Add as feature**, in the tab and in the pane, annotates the protospacer on
+the document as a `misc_feature` on its strand, with the PAM in a note. It is
+an ordinary edit, so undo takes it back. In the tab it takes you to the
+feature list to name it; in the workspace, which the feature list would
+close, it stays where it is and says **Added 1 feature.** with an **Undo**
+beside it; rename the feature from the Features tab.
 
-**Add N listed as features**, above the workspace's list, annotates every guide the
-filters leave in the list in one go, so a whole set is saved with the file,
-exported to GenBank and drawn on the maps like any feature. Narrow the list
-first (a selection, the filters, hiding flagged guides) to annotate only
-the ones you want. One undo takes them all back.
+**Add N listed as features**, under the workspace's table, annotates every
+guide the filters leave in the list in one go, so a whole set is saved with
+the file, exported to GenBank and drawn on the maps like any feature. Narrow
+the list first (a selection, the filters, hiding flagged guides) to annotate
+only the ones you want. It says **Added N features.** with **Undo**, which
+takes them all back in one step; the line goes once something else is done to
+the document.
 
 **Oligos to order** writes the two oligos to anneal and clone, 5′→3′.
 **pX330 / lentiCRISPRv2** adds the `CACC` and `AAAC` overhangs those vectors'
@@ -244,3 +298,13 @@ the bare spacer and its reverse complement, for any nuclease. **Copy oligos** pu
 clipboard; **Save to My primers** puts them in
 [My primers](10-primers.md#my-primers), where they can be exported with the
 rest of an order.
+
+## When the scan stops
+
+The scan runs in the browser's background worker. If that worker is stopped
+(for want of memory on a very large sequence with many other documents, say)
+the page says **The analysis stopped**, with the technical text under
+**Technical details** and **Try again**, offered once; narrowing the scan to
+a selection or counting fewer mismatches makes it smaller. A scan that takes
+more than a quarter of a minute says that it is taking a while, and finishes
+by itself.

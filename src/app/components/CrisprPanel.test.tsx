@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { SeqDocument, reverseComplement } from '@/core';
 
@@ -12,7 +12,7 @@ import { forgetPanels } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';
 import { CrisprPanel } from './CrisprPanel';
 import { CrisprWorkspace } from './CrisprWorkspace';
-import { getByTip, getAllByTip, findAllByTip } from '@/test/tips';
+import { getByTip, getAllByTip } from '@/test/tips';
 
 /** One SpCas9 site: 20 A's and a TGG PAM, then filler with no GG or CC. */
 const UNIT = `${'A'.repeat(20)}TGG`;
@@ -67,6 +67,16 @@ const settled = () =>
 /** The slim panel's rows. */
 const panelRows = () => document.querySelectorAll('.crispr-list .crispr-row');
 
+/** The Guides table's rows, and the one whose spacer and PAM read `text`. */
+const tableRows = () => [
+  ...document.querySelectorAll<HTMLElement>('table[role="grid"] tr[data-row]'),
+];
+const tableRow = (text: RegExp): HTMLElement => {
+  const found = tableRows().find((r) => text.test(r.textContent));
+  if (found === undefined) throw new Error(`no row like ${String(text)}`);
+  return found;
+};
+
 describe('CrisprPanel', () => {
   afterEach(() => {
     // Unmounted first: a panel still on screen would scan again on a forgotten session.
@@ -111,9 +121,13 @@ describe('CrisprPanel', () => {
     const doc = docOf(`${UNIT}${FILLER}${UNIT}`);
     await openTab(doc);
     // Both guides share the same spacer, so each is the other's off-target.
-    const rows = await findAllByTip(document.body, 'Off-targets: exact, then by mismatch');
+    await screen.findByRole('grid', { name: 'Guides' });
+    const rows = tableRows();
     expect(rows).toHaveLength(2);
-    expect(rows[0]).toHaveTextContent('1·0·0·0');
+    // Exact, then one, two and three mismatches: a column each.
+    expect(
+      [...(rows[0]?.querySelectorAll('td') ?? [])].slice(6, 10).map((c) => c.textContent),
+    ).toEqual(['1', '0', '0', '0']);
     // The exact second site is the first of the flags; the all-A spacer has others.
     expect(getAllByTip(document.body, /^Binds somewhere else exactly;/)).toHaveLength(2);
   });
@@ -123,10 +137,10 @@ describe('CrisprPanel', () => {
     const clean1 = 'ACGTACGTACGTACGTACGT';
     const clean2 = 'GATCGATCGATCGATCGATC';
     await openTab(docOf(`${clean1}AGG${FILLER}${clean2}TGG${FILLER}${UNIT}`), 'guides', false);
-    const rows = () => getAllByTip(document.body, 'Off-targets: exact, then by mismatch');
-    // The flagged one is hidden until asked for, and the title says so.
+    const rows = tableRows;
+    // The flagged one is hidden until asked for, and the heading says so.
     expect(rows()).toHaveLength(2);
-    expect(screen.getByText('2 of 3')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^Guides/ })).toHaveTextContent('2 of 3');
     const flagged = screen.getByRole('button', { name: 'Show flagged' });
     expect(flagged).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(flagged);
@@ -136,40 +150,41 @@ describe('CrisprPanel', () => {
 
     fireEvent.change(screen.getByLabelText('PAM'), { target: { value: 'TGG' } });
     expect(rows()).toHaveLength(1);
-    expect(screen.getByRole('button', { name: /GATCGATC/ })).toBeInTheDocument();
+    expect(tableRow(/GATCGATC/)).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('PAM'), { target: { value: '' } });
     // IUPAC: R is A or G, so this is in the first spacer and not the second.
     fireEvent.change(screen.getByLabelText('Spacer contains'), { target: { value: 'crta' } });
     expect(rows()).toHaveLength(1);
-    expect(screen.getByRole('button', { name: /ACGTACGT/ })).toBeInTheDocument();
+    expect(tableRow(/ACGTACGT/)).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Spacer contains'), { target: { value: 'X' } });
     expect(screen.getByText('No guides match the filters.')).toBeInTheDocument();
   });
 
-  it('opens the chosen guide under its own row, without scanning again', async () => {
+  it('opens the chosen guide in the detail pane, without scanning again', async () => {
     const scans = vi.spyOn(analysisClient, 'crisprGuides');
     await openTab(docOf(`${UNIT}${FILLER}${UNIT}`));
-    const [first, second] = await screen.findAllByRole('button', { name: /A{20}/ });
+    await screen.findByRole('grid', { name: 'Guides' });
+    const [first, second] = tableRows();
     if (first === undefined || second === undefined) throw new Error('two rows expected');
     expect(scans).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
     fireEvent.click(second);
     // A click changes the selection, which is not part of the question asked.
     expect(scans).toHaveBeenCalledTimes(1);
-    // The detail is the second row's sibling, not something after the list.
-    await waitFor(() => {
-      expect(second.parentElement?.querySelector('.crispr-detail')).not.toBeNull();
-    });
-    expect(first.parentElement?.querySelector('.crispr-detail')).toBeNull();
-    expect(second).toHaveAttribute('aria-expanded', 'true');
+    // The detail pane names the row, which is the one selected and not the other.
+    const detail = await screen.findByRole('complementary', { name: 'Guide at 34 (forward)' });
+    expect(within(detail).getByText('Protospacer')).toBeInTheDocument();
+    expect(second).toHaveAttribute('aria-selected', 'true');
+    expect(first).toHaveAttribute('aria-selected', 'false');
 
     // A second click on the open row closes it and clears the selection.
     fireEvent.click(second);
     await waitFor(() => {
-      expect(second.parentElement?.querySelector('.crispr-detail')).toBeNull();
+      expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
     });
-    expect(second).toHaveAttribute('aria-expanded', 'false');
+    expect(second).toHaveAttribute('aria-selected', 'false');
     expect(editorStore.getState().selection).toBeNull();
   });
 
@@ -196,16 +211,18 @@ describe('CrisprPanel', () => {
     const pam = screen.getByLabelText('PAM in IUPAC codes');
     fireEvent.change(pam, { target: { value: 'NXG' } });
     expect(await screen.findByText(/not an IUPAC base/)).toBeInTheDocument();
-    expect(screen.queryByText('Guides', { selector: 'legend' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Spacer contains')).not.toBeInTheDocument();
 
+    // The all-A guide it finds is flagged: the page is the filters over a list of none shown.
     fireEvent.change(pam, { target: { value: 'NGA' } });
-    expect(await screen.findByText('Guides', { selector: 'legend' })).toBeInTheDocument();
+    expect(await screen.findByLabelText('Spacer contains')).toBeInTheDocument();
   });
 
   it('writes the pX330 oligos for the guide chosen', async () => {
     const spacer = 'ACCTGCATTGGCATTGCATT';
     await openTab(docOf(`${spacer}TGG${FILLER}`));
-    fireEvent.click(await screen.findByRole('button', { name: /ACCTGCATTGGCATTGCATT/ }));
+    await screen.findByRole('grid', { name: 'Guides' });
+    fireEvent.click(tableRow(/ACCTGCATTGGCATTGCATT/));
 
     expect(await screen.findByText('Oligos to order')).toBeInTheDocument();
     // The U6 promoter wants a G, which this spacer has not got.
@@ -250,7 +267,8 @@ describe('CrisprPanel', () => {
     fireEvent.change(screen.getByLabelText('Nuclease'), { target: { value: 'ascas12a' } });
     // The all-A guide is flagged, and SpCas9 found none for the helper to ask for.
     fireEvent.click(await screen.findByRole('button', { name: 'Show flagged' }));
-    fireEvent.click(await screen.findByRole('button', { name: /A{23}/ }));
+    await screen.findByRole('grid', { name: 'Guides' });
+    fireEvent.click(tableRow(/A{23}/));
 
     const overhangs = await screen.findByLabelText('Overhangs');
     expect([...overhangs.querySelectorAll('option')].map((o) => o.textContent)).toEqual([
@@ -261,7 +279,8 @@ describe('CrisprPanel', () => {
   it('adds the chosen guide to the document as a feature', async () => {
     const doc = docOf(`${UNIT}${FILLER}`);
     await openTab(doc);
-    fireEvent.click(await screen.findByRole('button', { name: /AAAAAAAAAAAAAAAAAAAA/ }));
+    await screen.findByRole('grid', { name: 'Guides' });
+    fireEvent.click(tableRow(/AAAAAAAAAAAAAAAAAAAA/));
     fireEvent.click(await screen.findByRole('button', { name: 'Add as feature' }));
 
     const state = editorStore.getState().documents[0];
@@ -274,6 +293,9 @@ describe('CrisprPanel', () => {
       name: 'note',
       value: 'CRISPR protospacer, TGG PAM',
     });
+    // The workspace stays where it is: it says what it did and offers Undo (D8).
+    expect(editorStore.getState()).toMatchObject({ workspace: 'crispr', sidebarTab: 'crispr' });
+    expect(screen.getByText(/^Added 1 feature\./)).toBeInTheDocument();
   });
 
   it('adds every listed guide as a feature in one step to undo', async () => {
@@ -304,10 +326,10 @@ describe('CrisprPanel', () => {
       getAllByTip(document.body, 'C to T edits in the window').map((e) => e.textContent),
     ).toEqual(['2', '0']);
     fireEvent.click(screen.getByRole('button', { name: 'Only with a C to edit' }));
-    fireEvent.click(screen.getByRole('button', { name: /GATCGATC/ }));
+    fireEvent.click(tableRow(/GATCGATC/));
     expect(screen.getByText(/^C4, C8 \(/)).toBeInTheDocument();
     expect(screen.getByText('GATTGATTGATCGATCGATC')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /GAGAGAGA/ })).not.toBeInTheDocument();
+    expect(tableRows().some((r) => r.textContent.includes('GAGAGAGA'))).toBe(false);
   });
 
   it('designs pegRNAs for an edit near a nick', async () => {
@@ -339,7 +361,7 @@ describe('CrisprPanel', () => {
     render(<Host doc={doc} />);
     expect(screen.queryByText('Looking for guides…')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Spacer contains')).toHaveValue('AAAA');
-    expect(screen.getAllByRole('button', { name: /A{20}/ })).toHaveLength(2);
+    expect(tableRows()).toHaveLength(2);
     expect(scans.mock.calls.length).toBe(before);
   });
 
@@ -479,10 +501,11 @@ describe('CrisprPanel, the slim tab (item 133, C3)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Details ›' }));
     expect(editorStore.getState().workspace).toBe('crispr');
     expect(screen.getByRole('tab', { name: /^Guides/ })).toHaveAttribute('aria-selected', 'true');
-    // The workspace's list has the same guide open, with its details.
-    const open = document.querySelector('.crispr-row[aria-expanded="true"]');
-    expect(open).not.toBeNull();
-    expect(open?.parentElement?.querySelector('.crispr-detail')).not.toBeNull();
+    // The workspace's table has the same guide open, with its details beside it.
+    expect(tableRows()[1]).toHaveAttribute('aria-selected', 'true');
+    expect(
+      screen.getByRole('complementary', { name: 'Guide at 34 (forward)' }),
+    ).toBeInTheDocument();
     expect(editorStore.getState().selection).toEqual({ start: 33, end: 53 });
     expect(scans.mock.calls.length).toBe(before);
   });

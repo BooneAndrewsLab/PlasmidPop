@@ -5,7 +5,8 @@ import { type SeqDocument, supportsNickPairs, supportsPrimeEditing } from '@/cor
 import { type CrisprPage, openCrisprWorkspace, takeCrisprFocusRequest } from '../crisprWorkspace';
 import { useEditorState } from '../state/useEditorStore';
 import { GuideRow, NucleaseControls, RegionControl } from './CrisprGuideList';
-import { addGuideAsFeature, flagsOf, guideId, useCrisprScan } from './crisprScan';
+import { SCAN_ADVICE, SCAN_SLOW, addGuideAsFeature, guideId, useCrisprScan } from './crisprScan';
+import { RunNotices } from './RunNotices';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -27,7 +28,19 @@ const MAX_ROWS = 8;
  */
 export function CrisprPanel({ doc }: Props) {
   const scan = useCrisprScan(doc);
-  const { guides, nuclease, problem, error, scanning, sorted, region, selected, selectedId } = scan;
+  const {
+    guides,
+    nuclease,
+    problem,
+    error,
+    stopped,
+    scanning,
+    sorted,
+    clean,
+    region,
+    selected,
+    selectedId,
+  } = scan;
   const { documentId } = useEditorState();
   const more = useRef<HTMLButtonElement>(null);
   // The workspace shut with Escape: the keyboard comes back here.
@@ -45,12 +58,11 @@ export function CrisprPanel({ doc }: Props) {
   if (selected !== null && !rows.some((g) => guideId(g) === selectedId)) rows.push(selected);
 
   let status: string;
-  if (problem !== null || error !== null) status = '';
+  if (problem !== null || error !== null || stopped !== null) status = '';
   else if (scanning && guides === null) status = 'Looking for guides…';
   else if (guides === null || guides.length === 0) {
     status = `No guides${region !== null ? ' cutting in the selection' : ''}. Another nuclease or a custom PAM may find some.`;
   } else {
-    const clean = guides.filter((g) => flagsOf(g).length === 0).length;
     status = `${guides.length.toLocaleString()} ${guides.length === 1 ? 'guide' : 'guides'}, ${clean.toLocaleString()} without flags.`;
     if (sorted.length === 0) status += ' None match the filters.';
     else if (sorted.length > MAX_ROWS) status += ` The first ${String(MAX_ROWS)} are listed.`;
@@ -63,7 +75,15 @@ export function CrisprPanel({ doc }: Props) {
         <RegionControl doc={doc} scan={scan} />
       </div>
       {problem !== null && <p className="panel__note panel__note--warn">{problem}</p>}
-      {error !== null && <p className="panel__note panel__note--warn">{error}</p>}
+      <RunNotices
+        error={error}
+        stopped={stopped}
+        slow={scan.slow}
+        busy={scanning}
+        retry={scan.retry}
+        advice={SCAN_ADVICE}
+        slowText={SCAN_SLOW}
+      />
       <p className="panel__note" role="status">
         {status}
       </p>

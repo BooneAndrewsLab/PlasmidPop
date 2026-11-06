@@ -315,7 +315,8 @@ export class AnalysisClient {
     long: LongRequestOptions = {},
   ): Promise<readonly CrisprGuide[]> {
     const res = await this.send({ kind: 'crispr', sequence, topology, nuclease, options }, long);
-    if (res.kind === 'error') throw new Error(res.message);
+    if (res.kind === 'error')
+      throw res.uncaught === true ? new AnalysisWorkerError(res.message) : new Error(res.message);
     if (res.kind !== 'crispr') throw new Error('Unexpected analysis response');
     return res.guides;
   }

@@ -5919,21 +5919,7 @@ button {
   font-weight: 600;
 }
 
-/*
- * The selected guide opens in place under its row rather than at the foot
- * of a list that can be 200 rows long: the row stays in sight, and a guide
- * clicked on the map is scrolled to rather than hunted for. It keeps the
- * full width — a 300 px sidebar has none to spare — and a selection-coloured
- * edge ties it to the row above.
- */
-.crispr-guide {
-  margin: 2px 0 6px;
-  padding: 6px 8px 8px;
-  border-left: 2px solid var(--seq-selection);
-  border-radius: 0 6px 6px 0;
-  background: var(--surface);
-}
-
+/* A heading inside the guide's detail pane. */
 .crispr-guide__heading {
   display: flex;
   align-items: baseline;
@@ -5992,39 +5978,6 @@ button {
 .crispr-oligo {
   display: block;
   overflow-wrap: anywhere;
-}
-
-.crispr-sites {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  font-size: 12px;
-}
-
-.crispr-sites li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 3px 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.crispr-sites__mm {
-  color: var(--warn);
-  font-variant-numeric: tabular-nums;
-}
-
-.crispr-sites__where {
-  overflow: hidden;
-  flex: 1 1 auto;
-  color: var(--ink-3);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.crispr-sites__at {
-  color: var(--ink-3);
-  font-variant-numeric: tabular-nums;
 }
 
 /* Reads assembled into contigs (#208). */
@@ -8087,4 +8040,82 @@ button {
   position: sticky;
   top: 0;
   background: var(--surface-2);
+}
+
+/*
+ * The CRISPR Guides page's table and its detail pane (item 133, C4). As the
+ * enzyme table's: the table scrolls in its own box, so the count line and
+ * the Add button under it stay in reach however many guides there are, and
+ * the detail sits beside it where there is room and wraps under it where
+ * there is not.
+ */
+.crispr-ws {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.crispr-ws__main {
+  flex: 1 1 520px;
+  min-width: 0;
+}
+
+.crispr-ws__scroll {
+  max-height: min(60vh, 560px);
+}
+
+.crispr-ws .detail {
+  flex: 1 1 320px;
+  min-width: 0;
+  margin-top: 0;
+}
+
+/* The settings keep to a row, wrapping as whole controls. */
+.crispr-ws__settings {
+  align-items: center;
+}
+
+.wst td.crispr-ws__flag {
+  width: 1em;
+  color: var(--warn);
+  font-weight: 600;
+  text-align: center;
+}
+
+.crispr-ws__body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.crispr-ws__col {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.crispr-ws__col .crispr-guide__heading:first-child {
+  margin-top: 0;
+}
+
+.crispr-ws__sites {
+  max-height: 220px;
+  overflow: auto;
+}
+
+.crispr-ws__sites .dt th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-2);
+}
+
+.crispr-ws__where {
+  max-width: 16em;
+  overflow: hidden;
+  color: var(--ink-3);
+  text-overflow: ellipsis;
+}
+
+.crispr-ws__added {
+  margin-top: 6px;
 }

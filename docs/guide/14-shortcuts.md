@@ -146,16 +146,17 @@ keyboard on the page's heading.
 | `Escape` in a large view or MSA window | The window's own: close its panel or form, clear its selection, then close the window; the workspace behind it stays open                                                                                                           |
 | `Escape` on the map                    | Clears the selection, as always; the workspace stays open                                                                                                                                                                           |
 
-In a workspace's tables, such as the primer Results table and the Enzyme
-workspace's [enzyme table](07-enzymes.md#the-enzyme-table), each of which is
+In a workspace's tables, such as the primer Results table, the Enzyme
+workspace's [enzyme table](07-enzymes.md#the-enzyme-table) and the CRISPR
+workspace's [guide table](17-crispr.md#the-guide-table), each of which is
 one stop in the tab order:
 
-| Keys                 | Action                                                                                           |
-| -------------------- | ------------------------------------------------------------------------------------------------ |
-| `↓ ↑`                | Select the next or the previous row (the pair, the enzyme) and show it: on the map, or in detail |
-| `Home`, `End`        | The first and the last row, scrolled to when it is not drawn yet                                 |
-| `Escape` on a row    | Enzyme table: put the enzyme's detail away; the next `Escape` closes the workspace               |
-| `Enter` on a heading | Sort by that column; again, the other way round                                                  |
+| Keys                 | Action                                                                                                      |
+| -------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `↓ ↑`                | Select the next or the previous row (the pair, the enzyme, the guide) and show it: on the map, or in detail |
+| `Home`, `End`        | The first and the last row, scrolled to when it is not drawn yet                                            |
+| `Escape` on a row    | Enzyme and guide tables: put the detail away; the next `Escape` closes the workspace                        |
+| `Enter` on a heading | Sort by that column; again, the other way round                                                             |
 
 ## Feature editor
 
