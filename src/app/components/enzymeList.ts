@@ -242,9 +242,12 @@ export function useEnzymeList(doc: SeqDocument) {
     () =>
       groups.flatMap((g) => {
         const profile = shownEnzymes.has(g.enzyme.name) ? g.profile() : null;
-        return profile === null ? [] : [{ ...g, name: g.enzyme.name, profile }];
+        // An enzyme whose every site this DNA's methylation blocks cuts nothing (#407).
+        return profile === null || cuts(g).length === 0
+          ? []
+          : [{ ...g, name: g.enzyme.name, profile }];
       }),
-    [groups, shownEnzymes],
+    [groups, shownEnzymes, cuts],
   );
   /**
    * Two or three enzymes ticked is a double or triple digest, and one of

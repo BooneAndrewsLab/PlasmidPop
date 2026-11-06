@@ -296,6 +296,8 @@ describe('docs/tutorials/enzymes.md as the Enzymes tab and workspace show it', (
     it('MscI: blocked by Dcm, so nothing is cut unless the host lacks Dcm', () => {
       const view = open('MscI');
       expect(chips()).toEqual(['MscI']);
+      // Its one site is blocked, so the chip is drawn dashed (#407).
+      expect(document.body.querySelectorAll('.dig-chip--idle')).toHaveLength(1);
       expect(notes('.dig-frag .panel__note')).toEqual([
         'Every site of MscI in EN-Plasmid is blocked by its dam+/dcm+ methylation, so nothing is cut. If the DNA came from a dam−/dcm− strain or a PCR, say so under Grown in above.',
       ]);
