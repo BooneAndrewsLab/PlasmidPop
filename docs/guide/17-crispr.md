@@ -21,13 +21,15 @@ workspace's order, along the molecule unless you sorted it otherwise, so
 want; the flagged guides are left out until the workspace's **Show flagged**
 is pressed.
 
-While the tab or the workspace is open, every guide listed is drawn on the map
-and in the sequence view as an arrow on its own strand labelled with its PAM
-(see [Previews](03-viewing.md#previews)); clicking one there selects it, and
-it is the selected row in the tab or on the workspace's **Guides** page, with
-its details. Past 200 guides none are drawn on the views — the workspace's
-table still lists them all; filter the list or narrow the scan to a selection
-to see them drawn.
+While the tab or the workspace's **Guides** page is open, every guide listed is
+drawn on the map and in the sequence view as an arrow on its own strand
+labelled with its PAM (see [Previews](03-viewing.md#previews)); clicking one
+there selects it, and it is the selected row in the tab or on the **Guides**
+page, with its details. Past 200 guides none are drawn on the views — the
+workspace's table still lists them all; filter the list or narrow the scan to
+a selection to see them drawn. What the views draw follows the workspace's
+page: the **Pairs** page draws the open pair's two guides and the **Prime**
+page the guides that could make the edit and the edit itself.
 
 ## The tab and the workspace
 
@@ -39,10 +41,15 @@ its left edge:
 - **Guides** — [the guide table](#the-guide-table): the settings (nuclease,
   off-targets, other documents, the region), the filters, every guide found
   with the selected one in full beside it, and **Add N listed as features**.
-- **Pairs** — the [paired nickases](#paired-nickases); the tab's **Paired
-  nickases ›** opens it, for the nucleases that allow them.
-- **Prime** — [prime editing](#prime-editing); the tab's **Prime editing ›**
-  opens it, likewise.
+- **Pairs** — the [paired nickases](#paired-nickases), a table of the pairs
+  of guides whose nicks make a staggered break; the tab's **Paired nickases
+  ›** opens it, for the nucleases that allow them.
+- **Prime** — [prime editing](#prime-editing), the edit's form and a table of
+  the pegRNAs for it; the tab's **Prime editing ›** opens it, likewise.
+
+The rail counts what each page lists: the guides, the pairs, and the pegRNAs
+once an edit is typed. For a nuclease that cannot make pairs or pegRNAs, the
+two pages say what they need and send you to **Guides**.
 
 The tab and the workspace share one scan, so what is set or found in one is
 set and found in the other, and switching between them does not scan again.
@@ -231,40 +238,68 @@ the choice is not offered for other nucleases.
 
 ## Prime editing
 
-The workspace's **Prime** page designs pegRNAs for the guides found. Give
+The workspace's **Prime** page designs pegRNAs for the guides found, all of
+them, whatever the Guides page's filters have set aside. Across the top, give
 the **Edit at** position (1-based), how many bases it **Replaces** and what
 it is replaced **With** (nothing deletes; zero bases replaced inserts), or
-select the bases and press **Use the selection**. **PBS** sets the primer
-binding site length, 8–17 (13 by default).
+select the bases and press **Use the selection**, which takes the position and
+length of whatever is selected at that moment; a row of the table selects its
+guide, so press it before choosing one. **PBS** sets the primer binding site
+length, 8–17 (13 by default). The boxes are kept per document, with the
+scan, while you look at another page or tab.
 
-For each guide whose nick lies up to 30 bases before the edit on the
-guide's strand, nearest first, the list gives the primer binding site, the
-reverse-transcriptase template (the edit plus ten bases of homology) and the
-3′ extension, which is the template followed by the primer binding site.
-**Copy spacer and extension** puts the two to order on the clipboard;
-add them to your scaffold. It also says whether the edit changes the PAM,
-which stops the edited site being nicked again, and flags a template that
-starts with C, a primer binding site outside 40–60% GC, and TTTT. An edit
-before the nick, or too far after it, has no pegRNA from that guide. PlasmidPop
-does not rank pegRNAs by predicted efficiency, and does not design the
-second nick of PE3.
+Under them is a table of the pegRNAs, one for each guide whose nick lies up to
+30 bases before the edit on the guide's strand, nearest first: the guide
+(its strand, spacer and PAM), the **Nick** (the nick falls after this base),
+its **Distance** to the edit, the **PBS**, and whether the edit also changes
+the PAM, which stops the edited site being nicked again (**PAM changed**). A
+`!` flags a template that starts with C, a primer binding site outside
+40–60% GC, and TTTT; hover it for what. An edit before the nick, or too far
+after it, has no pegRNA from that guide, and when no guide is near enough the
+page says so. The rail's **Prime** shows how many pegRNAs there are once an
+edit is typed.
+
+Clicking a row selects the guide's protospacer and shows its parts under the
+table: the **PBS**, the **RT template** (the edit plus ten bases of homology)
+and the **3′ extension**, which is the template followed by the primer binding
+site, each with a **Copy**, and **Copy spacer and extension**, which puts the
+two lines to order on the clipboard; add them to your scaffold. Clicking the
+open row again puts it away. The views carry the guides that could make the
+edit as arrows, as on the Guides page, and the edit itself as a tick: over the
+bases it replaces, or on the one after an insertion, labelled with the new
+bases. Clicking an arrow opens its row. The keys walk the table as they do
+the others (see [Keyboard shortcuts](14-shortcuts.md#workspaces)).
+PlasmidPop does not rank pegRNAs by predicted efficiency, and does not design
+the second nick of PE3.
 
 ## Paired nickases
 
 For SpCas9 and the other nucleases that cut both strands at one point, the
 workspace's **Pairs** page lists pairs of guides on opposite strands whose
 nicks, one on each strand, are close enough to make a staggered
-double-strand break. Each pair shows its two guides and the overhang: the
-offset between the nicks, and whether it is a 5′ or 3′ overhang. **Nickase**
-picks which strand each guide's nick falls on: **D10A** nicks the strand the
-guide pairs with, **H840A** the PAM strand. With D10A, guides whose PAMs
-face outward (PAM-out) leave 5′ overhangs, the arrangement reported to work
-best, and guides facing inward leave 3′ overhangs. **Nicks at most … apart**
-sets the largest offset listed (100 by default). **Show** selects the span
-of both guides. Pairs are ranked by the distance between the nicks only; no
-pair is scored, and nothing is checked for off-target nicking beyond what
-each guide's own row shows. Pairing works through the origin of a circular
-sequence.
+double-strand break. **Nickase** picks which strand each guide's nick falls
+on: **D10A** nicks the strand the guide pairs with, **H840A** the PAM strand.
+**Nicks at most … apart** sets the largest offset listed (100 by default; an
+empty box is the default). With D10A, guides whose PAMs face outward
+(PAM-out) leave 5′ overhangs, the arrangement reported to work best, and
+guides facing inward leave 3′ overhangs.
+
+Under them is a table with a row for each pair, every one of them, the
+closest nicks first: the guide whose nick is on the **forward** strand and
+the one whose is on the **reverse** strand, each with its direction, its
+position and its spacer, then how many bases the nicks are **Apart**, and the
+**Overhang** they leave, 5′ or 3′ and how long, or blunt. The page says how
+many pairs there are, and the rail's **Pairs** shows the same number. Pairs
+are ranked by the distance between the nicks only; no pair is scored, and
+nothing is checked for off-target nicking beyond what each guide's own row
+shows. Pairing works through the origin of a circular sequence.
+
+Clicking a row selects the span of both guides in the views and draws the two
+as arrows, labelled with their PAMs, in place of the other guides while the
+page is in front; clicking an arrow selects that guide. Clicking the open row
+again, or `Escape` on it, clears the selection. The keys walk the table as
+they do the others (see [Keyboard shortcuts](14-shortcuts.md#workspaces)).
+The pair stays open when you look at another page and come back.
 
 ## Ordering and annotating a guide
 

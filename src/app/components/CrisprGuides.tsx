@@ -24,6 +24,31 @@ export function OffTargetNote({ onSeen }: { readonly onSeen: () => void }) {
   );
 }
 
+/**
+ * What a scan that has no guides yet says, on every page that lists them: a
+ * custom PAM that is not one, a scan that failed or is slow, and the wait.
+ */
+export function CrisprScanNotices({ scan }: { readonly scan: CrisprScan }) {
+  const { problem, error, stopped, slow, retry, scanning, guides } = scan;
+  return (
+    <>
+      {problem !== null && <p className="panel__note panel__note--warn">{problem}</p>}
+      <RunNotices
+        error={error}
+        stopped={stopped}
+        slow={slow}
+        busy={scanning}
+        retry={retry}
+        advice={SCAN_ADVICE}
+        slowText={SCAN_SLOW}
+      />
+      {problem === null && scanning && guides === null && (
+        <p className="panel__note">Looking for guides…</p>
+      )}
+    </>
+  );
+}
+
 interface Props {
   readonly doc: SeqDocument;
   readonly scan: CrisprScan;
@@ -38,7 +63,7 @@ interface Props {
  * the same controls over the same session.
  */
 export function CrisprGuides({ doc, scan, noteSeen }: Props) {
-  const { s, set, baseEditing, baseEditor, guides, error, stopped, slow, retry, scanning } = scan;
+  const { s, set, baseEditing, baseEditor, guides, scanning } = scan;
   const { problem, region, pams, pamChosen } = scan;
   const { maxMismatches, searchOthers, spacerFilter, showFlagged, onlyEditable } = s;
 
@@ -82,19 +107,7 @@ export function CrisprGuides({ doc, scan, noteSeen }: Props) {
         <RegionControl doc={doc} scan={scan} />
       </div>
 
-      {problem !== null && <p className="panel__note panel__note--warn">{problem}</p>}
-      <RunNotices
-        error={error}
-        stopped={stopped}
-        slow={slow}
-        busy={scanning}
-        retry={retry}
-        advice={SCAN_ADVICE}
-        slowText={SCAN_SLOW}
-      />
-      {problem === null && scanning && guides === null && (
-        <p className="panel__note">Looking for guides…</p>
-      )}
+      <CrisprScanNotices scan={scan} />
       {problem === null && !scanning && guides !== null && guides.length === 0 && (
         <p className="panel__note">
           No guides{region !== null ? ' cutting in the selection' : ''}. Another nuclease or a

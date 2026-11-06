@@ -1,11 +1,11 @@
 import type { SeqDocument } from '@/core';
-import { supportsNickPairs, supportsPrimeEditing } from '@/core';
 
 import { type CrisprPage, crisprWorkspace } from '../crisprWorkspace';
 import { useEditorState } from '../state/useEditorStore';
 import type { WorkspaceLayout } from '../workspaceController';
 import { PairedNickases } from './CrisprPairedNickases';
-import { CrisprGuides, OffTargetNote } from './CrisprGuides';
+import { CrisprGuides, CrisprScanNotices, OffTargetNote } from './CrisprGuides';
+import { useNickPairs, usePegRnas } from './crisprEditing';
 import { useOffTargetNote } from './crisprOffTargetNote';
 import { PrimeEditing } from './CrisprPrimeEditing';
 import { useCrisprScan } from './crisprScan';
@@ -35,27 +35,50 @@ interface Props {
   readonly layout?: WorkspaceLayout;
 }
 
+/** Why a page has nothing to list for this nuclease, with the way to another. */
+function NeedsCas9({ what, onGuides }: { readonly what: string; readonly onGuides: () => void }) {
+  return (
+    <p className="panel__note">
+      {what} a Cas9-like nuclease, with the PAM after the guide and a blunt cut. Choose one on the{' '}
+      <button type="button" className="link" onClick={onGuides}>
+        Guides
+      </button>{' '}
+      page.
+    </p>
+  );
+}
+
 /**
- * The CRISPR workspace (item 133, C2): the shared shell around three pages,
+ * The CRISPR workspace (item 133): the shared shell around three pages.
  * Guides is the settings, the filters and the guide table with its detail
- * (C4); Pairs the paired nickases and Prime the pegRNAs, each today's piece
- * as it is. All over one `useCrisprScan`, the panel's own, whose state is the
- * document's session: a scan started in either place is the other's, and
- * switching rescans nothing.
+ * (C4); Pairs the paired nickases and Prime the pegRNAs, each a table over
+ * the same scan, with the rail counting its rows (C5). All over one
+ * `useCrisprScan`, the panel's own, whose state is the document's session: a
+ * scan started in either place is the other's, and switching rescans nothing.
+ * What the views draw follows the page in front.
  */
 export function CrisprWorkspace({ doc, layout = 'split' }: Props) {
   const { documentId } = useEditorState();
   const [page, setPage] = crisprWorkspace.usePage(documentId);
-  const scan = useCrisprScan(doc);
+  const scan = useCrisprScan(doc, { preview: page === 'guides' });
   const { guides, nuclease, problem, scanning, sorted, filtered, clean } = scan;
   const note = useOffTargetNote();
+  // Both are worked out here, not in the pages, so the rail can count them
+  // from any page; each is empty unless the nuclease allows it.
+  const nick = useNickPairs(doc, guides, nuclease);
+  const design = usePegRnas(doc, guides, nuclease);
 
   const ready = problem === null && nuclease !== null && guides !== null;
-  const prime = ready && supportsPrimeEditing(nuclease);
-  const pairs = ready && supportsNickPairs(nuclease);
+  const toGuides = (): void => {
+    setPage('guides');
+  };
 
-  const badge = (p: CrisprPage): number | null =>
-    p === 'guides' && guides !== null && !scanning ? sorted.length : null;
+  const badge = (p: CrisprPage): number | null => {
+    if (p === 'guides') return guides !== null && !scanning ? sorted.length : null;
+    if (!ready) return null;
+    if (p === 'pairs') return nick.allowed ? nick.pairs.length : null;
+    return design.allowed && design.edit !== null ? design.pegs.length : null;
+  };
 
   return (
     <WorkspaceShell
@@ -87,42 +110,20 @@ export function CrisprWorkspace({ doc, layout = 'split' }: Props) {
       <div className="panel">
         {page === 'guides' && <CrisprGuides doc={doc} scan={scan} noteSeen={note.seen} />}
         {page === 'pairs' &&
-          (pairs ? (
-            <PairedNickases doc={doc} guides={guides} />
+          (nuclease !== null && !nick.allowed ? (
+            <NeedsCas9 what="Paired nickases need" onGuides={toGuides} />
+          ) : ready ? (
+            <PairedNickases doc={doc} nick={nick} guideCount={guides.length} />
           ) : (
-            <p className="panel__note">
-              Paired nickases need a Cas9-like nuclease, with the PAM after the guide and a blunt
-              cut. Choose one on the{' '}
-              <button
-                type="button"
-                className="link"
-                onClick={() => {
-                  setPage('guides');
-                }}
-              >
-                Guides
-              </button>{' '}
-              page.
-            </p>
+            <CrisprScanNotices scan={scan} />
           ))}
         {page === 'prime' &&
-          (prime ? (
-            <PrimeEditing doc={doc} guides={guides} nuclease={nuclease} />
+          (nuclease !== null && !design.allowed ? (
+            <NeedsCas9 what="Prime editing needs" onGuides={toGuides} />
+          ) : ready ? (
+            <PrimeEditing doc={doc} design={design} />
           ) : (
-            <p className="panel__note">
-              Prime editing needs a Cas9-like nuclease, with the PAM after the guide and a blunt
-              cut. Choose one on the{' '}
-              <button
-                type="button"
-                className="link"
-                onClick={() => {
-                  setPage('guides');
-                }}
-              >
-                Guides
-              </button>{' '}
-              page.
-            </p>
+            <CrisprScanNotices scan={scan} />
           ))}
       </div>
     </WorkspaceShell>

@@ -17,7 +17,6 @@ export const actWarningBudget: Readonly<Record<string, number>> = {
   'src/app/components/EmptyState.test.tsx': 14,
   'src/app/components/NcbiSearch.test.tsx': 8,
   'src/app/components/ExportFigureDialog.test.tsx': 6,
-  'src/app/components/CrisprPanel.test.tsx': 6,
   'src/app/compare.test.tsx': 8,
   'src/app/components/PrimerCollection.test.tsx': 5,
   'src/app/components/CloningDesign.test.tsx': 4,

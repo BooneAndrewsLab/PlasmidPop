@@ -188,14 +188,46 @@ function useSlow(busy: boolean, run: unknown): boolean {
 }
 
 /**
+ * Draws `spans` as the CRISPR preview on the views and hands a click on one
+ * of them back as the id it was drawn with; `null` is a page that draws
+ * nothing, so another's (or none) is not disturbed. The preview goes when the
+ * page does. Only one page is in front, so the owner is one name.
+ */
+export function useCrisprPreview(
+  spans: readonly OverlaySpan[] | null,
+  doc: SeqDocument,
+  onActivate: (id: string) => void,
+): void {
+  const { previewActivated: activated } = useEditorState();
+  const drawing = spans !== null;
+  useEffect(() => {
+    if (spans !== null) editorStore.setPreview('crispr', spans);
+  }, [spans, doc]);
+  useEffect(() => {
+    if (!drawing) return;
+    return () => {
+      editorStore.clearPreview('crispr');
+    };
+  }, [drawing]);
+
+  const handled = useRef(activated?.nonce ?? 0);
+  useEffect(() => {
+    if (activated?.owner !== 'crispr' || activated.nonce === handled.current) return;
+    handled.current = activated.nonce;
+    if (drawing) onActivate(activated.id);
+  }, [activated, drawing, onActivate]);
+}
+
+/**
  * The CRISPR tab's scan and what is made of it (item 133): the session for
  * the document in front, the scan it asks for, the list filtered and sorted,
  * the guide opened, and the arrows on the views while a host is mounted. The
- * panel and, later, the workspace read this; the state is in the session, so
- * a host that gives way to the other does not scan again.
+ * panel and the workspace read this; the state is in the session, so a host
+ * that gives way to the other does not scan again. With `preview: false`, the
+ * workspace's Pairs and Prime pages, the views are left to the page in front.
  */
-export function useCrisprScan(doc: SeqDocument) {
-  const { selection, previewActivated: activated, documents, documentId } = useEditorState();
+export function useCrisprScan(doc: SeqDocument, { preview = true }: { preview?: boolean } = {}) {
+  const { selection, documents, documentId } = useEditorState();
   const s = useCrisprSession(documentId);
   const set = (patch: Partial<CrisprSession>): void => {
     updateCrisprSession(documentId, patch);
@@ -388,26 +420,14 @@ export function useCrisprScan(doc: SeqDocument) {
   );
   // An edit clears every preview, since what it pointed at has moved: the
   // guides stay where they were when it was a feature added from the list,
-  // so they are drawn again once the document has changed.
-  useEffect(() => {
-    editorStore.setPreview('crispr', previewed);
-  }, [previewed, doc]);
-  useEffect(
-    () => () => {
-      editorStore.clearPreview('crispr');
-    },
-    [],
-  );
-
-  const handledClick = useRef(activated?.nonce ?? 0);
-  useEffect(() => {
-    if (activated?.owner !== 'crispr' || activated.nonce === handledClick.current) return;
-    handledClick.current = activated.nonce;
-    const g = sorted.find((x) => guideId(x) === activated.id);
+  // so they are drawn again once the document has changed. Only while the
+  // Guides page (or the slim tab) is in front: Pairs and Prime draw their own.
+  useCrisprPreview(preview ? previewed : null, doc, (id) => {
+    const g = sorted.find((x) => guideId(x) === id);
     if (g === undefined) return;
     editorStore.setSelection(g.range);
     editorStore.revealPosition(g.range.start);
-  }, [activated, sorted]);
+  });
 
   return {
     s,

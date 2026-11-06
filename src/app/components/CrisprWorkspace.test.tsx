@@ -88,13 +88,14 @@ describe('CrisprWorkspace (item 133, C2)', () => {
     expect(scans.mock.calls.length).toBe(before);
   });
 
-  it('mounts the paired nickases and prime editing, and remembers the page', async () => {
+  it('has the pairs table and the prime form on their pages, and remembers the page', async () => {
     render(<Host />);
     await scanned();
     fireEvent.click(door());
     fireEvent.click(screen.getByRole('tab', { name: /^Pairs/ }));
     expect(screen.getByRole('heading', { name: 'Paired nickases' })).toBeInTheDocument();
-    expect(await screen.findByText('Paired nickases', { selector: 'legend' })).toBeInTheDocument();
+    expect(await screen.findByRole('grid', { name: 'Paired nickases' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Nickase')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: /^Prime/ }));
     expect(screen.getByRole('heading', { name: 'Prime editing' })).toBeInTheDocument();
     expect(await screen.findByLabelText('New bases')).toBeInTheDocument();
@@ -109,7 +110,8 @@ describe('CrisprWorkspace (item 133, C2)', () => {
     await scanned();
     fireEvent.click(door());
     const nuclease = screen.getByRole('combobox', { name: /nuclease/i });
-    fireEvent.change(nuclease, { target: { value: 'cas12a' } });
+    fireEvent.change(nuclease, { target: { value: 'ascas12a' } });
+    await scanned();
     fireEvent.click(screen.getByRole('tab', { name: /^Pairs/ }));
     expect(screen.getByText(/Paired nickases need a Cas9-like nuclease/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Guides' }));

@@ -100,6 +100,12 @@ export interface CrisprSession {
   /** The most the two nicks may be apart, as typed. */
   readonly maxOffset: string;
   readonly pegEdit: PegEdit;
+  /**
+   * The Pairs and Prime pages' open rows, by `pairId` and `pegId`: kept so a
+   * page left and come back to still has its pair or pegRNA drawn on the views.
+   */
+  readonly pairPicked: string | null;
+  readonly pegPicked: string | null;
 }
 
 export const INITIAL_CRISPR_SESSION: CrisprSession = {
@@ -124,6 +130,8 @@ export const INITIAL_CRISPR_SESSION: CrisprSession = {
   nickStrand: 'target',
   maxOffset: String(MAX_PAIR_OFFSET),
   pegEdit: { position: '', replace: '1', insert: '', pbs: String(DEFAULT_PBS) },
+  pairPicked: null,
+  pegPicked: null,
 };
 
 const session = createDocumentSession<CrisprSession>(INITIAL_CRISPR_SESSION);

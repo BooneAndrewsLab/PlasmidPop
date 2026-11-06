@@ -150,16 +150,17 @@ In a workspace's tables, such as the primer Results table, the Enzyme
 workspace's [enzyme table](07-enzymes.md#the-enzyme-table),
 [fragments](07-enzymes.md#the-digest-page) and
 [pairs](07-enzymes.md#choosing-a-diagnostic-digest) tables, and the CRISPR workspace's
-[guide table](17-crispr.md#the-guide-table), each of which is one stop in
+[guide table](17-crispr.md#the-guide-table), [nickase pairs](17-crispr.md#paired-nickases)
+and [pegRNAs](17-crispr.md#prime-editing), each of which is one stop in
 the tab order:
 
-| Keys                 | Action                                                                                                      |
-| -------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `↓ ↑`                | Select the next or the previous row (the pair, the enzyme, the guide) and show it: on the map, or in detail |
-| `Home`, `End`        | The first and the last row, scrolled to when it is not drawn yet                                            |
-| `Enter` on a row     | Fragments and pairs tables, whose arrows only move: select the piece, or draw the pair's lanes              |
-| `Escape` on a row    | Enzyme and guide tables: put the detail away; the next `Escape` closes the workspace                        |
-| `Enter` on a heading | Sort by that column; again, the other way round                                                             |
+| Keys                 | Action                                                                                                                                                                                |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `↓ ↑`                | Select the next or the previous row (the pair, the enzyme, the guide, the pegRNA) and show it: on the map, or in detail                                                               |
+| `Home`, `End`        | The first and the last row, scrolled to when it is not drawn yet                                                                                                                      |
+| `Enter` on a row     | Fragments and pairs tables, whose arrows only move: select the piece, or draw the pair's lanes; the CRISPR pair and pegRNA tables: select the row, or put it away again if it is open |
+| `Escape` on a row    | Enzyme, guide, CRISPR pair and pegRNA tables: put the detail away; the next `Escape` closes the workspace                                                                             |
+| `Enter` on a heading | Sort by that column; again, the other way round                                                                                                                                       |
 
 ## Feature editor
 

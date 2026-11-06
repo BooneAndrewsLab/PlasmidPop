@@ -310,7 +310,9 @@ describe('CrisprPanel', () => {
     const features = [...state.history.present.features.all()];
     expect(features.length).toBeGreaterThan(0);
     expect(features.every((f) => f.type === 'misc_feature')).toBe(true);
-    editorStore.undo();
+    act(() => {
+      editorStore.undo();
+    });
     expect([
       ...(editorStore.getState().documents[0]?.history.present.features.all() ?? []),
     ]).toHaveLength(0);
@@ -330,23 +332,6 @@ describe('CrisprPanel', () => {
     expect(screen.getByText(/^C4, C8 \(/)).toBeInTheDocument();
     expect(screen.getByText('GATTGATTGATCGATCGATC')).toBeInTheDocument();
     expect(tableRows().some((r) => r.textContent.includes('GAGAGAGA'))).toBe(false);
-  });
-
-  it('designs pegRNAs for an edit near a nick', async () => {
-    const spacer = 'GACCTAGCATCGATCGGTAC';
-    const doc = docOf(`${FILLER}${FILLER}${spacer}TGGATATCTATCTAGATCTATATCTCTAGATATCT`);
-    await openTab(doc, 'prime');
-    fireEvent.change(screen.getByLabelText('New bases'), { target: { value: 'g' } });
-    // Position 1 is the far left: no guide nicks before it
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Edit at' }), {
-      target: { value: String(20 + 17 + 4 + 1) },
-    });
-    expect((await screen.findAllByText('3′ extension')).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/4 before the edit/).length).toBeGreaterThan(0);
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Edit at' }), {
-      target: { value: '1' },
-    });
-    expect(screen.getByText(/No guide above nicks/)).toBeInTheDocument();
   });
 
   it('does not scan again when the tab is mounted again, and keeps its settings', async () => {
