@@ -1306,3 +1306,124 @@ All on the workstation, idle (load under 1), `npm run mutate:changed`.
    lines.
 6. **Not measured:** a loaded-machine count of false timeouts. It only
    decides whether `timeoutFactor` could go below 1.5, which nothing asks for.
+
+### Triaged at the 1.22 release (#372)
+
+The pre-release run (`npm run mutate:changed -- v1.21.0`, score 92.22, floor 90)
+left 145 survivors and uncovered mutants on changed lines: `alignment/msa.ts` 130
+(the banded joins of #372 and the banded refinement), `assembly/assemble.ts` 10,
+`annotate/detect.ts` 4 and `cloning/protocol.ts` 1. Every one was applied by hand
+(the report's replacement put on its line, the tests run, `git checkout` of the
+file) and, in `msa.ts` and `assemble.ts`, run against the skipped oracle suites as
+well (`msa.test.ts` and `alignment.test.ts`, the four `sangerAssembly` files).
+No mutant was killed only by a skipped suite. Only tests were added; production
+files are untouched, so the equivalents below are recorded here and carry no
+`Stryker disable` comment.
+
+**Not covered by this run.** `alignment/pairwise.ts` and `alignment/quality.ts`
+were left out (`--without`). They have no incremental baseline, and a dry run
+with them in exceeded the 45-minute ceiling. Their survivors are untriaged.
+
+**`msa.ts`: 74 killed, 57 equivalent or unreachable.** The new tests are in
+`src/core/alignment/msaBand.test.ts`. The existing banded tests compared the
+banded alignment with the full fill, so a fault in `fillBand` or `reachable` that
+changed both the same way passed. The new ones pin what the code does:
+
+- _Pins:_ for 26 sets (similar bases and residues with indels, a long
+  insertion, swapped halves, identical sequences, a refinement that gains, bases
+  past either end of one or two sequences, a word met 4, 5 and 2 times, exactly
+  10 and exactly 9 shared words, an ambiguity code in every twelfth column,
+  gaps that cost nothing or pay, an open cheaper than an extension, unrelated
+  sequences, one shared core) the cells filled and the cells of the full matrix
+  for every join in order, each row's gap runs, the column count and the
+  sum-of-pairs score. These kill the top edge and left edge of `fillBand`, the
+  tie and end-state choices, the terminal gap costs, `gapExtend * fa` on the left
+  edge (needs half-gapped columns met at an end), the three conditions that stop a
+  band being tried (`gapOpen <= gapExtend`, `gapExtend <= 0`, too few anchors),
+  the cap on occurrences of a word (4 allowed, 5 not), the ambiguity code that
+  breaks a word (code `S` is the first past the four bases), `2 * firstCells`,
+  whether the guess is accepted or a second band filled (`within`), and the
+  cells added up for a second fill.
+- _Exact rows_ of five small sets (a base cut at either end, one added and one cut
+  inside, a repeat, residues, ambiguity codes).
+- _Limits:_ a join of exactly `maxCells` cells runs and one cell fewer throws; a
+  join of exactly `bandAbove` cells is filled whole and one more cell is banded.
+
+Equivalent or unreachable, by kind (57):
+
+- **Value always defined (8).** `sameCodes` L91-92 (`a?.length`, `a?.[i]`: both
+  are `codes[x]` with `x < n`; `i <= len` compares `undefined` with `undefined`)
+  and L138, the no-valid-window test of `kmerDistances` (`&& true` and `||`: with
+  one side empty `shared` is 0 and the general formula gives 1 as well).
+- **Past the end of a typed array, or an extra turn that reads nothing (11).**
+  L349 (`lo` of `wholeMatrix` is all zeros, and `?? 0` gives 0 beyond its end),
+  L332, L518, L566, L567, L575 `t <= k`, L577, L582, L584, L596 (a write past
+  the end is dropped, a read beyond gives `undefined`, which `?? 0` or `?? NEG`
+  turns into what the loop would have read) and L624 `i <= inner.lo.length`
+  (`undefined` against `undefined`).
+- **Same value (4).** L394 `prevM[0] && NEG` (`prevM[0]` is 0 or `NEG`, and `NEG`
+  is truthy); L525 `w * radix - best` (the word hash is the negative of the
+  original from the first base on, so it is as good a key); L586 `f !== 0` to
+  `true` (adds `0 * best`, finite); L533 `list.length <= MAX_OCCURRENCES` to
+  `true` (a list past 5 is refused at L538 anyway).
+- **The two ends of the traceback (2).** L464 `i === 0` to `false` or its body
+  emptied: the top-edge entries the fill wrote (`trace[j] = 1 << 4`) make the
+  general branch push the same `2`.
+- **Far diagonals and very low scores (5).** L595 `sums` one shorter, and L610
+  and L612 `high <= n`, `low >= -m` and the loop test to `true`: `lossA[x]` is
+  `undefined` (so `Infinity`, so `fits` is false) past the end either way, and
+  `fits` is only true for the far diagonals (`x >= n - 1`) when the guess scores
+  below the all-gaps path, which a band of 15-base words never gives. The same
+  fact makes `regionCells >= full` (L661, `> full`, `&& ...`, the emptied block,
+  L662's `{}`) unreachable, nine mutants: a region as large as the matrix needs
+  every diagonal from `-m` to `n`.
+- **The climb from 0 (2).** L609 `Math.max(0, shift)` to `Math.min(0, shift)`, L611
+  the same for `low`: `fits` has the same value for every diagonal between 0 and
+  `n - m` (the same number of gap columns), and it is true for the path the guess
+  found, so the loop climbs to where the original starts.
+- **Float ties (4).** L601 (three mutants of `slack`) and L607 `>=` to `>`: the
+  slack only absorbs rounding where the bound is exactly the score, and a
+  difference of 1e-6 relative is never reached by an integer-valued score.
+- **Bound only (1).** L575 `row[t] && 0`: the best of each base against a column of
+  the other profile is a max, and a pure column of that base reaches it, so a
+  mixed column's sum is never the max. A profile with a base in no pure column
+  that still has 10 words was not built.
+- **Hairline boundary (3).** L649 `n - 1` and `m - 1`, L656 `2 * firstCells >= full`:
+  each changes the fallback only when twice the cells of the first band is within
+  one row of the matrix. Not constructed.
+- **The refinement budget (8).** L656 `firstCells > budget`, L661 `guess.cells +
+regionCells > budget` (three mutants), L690 (three) and L910-915 (`REFINE_CELLS
+  - spent`, `out === null`, `spent += out.cells`): a join's budget is
+`REFINE_CELLS` (300 million) less the cells already spent, so they differ only
+    once the refinement has filled most of 300 million cells, which needs several
+    full fills of 12 kb sequences, a minute or more a test. Progressive joins
+    have an infinite budget. Left for a measurement, not a unit test.
+
+**Non-loop timeouts (5), applied by hand.** `msa.ts` L464 (`i === 0` to `true`, to
+`i !== 0`) and `assemble.ts` L292 and L293 (`lo - hi`, `mid - 1`) never end, so
+they are sound kills; `msa.ts` L625 (the `within` test's body emptied) is
+killed by the pins, since the guess is then accepted without its second fill.
+
+**`assemble.ts`: 10 equivalent, 0 killed.** L285 `first < 0` (a row always has
+a base: reads are not empty), L833 `check.contig === null` (`contigs[null]` is
+undefined and L835 continues), L835 `contig === undefined` (a check's contig
+is in range), L864 four mutants of `a === undefined || b === undefined` (both
+mates of a checked pair are in the contig's reads), L870 `''` for the insert
+note (`about` is used only for states that need an insert size, which is then
+not null), L916 `options.pairs ?? []` (iterating a string sets one useless
+key), L974 `mate === undefined ? null : ...` (`extentOf(undefined)` finds no
+row and gives null). L870 showed "killed" in a run made with the msa
+harness running beside it and passes alone: the oracle files can time out
+under load, so check a verdict that only a skipped suite gives on an idle
+machine.
+
+**`detect.ts`: 4 equivalent.** L1011 `size(y) + size(x)` and L1012 `finest`
+unsorted (`withRepeats` sorts again by start, then size: the same comparator),
+L971 `parts[k.part]?.name` (a hit's part is in the library), L493
+`hiddenHits.length === 0 ? hits : [...]` (a copy of the same list). The first
+sits on the line after the `Stryker disable` comment that covers the
+`byPlace` declaration, so the comment does not reach it.
+
+**`protocol.ts`: 1 equivalent.** L510 `wrongClones.length === 0` to `false`:
+`compareCheckAll` with no wrong lanes gives `apart` 0, `weakest` 1 and
+`faintest` 0 for both candidates and falls through to `compareDiagnostic`.
