@@ -3,7 +3,9 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 
 import { SeqDocument, reverseComplement } from '@/core';
 
+import { recallWorkspace } from '../primerWorkspace';
 import { editorStore } from '../state/editorStore';
+import { recallPanel } from '../state/panelMemory';
 import { PcrPanel } from './PcrPanel';
 
 /** A fixed pseudo-random plasmid, so a primer site is never a coincidence. */
@@ -60,6 +62,28 @@ describe('PcrPanel', () => {
     act(() => {
       while (editorStore.getState().documents.length > 0) editorStore.closeDocument();
     });
+  });
+
+  it('hands a box to the primer workspace\u2019s Check page, as typed', () => {
+    setup();
+    const id = editorStore.getState().documentId;
+    // Nothing to check in an empty box.
+    expect(screen.queryByRole('button', { name: 'Check ›' })).toBeNull();
+    type('Forward primer', TAIL + FWD);
+    type('Reverse primer', REV);
+    const doors = screen.getAllByRole('button', { name: 'Check ›' });
+    expect(doors).toHaveLength(2);
+    const [fwdDoor, revDoor] = doors;
+    if (fwdDoor === undefined || revDoor === undefined) throw new Error('no doors');
+    act(() => {
+      fireEvent.click(revDoor);
+    });
+    expect(recallPanel('primers.probe', id, '')).toBe(REV);
+    expect(recallWorkspace(id).page).toBe('check');
+    act(() => {
+      fireEvent.click(fwdDoor);
+    });
+    expect(recallPanel('primers.probe', id, '')).toBe(TAIL + FWD);
   });
 
   it('puts a product on the shelf, blunt and with its primers', () => {

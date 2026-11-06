@@ -24,6 +24,7 @@ good to about ±2 °C for ordinary PCR primers; adjust for your buffer.
   and whether it ends in a GC clamp, with where it binds on the document
   (each site previewed in the views; click one to select it). **Full check ›**
   opens the workspace's Check page, which adds the warnings and the actions.
+  The Cloning tab's PCR boxes have a **Check ›** that fills Check with their primer.
 - **On this document** lists the document's `primer_bind` features with their
   strand and position; click one to select it.
 - **My primers…** opens the workspace on your list.

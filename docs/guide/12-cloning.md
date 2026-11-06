@@ -199,6 +199,10 @@ with this one; Mutate's change does the same. A primer from
 tab (**PCR fwd**, **PCR rev**); its name then shows beside the box and on the
 product's primer features, until you edit the bases.
 
+**Check ›** under a box, once it holds a primer, puts it as typed (5′ to 3′,
+the reverse primer too) into the primer workspace's Check page and opens
+there, for its warnings and binding sites.
+
 The template is the document in front of you. With more than one tab open,
 **Template** picks another one instead, so an insert can be amplified out of
 one plasmid while you look at the vector it is going into. Its products are

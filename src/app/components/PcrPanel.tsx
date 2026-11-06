@@ -24,6 +24,7 @@ import { type OverlaySpan } from '@/view/overlay';
 
 import { analytics } from '../analytics';
 import { cloningDocuments, editorStore } from '../state/editorStore';
+import { pcrToCheck } from '../primerToPcr';
 import { useGelOptions } from '../state/useGel';
 import { useRemembered } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';
@@ -389,6 +390,20 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
           sequence={forward}
           seqLength={template.length}
         />
+        {cleaned(forward) !== '' && (
+          <div className="panel__links">
+            <button
+              type="button"
+              className="link panel__door"
+              data-tip="Put this primer in the primer workspace's Check page"
+              onClick={() => {
+                pcrToCheck(documentId, forward);
+              }}
+            >
+              Check ›
+            </button>
+          </div>
+        )}
         <label className="panel__field panel__field--stack">
           <span>Reverse primer{rName === REVERSE ? '' : ` \u00b7 ${rName}`}</span>
           <input
@@ -409,6 +424,20 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
           sequence={reverse}
           seqLength={template.length}
         />
+        {cleaned(reverse) !== '' && (
+          <div className="panel__links">
+            <button
+              type="button"
+              className="link panel__door"
+              data-tip="Put this primer in the primer workspace's Check page"
+              onClick={() => {
+                pcrToCheck(documentId, reverse);
+              }}
+            >
+              Check ›
+            </button>
+          </div>
+        )}
       </div>
       {/* The two things most runs leave alone: the default is a proofreading
           polymerase and oligos without a 5′ phosphate. The summary says what

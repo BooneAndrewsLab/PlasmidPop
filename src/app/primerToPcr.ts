@@ -1,5 +1,6 @@
 import { recallPanel, rememberPanel } from './state/panelMemory';
 import { editorStore } from './state/editorStore';
+import { openPrimerWorkspace } from './primerWorkspace';
 
 /**
  * Handing a primer of the collection to PCR (#64). The PCR panel keeps what
@@ -25,6 +26,16 @@ export function sendToPcr(
   rememberPanel(`pcr.${slot}Name`, documentId, primer.name);
   rememberPanel('pcr.template', documentId, null);
   rememberPanel('pcr.shown', documentId, null);
+}
+
+/**
+ * The reverse of `sendToPcr`: a PCR box's primer, as typed 5′ to 3′ (the
+ * reverse box's too, not reverse-complemented), goes into the Check page's
+ * probe slot and the primer workspace opens there (#395).
+ */
+export function pcrToCheck(documentId: string | null, sequence: string): void {
+  rememberPanel('primers.probe', documentId, sequence);
+  openPrimerWorkspace(documentId, 'check');
 }
 
 /** What the PCR panel holds in a slot for a document, or null when it is empty. */
