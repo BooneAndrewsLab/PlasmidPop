@@ -3,14 +3,8 @@ import { useMemo } from 'react';
 import { type SeqDocument, isEmptyRange } from '@/core';
 import { type OverlaySpan } from '@/view/overlay';
 
-import {
-  type DesignMode,
-  WORKSPACE_PAGES,
-  type WorkspaceLayout,
-  type WorkspaceMemory,
-  type WorkspacePage,
-  closePrimerWorkspace,
-} from '../primerWorkspace';
+import { type DesignMode, type WorkspacePage, primerWorkspace } from '../primerWorkspace';
+import { type WorkspaceLayout } from '../workspaceController';
 import { useRemembered } from '../state/panelMemory';
 import { usePrimerCollection } from '../state/primerCollection';
 import { useEditorState } from '../state/useEditorStore';
@@ -66,13 +60,8 @@ interface Props {
  */
 export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
   const { documentId, selection } = useEditorState();
-  const [memory, setMemory] = useRemembered<WorkspaceMemory>('primers.workspace', documentId, {
-    page: 'design',
-    mode: 'plain',
-  });
-  const { page } = memory;
-  // A memory written before the mode existed has none: the plain mode then.
-  const mode: DesignMode = memory.mode === 'cloning' ? 'cloning' : 'plain';
+  const [page, setPage] = primerWorkspace.usePage(documentId);
+  const [mode, setMode] = useRemembered<DesignMode>('primers.mode', documentId, 'plain');
   const design = usePrimerDesign(doc);
   const cloning = useCloningDesign(doc);
   // Results shows whichever table the last design made (#303).
@@ -125,7 +114,7 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
   usePrimersPreview(preview);
 
   const goTo = (next: WorkspacePage): void => {
-    setMemory((m) => ({ ...m, page: next }));
+    setPage(next);
   };
 
   const badge = (p: WorkspacePage): number | null => {
@@ -146,7 +135,7 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
       name="Primer"
       title="Primers"
       layout={layout}
-      pages={WORKSPACE_PAGES.map((p) => ({
+      pages={primerWorkspace.pages.map((p) => ({
         id: p,
         label: LABELS[p],
         heading: HEADINGS[p],
@@ -155,7 +144,7 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
       }))}
       page={page}
       onPage={goTo}
-      onClose={closePrimerWorkspace}
+      onClose={primerWorkspace.close}
       headingNote={
         page === 'mine' && collection.status === 'ready' ? (
           <span className="panel__heading-note">{collection.primers.length}</span>
@@ -223,7 +212,7 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
           cloning={cloning}
           mode={mode}
           setMode={(next) => {
-            setMemory((m) => ({ ...m, mode: next }));
+            setMode(next);
           }}
           layout={layout}
           onDesigned={() => {

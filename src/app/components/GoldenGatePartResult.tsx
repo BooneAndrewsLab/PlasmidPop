@@ -11,7 +11,7 @@ import { analytics } from '../analytics';
 import { copyText } from '../clipboard';
 import { FIXED_BY, cloneCheckFromParts, openCloneCheck } from '../cloneCheck';
 import { openPcr, sendToPcr } from '../primerToPcr';
-import { type WorkspaceLayout } from '../primerWorkspace';
+import { type WorkspaceLayout } from '../workspaceController';
 import { editorStore } from '../state/editorStore';
 import { rememberPanel } from '../state/panelMemory';
 import { savePrimers } from '../state/primerCollection';

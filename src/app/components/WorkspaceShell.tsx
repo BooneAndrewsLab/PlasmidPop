@@ -2,7 +2,7 @@ import { type KeyboardEvent, type ReactNode, useEffect, useRef } from 'react';
 
 import type { SeqDocument } from '@/core';
 
-import type { WorkspaceLayout } from '../primerWorkspace';
+import type { WorkspaceLayout } from '../workspaceController';
 import { SHORT_WINDOW_QUERY } from '../state/layout';
 import { useRemembered } from '../state/panelMemory';
 import { MapStrip } from './MapStrip';
@@ -88,7 +88,7 @@ export function WorkspaceShell<P extends string>({
   // workspace: folded to begin with on a window too short to spare its
   // rows, and remembered either way, browser-wide and for both workspaces.
   const short = useMediaQuery(SHORT_WINDOW_QUERY);
-  const [stripFolded, setStripFolded] = useRemembered('primers.stripFolded', null, short);
+  const [stripFolded, setStripFolded] = useRemembered('workspace.stripFolded', null, short);
 
   const goTo = (next: P): void => {
     railChange.current = next !== page;
@@ -117,7 +117,8 @@ export function WorkspaceShell<P extends string>({
     rail.current?.querySelector<HTMLElement>(`#ws-tab-${next.id}`)?.focus();
   };
 
-  const lower = name.toLowerCase();
+  // An acronym (CRISPR) keeps its capitals; a word (Primer) reads as one in a sentence.
+  const lower = name === name.toUpperCase() ? name : name.toLowerCase();
   return (
     <div
       className={`ws ws--${layout}`}

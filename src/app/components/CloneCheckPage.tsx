@@ -10,7 +10,7 @@ import {
 } from '@/core';
 
 import { copyText } from '../clipboard';
-import { type WorkspaceLayout } from '../primerWorkspace';
+import { type WorkspaceLayout } from '../workspaceController';
 import { openPcr, sendToPcr } from '../primerToPcr';
 import { addFeaturesAsOneStep } from '../state/featureSteps';
 import { savePrimers } from '../state/primerCollection';

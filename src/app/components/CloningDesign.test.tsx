@@ -107,7 +107,7 @@ function setup(
     insertId = editorStore.openDocument(U49845);
     vectorId = editorStore.openDocument(vector);
     rememberWorkspacePage(vectorId, 'design');
-    editorStore.setPrimerWorkspace(true);
+    editorStore.setWorkspace('primers');
     editorStore.setSelection(MCS);
   });
   render(<PrimerWorkspace doc={vector} layout={layout} />);

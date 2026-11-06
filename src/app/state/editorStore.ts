@@ -148,7 +148,7 @@ export type SidebarTab =
 export type PhonePane = 'map' | 'sequence' | 'details';
 
 /** The workspaces, each standing in for the sidebar tab of the same name while open. */
-export type Workspace = 'primers' | 'align';
+export type Workspace = Extract<SidebarTab, 'primers' | 'align'>;
 
 export const PHONE_PANES: readonly PhonePane[] = ['map', 'sequence', 'details'];
 
@@ -2198,12 +2198,6 @@ export class EditorStore {
     if (kind !== null && !hasSidebarTab(this.document, kind)) return;
     this.setActive(kind === null ? { workspace: null } : { workspace: kind, sidebarTab: kind });
     if (kind !== null) this.setSidebarOpen(true);
-  }
-
-  /** Opens or shuts the primer workspace (item 107). */
-  setPrimerWorkspace(open: boolean): void {
-    if (open) this.setWorkspace('primers');
-    else if (this.state.workspace === 'primers') this.setWorkspace(null);
   }
 
   setPhonePane(pane: PhonePane): void {

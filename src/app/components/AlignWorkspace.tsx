@@ -3,11 +3,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { type AlignmentMode, type SeqDocument, qualityOfError } from '@/core';
 
 import { batchLine, formatErrorRate } from '../alignSummary';
-import { ALIGN_PAGES, type AlignPage, closeAlignWorkspace } from '../alignWorkspace';
+import { type AlignPage, alignWorkspace } from '../alignWorkspace';
 import { alignedRegionSpan } from '../readAlignment';
 import { BATCH_LIMIT } from '../readBatch';
 import { editorStore } from '../state/editorStore';
-import { useRemembered } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';
 import { AlignAction, AlignInput, AlignProgress } from './AlignInput';
 import { AlignmentDialog } from './AlignmentDialog';
@@ -15,7 +14,7 @@ import { AlignmentResult, QualitySettings } from './AlignResult';
 import { type LargeView, useAlignRun } from './alignRun';
 import { AssemblyResult } from './AssemblyResult';
 import { MsaControls } from './MsaControls';
-import type { WorkspaceLayout } from './PrimerWorkspace';
+import type { WorkspaceLayout } from '../workspaceController';
 import { ReadBatchList } from './ReadBatchList';
 import { WorkspaceShell } from './WorkspaceShell';
 
@@ -56,7 +55,7 @@ interface Props {
  */
 export function AlignWorkspace({ doc, layout = 'split' }: Props) {
   const { documentId, readConfidentQuality, readTrimCutoff } = useEditorState();
-  const [page, setPage] = useRemembered<AlignPage>('align.workspace', documentId, 'align');
+  const [page, setPage] = alignWorkspace.usePage(documentId);
   const align = useAlignRun(doc);
   const { session, records, stale, showBatch, docIsRead, docRead, hasSelection, record } = align;
   const { result, batch, assembly, useSelection, trim, docAsRead, busy } = session;
@@ -96,7 +95,7 @@ export function AlignWorkspace({ doc, layout = 'split' }: Props) {
       name="Align"
       title="Align"
       layout={layout}
-      pages={ALIGN_PAGES.map((p) => ({
+      pages={alignWorkspace.pages.map((p) => ({
         id: p,
         label: LABELS[p],
         heading: HEADINGS[p],
@@ -105,7 +104,7 @@ export function AlignWorkspace({ doc, layout = 'split' }: Props) {
       }))}
       page={page}
       onPage={setPage}
-      onClose={closeAlignWorkspace}
+      onClose={alignWorkspace.close}
       head={
         <>
           {page === 'align' && (

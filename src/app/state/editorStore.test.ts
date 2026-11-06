@@ -1586,7 +1586,7 @@ describe('EditorStore primer workspace (item 107)', () => {
     store.openDocument(doc, 'x.gb');
     store.setSidebarTab('features');
     store.setSidebarOpen(false);
-    store.setPrimerWorkspace(true);
+    store.setWorkspace('primers');
     expect(store.getState()).toMatchObject({
       workspace: 'primers',
       sidebarTab: 'primers',
@@ -1594,7 +1594,7 @@ describe('EditorStore primer workspace (item 107)', () => {
     });
     store.setSidebarTab('enzymes');
     expect(store.getState().workspace).toBe(null);
-    store.setPrimerWorkspace(true);
+    store.setWorkspace('primers');
     store.setSidebarOpen(false);
     expect(store.getState().workspace).toBe(null);
     // Opening the sidebar again brings the slim panel, not the workspace.
@@ -1609,11 +1609,9 @@ describe('EditorStore primer workspace (item 107)', () => {
     expect(store.getState()).toMatchObject({ workspace: 'align', sidebarTab: 'align' });
     store.setWorkspace('primers');
     expect(store.getState()).toMatchObject({ workspace: 'primers', sidebarTab: 'primers' });
-    store.setPrimerWorkspace(false);
+    store.setWorkspace(null);
     expect(store.getState().workspace).toBeNull();
     store.setWorkspace('align');
-    store.setPrimerWorkspace(false);
-    expect(store.getState().workspace).toBe('align');
     store.setSidebarTab('align');
     expect(store.getState().workspace).toBe('align');
     store.setSidebarTab('features');
@@ -1623,7 +1621,7 @@ describe('EditorStore primer workspace (item 107)', () => {
   it('is per document, and refused where there is no Primers tab', () => {
     const store = new EditorStore();
     const first = store.openDocument(doc, 'x.gb');
-    store.setPrimerWorkspace(true);
+    store.setWorkspace('primers');
     const second = store.openDocument(SeqDocument.create({ sequence: 'ACGTACGT' }), 'y.gb');
     expect(store.getState().workspace).toBe(null);
     store.activateDocument(first);
@@ -1631,7 +1629,7 @@ describe('EditorStore primer workspace (item 107)', () => {
     store.activateDocument(second);
     const protein = SeqDocument.create({ sequence: 'MKLV', alphabet: 'protein' });
     store.openDocument(protein, 'p.fa');
-    store.setPrimerWorkspace(true);
+    store.setWorkspace('primers');
     expect(store.getState().workspace).toBe(null);
   });
 });

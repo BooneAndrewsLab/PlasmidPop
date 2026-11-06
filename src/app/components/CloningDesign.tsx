@@ -10,7 +10,7 @@ import {
 } from '@/core';
 
 import { openFetched } from '../openFromNcbi';
-import { type WorkspaceLayout } from '../primerWorkspace';
+import { type WorkspaceLayout } from '../workspaceController';
 import { editorStore } from '../state/editorStore';
 import { useRemembered } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';

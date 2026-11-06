@@ -27,7 +27,7 @@ function open(d: SeqDocument = doc, page: 'design' | 'results' | 'check' | 'mine
   act(() => {
     const id = editorStore.openDocument(d);
     rememberWorkspacePage(id, page);
-    editorStore.setPrimerWorkspace(true);
+    editorStore.setWorkspace('primers');
   });
   return render(<PrimerWorkspace doc={d} />);
 }
@@ -530,7 +530,7 @@ describe('the map strip (item 107, point 5)', () => {
   it('is there, unfolded, where the map cannot be beside the workspace, and not in the split', () => {
     act(() => {
       editorStore.openDocument(doc);
-      editorStore.setPrimerWorkspace(true);
+      editorStore.setWorkspace('primers');
     });
     const { unmount } = render(<PrimerWorkspace doc={doc} layout="full" />);
     const fold = screen.getByText('Map');
@@ -544,7 +544,7 @@ describe('the map strip (item 107, point 5)', () => {
   it('folds and remembers it, across the phone and the full layout', () => {
     act(() => {
       editorStore.openDocument(doc);
-      editorStore.setPrimerWorkspace(true);
+      editorStore.setWorkspace('primers');
     });
     const { unmount } = render(<PrimerWorkspace doc={doc} layout="phone" />);
     const details = screen.getByText('Map').closest('details');

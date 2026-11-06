@@ -25,7 +25,7 @@ function setup(layout: 'split' | 'phone' = 'split') {
   act(() => {
     const id = editorStore.openDocument(doc);
     rememberWorkspacePage(id, 'design');
-    editorStore.setPrimerWorkspace(true);
+    editorStore.setWorkspace('primers');
   });
   const view = render(<PrimerWorkspace doc={doc} layout={layout} />);
   act(() => {

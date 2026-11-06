@@ -58,7 +58,7 @@ function openOn(doc: SeqDocument) {
   act(() => {
     id = editorStore.openDocument(doc);
     rememberWorkspacePage(id, 'clone');
-    editorStore.setPrimerWorkspace(true);
+    editorStore.setWorkspace('primers');
   });
   const view = render(<PrimerWorkspace doc={doc} />);
   return { ...view, id };

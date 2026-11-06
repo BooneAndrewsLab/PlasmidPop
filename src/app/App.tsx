@@ -1,6 +1,6 @@
 import { type DragEvent, type ReactNode, useLayoutEffect, useState } from 'react';
 
-import { hasTool } from '@/core';
+import { type SeqDocument, hasTool } from '@/core';
 
 import { Bench } from './components/Bench';
 import { CircularMapView } from './components/CircularMapView';
@@ -16,7 +16,7 @@ import { VerifyClonesDialog } from './components/VerifyClonesDialog';
 import { NewDocumentDialog } from './components/NewDocumentDialog';
 import { PhoneShell } from './components/PhoneShell';
 import { AlignWorkspace } from './components/AlignWorkspace';
-import { PrimerWorkspace, type WorkspaceLayout } from './components/PrimerWorkspace';
+import { PrimerWorkspace } from './components/PrimerWorkspace';
 import { CopyBanner } from './components/CopyBanner';
 import { CompareDialog } from './components/CompareDialog';
 import { DownloadNotice } from './components/DownloadNotice';
@@ -53,7 +53,8 @@ import {
   clampSidebarHeight,
   clampSidebarWidth,
 } from './state/layout';
-import { editorStore } from './state/editorStore';
+import { type Workspace, editorStore } from './state/editorStore';
+import { type WorkspaceLayout } from './workspaceController';
 import { useAnalysis } from './state/useAnalysis';
 import { useEditorState } from './state/useEditorStore';
 import { useViewShortcuts } from './state/useViewShortcuts';
@@ -66,6 +67,20 @@ import {
   useSaveShortcut,
   useViewPrefs,
 } from './state/usePersistence';
+
+/** Each workspace's view and the name its splitter handle carries. */
+const WORKSPACES: Readonly<
+  Record<
+    Workspace,
+    {
+      readonly label: string;
+      readonly View: (props: { doc: SeqDocument; layout: WorkspaceLayout }) => ReactNode;
+    }
+  >
+> = {
+  primers: { label: 'primer', View: PrimerWorkspace },
+  align: { label: 'Align', View: AlignWorkspace },
+};
 
 export function App() {
   const {
@@ -86,12 +101,11 @@ export function App() {
   const kind = doc === null ? null : workspaceKind;
   const workspace = kind !== null;
   const view = workspace && chosen === 'both' ? 'map' : chosen;
-  const workspaceAt = (layout: WorkspaceLayout): ReactNode =>
-    doc === null || kind === null ? null : kind === 'primers' ? (
-      <PrimerWorkspace doc={doc} layout={layout} />
-    ) : (
-      <AlignWorkspace doc={doc} layout={layout} />
-    );
+  const workspaceAt = (layout: WorkspaceLayout): ReactNode => {
+    if (doc === null || kind === null) return null;
+    const Open = WORKSPACES[kind].View;
+    return <Open doc={doc} layout={layout} />;
+  };
   useAnalysis();
   useAutosave();
   useAutosaveShelf();
@@ -282,7 +296,7 @@ export function App() {
             <>
               <Splitter
                 axis="x"
-                label={`Resize the ${kind === 'primers' ? 'primer' : 'Align'} workspace`}
+                label={`Resize the ${WORKSPACES[kind].label} workspace`}
                 minBefore={MIN_WORKSPACE_MAP_PX}
                 minAfter={MIN_WORKSPACE_PX}
                 value={layout.workspaceWidth}

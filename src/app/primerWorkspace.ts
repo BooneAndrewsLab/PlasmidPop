@@ -1,6 +1,5 @@
-import { analytics } from './analytics';
-import { editorStore } from './state/editorStore';
-import { recallPanel, rememberPanel } from './state/panelMemory';
+import { recallPanel } from './state/panelMemory';
+import { createWorkspaceController } from './workspaceController';
 
 /**
  * The primer workspace's pages (item 107): a left rail of five, each with
@@ -18,14 +17,6 @@ export const WORKSPACE_PAGES: readonly WorkspacePage[] = [
 ];
 
 /**
- * Where the workspace is on screen (point 5): beside the live map (`split`,
- * 1000 px and wider), the whole main area under a foldable map strip
- * (`full`, 601 to 1000 px) or the whole screen with the rail across the top
- * (`phone`).
- */
-export type WorkspaceLayout = 'split' | 'full' | 'phone';
-
-/**
  * The Design page's mode (#303, item 108): primers on the document in
  * front, or an insert from another tab cloned into it with restriction
  * ends. Results shows whichever table the last design made.
@@ -38,46 +29,25 @@ export interface WorkspaceMemory {
   readonly mode: DesignMode;
 }
 
-const SLOT = 'primers.workspace';
-const INITIAL: WorkspaceMemory = { page: 'design', mode: 'plain' };
+export const primerWorkspace = createWorkspaceController<WorkspacePage>(
+  'primers',
+  WORKSPACE_PAGES,
+  'design',
+);
 
+/** The Design page's mode has a slot of its own; the page is the controller's. */
+const MODE_SLOT = 'primers.mode';
+
+export function recallDesignMode(documentId: string | null): DesignMode {
+  return recallPanel<DesignMode>(MODE_SLOT, documentId, 'plain');
+}
+
+/** Page and mode together, as the slim panel and the tests ask for them. */
 export function recallWorkspace(documentId: string | null): WorkspaceMemory {
-  return recallPanel(SLOT, documentId, INITIAL);
+  return { page: primerWorkspace.recallPage(documentId), mode: recallDesignMode(documentId) };
 }
 
-/**
- * Opens the workspace on the document in front, on `page` (or the page it
- * was last on). The store puts the sidebar on Primers; the page is the
- * panels' own memory, so the slim panel's "Last design" and "My primers…"
- * can land on Results and My primers without the store knowing the pages.
- */
-export function openPrimerWorkspace(documentId: string | null, page?: WorkspacePage): void {
-  if (page !== undefined) rememberPanel(SLOT, documentId, { ...recallWorkspace(documentId), page });
-  analytics.trackOnce('panel', 'open', 'primer-workspace');
-  editorStore.setPrimerWorkspace(true);
-}
-
-export function rememberWorkspacePage(documentId: string | null, page: WorkspacePage): void {
-  rememberPanel(SLOT, documentId, { ...recallWorkspace(documentId), page });
-}
-
-/**
- * Where the keyboard goes when the workspace shuts (item 107, point 1):
- * back to the slim panel's "Design primers…", which mounts only after the
- * shut, so the panel asks here on its first render rather than the
- * workspace reaching for a button that does not exist yet.
- */
-let focusWanted = false;
-
-/** Shuts the workspace; with `returnFocus`, the slim panel takes the keyboard. */
-export function closePrimerWorkspace(returnFocus = false): void {
-  focusWanted = returnFocus;
-  editorStore.setPrimerWorkspace(false);
-}
-
-/** Whether the slim panel should take the keyboard now; asking clears it. */
-export function takeFocusRequest(): boolean {
-  const wanted = focusWanted;
-  focusWanted = false;
-  return wanted;
-}
+export const openPrimerWorkspace = primerWorkspace.open;
+export const rememberWorkspacePage = primerWorkspace.rememberPage;
+export const closePrimerWorkspace = primerWorkspace.close;
+export const takeFocusRequest = primerWorkspace.takeFocusRequest;

@@ -22,7 +22,7 @@ import {
   pairChecks,
   sortRows,
 } from './primerResults';
-import { type WorkspaceLayout } from '../primerWorkspace';
+import { type WorkspaceLayout } from '../workspaceController';
 import { SortTh } from './SortTh';
 import { nextRowIndex, toggleSort } from './tableKeys';
 

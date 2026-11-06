@@ -60,7 +60,7 @@ async function setup(d: SeqDocument = doc) {
   act(() => {
     const id = editorStore.openDocument(d);
     rememberWorkspacePage(id, 'mine');
-    editorStore.setPrimerWorkspace(true);
+    editorStore.setWorkspace('primers');
   });
   const view = render(<PrimerWorkspace doc={d} />);
   await settle();
