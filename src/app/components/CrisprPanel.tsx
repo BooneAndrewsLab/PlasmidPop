@@ -1,16 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   type BaseEditor,
   type CrisprGuide,
-  type Nuclease,
   type OligoScheme,
-  type Range,
   type SeqDocument,
-  GC_HIGH,
   BASE_EDITORS,
-  GC_LOW,
-  HOMOPOLYMER_FLAG,
   MAX_SPACER,
   MIN_SPACER,
   NUCLEASES,
@@ -19,28 +14,19 @@ import {
   formatSpan,
   guideFeature,
   guideOligos,
-  isEmptyRange,
-  isValidRange,
-  matchPositions,
-  nucleaseProblem,
   oligoSchemesFor,
-  patternMasks,
   rangesEqual,
-  sequenceMasks,
-  supportsBaseEditing,
   supportsNickPairs,
   supportsPrimeEditing,
 } from '@/core';
-
-import { type OverlaySpan } from '@/view/overlay';
-import { analysisClient } from '@/workers/analysisClient';
 
 import { analytics } from '../analytics';
 import { copyText } from '../clipboard';
 import { editorStore } from '../state/editorStore';
 import { rememberSeen, wasSeen } from '../state/seenOnce';
 import { savePrimers } from '../state/primerCollection';
-import { useEditorState } from '../state/useEditorStore';
+import { type SortBy } from '../crisprSession';
+import { MAX_PREVIEWED, flagsOf, guideId, useCrisprScan } from './crisprScan';
 import { PairedNickases } from './CrisprPairedNickases';
 import { PrimeEditing } from './CrisprPrimeEditing';
 
@@ -48,302 +34,44 @@ interface Props {
   readonly doc: SeqDocument;
 }
 
-/** As the ORF list does, past this many the views are left alone (#32). */
-const MAX_PREVIEWED = 200;
-
 /** The off-target disclaimer is said once; afterwards the label keeps it as a tooltip. */
 const NOTE_SEEN_KEY = 'plasmidpop.crisprOffTargetNoteSeen';
 const OFF_TARGET_NOTE =
   'Off-targets are counted in the open documents only. PlasmidPop has no genome to search, so this says nothing about specificity in a cell: check a guide against the host genome with a genome-wide tool before ordering it.';
-
-const guideId = (g: CrisprGuide): string => `${g.strand}:${String(g.range.start)}`;
 
 /** The off-target counts as one short string: exact, then by mismatch. */
 function offTargetSummary(g: CrisprGuide): string {
   return g.offTargets.map((n) => n.toLocaleString()).join('·');
 }
 
-/** Everything wrong with a guide, worst first; empty when there is nothing to say. */
-function flagsOf(g: CrisprGuide): string[] {
-  const flags: string[] = [];
-  if ((g.offTargets[0] ?? 0) > 0) flags.push('Binds somewhere else exactly');
-  if (g.polyT) flags.push('TTTT ends a U6 transcript');
-  if (g.gc < GC_LOW) flags.push('Low GC');
-  if (g.gc > GC_HIGH) flags.push('High GC');
-  if (g.longestRun >= HOMOPOLYMER_FLAG) flags.push(`${String(g.longestRun)} of one base in a row`);
-  return flags;
-}
-
-type SortBy = 'position' | 'offTargets' | 'gc' | 'specificity';
-
-/** Fewest exact hits first, then fewest near ones, then along the molecule. */
-function byOffTargets(a: CrisprGuide, b: CrisprGuide): number {
-  for (let i = 0; i < Math.max(a.offTargets.length, b.offTargets.length); i++) {
-    const d = (a.offTargets[i] ?? 0) - (b.offTargets[i] ?? 0);
-    if (d !== 0) return d;
-  }
-  return a.range.start - b.range.start;
-}
-
-/** One scan: the question put to the worker. */
-interface Request {
-  readonly sequence: string;
-  readonly topology: SeqDocument['topology'];
-  readonly nuclease: Nuclease;
-  readonly maxMismatches: number;
-  readonly region: Range | null;
-  readonly background: readonly {
-    readonly sequence: string;
-    readonly topology: SeqDocument['topology'];
-  }[];
-}
-
-/** Another open document the off-targets are counted in. */
-interface Background {
-  readonly name: string;
-  readonly sequence: string;
-  readonly topology: SeqDocument['topology'];
-}
-
-const backgroundKey = (d: Background): string => `${d.name}\0${d.topology}\0${d.sequence}`;
-
-function sameBackground(a: readonly Background[], b: readonly Background[]): boolean {
-  return (
-    a.length === b.length &&
-    a.every((p, i) => {
-      const n = b[i];
-      return n !== undefined && backgroundKey(p) === backgroundKey(n);
-    })
-  );
-}
-
-/** What came back, and which question it answers. */
-interface Answer {
-  readonly request: Request;
-  readonly guides?: readonly CrisprGuide[];
-  readonly error?: string;
-}
-
 export function CrisprPanel({ doc }: Props) {
-  const { selection, previewActivated: activated, documents, documentId } = useEditorState();
-  const [nucleaseId, setNucleaseId] = useState<string>('spcas9');
-  const [pam, setPam] = useState('NGG');
-  const [spacerLength, setSpacerLength] = useState('20');
-  const [maxMismatches, setMaxMismatches] = useState(3);
-  /**
-   * The region the scan is narrowed to, taken from the selection when the
-   * box is ticked and kept until it is ticked again: a guide clicked in the
-   * list selects its protospacer, and narrowing to that would empty the
-   * list it was clicked in.
-   */
-  const [narrowed, setNarrowed] = useState<{ documentId: string; range: Range } | null>(null);
-  const [searchOthers, setSearchOthers] = useState(false);
-  const [sortBy, setSortBy] = useState<SortBy>('position');
-  // The filters sit on the result, not the scan: changing one is instant.
-  const [spacerFilter, setSpacerFilter] = useState('');
-  const [pamFilter, setPamFilter] = useState('');
-  // Flagged guides are hidden until asked for: the clean ones are the shortlist.
-  const [showFlagged, setShowFlagged] = useState(false);
+  const {
+    s,
+    set,
+    custom,
+    nuclease,
+    baseEditing,
+    baseEditor,
+    editableCount,
+    region,
+    usableSelection,
+    narrowTo,
+    guides,
+    error,
+    scanning,
+    pams,
+    pamChosen,
+    sorted,
+    filtered,
+    covered,
+    problem,
+    others,
+    selected,
+    selectedId,
+  } = useCrisprScan(doc);
+  const { nucleaseId, pam, spacerLength, maxMismatches, searchOthers, sortBy } = s;
+  const { spacerFilter, showFlagged, onlyEditable, schemeId } = s;
   const [noteSeen, setNoteSeen] = useState(() => wasSeen(NOTE_SEEN_KEY));
-  const [schemeId, setSchemeId] = useState(OLIGO_SCHEMES[0]?.id ?? 'none');
-  const [baseEditorId, setBaseEditorId] = useState('');
-  const [onlyEditable, setOnlyEditable] = useState(false);
-  const [answer, setAnswer] = useState<Answer | null>(null);
-  /**
-   * The row last clicked. Which guide the panel shows is the one the
-   * selection covers, so a guide clicked on the map or in the sequence
-   * opens here too; two guides can share a range on opposite strands, and
-   * this says which of the two was meant when the click came from a row.
-   */
-  const [clicked, setClicked] = useState<string | null>(null);
-
-  const custom = nucleaseId === 'custom';
-  const length = Number.parseInt(spacerLength, 10);
-  const problem = custom ? nucleaseProblem(pam.trim().toUpperCase(), length) : null;
-
-  const nuclease = useMemo<Nuclease | null>(() => {
-    if (!custom) return NUCLEASES.find((n) => n.id === nucleaseId) ?? null;
-    if (problem !== null) return null;
-    // A custom PAM is taken to be a Cas9-like one: on the 3' side of the
-    // spacer, cutting bluntly three bases in from it. That is what the
-    // engineered PAM variants (xCas9, SpRY, SaCas9-KKH) do; a nuclease with
-    // another geometry needs a preset (item 74).
-    return {
-      id: 'custom',
-      name: `Custom (${pam.trim().toUpperCase()})`,
-      pam: pam.trim().toUpperCase(),
-      pamSide: '3prime',
-      spacerLength: length,
-      cut: { pamStrand: length - 3, targetStrand: length - 3 },
-    };
-  }, [custom, nucleaseId, pam, length, problem]);
-
-  const baseEditing = nuclease !== null && supportsBaseEditing(nuclease);
-  const baseEditor = useMemo(
-    () => (baseEditing ? BASE_EDITORS.find((e) => e.id === baseEditorId) : undefined),
-    [baseEditing, baseEditorId],
-  );
-  const editableCount = (g: CrisprGuide): number =>
-    baseEditor === undefined ? 0 : (baseEditWindow(g, baseEditor)?.editable.length ?? 0);
-
-  const usableSelection = selection !== null && !isEmptyRange(selection) ? selection : null;
-  // Dropped with the document it was taken in, or once an edit leaves it off the end.
-  const region =
-    narrowed !== null &&
-    narrowed.documentId === documentId &&
-    isValidRange(narrowed.range, doc.length, doc.topology)
-      ? narrowed.range
-      : null;
-  const narrowTo = (range: Range | null): void => {
-    setNarrowed(range === null || documentId === null ? null : { documentId, range });
-    if (range !== null) analytics.track('crispr', 'region');
-  };
-  // `documents` is a new array on every selection change in any of them, so
-  // the list is kept as state and replaced only when what is searched has
-  // changed: otherwise the request below would be a new one per click, and
-  // every click would scan the molecule again.
-  const [others, setOthers] = useState<readonly Background[]>([]);
-  const nextOthers = useMemo<readonly Background[]>(
-    () =>
-      searchOthers
-        ? documents
-            .filter(
-              (d) => d.documentId !== documentId && d.history.present.alphabet === 'nucleotide',
-            )
-            .map((d) => ({
-              name: d.history.present.name,
-              sequence: d.history.present.sequence.toString(),
-              topology: d.history.present.topology,
-            }))
-        : [],
-    [searchOthers, documents, documentId],
-  );
-  if (!sameBackground(others, nextOthers)) setOthers(nextOthers);
-
-  // Everything one scan is: a change to any of it is a different question,
-  // and the answer to the previous one stops being shown the moment it is.
-  const sequence = doc.sequence.toString();
-  const request = useMemo<Request | null>(
-    () =>
-      nuclease === null
-        ? null
-        : {
-            sequence,
-            topology: doc.topology,
-            nuclease,
-            maxMismatches,
-            region,
-            background: others.map(({ sequence: s, topology }) => ({ sequence: s, topology })),
-          },
-    [sequence, doc.topology, nuclease, maxMismatches, region, others],
-  );
-
-  // The scan itself, in the worker, so a big plasmid does not hold up typing.
-  useEffect(() => {
-    if (request === null) return;
-    let live = true;
-    analysisClient
-      .crisprGuides(request.sequence, request.topology, request.nuclease, {
-        maxMismatches: request.maxMismatches,
-        ...(request.region === null ? {} : { region: request.region }),
-        ...(request.background.length === 0 ? {} : { background: request.background }),
-      })
-      .then((guides) => {
-        if (live) setAnswer({ request, guides });
-      })
-      .catch((e: unknown) => {
-        if (live) setAnswer({ request, error: e instanceof Error ? e.message : String(e) });
-      });
-    return () => {
-      live = false;
-    };
-  }, [request]);
-
-  const answered = answer !== null && answer.request === request ? answer : null;
-  const guides = answered?.guides ?? null;
-  const error = answered?.error ?? null;
-  const scanning = request !== null && answered === null;
-
-  // Once per nuclease chosen, not once per keystroke of a custom PAM.
-  const nucleaseKind = nuclease?.id ?? null;
-  useEffect(() => {
-    if (nucleaseKind !== null) analytics.track('crispr', 'scan', nucleaseKind);
-  }, [nucleaseKind]);
-
-  // The PAMs actually found: NGG is four of them, NNGRRT up to sixty-four,
-  // and which one a guide has is worth filtering on (SpCas9 prefers some).
-  const pams = useMemo(() => [...new Set((guides ?? []).map((g) => g.pam))].sort(), [guides]);
-  const pamChosen = pams.includes(pamFilter) ? pamFilter : '';
-
-  const sorted = useMemo(() => {
-    const pattern = spacerFilter.trim().toUpperCase();
-    const masks = pattern === '' ? null : patternMasks(pattern);
-    const list = (guides ?? []).filter((g) => {
-      if (pamChosen !== '' && g.pam !== pamChosen) return false;
-      if (!showFlagged && flagsOf(g).length > 0) return false;
-      if (
-        baseEditor !== undefined &&
-        onlyEditable &&
-        (baseEditWindow(g, baseEditor)?.editable.length ?? 0) === 0
-      ) {
-        return false;
-      }
-      if (masks === null) return true;
-      // IUPAC, so "GRCC" or "N" work as they do in Find; an unknown letter
-      // is a mask of nothing and matches no guide.
-      const spacer = sequenceMasks(g.spacer);
-      return matchPositions(spacer, masks, g.spacer.length - masks.length).length > 0;
-    });
-    if (sortBy === 'offTargets') list.sort(byOffTargets);
-    else if (sortBy === 'gc') list.sort((a, b) => b.gc - a.gc || a.range.start - b.range.start);
-    else if (sortBy === 'specificity') {
-      list.sort(
-        (a, b) => (b.specificity ?? -1) - (a.specificity ?? -1) || a.range.start - b.range.start,
-      );
-    }
-    return list;
-  }, [guides, sortBy, spacerFilter, pamChosen, showFlagged, baseEditor, onlyEditable]);
-  const filtered = guides !== null && sorted.length !== guides.length;
-
-  const covered = sorted.filter(
-    (g) => selection !== null && g.range.start === selection.start && g.range.end === selection.end,
-  );
-  const selected = covered.find((g) => guideId(g) === clicked) ?? covered[0] ?? null;
-  const selectedId = selected === null ? null : guideId(selected);
-
-  const previewed = useMemo<OverlaySpan[]>(
-    () =>
-      sorted.length > MAX_PREVIEWED
-        ? []
-        : sorted.map((g) => ({
-            id: guideId(g),
-            label: g.pam,
-            range: g.range,
-            strand: g.strand,
-            shape: 'arrow',
-            clickable: true,
-          })),
-    [sorted],
-  );
-  useEffect(() => {
-    editorStore.setPreview('crispr', previewed);
-  }, [previewed]);
-  useEffect(
-    () => () => {
-      editorStore.clearPreview('crispr');
-    },
-    [],
-  );
-
-  const handledClick = useRef(activated?.nonce ?? 0);
-  useEffect(() => {
-    if (activated?.owner !== 'crispr' || activated.nonce === handledClick.current) return;
-    handledClick.current = activated.nonce;
-    const g = sorted.find((x) => guideId(x) === activated.id);
-    if (g === undefined) return;
-    editorStore.setSelection(g.range);
-    editorStore.revealPosition(g.range.start);
-  }, [activated, sorted]);
 
   // The selected row opens in place, so a guide clicked on the map is
   // brought into view here rather than left somewhere down the list.
@@ -355,7 +83,7 @@ export function CrisprPanel({ doc }: Props) {
   }, [selectedId]);
 
   const schemes = nuclease === null ? OLIGO_SCHEMES : oligoSchemesFor(nuclease);
-  const scheme = schemes.find((s) => s.id === schemeId) ?? schemes[0];
+  const scheme = schemes.find((o) => o.id === schemeId) ?? schemes[0];
 
   return (
     <div className="panel">
@@ -368,7 +96,7 @@ export function CrisprPanel({ doc }: Props) {
               className="panel__select"
               value={nucleaseId}
               onChange={(e) => {
-                setNucleaseId(e.target.value);
+                set({ nucleaseId: e.target.value });
               }}
             >
               {NUCLEASES.map((n) => (
@@ -388,7 +116,7 @@ export function CrisprPanel({ doc }: Props) {
                   value={pam}
                   size={8}
                   onChange={(e) => {
-                    setPam(e.target.value);
+                    set({ pam: e.target.value });
                   }}
                   aria-label="PAM in IUPAC codes"
                 />
@@ -402,7 +130,7 @@ export function CrisprPanel({ doc }: Props) {
                   max={MAX_SPACER}
                   value={spacerLength}
                   onChange={(e) => {
-                    setSpacerLength(e.target.value);
+                    set({ spacerLength: e.target.value });
                   }}
                 />
               </label>
@@ -415,7 +143,7 @@ export function CrisprPanel({ doc }: Props) {
                 className="panel__select"
                 value={baseEditor?.id ?? ''}
                 onChange={(e) => {
-                  setBaseEditorId(e.target.value);
+                  set({ baseEditorId: e.target.value });
                   if (e.target.value !== '')
                     analytics.track('crispr', 'baseEditor', e.target.value);
                 }}
@@ -441,7 +169,7 @@ export function CrisprPanel({ doc }: Props) {
               className="panel__select"
               value={maxMismatches}
               onChange={(e) => {
-                setMaxMismatches(Number.parseInt(e.target.value, 10));
+                set({ maxMismatches: Number.parseInt(e.target.value, 10) });
               }}
             >
               {[0, 1, 2, 3, 4].map((n) => (
@@ -456,7 +184,7 @@ export function CrisprPanel({ doc }: Props) {
               type="checkbox"
               checked={searchOthers}
               onChange={(e) => {
-                setSearchOthers(e.target.checked);
+                set({ searchOthers: e.target.checked });
                 if (e.target.checked) analytics.track('crispr', 'background');
               }}
             />
@@ -551,7 +279,7 @@ export function CrisprPanel({ doc }: Props) {
                   aria-label="Spacer contains"
                   spellCheck={false}
                   onChange={(e) => {
-                    setSpacerFilter(e.target.value);
+                    set({ spacerFilter: e.target.value });
                   }}
                 />
                 {pams.length > 1 && (
@@ -561,7 +289,7 @@ export function CrisprPanel({ doc }: Props) {
                       className="panel__select"
                       value={pamChosen}
                       onChange={(e) => {
-                        setPamFilter(e.target.value);
+                        set({ pamFilter: e.target.value });
                       }}
                     >
                       <option value="">any</option>
@@ -579,7 +307,7 @@ export function CrisprPanel({ doc }: Props) {
                     className="panel__select"
                     value={sortBy}
                     onChange={(e) => {
-                      setSortBy(e.target.value as SortBy);
+                      set({ sortBy: e.target.value as SortBy });
                     }}
                   >
                     <option value="position">Position</option>
@@ -598,7 +326,7 @@ export function CrisprPanel({ doc }: Props) {
                       : 'Guides marked with a ! are hidden; press to list them too'
                   }
                   onClick={() => {
-                    setShowFlagged((on) => !on);
+                    set({ showFlagged: !showFlagged });
                   }}
                 >
                   Show flagged
@@ -610,7 +338,7 @@ export function CrisprPanel({ doc }: Props) {
                     aria-pressed={onlyEditable}
                     data-tip={`Only list guides with a ${baseEditor.from} in the editing window`}
                     onClick={() => {
-                      setOnlyEditable((on) => !on);
+                      set({ onlyEditable: !onlyEditable });
                     }}
                   >
                     Only with a {baseEditor.from} to edit
@@ -655,11 +383,11 @@ export function CrisprPanel({ doc }: Props) {
                             // The open row closes on a second click, and its
                             // selection goes with it, so the views are clear again.
                             if (active) {
-                              setClicked(null);
+                              set({ clicked: null });
                               editorStore.setSelection(null);
                               return;
                             }
-                            setClicked(guideId(g));
+                            set({ clicked: guideId(g) });
                             editorStore.setSelection(g.range);
                             editorStore.revealPosition(g.range.start);
                           }}
@@ -706,7 +434,9 @@ export function CrisprPanel({ doc }: Props) {
                             baseEditor={baseEditor}
                             schemes={schemes}
                             scheme={scheme}
-                            onScheme={setSchemeId}
+                            onScheme={(id) => {
+                              set({ schemeId: id });
+                            }}
                           />
                         )}
                       </li>

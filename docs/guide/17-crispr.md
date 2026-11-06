@@ -3,7 +3,9 @@
 The **CRISPR** tab finds guide RNA target sites: every protospacer next to a
 PAM, on both strands, including sites that cross the origin of a circular
 sequence. The scan runs in the background and follows the document, so an
-edit gives a new list without asking.
+edit gives a new list without asking. The tab's settings and its list are
+kept per document while you look at another tab, so coming back does not
+scan again.
 
 Each row shows the strand (→ forward, ← reverse), the spacer with its PAM
 run on in grey, the GC content, and the off-target counts. A row with a `!`

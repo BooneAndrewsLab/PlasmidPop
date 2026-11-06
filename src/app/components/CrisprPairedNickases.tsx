@@ -1,8 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import {
   type CrisprGuide,
-  type NickStrand,
   type SeqDocument,
   MAX_PAIR_OFFSET,
   formatSpan,
@@ -10,7 +9,9 @@ import {
 } from '@/core';
 
 import { analytics } from '../analytics';
+import { updateCrisprSession, useCrisprSession } from '../crisprSession';
 import { editorStore } from '../state/editorStore';
+import { useEditorState } from '../state/useEditorStore';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -25,8 +26,9 @@ const MAX_LISTED = 20;
  * staggered double-strand break, with the offset and overhang of each pair.
  */
 export function PairedNickases({ doc, guides }: Props) {
-  const [nickStrand, setNickStrand] = useState<NickStrand>('target');
-  const [maxText, setMaxText] = useState(String(MAX_PAIR_OFFSET));
+  const { documentId } = useEditorState();
+  // In the session, so the choice survives a tab switch (item 133).
+  const { nickStrand, maxOffset: maxText } = useCrisprSession(documentId);
   const maxOffset = Number.parseInt(maxText, 10);
   const pairs = useMemo(
     () =>
@@ -47,7 +49,9 @@ export function PairedNickases({ doc, guides }: Props) {
             value={nickStrand}
             onChange={(e) => {
               analytics.track('crispr', 'nickPairs');
-              setNickStrand(e.target.value === 'pam' ? 'pam' : 'target');
+              updateCrisprSession(documentId, {
+                nickStrand: e.target.value === 'pam' ? 'pam' : 'target',
+              });
             }}
           >
             <option value="target">D10A (nicks the strand the guide pairs with)</option>
@@ -62,7 +66,7 @@ export function PairedNickases({ doc, guides }: Props) {
             min={0}
             value={maxText}
             onChange={(e) => {
-              setMaxText(e.target.value);
+              updateCrisprSession(documentId, { maxOffset: e.target.value });
             }}
           />
         </label>

@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { SeqDocument, reverseComplement } from '@/core';
 
 import { analysisClient } from '@/workers/analysisClient';
 
+import { forgetCrisprSessions } from '../crisprSession';
 import { editorStore } from '../state/editorStore';
 import { CrisprPanel } from './CrisprPanel';
 import { getByTip, getAllByTip, findAllByTip } from '@/test/tips';
@@ -40,6 +41,9 @@ async function openPanel(doc: SeqDocument, showFlagged = true) {
 
 describe('CrisprPanel', () => {
   afterEach(() => {
+    // Unmounted first: a panel still on screen would scan again on a forgotten session.
+    cleanup();
+    forgetCrisprSessions();
     act(() => {
       while (editorStore.getState().documents.length > 0) editorStore.closeDocument();
     });
@@ -292,5 +296,37 @@ describe('CrisprPanel', () => {
       target: { value: '1' },
     });
     expect(screen.getByText(/No guide above nicks/)).toBeInTheDocument();
+  });
+
+  it('does not scan again when the panel is mounted again, and keeps its settings', async () => {
+    const scans = vi.spyOn(analysisClient, 'crisprGuides');
+    const doc = docOf(`${UNIT}${FILLER}${reverseComplement(UNIT)}`);
+    const view = await openPanel(doc);
+    const before = scans.mock.calls.length;
+    fireEvent.change(screen.getByLabelText('Spacer contains'), { target: { value: 'AAAA' } });
+    view.unmount();
+
+    // The tab was left and came back: the answer and the filter are still there.
+    render(<CrisprPanel doc={doc} />);
+    expect(screen.queryByText('Looking for guides…')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Spacer contains')).toHaveValue('AAAA');
+    expect(screen.getAllByRole('button', { name: /A{20}/ })).toHaveLength(2);
+    expect(scans.mock.calls.length).toBe(before);
+  });
+
+  it('takes the answer of a scan started in a panel that is gone', async () => {
+    const doc = docOf(`${UNIT}${FILLER}${UNIT}`);
+    act(() => {
+      editorStore.openDocument(doc);
+    });
+    const scans = vi.spyOn(analysisClient, 'crisprGuides');
+    const before = scans.mock.calls.length;
+    render(<CrisprPanel doc={doc} />).unmount();
+    // The scan was asked for and its result lands with nobody mounted.
+    render(<CrisprPanel doc={doc} />);
+    await waitFor(() => {
+      expect(screen.queryByText('Looking for guides…')).not.toBeInTheDocument();
+    });
+    expect(scans.mock.calls.length).toBe(before + 1);
   });
 });

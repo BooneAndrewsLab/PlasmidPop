@@ -1,9 +1,8 @@
-import { useSyncExternalStore } from 'react';
-
 import type { AlignmentMode, Assembly } from '@/core';
 
 import type { SampleFeatures } from './alignmentSampleTrack';
 import { EMPTY_RECORD_BOX, type RecordBoxState } from './components/useRecordBox';
+import { createDocumentSession } from './state/documentSession';
 import type { ReadAlignment, ReferenceInput } from './readAlignment';
 import type { BatchRow } from './readBatch';
 
@@ -96,8 +95,7 @@ export const INITIAL_SESSION: AlignSession = {
   assembly: null,
 };
 
-const sessions = new Map<string, AlignSession>();
-const listeners = new Set<() => void>();
+const session = createDocumentSession<AlignSession>(INITIAL_SESSION);
 /** The alignment running for a document, so a Cancel or a leave can stop it. */
 const running = new Map<string, AbortController>();
 
@@ -105,34 +103,10 @@ function keyOf(documentId: string | null): string {
   return documentId ?? '';
 }
 
-export function readAlignSession(documentId: string | null): AlignSession {
-  return sessions.get(keyOf(documentId)) ?? INITIAL_SESSION;
-}
-
-export function updateAlignSession(
-  documentId: string | null,
-  patch: Partial<AlignSession> | ((s: AlignSession) => Partial<AlignSession>),
-): void {
-  const key = keyOf(documentId);
-  const current = sessions.get(key) ?? INITIAL_SESSION;
-  const next = { ...current, ...(typeof patch === 'function' ? patch(current) : patch) };
-  sessions.set(key, next);
-  for (const l of listeners) l();
-}
-
+export const readAlignSession = session.read;
+export const updateAlignSession = session.update;
 /** The session of the document in front, live. */
-export function useAlignSession(documentId: string | null): AlignSession {
-  return useSyncExternalStore(
-    (l) => {
-      listeners.add(l);
-      return () => {
-        listeners.delete(l);
-      };
-    },
-    () => readAlignSession(documentId),
-    () => readAlignSession(documentId),
-  );
-}
+export const useAlignSession = session.use;
 
 /** Starts a run for the document, stopping any earlier one; the controller is the run's. */
 export function beginAlignRun(documentId: string | null): AbortController {
@@ -161,6 +135,5 @@ export function alignRunActive(documentId: string | null): boolean {
 export function forgetAlignSessions(): void {
   for (const c of running.values()) c.abort();
   running.clear();
-  sessions.clear();
-  for (const l of listeners) l();
+  session.forget();
 }

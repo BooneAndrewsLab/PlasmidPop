@@ -5,7 +5,6 @@ import {
   type Nuclease,
   type PegRna,
   type SeqDocument,
-  DEFAULT_PBS,
   MAX_PBS,
   MAX_NICK_DISTANCE,
   MIN_PBS,
@@ -16,6 +15,7 @@ import {
 } from '@/core';
 
 import { analytics } from '../analytics';
+import { type PegEdit, updateCrisprSession, useCrisprSession } from '../crisprSession';
 import { copyText } from '../clipboard';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
@@ -35,11 +35,13 @@ const MAX_LISTED = 20;
  * close enough, nearest first.
  */
 export function PrimeEditing({ doc, guides, nuclease }: Props) {
-  const { selection } = useEditorState();
-  const [position, setPosition] = useState('');
-  const [replace, setReplace] = useState('1');
-  const [insert, setInsert] = useState('');
-  const [pbs, setPbs] = useState(String(DEFAULT_PBS));
+  const { selection, documentId } = useEditorState();
+  // The boxes are in the session, so they survive a tab switch (item 133).
+  const { pegEdit } = useCrisprSession(documentId);
+  const { position, replace, insert, pbs } = pegEdit;
+  const setEdit = (patch: Partial<PegEdit>): void => {
+    updateCrisprSession(documentId, (s) => ({ pegEdit: { ...s.pegEdit, ...patch } }));
+  };
   const [copied, setCopied] = useState<string | null>(null);
 
   const start = Number.parseInt(position, 10) - 1;
@@ -77,7 +79,7 @@ export function PrimeEditing({ doc, guides, nuclease }: Props) {
             max={doc.length}
             value={position}
             onChange={(e) => {
-              setPosition(e.target.value);
+              setEdit({ position: e.target.value });
             }}
           />
         </label>
@@ -89,7 +91,7 @@ export function PrimeEditing({ doc, guides, nuclease }: Props) {
             min={0}
             value={replace}
             onChange={(e) => {
-              setReplace(e.target.value);
+              setEdit({ replace: e.target.value });
             }}
           />
         </label>
@@ -102,7 +104,7 @@ export function PrimeEditing({ doc, guides, nuclease }: Props) {
             placeholder="ACGT, or nothing to delete"
             aria-label="New bases"
             onChange={(e) => {
-              setInsert(e.target.value);
+              setEdit({ insert: e.target.value });
             }}
           />
         </label>
@@ -115,7 +117,7 @@ export function PrimeEditing({ doc, guides, nuclease }: Props) {
             max={MAX_PBS}
             value={pbs}
             onChange={(e) => {
-              setPbs(e.target.value);
+              setEdit({ pbs: e.target.value });
             }}
           />
         </label>
@@ -126,14 +128,14 @@ export function PrimeEditing({ doc, guides, nuclease }: Props) {
           data-tip="Take the position and length from the selection"
           onClick={() => {
             if (selection === null) return;
-            setPosition(String(selection.start + 1));
-            setReplace(
-              String(
+            setEdit({
+              position: String(selection.start + 1),
+              replace: String(
                 isEmptyRange(selection)
                   ? 0
                   : (selection.end - selection.start + doc.length) % doc.length || doc.length,
               ),
-            );
+            });
           }}
         >
           Use the selection
