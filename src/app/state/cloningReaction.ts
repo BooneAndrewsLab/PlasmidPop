@@ -13,7 +13,8 @@
  */
 export type SidebarReaction = 'digest' | 'pcr' | 'mutagenesis';
 
-export type BenchReaction = 'ligation' | 'golden-gate' | 'modular' | 'gibson' | 'soe' | 'gateway';
+export type BenchReaction =
+  'ligation' | 'golden-gate' | 'modular' | 'gibson' | 'soe' | 'gateway' | 'yeast';
 
 export type CloningReaction = SidebarReaction | BenchReaction;
 
@@ -72,6 +73,11 @@ export const BENCH_REACTIONS: readonly ReactionOption<BenchReaction>[] = [
     value: 'gateway',
     label: 'Gateway',
     title: 'BP and LR recombination between the att sites two plasmids annotate',
+  },
+  {
+    value: 'yeast',
+    label: 'Yeast assembly',
+    title: 'Join parts in S. cerevisiae by homologous recombination (TAR, gap repair)',
   },
 ];
 

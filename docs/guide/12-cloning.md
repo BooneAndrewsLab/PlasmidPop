@@ -18,7 +18,7 @@ strip, is where the parts are joined, from any number of documents:
 **Ligation**, which joins shelf fragments by their overhangs, **Golden
 Gate**, **Modular** (MoClo and Yeast Toolkit positions, and every
 combination of parts), **Gibson** (with the In-Fusion and NEBuilder primer design),
-**Overlap PCR** (fusing fragments by PCR, with the primers designed), and **Gateway**. Beside the reaction it draws what the reaction would make, and
+**Overlap PCR** (fusing fragments by PCR, with the primers designed), **Gateway**, and **Yeast assembly** (joining parts in _S. cerevisiae_ by homologous recombination). Beside the reaction it draws what the reaction would make, and
 a digest to check it by.
 
 The **[primer workspace](10-primers.md#cloning-ends-primers-that-put-two-restriction-sites-on-an-insert)**
@@ -35,7 +35,7 @@ Which to open:
 | Amplify a stretch of it, or change a base                | Cloning tab, **PCR** or **Mutate**      |
 | Put an insert from another tab into this plasmid         | **Clone an insert into this plasmid ›** |
 | Join parts: ligation, Golden Gate, Gibson, Gateway, etc. | The **Bench**                           |
-| Design Gibson, In-Fusion or overlap-PCR tails            | The **Bench**, beside the reaction      |
+| Design Gibson, In-Fusion, yeast or overlap-PCR tails     | The **Bench**, beside the reaction      |
 
 Step-by-step exercises for ligation and Golden Gate, with sample files to
 download, are in the [cloning tutorials](../tutorials/README.md#cloning), a section of the site of its own.
@@ -292,7 +292,7 @@ columns:
 
 - the **shelf** on the left;
 - the **reaction** in the middle: **Ligation**, **Golden Gate**, **Modular**,
-  **Gibson**, **Overlap PCR** or **Gateway**, picked at the top. What each is set to — the parts left
+  **Gibson**, **Overlap PCR**, **Gateway** or **Yeast assembly**, picked at the top. What each is set to — the parts left
   out of its tube, its enzymes, the tabs it uses, a name you have started
   typing — stays as it was while you look at a document, and across a
   reload;
@@ -724,8 +724,9 @@ panel, makes them.
 1. Linearise the vector — digest it, or amplify it by inverse PCR — and
    open it in a tab.
 2. Open the template to amplify the insert from.
-3. Choose **In-Fusion** (15 bases of homology) or **NEBuilder HiFi** (20),
-   then the two tabs, then the **Insert**: the template tab's selection, if
+3. Choose **In-Fusion** (15 bases of homology), **NEBuilder HiFi** (20) or
+   **Yeast assembly** (40, which the [yeast panel](#yeast-assembly) designs
+   without the choice), then the two tabs, then the **Insert**: the template tab's selection, if
    it has one, any of its features, or, for a linear template, all of it.
 
 Each primer is the vector's end in upper case followed by the bases that
@@ -879,10 +880,82 @@ circle: its two flanks come away as loose ends and are lost.
 
 One pair of sites at a time, so a multisite LR is done a fragment at a time.
 
+## Yeast assembly
+
+_S. cerevisiae_ joins DNA that shares homology by recombination, so parts
+can be assembled in the cell instead of in a tube: **TAR cloning** and **gap
+repair** into a linearised vector. The reaction the panel works out is the
+one Gibson does, which part ends in which, but what makes it work is
+different. There is no exonuclease and no 50 °C, so a junction is judged by
+its length and its GC, not its Tm; 30 to 60 bp of homology is usual and the
+panel starts at 40. The question that matters most is whether any of that
+homology occurs a second time anywhere in the tube, the vector's interior
+included, because the cell recombines there just as readily.
+
+Choose **Yeast assembly** on the Bench, then:
+
+1. Put the parts in the tube, as for [Gibson](#gibson): open tabs and shelf
+   pieces, each ending in the bases the next one starts with. The vector has
+   to be **linearised** first, by a digest whose piece you shelve or by inverse
+   PCR; the panel does not cut it.
+2. Pick the **Vector** from the select. It is the part whose two ends the
+   homology has to close, and it is marked **(vector)** in the order; the
+   others are inserts. With none named every part is an insert, which is
+   plain TAR cloning.
+3. Set **Overlap**, the shortest homology to accept, from 20 to 80 bp (40 by
+   default). A number outside the range is brought back to it when you leave
+   the field.
+4. The panel reports the order the homology allows and, for each junction,
+   its length and GC. A junction under 30 bp, or under 30% or over 70% GC, is
+   marked.
+5. **Assemble** opens the product as a new document. It is a circle unless
+   you untick **Circular product**, and it carries every part's features and
+   the homology of each junction as a feature named `homology 1`, `homology 2`
+   and so on, so you can check it on the map. **Check primers…** opens it on
+   the [Clone check](10-primers.md#checking-a-clone-by-colony-pcr) page.
+
+When the parts assemble, the panel lists what could make the cell give
+something else:
+
+- **A junction under 30 bp** of homology, where recombination falls off
+  sharply, or **over 80 bp**, which recombines no better and makes the
+  oligos longer.
+- **Homology found elsewhere.** A junction's homology is looked for
+  everywhere else in the tube, on both strands and in the vector's interior;
+  a hit is named with its part and position, as a place where the cell could
+  recombine instead and give a different construct.
+- **Direct repeats of 30 bp or more** within a part, or shared by two
+  parts away from their junctions: they can pop out as a deletion.
+- **GC** under 30% or over 70% at a junction.
+- **A linear product**, which a yeast cell loses, when **Circular product**
+  is off.
+- **No marker, no origin.** No yeast selectable marker (`URA3`, `LEU2`,
+  `HIS3`, `TRP1`, `MET15`, `LYS2`, `ADE2`, KanMX) or no `ARS`, `CEN` or
+  2-micron feature is annotated on the product. These are read from the
+  product's features, so if it has none the panel says to
+  [detect features](05-features.md) on it first. A product with both but
+  neither a bacterial origin nor a resistance gene is noted as one that can
+  be recovered from yeast but not grown in _E. coli_.
+
+These are warnings; **Assemble** still works. As in Gibson, parts that could
+follow the same one, or nothing following a part, are reported and nothing is
+assembled.
+
+### Putting the homology on with primers
+
+**Design insert primers (Yeast assembly)**, under the panel, puts the
+homology on an insert that does not have it yet. It is the
+[In-Fusion and NEBuilder design](#in-fusion-and-nebuilder-designing-the-insert-primers)
+with 40 bases of the vector's ends on each primer's 5′ tail: choose the
+linearised vector, the template and the insert, and the panel runs the design
+and shows the circle the amplicon and the vector would make. **Open product**
+and **Check primers…** work as there. **Save primers** keeps the pair in My
+primers as `<template>-YA-F` and `<template>-YA-R`.
+
 ## What a product was made from
 
 Every product remembers how it was made: a fragment you **Open**, a PCR
-product, a ligation, a Golden Gate, Gibson, In-Fusion or NEBuilder
+product, a ligation, a Golden Gate, Gibson, In-Fusion, NEBuilder or yeast
 assembly, an overlap-extension fusion, a Gateway clone and a mutant. A part on the shelf remembers too,
 so a plasmid ligated from a shelved fragment of a PCR product goes all the
 way back to the template the PCR was run on. Each step keeps the reaction
@@ -973,7 +1046,9 @@ How much more readily a short product amplifies than a long one is not
 modelled beyond the order the products are listed in, and a mismatched
 primer's first-cycle temperature leaves out what the mismatched stretch
 still contributes. Gibson does not model the chew-back itself, only the
-length rules above. Golden Gate's overhang warnings follow design rules;
+length rules above. Yeast assembly does not model the cell's own recombination machinery or how
+efficiently a given homology recombines; it checks the properties that make
+one fail (length, GC, repeats, a marker, an origin). Golden Gate's overhang warnings follow design rules;
 measured fidelity needs a table you import. In-Fusion and NEBuilder differ here only in how much homology
 they ask for; their exonucleases are not modelled separately. Overlap PCR does not
 model how efficiently the first-round products anneal to each other, a

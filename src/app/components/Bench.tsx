@@ -8,6 +8,7 @@ import { GatewayPanel } from './GatewayPanel';
 import { GibsonPanel } from './GibsonPanel';
 import { GoldenGatePanel } from './GoldenGatePanel';
 import { SoePanel } from './SoePanel';
+import { YeastAssemblyPanel } from './YeastAssemblyPanel';
 import { ModularPanel } from './ModularPanel';
 import { LigationPanel } from './LigationPanel';
 import { ShelfPanel } from './ShelfPanel';
@@ -19,6 +20,7 @@ const HEADINGS = {
   gibson: ['Gibson', 'no enzyme, matching ends'],
   soe: ['Overlap PCR', 'fuse by PCR, tails that overlap'],
   gateway: ['Gateway', 'att sites, no enzyme'],
+  yeast: ['Yeast assembly', 'in vivo, by homology'],
 } as const;
 
 /**
@@ -72,6 +74,7 @@ export function Bench() {
             {reaction === 'gibson' && <GibsonPanel />}
             {reaction === 'soe' && <SoePanel />}
             {reaction === 'gateway' && <GatewayPanel />}
+            {reaction === 'yeast' && <YeastAssemblyPanel />}
           </BenchProductSlot.Provider>
         </div>
       </section>

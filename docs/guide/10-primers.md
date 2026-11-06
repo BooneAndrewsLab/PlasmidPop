@@ -303,7 +303,7 @@ Open it on a product the app just made: **Check primers…** beside
 and under a [Golden Gate part](#golden-gate-ends-primers-that-make-the-insert-a-part),
 **Design check primers…** under the map of a
 [Bench](12-cloning.md#the-bench) product (Ligation, Golden Gate, Gibson,
-Gateway), **Check primers…** beside a Modular product, an In-Fusion or
+Gateway, Yeast assembly), **Check primers…** beside a Modular product, an In-Fusion or
 NEBuilder design and an Overlap PCR fusion, and the Primers tab of such a
 product offers **Check a clone · … product ›**. The page
 then names the product, the **vector** (the one chosen under **Against**

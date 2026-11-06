@@ -303,6 +303,9 @@ export const EVENTS = {
     /** An overlap-extension (SOE) fusion opened (`soe`) or its primers saved to My primers (`soe-oligos`) (#216); never a name. */
     'soe',
     'soe-oligos',
+    /** A yeast assembly (#411) opened (`yeast`) or its tail primers saved to My primers (`yeast-oligos`); never a name. */
+    'yeast',
+    'yeast-oligos',
     /** The Bench was brought to the front: `tab` from the tab strip, `link` from the Cloning tab, `key` by Alt+0. */
     'bench',
     'shelf-undo',

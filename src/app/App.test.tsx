@@ -1539,6 +1539,40 @@ describe('gibson', () => {
   });
 });
 
+describe('yeast assembly', () => {
+  // The same two parts as the Gibson tests above, with homology a yeast
+  // assembly takes: 40 bp at each junction.
+  const A = 'GCATTGACCTAGGCTTACAGTTCAGCCGATACGTGCAATC';
+  const B = 'GACATTCGGATCCAGTTACGCTAACGTGCATAGCCGACTT';
+  const vectorBody = 'CCCCCCCCCCGGGGGGGGGGAAAATTTTAA';
+  const insertBody = 'ATGGCTAGCAAAGGTGAAGAACTGTTTACC';
+  const vector = SeqDocument.create({ name: 'pBackbone', sequence: `${A}${vectorBody}${B}` });
+  const insert = SeqDocument.create({ name: 'gfp', sequence: `${B}${insertBody}${A}` });
+
+  it('is the Bench’s last reaction, under its own heading, and assembles', async () => {
+    render(<App />);
+    act(() => {
+      editorStore.openDocument(vector, 'pBackbone.gb');
+      editorStore.openDocument(insert, 'gfp.gb');
+    });
+    await waitFor(() => {
+      expect(editorStore.getState().analysis?.doc).toBe(editorStore.document);
+    });
+    fireEvent.click(screen.getByRole('tab', { name: /^Bench/ }));
+    const buttons = within(screen.getByRole('group', { name: 'Reaction' })).getAllByRole('button');
+    expect(buttons.map((b) => b.textContent).slice(-2)).toEqual(['Gateway', 'Yeast assembly']);
+    fireEvent.click(pickReaction('Yeast assembly'));
+    expect(
+      screen.getByRole('heading', { name: /Yeast assembly.*in vivo, by homology/ }),
+    ).toBeTruthy();
+    expect(editorStore.getState().bench.reaction).toBe('yeast');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Assemble in yeast' }));
+    expect(editorStore.document?.isCircular).toBe(true);
+    expect(editorStore.document?.sequence.toString()).toBe(`${A}${vectorBody}${B}${insertBody}`);
+  });
+});
+
 describe('share links', () => {
   afterEach(() => {
     globalThis.location.hash = '';

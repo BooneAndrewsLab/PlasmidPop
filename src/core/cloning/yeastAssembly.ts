@@ -204,7 +204,8 @@ function junctionFeature(j: YeastJunction): Feature {
   });
 }
 
-function gcPercent(overlap: string): number {
+/** GC of a junction's homology in per cent, 0 for none; what the `gc` warning judges. */
+export function gcPercent(overlap: string): number {
   let gc = 0;
   for (const c of overlap.toUpperCase()) if (c === 'G' || c === 'C') gc++;
   return overlap.length === 0 ? 0 : (gc * 100) / overlap.length;

@@ -134,6 +134,13 @@ describe('view preferences', () => {
         reaction: 'gibson',
         gibson: { excluded: ['tab-1'], minOverlap: 25, circular: false, name: 'pNew' },
         gateway: { reaction: 'BP', insertId: 'tab-2', vectorId: 'tab-3' },
+        yeast: {
+          excluded: ['tab-4'],
+          minOverlap: 60,
+          circular: false,
+          vectorId: 'tab-5',
+          name: 'pY',
+        },
       },
       geneticCode: 11,
       primerCriteria: {

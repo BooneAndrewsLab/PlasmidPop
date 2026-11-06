@@ -258,6 +258,7 @@ const REACTIONS: readonly CloningReaction[] = [
   'golden-gate',
   'gibson',
   'gateway',
+  'yeast',
 ];
 
 describe('the fragment shelf', () => {

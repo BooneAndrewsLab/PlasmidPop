@@ -150,7 +150,7 @@ name, site, positions and bands in a list instead of a table.
   enzyme (and the second one, when set) of a **Golden Gate** or **Modular**
   assembly, and the template's own ticks for a **mutagenesis** mutant. An
   enzyme the product no longer cuts (BsaI after Golden Gate) is still ticked,
-  with nothing to mark. Gibson, PCR, Overlap PCR, Gateway, fragments,
+  with nothing to mark. Gibson, PCR, Overlap PCR, Gateway, Yeast assembly, fragments,
   back-translations and comparisons open with the default above. This only
   sets the opening state: it is not saved in a file, is not an edit and
   does not mark the document changed, and a product reopened from storage keeps

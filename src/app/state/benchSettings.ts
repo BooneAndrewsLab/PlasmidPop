@@ -1,4 +1,11 @@
-import { type GatewayReaction, type OverlapKit, GIBSON_DEFAULTS, SOE_DEFAULTS } from '@/core';
+import {
+  type GatewayReaction,
+  type OverlapKit,
+  GIBSON_DEFAULTS,
+  SOE_DEFAULTS,
+  YEAST_OVERLAP,
+  clampYeastOverlap,
+} from '@/core';
 
 import { type BenchReaction, isBenchReaction } from './cloningReaction';
 
@@ -71,6 +78,16 @@ export interface BenchSettings {
     readonly insertId: string;
     readonly vectorId: string;
   };
+  /** Assembly in yeast by homologous recombination (#411). */
+  readonly yeast: {
+    readonly excluded: readonly string[];
+    /** 20 to 80 bp of homology; 40 by default. */
+    readonly minOverlap: number;
+    readonly circular: boolean;
+    /** The part that is the linearised vector: an ingredient's id, or `''` for none named. */
+    readonly vectorId: string;
+    readonly name: string;
+  };
 }
 
 /** One fragment of an overlap-extension fusion: a tab, and which part of it. */
@@ -112,6 +129,13 @@ export const DEFAULT_BENCH: BenchSettings = {
     name: '',
   },
   gateway: { reaction: 'LR', insertId: '', vectorId: '' },
+  yeast: {
+    excluded: [],
+    minOverlap: YEAST_OVERLAP.default,
+    circular: true,
+    vectorId: '',
+    name: '',
+  },
 };
 
 /** Toggles an id in a list of left-out parts. */
@@ -167,6 +191,7 @@ export function normalizeBenchSettings(v: unknown): BenchSettings {
   const o = record(r['overlap']);
   const w = record(r['gateway']);
   const x = record(r['soe']);
+  const y = record(r['yeast']);
   const overlap = s['minOverlap'];
   return {
     reaction: isBenchReaction(r['reaction']) ? r['reaction'] : d.reaction,
@@ -198,7 +223,7 @@ export function normalizeBenchSettings(v: unknown): BenchSettings {
       name: text(s['name'], ''),
     },
     overlap: {
-      kit: o['kit'] === 'nebuilder' ? 'nebuilder' : 'in-fusion',
+      kit: o['kit'] === 'nebuilder' || o['kit'] === 'yeast' ? o['kit'] : 'in-fusion',
       vectorId: text(o['vectorId'], ''),
       templateId: text(o['templateId'], ''),
       insert: text(o['insert'], ''),
@@ -215,6 +240,16 @@ export function normalizeBenchSettings(v: unknown): BenchSettings {
       reaction: w['reaction'] === 'BP' ? 'BP' : 'LR',
       insertId: text(w['insertId'], ''),
       vectorId: text(w['vectorId'], ''),
+    },
+    yeast: {
+      excluded: ids(y['excluded']),
+      minOverlap:
+        typeof y['minOverlap'] === 'number'
+          ? clampYeastOverlap(y['minOverlap'])
+          : d.yeast.minOverlap,
+      circular: flag(y['circular'], d.yeast.circular),
+      vectorId: text(y['vectorId'], ''),
+      name: text(y['name'], ''),
     },
   };
 }

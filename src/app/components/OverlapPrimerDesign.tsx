@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 import {
   type OverlapKit,
@@ -14,12 +14,13 @@ import { analytics } from '../analytics';
 import { FIXED_BY, cloneCheckFromParts, openCloneCheck } from '../cloneCheck';
 import { copyText } from '../clipboard';
 import { cloningDocuments, editorStore } from '../state/editorStore';
+import { savePrimers } from '../state/primerCollection';
 import { useEditorState } from '../state/useEditorStore';
 import { AssemblyWarnings } from './AssemblyWarnings';
 import { insertChoices } from './insertChoices';
 import { ProductSummary } from './ProductSummary';
 
-const KITS: readonly OverlapKit[] = ['in-fusion', 'nebuilder'];
+const KITS: readonly OverlapKit[] = ['in-fusion', 'nebuilder', 'yeast'];
 
 function PrimerLine({ label, primer }: { readonly label: string; readonly primer: OverlapPrimer }) {
   return (
@@ -54,10 +55,16 @@ function PrimerLine({ label, primer }: { readonly label: string; readonly primer
  * In-Fusion and NEBuilder HiFi (#63): the primer tails that make an
  * amplicon join a linearised vector. The reaction is the Gibson above, so
  * this sits inside that panel and designs the oligos it would need.
+ *
+ * Yeast assembly (#411) is the same design with longer tails. Its panel
+ * passes `fixedKit`, so the design is for that kit whatever the Gibson panel's
+ * buttons were left at, and the buttons are not shown.
  */
-export function OverlapPrimerDesign() {
+export function OverlapPrimerDesign({ fixedKit }: { readonly fixedKit?: OverlapKit } = {}) {
   const { documents, bench } = useEditorState();
-  const { kit, vectorId, templateId, insert } = bench.overlap;
+  const { vectorId, templateId, insert } = bench.overlap;
+  const kit = fixedKit ?? bench.overlap.kit;
+  const [saved, setSaved] = useState('');
   const setKit = (next: OverlapKit): void => {
     editorStore.updateBench('overlap', { kit: next });
   };
@@ -124,27 +131,58 @@ export function OverlapPrimerDesign() {
     editorStore.setSidebarTab('features');
   };
 
+  /** The two tail primers, in My primers as `<template>-YA-F` and `-R` (#411). */
+  const save = (): void => {
+    if (design === null || template === undefined) return;
+    analytics.track('cloning', 'yeast-oligos');
+    const drafts = [
+      {
+        name: `${template.doc.name}-YA-F`,
+        sequence: design.forward.sequence,
+        notes: `Yeast assembly, forward tail primer for ${template.doc.name}`,
+      },
+      {
+        name: `${template.doc.name}-YA-R`,
+        sequence: design.reverse.sequence,
+        notes: `Yeast assembly, reverse tail primer for ${template.doc.name}`,
+      },
+    ];
+    void savePrimers(drafts, 'design').then((r) => {
+      setSaved(
+        r.added.length === 0
+          ? 'Already in My primers.'
+          : `Saved ${r.added.length.toLocaleString()} ${r.added.length === 1 ? 'primer' : 'primers'} to My primers.`,
+      );
+    });
+  };
+
   return (
     <details className="gg__left-out">
-      <summary>Design insert primers (In-Fusion, NEBuilder)</summary>
-      <div className="panel__controls">
-        <div className="segmented" role="group" aria-label="Kit">
-          {KITS.map((k) => (
-            <button
-              key={k}
-              type="button"
-              className={`segmented__button${kit === k ? ' segmented__button--active' : ''}`}
-              aria-pressed={kit === k}
-              data-tip={`${KIT_NAMES[k]}: ${KIT_OVERLAP[k]} bases of homology`}
-              onClick={() => {
-                setKit(k);
-              }}
-            >
-              {KIT_NAMES[k]}
-            </button>
-          ))}
+      <summary>
+        {fixedKit === undefined
+          ? 'Design insert primers (In-Fusion, NEBuilder)'
+          : `Design insert primers (${KIT_NAMES[fixedKit]})`}
+      </summary>
+      {fixedKit === undefined && (
+        <div className="panel__controls">
+          <div className="segmented" role="group" aria-label="Kit">
+            {KITS.map((k) => (
+              <button
+                key={k}
+                type="button"
+                className={`segmented__button${kit === k ? ' segmented__button--active' : ''}`}
+                aria-pressed={kit === k}
+                data-tip={`${KIT_NAMES[k]}: ${KIT_OVERLAP[k]} bases of homology`}
+                onClick={() => {
+                  setKit(k);
+                }}
+              >
+                {KIT_NAMES[k]}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
       <div className="panel__controls">
         {picker('Linearised vector', vectorId, setVectorId)}
         {picker('Insert from', templateId, setTemplateId)}
@@ -244,8 +282,23 @@ export function OverlapPrimerDesign() {
                   >
                     Check primers…
                   </button>
+                  {kit === 'yeast' && (
+                    <button
+                      type="button"
+                      className="button button--small"
+                      data-tip="Keep these primers in My primers, in this browser"
+                      onClick={save}
+                    >
+                      Save primers
+                    </button>
+                  )}
                 </div>
               </div>
+              {saved !== '' && (
+                <p className="panel__note panel__note--quiet" role="status">
+                  {saved}
+                </p>
+              )}
             </>
           )}
         </>
