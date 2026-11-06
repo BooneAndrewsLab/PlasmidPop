@@ -5860,6 +5860,11 @@ button {
   margin-bottom: 8px;
 }
 
+/* A row may be narrower than its spacer: the slim tab never scrolls sideways. */
+.crispr-list > li {
+  min-width: 0;
+}
+
 .crispr-row {
   display: grid;
   grid-template-columns: 1em minmax(0, 1fr) auto auto 0.7em;
@@ -5888,6 +5893,7 @@ button {
 }
 
 .crispr-row__spacer {
+  min-width: 0;
   overflow: hidden;
   font-family: var(--font-mono);
   font-size: 10.5px;

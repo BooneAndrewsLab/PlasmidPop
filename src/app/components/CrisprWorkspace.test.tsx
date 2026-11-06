@@ -56,9 +56,10 @@ describe('CrisprWorkspace (item 133, C2)', () => {
 
   it('opens from the slim panel on the Guides page, with the sidebar on CRISPR', async () => {
     render(<Host />);
-    // The panel's list works with the workspace closed.
+    // The slim panel works with the workspace closed.
     await scanned();
-    expect(screen.getByLabelText('Spacer contains')).toBeInTheDocument();
+    expect(screen.getByLabelText('Nuclease')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Spacer contains')).not.toBeInTheDocument();
     fireEvent.click(door());
     expect(editorStore.getState()).toMatchObject({
       workspace: 'crispr',
@@ -71,19 +72,19 @@ describe('CrisprWorkspace (item 133, C2)', () => {
     expect(recallCrisprPage(editorStore.getState().documentId)).toBe('guides');
   });
 
-  it('is one scan with the panel: no rescan on opening, and the filter goes both ways', async () => {
+  it('is one scan with the panel: no rescan on opening, and the filter outlives it', async () => {
     const scans = vi.spyOn(analysisClient, 'crisprGuides');
     render(<Host />);
     await scanned();
     const before = scans.mock.calls.length;
-    fireEvent.change(screen.getByLabelText('Spacer contains'), { target: { value: 'AAAA' } });
     fireEvent.click(door());
-    expect(screen.getByLabelText('Spacer contains')).toHaveValue('AAAA');
     expect(screen.queryByText('Looking for guides…')).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Spacer contains'), { target: { value: 'AAAAA' } });
+    fireEvent.change(screen.getByLabelText('Spacer contains'), { target: { value: 'AAAA' } });
     fireEvent.click(screen.getByRole('button', { name: /close the crispr workspace/i }));
     expect(editorStore.getState().workspace).toBeNull();
-    expect(screen.getByLabelText('Spacer contains')).toHaveValue('AAAAA');
+    // Back in the panel, and in the workspace again: the filter is the session's.
+    fireEvent.click(door());
+    expect(screen.getByLabelText('Spacer contains')).toHaveValue('AAAA');
     expect(scans.mock.calls.length).toBe(before);
   });
 

@@ -11,6 +11,7 @@ import {
   HOMOPOLYMER_FLAG,
   NUCLEASES,
   baseEditWindow,
+  guideFeature,
   isEmptyRange,
   isValidRange,
   matchPositions,
@@ -41,6 +42,14 @@ export const MAX_PREVIEWED = 200;
 
 export const guideId = (g: CrisprGuide): string => `${g.strand}:${String(g.range.start)}`;
 
+/** Annotates the protospacer, offers its name for editing, and goes to the feature list. */
+export function addGuideAsFeature(guide: CrisprGuide): void {
+  analytics.track('crispr', 'add');
+  const feature = guideFeature(guide);
+  editorStore.apply({ type: 'addFeature', feature }, guide.range);
+  editorStore.requestRename(feature.id);
+  editorStore.setSidebarTab('features');
+}
 /** Everything wrong with a guide, worst first; empty when there is nothing to say. */
 export function flagsOf(g: CrisprGuide): string[] {
   const flags: string[] = [];

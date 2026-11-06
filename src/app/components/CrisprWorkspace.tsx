@@ -5,7 +5,7 @@ import { type CrisprPage, crisprWorkspace } from '../crisprWorkspace';
 import { useEditorState } from '../state/useEditorStore';
 import type { WorkspaceLayout } from '../workspaceController';
 import { PairedNickases } from './CrisprPairedNickases';
-import { CrisprGuideList } from './CrisprPanel';
+import { CrisprGuideList } from './CrisprGuideList';
 import { PrimeEditing } from './CrisprPrimeEditing';
 import { useCrisprScan } from './crisprScan';
 import { WorkspaceShell } from './WorkspaceShell';

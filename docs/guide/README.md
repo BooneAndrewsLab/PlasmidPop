@@ -23,4 +23,4 @@ Step-by-step cloning exercises, with sample files to download, are the
 14. [Keyboard shortcuts](14-shortcuts.md), and putting an action on another key
 15. [Sequencing reads](15-reads.md): AB1 and FASTQ files, qualities and traces, export as FASTQ
 16. [Proteins](16-proteins.md): protein FASTA and GenPept, Open as protein, weight, pI and extinction coefficient, back-translation
-17. [CRISPR guides](17-crispr.md): guide sites for SpCas9, SaCas9, Cas12a or a custom PAM, off-targets in the open documents, flags, base-editing windows, pegRNAs, paired nickases, cloning oligos
+17. [CRISPR guides](17-crispr.md): the slim tab and the CRISPR workspace; guide sites for SpCas9, SaCas9, Cas12a or a custom PAM, off-targets in the open documents, flags, base-editing windows, pegRNAs, paired nickases, cloning oligos

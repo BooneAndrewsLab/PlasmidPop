@@ -7,33 +7,45 @@ edit gives a new list without asking. The tab's settings and its list are
 kept per document while you look at another tab, so coming back does not
 scan again.
 
-Each row shows the strand (→ forward, ← reverse), the spacer with its PAM
-run on in grey, the GC content, and the off-target counts. A row with a `!`
-has something worth a look — hover it for what. Clicking a row selects the
-protospacer in the views and opens the guide's details right under the row,
-so the list stays in view; clicking another row moves them there, and
-clicking the open row again closes it and clears the selection.
+The tab itself is short: the **Nuclease**, **Only cuts in the selection**, a
+line saying how many guides were found and how many have no flag, the first
+eight of them, and links to the **CRISPR workspace**, where everything else
+is. Each row shows the strand (→ forward, ← reverse), the spacer with its
+PAM run on in grey, the GC content, and the off-target counts. A row with a
+`!` has something worth a look — hover it for what. Clicking a row selects
+the protospacer in the views, and two buttons appear under it: **Add as
+feature** and **Details ›**, which opens the workspace on that guide.
+Clicking the open row again clears the selection. The rows are in the
+workspace's order, along the molecule unless you sorted it otherwise, so
+**Only cuts in the selection** is the way to make the eight the ones you
+want; the flagged guides are left out until the workspace's **Show flagged**
+is pressed.
 
-While the tab is open, every guide listed is drawn on the map and in the
+While the tab or the workspace is open, every guide listed is drawn on the map and in the
 sequence view as an arrow on its own strand labelled with its PAM (see
-[Previews](03-viewing.md#previews)); clicking one there opens it here and
-scrolls the list to it. Past 200 guides none are drawn and only the first
-200 are listed — filter the list or narrow the scan to a selection to see
-the rest.
+[Previews](03-viewing.md#previews)); clicking one there selects it, and it
+opens under its row in the tab or on the workspace's **Guides** page. Past 200 guides none are drawn — filter
+the list or narrow the scan to a selection to see them.
 
 ## The tab and the workspace
 
-**Open CRISPR workspace ›**, at the foot of the tab, opens the same pieces in
+**Open CRISPR workspace ›**, at the foot of the tab, opens the whole of it in
 a larger view beside the map, as **Open Enzyme workspace ›** does for
 [Enzymes](07-enzymes.md#the-tab-and-the-workspace). It has three pages down
 its left edge:
 
-- **Guides** — the options and the guide list, as in the tab.
-- **Pairs** — the [paired nickases](#paired-nickases).
-- **Prime** — [prime editing](#prime-editing).
+- **Guides** — the options (nuclease, off-targets, base editor), the
+  filters, the guide list with each guide's details, and **Add N listed as
+  features**.
+- **Pairs** — the [paired nickases](#paired-nickases); the tab's **Paired
+  nickases ›** opens it, for the nucleases that allow them.
+- **Prime** — [prime editing](#prime-editing); the tab's **Prime editing ›**
+  opens it, likewise.
 
 The tab and the workspace share one scan, so what is set or found in one is
 set and found in the other, and switching between them does not scan again.
+Their settings and filters are kept per document while you look at another
+tab.
 The workspace is a region of the window, not a dialog: `Esc` with the
 keyboard inside closes it and puts the keyboard back on **Open CRISPR
 workspace ›**, and choosing another sidebar tab closes it too; the page it was
@@ -41,10 +53,11 @@ left on is remembered. On a phone it fills the screen.
 
 ## Filtering the list
 
-The tab is two groups: **Options** sets what is scanned for, and **Guides**
-lists what was found. The filters at the top of **Guides** work on the
-guides already found, so they are instant and the group's title says how
-many are shown, as in **139 of 345**:
+In the workspace's **Guides** page, **Options** sets what is scanned for and
+**Guides** lists what was found, all of it rather than the tab's eight. The
+filters at the top of **Guides** work on the guides already found, so they
+are instant and the group's title says how many are shown, as in **139 of
+345**. The tab's rows follow them:
 
 - **Spacer contains…** keeps the guides whose spacer has the bases typed, in
   IUPAC codes as in Find — `GRCC` or `TTTN` work — which is how to find a
@@ -65,8 +78,8 @@ genome and makes no network request to search one, so the counts say where
 else a guide would cut _this plasmid_ — which is what matters when the guide
 has to leave the backbone alone — and nothing whatever about specificity in
 a cell. Check a guide against the host genome with a genome-wide tool
-(CRISPOR, CHOPCHOP, Benchling) before ordering it. The panel says this under
-the options until **Got it** is pressed; from then on the dotted
+(CRISPOR, CHOPCHOP, Benchling) before ordering it. The workspace says this under
+its options until **Got it** is pressed; from then on the dotted
 **Off-targets up to** label keeps it as a tooltip.
 
 There is no on-target efficiency score. The published scores are trained
@@ -149,14 +162,14 @@ is what has to be in the range, so a guide reading into the region from
 outside it still counts if it cuts inside. For AsCas12a, whose two strands
 are cut five bases apart, it is the break on the PAM strand that counts.
 
-The region is taken when you tick the box, and the panel shows it under the
+The region is taken when you tick the box, and the tab shows it under the
 box. Clicking a guide afterwards selects that guide without narrowing the
 list to it. To narrow to a different stretch, select it and press **Use the
 selection now**, or untick and tick the box again.
 
 ## Base editing
 
-With SpCas9 (NGG), **Base editor** marks where a base editor can act. Choose
+With SpCas9 (NGG), the workspace's **Base editor** marks where a base editor can act. Choose
 **CBE** (C to T, protospacer positions 4–8), **ABE7.10** (A to G, 4–7) or
 **ABE8e** (A to G, 4–8). Positions count from the spacer's 5′ end, so the
 PAM is 21–23. Each row then shows how many bases of the right kind sit in the
@@ -170,7 +183,7 @@ the choice is not offered for other nucleases.
 
 ## Prime editing
 
-The **Prime editing** group designs pegRNAs for the guides found above. Give
+The workspace's **Prime** page designs pegRNAs for the guides found. Give
 the **Edit at** position (1-based), how many bases it **Replaces** and what
 it is replaced **With** (nothing deletes; zero bases replaced inserts), or
 select the bases and press **Use the selection**. **PBS** sets the primer
@@ -191,7 +204,7 @@ second nick of PE3.
 ## Paired nickases
 
 For SpCas9 and the other nucleases that cut both strands at one point, the
-**Paired nickases** group lists pairs of guides on opposite strands whose
+workspace's **Pairs** page lists pairs of guides on opposite strands whose
 nicks, one on each strand, are close enough to make a staggered
 double-strand break. Each pair shows its two guides and the overhang: the
 offset between the nicks, and whether it is a 5′ or 3′ overhang. **Nickase**
@@ -207,15 +220,15 @@ sequence.
 
 ## Ordering and annotating a guide
 
-The selected guide's box, under its row, gives its protospacer range,
-spacer, PAM, where both strands are cut, GC and flags, and the buttons
-below.
+The selected guide's box, under its row on the workspace's **Guides** page
+(**Details ›** in the tab opens it), gives its protospacer range, spacer,
+PAM, where both strands are cut, GC and flags, and the buttons below.
 
-**Add as feature** annotates the protospacer on the document as a
+**Add as feature**, in the tab and in the box, annotates the protospacer on the document as a
 `misc_feature` on its strand, with the PAM in a note, and takes you to the
 feature list to name it. It is an ordinary edit, so undo takes it back.
 
-**Add N listed as features**, above the list, annotates every guide the
+**Add N listed as features**, above the workspace's list, annotates every guide the
 filters leave in the list in one go, so a whole set is saved with the file,
 exported to GenBank and drawn on the maps like any feature. Narrow the list
 first (a selection, the filters, hiding flagged guides) to annotate only
