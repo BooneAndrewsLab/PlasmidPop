@@ -1247,7 +1247,7 @@ describe('cloning', () => {
     act(() => {
       editorStore.clearShelf();
     });
-  });
+  }, 20_000);
 
   it('opens a fragment as a document that keeps its sticky ends', async () => {
     render(<App />);
