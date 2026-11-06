@@ -186,12 +186,12 @@ describe('Grown in', () => {
     });
     // The host is an annotation edit, so the scan stays good for the new version.
     render(<CloningPanel doc={current()} />);
-    const used = document.querySelector('.panel__heading-note')?.textContent ?? '';
-    expect(used.split(', ')).toEqual(open(state));
+    // The status line names the enzymes that cut, then the count.
     const n = open(state).length;
-    expect(
-      screen.getByText(new RegExp(`^${n === 1 ? '1 fragment' : `${n} fragments`}`)),
-    ).toBeVisible();
+    const status = screen.getByRole('status').textContent;
+    expect(status).toBe(
+      `${open(state).join(', ')}: ${n === 1 ? '1 fragment' : `${n} fragments`}, largest first.`,
+    );
     expect(editorStore.getState().preview?.items).toHaveLength(n);
   });
 });

@@ -63,6 +63,9 @@ const type = (label: string, value: string) => {
   });
 };
 const rows = () => screen.queryAllByRole('listitem').map((li) => li.textContent);
+/** What a row's tooltip says: where the piece is and what it carries. */
+const tips = () => screen.queryAllByRole('listitem').map((li) => li.getAttribute('data-tip'));
+const status = () => screen.getByRole('status').textContent;
 
 describe('digest-pcr.md as the Cloning tab shows it', () => {
   beforeAll(() => {
@@ -77,25 +80,34 @@ describe('digest-pcr.md as the Cloning tab shows it', () => {
 
   it('part 1: one cut, three fragments, a blunt end, the shelf', () => {
     const { container } = open(vector, 'digest', ['EcoRI']);
-    expect(container.textContent).toContain('Digest with ticked enzymesEcoRI');
-    expect(screen.getByText(/^1 fragment, largest first\./)).toBeInTheDocument();
-    expect(rows()).toEqual([
-      '2,664 bp234–233AddOpenEcoRI5′AATTEcoRI5′AATTsynthetic promoter, MCS, synthetic terminator, AmpR, +1 more',
-    ]);
+    expect(container.textContent).toContain('Digest with ticked enzymes');
+    expect(status()).toBe('EcoRI: 1 fragment, largest first.');
+    expect(rows()).toEqual(['2,664 bpAddOpenEcoRI5′AATTEcoRI5′AATT']);
+    // The range and the features are in the row's tooltip (step 5's tip).
+    expect(tips()).toEqual(['234–233 · synthetic promoter, MCS, synthetic terminator, AmpR, ori']);
 
     tick(['EcoRI', 'XhoI']);
-    expect(screen.getByText(/^3 fragments, largest first\./)).toBeInTheDocument();
+    expect(status()).toBe('EcoRI, XhoI: 3 fragments, largest first.');
     expect(rows()).toEqual([
-      '1,275 bp654–1,928AddOpenXhoI5′TCGAXhoI5′TCGAAmpR, ori',
-      '969 bp1,929–233AddOpenXhoI5′TCGAEcoRI5′AATTsynthetic promoter, MCS, ori',
-      '420 bp234–653AddOpenEcoRI5′AATTXhoI5′TCGAMCS, synthetic terminator, AmpR',
+      '1,275 bpAddOpenXhoI5′TCGAXhoI5′TCGA',
+      '969 bpAddOpenXhoI5′TCGAEcoRI5′AATT',
+      '420 bpAddOpenEcoRI5′AATTXhoI5′TCGA',
+    ]);
+    expect(tips()).toEqual([
+      '654–1,928 · AmpR, ori',
+      '1,929–233 · synthetic promoter, MCS, ori',
+      '234–653 · MCS, synthetic terminator, AmpR',
     ]);
 
     tick(['EcoRI', 'EcoRV']);
-    expect(screen.getByText(/^2 fragments, largest first\./)).toBeInTheDocument();
+    expect(status()).toBe('EcoRI, EcoRV: 2 fragments, largest first.');
     expect(rows()).toEqual([
-      '1,830 bp1,068–233AddOpenEcoRVbluntEcoRI5′AATTsynthetic promoter, MCS, AmpR, ori',
-      '834 bp234–1,067AddOpenEcoRI5′AATTEcoRVbluntMCS, synthetic terminator, AmpR',
+      '1,830 bpAddOpenEcoRVbluntEcoRI5′AATT',
+      '834 bpAddOpenEcoRI5′AATTEcoRVblunt',
+    ]);
+    expect(tips()).toEqual([
+      '1,068–233 · synthetic promoter, MCS, AmpR, ori',
+      '234–1,067 · MCS, synthetic terminator, AmpR',
     ]);
     expect(screen.getByText('The shelf is empty.', { exact: false })).toBeInTheDocument();
 
@@ -125,6 +137,7 @@ describe('digest-pcr.md as the Cloning tab shows it', () => {
     expect(container.textContent).toContain('No enzyme is ticked.');
     expect(rows()).toEqual([expect.stringMatching(/^1,834 bp/)]);
     expect(rows()[0]).toContain('EcoRVbluntEcoRIblunt');
+    expect(status()).toMatch(/^No enzyme is ticked\./);
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: 'Add' }));
     });
@@ -137,11 +150,17 @@ describe('digest-pcr.md as the Cloning tab shows it', () => {
       'No enzyme is ticked. Tick enzymes in the Enzymes tab to cut pLig-Vector with them.',
     );
     expect(rows()).toEqual([]);
+    expect(status()).toMatch(/^No enzyme is ticked\./);
   });
 
   it('part 2: the pair, the tails, the shelf and the three failures', () => {
     const { container } = open(template, 'pcr');
     expect(container.textContent).toContain('PCRtwo primers, one template');
+    expect(
+      screen.getByText(
+        'Paste the two oligos, written 5′ to 3′; only their 3′ ends have to match SDM-Template.',
+      ),
+    ).toBeInTheDocument();
     type('Forward primer', 'ATGGCAAGGGGGCGTCTGTG');
     expect(container.textContent).toContain('20 nt, Tm 63 °C · → 139–158');
     type('Reverse primer', 'TTATACTTCCACCAGAAGACGGTAACTG');
@@ -149,6 +168,27 @@ describe('digest-pcr.md as the Cloning tab shows it', () => {
     expect(screen.getByText('One product:')).toBeInTheDocument();
     const [product] = screen.getByRole('list', { name: 'PCR products' }).querySelectorAll('li');
     expect(product?.textContent).toMatch(/^303 bp139–441exact matchShowShelveOpen/);
+    // Step 7: Polymerase is in the Options drawer, closed until it is opened.
+    const options = container.querySelector<HTMLDetailsElement>('details.panel__options');
+    expect(options?.open).toBe(false);
+    act(() => {
+      fireEvent.click(within(options as HTMLElement).getByText('Options'));
+    });
+    expect(options?.open).toBe(true);
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Polymerase' }), {
+        target: { value: 'taq' },
+      });
+    });
+    expect(screen.getByText(/One 3′ A on each end, for TA cloning/)).toBeInTheDocument();
+    expect(
+      screen.getByRole('list', { name: 'PCR products' }).querySelector('li')?.textContent,
+    ).toMatch(/^304 bp/);
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Polymerase' }), {
+        target: { value: 'proofreading' },
+      });
+    });
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: 'Show' }));
     });

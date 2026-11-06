@@ -1179,8 +1179,10 @@ describe('cloning', () => {
       editorStore.setShownEnzymes(['EcoRI', 'BamHI']);
     });
     fireEvent.click(screen.getByRole('tab', { name: 'Cloning' }));
-    expect(screen.getByText('EcoRI, BamHI'.split(', ').sort().join(', '))).toBeInTheDocument();
-    expect(screen.getByText(/2 fragments/)).toBeInTheDocument();
+    // The status line names the enzymes that cut, then the count (#392).
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'BamHI, EcoRI: 2 fragments, largest first.',
+    );
     // pBR322: EcoRI cuts after 4359, BamHI after 375 → 4361 - 377 + 1 ... the two pieces sum to 4361.
     const lengths = screen.getAllByRole('button', { name: / bp$/ });
     expect(lengths.map((b) => b.textContent)).toEqual(['3,984 bp', '377 bp']);

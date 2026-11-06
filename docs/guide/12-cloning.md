@@ -51,13 +51,19 @@ the document's own methylation blocks (see
 [Where the DNA was grown](07-enzymes.md#where-the-dna-was-grown)). Tick the enzymes
 you would put in the tube, then come back. It follows the ticks alone: the
 toolbar's **Cut sites** toggle only hides the sites drawn in the views, so a
-decluttered map still digests with everything ticked. Fragments are listed largest
-first, each with:
+decluttered map still digests with everything ticked. One status line says
+what was cut and what it gave, such as **EcoRI, BamHI: 3 fragments, largest
+first.**, and the fragments are listed under it, largest first. Each row is
+two lines:
 
-- its **length** (click it to select the fragment in the views) and range;
-- its two **ends**: the enzyme that made the cut, whether the end is blunt
-  or has a 5′ or 3′ overhang, and the overhang bases;
-- the **features** it carries. A feature a cut runs through is trimmed to
+- on the first, its **length** (click it to select the fragment in the
+  views) and the buttons below;
+- on the second, its two **ends**: the enzyme that made the cut, whether the
+  end is blunt or has a 5′ or 3′ overhang, and the overhang bases;
+- in its **tooltip** (hover the row), where the piece lies, as 1-based
+  positions that wrap over the origin on a circle, and the **features** it
+  carries. The full table, with the range and the features as columns, is
+  the [Enzyme workspace's Digest page](07-enzymes.md#the-digest-page). A feature a cut runs through is trimmed to
   the part in the fragment and marked partial. A circle cut once opens up
   inside such a feature, so the linear piece has it at both ends, as two
   partial features rather than one joined across the ends: an insert
@@ -76,10 +82,10 @@ first, each with:
   memory lasts while the app is open and through the shelf; a fragment
   saved and reopened as a file starts afresh, its pieces then staying
   apart;
-- **Add**, which puts it on the [shelf](#the-shelf), and **Open**,
-  which opens it as a document of its own. Add reads **Added ✓** for a
+- **Add**, on the first line, which puts it on the [shelf](#the-shelf), and
+  **Open**, which opens it as a document of its own. Add reads **Added ✓** for a
   moment, and the Bench tab's count flashes. While the fragment is on the
-  shelf its row says **On shelf** (**On shelf ×2** for two copies, and so
+  shelf its second line says **On shelf** (**On shelf ×2** for two copies, and so
   on, counting a copy turned over or dephosphorylated on the Bench), and the
   button reads **Add again**: a second copy is allowed, since a tandem
   insert needs one, but it should be one you meant.
@@ -87,7 +93,8 @@ first, each with:
 An uncut linear molecule is one fragment with the ends the molecule already
 has; an uncut circular molecule gives nothing to work with.
 
-Right after an edit the list gives way to **Scanning for restriction
+With no enzyme ticked the line says so, with a link to the Enzymes tab. Right
+after an edit the list gives way to **Scanning for restriction
 sites…** until the document has been scanned again, usually in a fraction
 of a second. The views keep drawing the sites the edit left alone in the
 meantime, but an edit can make a site as well as break one, so the digest
@@ -183,8 +190,13 @@ already exist somewhere; a PCR makes one that is in no file yet, because
 what a primer carries at its 5′ end ends up in the product.
 
 Choose **PCR** in the picker and paste the two oligos, written 5′ to 3′ as
-you would order them. Nothing else is asked, because everything a designer
-decided is already in those two sequences. They stay in the boxes while you
+you would order them. Nothing else is asked up front, because everything a
+designer decided is already in those two sequences; what the tab says until
+you paste them is one sentence, and the rest is below. Under each box a line
+reports the oligo. A closed **Options** line under the two boxes holds
+**Polymerase** and **5′-phosphorylated primers** (below), and its right-hand
+side says what they are set to, so a Taq run is not hidden when it is
+closed. The primers stay in the boxes while you
 look at the digest, another sidebar tab or another document, and come back
 with this one; Mutate's change does the same. A primer from
 [My primers](10-primers.md#my-primers) can be put in a box from the Primers
@@ -237,8 +249,10 @@ the wrong places.
   tails and any mismatch — the way a primer is written out in a paper.
 - **More than one product** is what a real tube gives when a primer binds in
   more than one place. They are listed cleanest and shortest first, because
-  an exactly-matched short amplicon out-competes the rest, and drawn as a
-  gel so you can see whether the bands could be told apart — on the agarose
+  an exactly-matched short amplicon out-competes the rest. The status line
+  above them says "One product:" or "N products, the cleanest and shortest
+  first". Under the list a gel is always drawn, with one lane even for one
+  product, so you can see whether the bands could be told apart — on the agarose
   percentage and beside the ladder chosen under it (see
   [The gel](07-enzymes.md#the-gel)).
 
@@ -247,7 +261,7 @@ round — inverse PCR, which is how a vector is linearised for a Gibson. It
 needs nothing special here: it is simply the product that happens to be
 nearly the whole molecule.
 
-**Polymerase** chooses what comes out. A proofreading enzyme (Q5, Phusion,
+**Polymerase**, under **Options**, chooses what comes out. A proofreading enzyme (Q5, Phusion,
 Pfu) leaves the product blunt and reaches 20 kb; **Taq** adds one A to each
 3′ end, which is what TA cloning joins by (a TA vector's single 3′ T
 overhangs pair with them on the shelf), and is taken to reach 5 kb. A pairing
@@ -255,7 +269,7 @@ that would give a longer product is reported and not built. A Taq product's
 length counts its added A, as the length of any fragment counts the overhang
 its top strand carries: a 500 bp amplicon is listed, drawn and shelved as 501.
 
-**5′-phosphorylated primers**: oligos are made without a 5′ phosphate unless
+**5′-phosphorylated primers**, also under **Options**: oligos are made without a 5′ phosphate unless
 ordered with one, and a PCR product's 5′ ends are its primers'. So a
 shelved product is marked dephosphorylated (see
 [Ligation](#ligation)) unless this is ticked, and will not ligate into a

@@ -36,6 +36,16 @@ function setup() {
   return render(<PcrPanel doc={doc} />);
 }
 
+/** The Options drawer: closed until its summary is clicked. */
+function openOptions(): HTMLDetailsElement {
+  const drawer = document.querySelector<HTMLDetailsElement>('details.panel__options');
+  if (drawer === null) throw new Error('no Options drawer');
+  act(() => {
+    fireEvent.click(within(drawer).getByText('Options'));
+  });
+  return drawer;
+}
+
 function type(label: string, value: string): void {
   act(() => {
     fireEvent.change(screen.getByLabelText(label), { target: { value } });
@@ -78,6 +88,7 @@ describe('PcrPanel', () => {
       polymerase: 'proofreading',
     });
     expect(part?.lineage?.step?.parents[0]?.name).toBe('pTest');
+    openOptions();
     act(() => {
       fireEvent.click(screen.getByRole('checkbox', { name: '5′-phosphorylated primers' }));
       fireEvent.click(screen.getByRole('button', { name: 'Shelve' }));
@@ -93,6 +104,7 @@ describe('PcrPanel', () => {
     const template = editorStore.getState().documentId;
     type('Forward primer', FWD);
     type('Reverse primer', REV);
+    openOptions();
     act(() => {
       fireEvent.change(screen.getByRole('combobox', { name: 'Polymerase' }), {
         target: { value: 'taq' },
@@ -119,6 +131,62 @@ describe('PcrPanel', () => {
         /last 8 bases of the reverse primer pair with the forward primer/,
       ),
     ).toBeInTheDocument();
+  });
+
+  it('says what to paste in one sentence, until there are primers (#392)', () => {
+    setup();
+    expect(
+      screen.getByText(
+        'Paste the two oligos, written 5′ to 3′; only their 3′ ends have to match pTest.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('status')).toBeNull();
+    type('Forward primer', FWD);
+    type('Reverse primer', REV);
+    expect(screen.queryByText(/Paste the two oligos/)).toBeNull();
+    expect(screen.getByRole('status')).toHaveTextContent('One product:');
+  });
+
+  it('keeps Polymerase and the 5′ phosphate in a drawer that starts closed (#392)', () => {
+    setup();
+    const drawer = document.querySelector<HTMLDetailsElement>('details.panel__options');
+    expect(drawer?.open).toBe(false);
+    // The summary says what the drawer holds now, so a closed one hides nothing.
+    expect(drawer?.querySelector('summary')).toHaveTextContent('Options');
+    expect(drawer?.querySelector('summary')).toHaveTextContent('Proofreading');
+    // The two primer boxes are outside it, with the report lines.
+    expect(drawer).not.toContainElement(screen.getByLabelText('Forward primer'));
+    expect(drawer).not.toContainElement(screen.getByLabelText('Reverse primer'));
+
+    openOptions();
+    expect(drawer?.open).toBe(true);
+    const polymerase = screen.getByRole('combobox', { name: 'Polymerase' });
+    expect(drawer).toContainElement(polymerase);
+    expect(drawer).toContainElement(
+      screen.getByRole('checkbox', { name: '5′-phosphorylated primers' }),
+    );
+    expect(screen.getByText(/Q5, Phusion, Pfu: blunt ends, products up to/)).toBeInTheDocument();
+    act(() => {
+      fireEvent.change(polymerase, { target: { value: 'taq' } });
+      fireEvent.click(screen.getByRole('checkbox', { name: '5′-phosphorylated primers' }));
+    });
+    // Closed again, the summary still reads as the choices.
+    act(() => {
+      fireEvent.click(within(drawer as HTMLElement).getByText('Options'));
+    });
+    expect(drawer?.open).toBe(false);
+    expect(drawer?.querySelector('summary')).toHaveTextContent('Taq, 5′-phosphorylated');
+  });
+
+  it('keeps the gel always, one lane even for one product, and none without a product (#392)', () => {
+    setup();
+    expect(screen.queryByRole('group', { name: /^PCR:/ })).toBeNull();
+    type('Forward primer', FWD);
+    type('Reverse primer', REV);
+    expect(screen.getByRole('group', { name: /^PCR: 522 bp/ })).toBeInTheDocument();
+    // A pair that gives nothing says why instead, with no gel.
+    type('Reverse primer', TEXT.slice(700, 722));
+    expect(screen.queryByRole('group', { name: /^PCR:/ })).toBeNull();
   });
 
   it('amplifies from another open tab, without drawing on this one', () => {

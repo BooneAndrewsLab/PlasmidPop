@@ -74,9 +74,11 @@ function FragmentRow({
   readonly onHover: (hovered: boolean) => void;
 }) {
   const { uncut } = fragment;
-  // Cut short with an ellipsis when the sidebar is narrow; the title has it whole.
-  const range = `${describeRange(fragment, seqLength)}${uncut > 0 ? ` · ${String(uncut)} ${uncut === 1 ? 'site' : 'sites'} uncut` : ''}`;
   const names = [...new Set(fragment.features.map((f) => (f.name === '' ? f.type : f.name)))];
+  // The row is two lines, the length and its buttons over the ends; where the
+  // piece sits and what it carries are in its tooltip, as the Digest page's
+  // table gives them in columns.
+  const detail = `${describeRange(fragment, seqLength)}${names.length > 0 ? ` · ${names.join(', ')}` : ''}`;
   // A second copy is allowed (a tandem insert is a real assembly) but should
   // be meant: the row says it is on the shelf, and the button says "again".
   const [added, setAdded] = useState(false);
@@ -92,6 +94,7 @@ function FragmentRow({
   return (
     <li
       className="fragment"
+      data-tip={detail}
       onMouseEnter={() => {
         onHover(true);
       }}
@@ -109,14 +112,16 @@ function FragmentRow({
         <button
           type="button"
           className="fragment__length"
-          data-tip="Select this fragment in the views"
+          data-tip={`${detail}. Click to select this fragment in the views`}
           onClick={onSelect}
         >
           {fragment.sequence.length.toLocaleString()} bp
         </button>
-        <span className="fragment__range" data-tip={range}>
-          {range}
-        </span>
+        {uncut > 0 && (
+          <span className="fragment__uncut">
+            {uncut} {uncut === 1 ? 'site' : 'sites'} uncut
+          </span>
+        )}
         <button
           type="button"
           className={`button button--quiet button--small fragment__add${added ? ' fragment__add--done' : ''}`}
@@ -156,12 +161,6 @@ function FragmentRow({
           </span>
         )}
       </div>
-      {names.length > 0 && (
-        <div className="fragment__features" data-tip={names.join(', ')}>
-          {names.slice(0, 4).join(', ')}
-          {names.length > 4 ? `, +${names.length - 4} more` : ''}
-        </div>
-      )}
     </li>
   );
 }
@@ -202,16 +201,15 @@ export function CloningPanel({ doc }: Props) {
 
       {sidebarReaction === 'digest' && (
         <>
-          <h3 className="panel__heading">
-            Digest with ticked enzymes
-            {enzymesUsed.length > 0 && (
-              <span className="panel__heading-note">{enzymesUsed.join(', ')}</span>
-            )}
-          </h3>
+          <h3 className="panel__heading">Digest with ticked enzymes</h3>
+          {/* One status line whichever state the digest is in: scanning, every
+              site blocked, nothing ticked, or the pieces. */}
           {!ready ? (
-            <p className="panel__note">Scanning for restriction sites…</p>
+            <p className="panel__note" role="status">
+              Scanning for restriction sites…
+            </p>
           ) : enzymesUsed.length === 0 && blocked.ticked > 0 ? (
-            <p className="panel__note panel__note--warn">
+            <p className="panel__note panel__note--warn" role="status">
               Every site of {blocked.enzymes.join(', ')} in {doc.name} is blocked by its{' '}
               {describeHost(doc.methylation)} methylation, so nothing is cut. If the DNA came from a
               dam−/dcm− strain or a PCR, say so under{' '}
@@ -227,7 +225,7 @@ export function CloningPanel({ doc }: Props) {
               in the Enzymes tab.
             </p>
           ) : enzymesUsed.length === 0 ? (
-            <p className="panel__note">
+            <p className="panel__note" role="status">
               No enzyme is ticked.{' '}
               <button
                 type="button"
@@ -244,13 +242,14 @@ export function CloningPanel({ doc }: Props) {
                 : ' Uncut, the whole molecule is one fragment, with the ends it has.'}
             </p>
           ) : (
-            <p className="panel__note">
+            <p className="panel__note" role="status">
+              {enzymesUsed.join(', ')}:{' '}
               {total === 1 ? '1 fragment' : `${total.toLocaleString()} fragments`}
               {partial ? ' a partial digest can give' : ''}, largest first
               {total > listed.length
                 ? ` (the ${listed.length.toLocaleString()} that miss the fewest sites shown)`
                 : ''}
-              . Add the ones to join to the shelf, and join them on the Bench.
+              .
             </p>
           )}
           {ready && enzymesUsed.length > 0 && (

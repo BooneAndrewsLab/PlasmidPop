@@ -22,17 +22,17 @@
 5. Click the **Cloning** tab and pick **Digest** under **Reaction**.
 
    > [!NOTE]
-   > You see **Digest with ticked enzymes** with `EcoRI` beside it, **1 fragment, largest first.**, and one row: **2,664 bp**, range `234–233`, ends `EcoRI 5′ AATT` on both sides.
+   > You see **Digest with ticked enzymes**, the line **EcoRI: 1 fragment, largest first.**, and one row: **2,664 bp**, with the ends `EcoRI 5′ AATT` on both sides.
 
    > [!TIP]
-   > One cut opens a circle: the same 2,664 bases are now a linear piece that starts just after the cut and runs round the old origin to end just before it, which is why its range wraps. A circle cut once gives one fragment, and that molecule is what you would clone into. The row also lists the features it carries: `synthetic promoter, MCS, synthetic terminator, AmpR, +1 more`.
+   > One cut opens a circle: the same 2,664 bases are now a linear piece that starts just after the cut and runs round the old origin to end just before it, which is why its range wraps: hover the row and the tooltip gives the range, `234–233`, and the features it carries, `synthetic promoter, MCS, synthetic terminator, AmpR, ori`. A circle cut once gives one fragment, and that molecule is what you would clone into.
 
 6. Go back to the **Enzymes** tab, type `XhoI` in **Filter** and tick it as well, so `EcoRI` and `XhoI` are ticked.
 
    > [!NOTE]
    > You see a lane for the double digest, a lane for each enzyme alone and a ladder, sizes `1,275, 969, 420 bp`, and **On a gel: 3 bands, 1,275 + 969 + 420 bp.**
 
-7. In the **Cloning** tab read the three rows:
+7. In the **Cloning** tab read the line **EcoRI, XhoI: 3 fragments, largest first.** and the three rows. Each row shows the length and, under it, its two ends; hover a row for its range:
 
    | Fragment | Range     | Left end        | Right end       |
    | -------- | --------- | --------------- | --------------- |
@@ -40,7 +40,7 @@
    | 969 bp   | 1,929–233 | `XhoI 5′ TCGA`  | `EcoRI 5′ AATT` |
    | 420 bp   | 234–653   | `EcoRI 5′ AATT` | `XhoI 5′ TCGA`  |
 
-8. Hover the **969 bp** row.
+8. Hover the **969 bp** row (its tooltip reads `1,929–233`, then the features it carries).
 
    > [!NOTE]
    > You see the map and the sequence view draw that piece as a solid arrow while the others stay dashed.
@@ -58,7 +58,7 @@
 11. Click **Hide all**, then tick `EcoRI` and `EcoRV` (use **Filter** for each).
 
     > [!NOTE]
-    > You see two fragments in the **Cloning** tab: **1,830 bp** (`EcoRV` blunt to `EcoRI 5′ AATT`) and **834 bp** (`EcoRI 5′ AATT` to `EcoRV` blunt).
+    > You see **EcoRI, EcoRV: 2 fragments, largest first.** in the **Cloning** tab, and two rows: **1,830 bp** (`EcoRV` blunt to `EcoRI 5′ AATT`) and **834 bp** (`EcoRI 5′ AATT` to `EcoRV` blunt).
 
     | Fragment | Range     | Left end        | Right end       |
     | -------- | --------- | --------------- | --------------- |
@@ -92,7 +92,7 @@
 16. Open the **Enzymes** tab, click **Hide all**, then open the **Cloning** tab.
 
     > [!NOTE]
-    > You see **No enzyme is ticked**, and the molecule still listed as one fragment, **1,834 bp**, with the ends it has.
+    > You see the line **No enzyme is ticked**, and the molecule still listed as one fragment, **1,834 bp**, with the ends it has.
 
 17. Click **Add**.
 
@@ -108,7 +108,7 @@
 3. In the **Cloning** tab pick **PCR** under **Reaction**.
 
    > [!NOTE]
-   > You see **PCR** with `two primers, one template` beside it, and the panel asks you to paste the two oligos.
+   > You see **PCR** with `two primers, one template` beside it, and one sentence asking you to paste the two oligos, written 5′ to 3′. Under the two boxes a closed **Options** line reads `Proofreading`.
 
 4. Paste into **Forward primer**: `ATGGCAAGGGGGCGTCTGTG`
 5. Paste into **Reverse primer**, written 5′ to 3′ as you would order it: `TTATACTTCCACCAGAAGACGGTAACTG`
@@ -117,12 +117,12 @@
    > You see **20 nt, Tm 63 °C · → 139–158** under the forward box and **28 nt, Tm 59 °C · ← 414–441** under the reverse.
 
 6. Read the product: the panel says **One product:** and lists **303 bp**, `139–441`, **exact match**, with **Show**, **Shelve** and **Open**. Under it a gel draws one band in a lane labelled **PCR**.
-7. Set **Polymerase** to **Taq**.
+7. Open **Options** and set **Polymerase** to **Taq**.
 
    > [!NOTE]
    > You see **304 bp**, one base longer, and the note **One 3′ A on each end, for TA cloning**.
 
-8. Set **Polymerase** back to **Proofreading**.
+8. Set **Polymerase** back to **Proofreading**. (Closed, the **Options** line shows what it is set to.)
 9. Click **Show**.
 
    > [!NOTE]
@@ -158,7 +158,7 @@
     > [!TIP]
     > The clamps are what is left over. The 313 bp piece is the gene with an EcoRI end and a BamHI end, the same two enzymes in the same order as the `MCS` of `pLig-Vector`, so it is ready for [Ligation](ligation.md).
 
-16. Click **Add** on the **313 bp** row (range `4–316`).
+16. Click **Add** on the **313 bp** row (hover it: its range is `4–316`).
 
     - [ ] The shelf now holds **2 parts, 636 bp.**
 

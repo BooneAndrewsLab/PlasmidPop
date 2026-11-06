@@ -247,7 +247,7 @@ A change that costs the protein nothing and gives the DNA a restriction site, so
 11. Click the **Cloning** tab and pick **Digest**.
 
     > [!NOTE]
-    > You see **2 fragments**, largest first: **965 bp** and **276 bp**.
+    > You see **BamHI, EcoRV: 2 fragments, largest first.** and two rows: **965 bp** and **276 bp**.
 
     > [!WARNING]
     > If the digest lists more enzymes than these two, others are ticked: only `BamHI` and `EcoRV` should be. A template you open fresh has every enzyme that cuts it once ticked; Exercise 1 cleared them and ticked `BamHI`.

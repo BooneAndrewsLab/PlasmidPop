@@ -1254,6 +1254,11 @@ button {
   margin-bottom: 8px;
 }
 
+/* The PCR options: a few fields under the summary, a line apart. */
+.panel__options > .panel__details-summary ~ * + * {
+  margin-top: 6px;
+}
+
 .primer-settings > .button {
   margin-top: 8px;
 }
@@ -4316,7 +4321,7 @@ button {
   text-decoration: underline;
 }
 
-.fragment__range {
+.fragment__uncut {
   min-width: 0;
   overflow: hidden;
   color: var(--ink-3);
@@ -4361,15 +4366,6 @@ button {
   background: var(--ink-3);
   opacity: 0.5;
   border-radius: 1px;
-}
-
-.fragment__features {
-  margin-top: 3px;
-  color: var(--ink-3);
-  font-size: 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .end {

@@ -409,6 +409,18 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
           sequence={reverse}
           seqLength={template.length}
         />
+      </div>
+      {/* The two things most runs leave alone: the default is a proofreading
+          polymerase and oligos without a 5′ phosphate. The summary says what
+          they come to now, so a Taq run is not hidden by the closed drawer. */}
+      <details className="panel__details panel__options">
+        <summary className="panel__details-summary">
+          <span className="panel__details-title">Options</span>
+          <span className="panel__details-note">
+            {POLYMERASES.find((p) => p.value === polymerase)?.label}
+            {phosphorylated ? ', 5′-phosphorylated' : ''}
+          </span>
+        </summary>
         <label className="panel__field panel__field--row">
           <span>Polymerase</span>
           <select
@@ -443,7 +455,7 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
           />
           5′-phosphorylated primers
         </label>
-      </div>
+      </details>
       {dimers.length > 0 && (
         <ul className="panel__warnings" aria-label="Primer dimers">
           {dimers.map((d) => (
@@ -458,15 +470,13 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
 
       {result === null ? (
         <p className="panel__note">
-          Paste the two oligos to amplify {template.name} with. Only their 3′ ends have to match it:
-          a 5′ tail — a restriction site, a Gibson homology arm, a tag — is copied into the product,
-          which is how a part is made that is in no file yet.
+          Paste the two oligos, written 5′ to 3′; only their 3′ ends have to match {template.name}.
         </p>
       ) : products.length === 0 ? (
         <p className="panel__error">{result.problem}</p>
       ) : (
         <>
-          <p className="panel__note">
+          <p className="panel__note" role="status">
             {products.length === 1
               ? 'One product:'
               : `${products.length} products, the cleanest and shortest first — a real tube gives them all:`}

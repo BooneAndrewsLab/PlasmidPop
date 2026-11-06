@@ -1,7 +1,14 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 
-import { type CutSite, SeqDocument, findCutSites, getEnzyme } from '@/core';
+import {
+  type CutSite,
+  SeqDocument,
+  createFeature,
+  findCutSites,
+  getEnzyme,
+  rangeSegment,
+} from '@/core';
 
 import { DEFAULT_BENCH } from '../state/benchSettings';
 import { recallWorkspace } from '../primerWorkspace';
@@ -118,6 +125,77 @@ describe('CloningPanel', () => {
       fireEvent.click(pick('Digest'));
     });
     expect(preview()?.owners).toEqual(['cloning']);
+  });
+
+  it('says the digest in one status line: the enzymes, the count, the order (#392)', () => {
+    setup();
+    expect(screen.getByRole('status')).toHaveTextContent('EcoRI: 2 fragments, largest first.');
+    // The enzymes are no longer a note on the heading, and the line has no
+    // second sentence about the shelf: the shelf line below says that.
+    expect(document.querySelector('.panel__heading-note')).toBeNull();
+    act(() => {
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Partial digest' }));
+    });
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'EcoRI: 4 fragments a partial digest can give, largest first.',
+    );
+  });
+
+  it('keeps one status line for each recovery state of the digest (#392)', () => {
+    setup();
+    act(() => {
+      editorStore.setShownEnzymes([]);
+    });
+    // Nothing ticked: it says so, and the link goes to the Enzymes tab.
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'No enzyme is ticked. Tick enzymes in the Enzymes tab to cut',
+    );
+    expect(screen.queryAllByRole('listitem').filter((li) => li.className === 'fragment')).toEqual(
+      [],
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Tick enzymes' }));
+    expect(editorStore.getState().sidebarTab).toBe('enzymes');
+  });
+
+  it('gives each fragment two lines and puts its range and features in the tooltip (#392)', () => {
+    const annotated = doc.addFeature(
+      createFeature({
+        type: 'misc_feature',
+        name: 'marker',
+        segments: [rangeSegment(500, 900)],
+      }),
+    );
+    act(() => {
+      editorStore.openDocument(annotated);
+      editorStore.setAnalysis(annotated, sites, []);
+      editorStore.setShownEnzymes([enzyme]);
+    });
+    render(<CloningPanel doc={annotated} />);
+    const rows = screen.getAllByRole('listitem').filter((li) => li.className === 'fragment');
+    expect(rows).toHaveLength(2);
+    for (const row of rows) {
+      // Lengths and buttons, then the ends: no third line for the features.
+      expect([...row.children].map((c) => c.className)).toEqual([
+        'fragment__head',
+        'fragment__ends',
+      ]);
+    }
+    const small = rows[1];
+    if (small === undefined) throw new Error('expected two fragment rows');
+    // The 1,000 bp piece is 401-1,400; the marker lies inside it.
+    expect(small.getAttribute('data-tip')).toBe('401–1,400 · marker');
+    expect(rows[0]?.getAttribute('data-tip')).toBe('1,401–400');
+    // The length button carries it too, with what a click does.
+    expect(within(small).getByRole('button', { name: '1,000 bp' })).toHaveAttribute(
+      'data-tip',
+      '401–1,400 · marker. Click to select this fragment in the views',
+    );
+    // The row still has no range or feature text of its own.
+    expect(small).not.toHaveTextContent('marker');
+    expect(small).not.toHaveTextContent('401');
+    act(() => {
+      editorStore.closeDocument();
+    });
   });
 
   it('draws the digest fragments on both views', () => {
