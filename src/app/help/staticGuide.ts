@@ -8,6 +8,8 @@ import {
   type Block,
   type Inline,
 } from './markdown.ts';
+import { guideSections } from './guideIndex.ts';
+import { pack, SEARCH_PLACEHOLDER } from './guideSearch.ts';
 
 /**
  * The user guide as plain static HTML (item 91, #231), generated at build
@@ -218,6 +220,23 @@ footer{color:var(--muted);font-size:.9em;padding-bottom:2rem}
   .trim()
   .replace(/\n/g, '');
 
+/** The guide's search box and its results (#409); only the pages that have the box carry it. */
+const SEARCH_STYLE = `
+header{position:relative}
+form.search{flex:1 1 14rem;margin:0}
+form.search input{width:100%;box-sizing:border-box;padding:.3rem .6rem;font:inherit;font-size:.9em;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px}
+ul.search__results{position:absolute;z-index:5;left:16px;right:16px;top:100%;max-height:70vh;overflow-y:auto;margin:.25rem 0 0;padding:.25rem;list-style:none;background:var(--bg);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 24px rgba(0,0,0,.2)}
+ul.search__results a{display:block;padding:.4rem .6rem;border-radius:4px;color:var(--fg);text-decoration:none}
+ul.search__results a:hover,ul.search__results a:focus{background:var(--code)}
+.search__page{color:var(--muted);font-size:.85em}
+.search__heading{font-weight:600}
+.search__snippet{display:block;color:var(--muted);font-size:.88em}
+.search__none{padding:.4rem .6rem;color:var(--muted)}
+mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px}
+`
+  .trim()
+  .replace(/\n/g, '');
+
 /** What differs between the sections of the site: the header and the footer. */
 export interface SiteSection {
   /** The name in the header. */
@@ -227,15 +246,34 @@ export interface SiteSection {
   readonly indexLabel: string;
   /** The footer paragraph, as HTML; `home` is the relative URL of the app, `fromDir` the page's directory. */
   readonly footer: (home: string, fromDir: string) => string;
+  /** Whether the header has the search box (#409); the guide's pages do, the tutorials' do not. */
+  readonly search?: boolean;
 }
 
 const GUIDE_SECTION: SiteSection = {
   name: 'PlasmidPop user guide',
   indexPath: 'guide/',
   indexLabel: 'All pages',
+  search: true,
   footer: (home) =>
     `This is the same user guide that opens from the <strong>?</strong> button inside <a href="${home}">PlasmidPop</a>, a free DNA sequence editor and plasmid viewer that runs in your browser.`,
 };
+
+const SEARCH_SCRIPT = 'guide/search.js';
+const SEARCH_INDEX = 'guide/search-index.json';
+
+/**
+ * The box is hidden until the script runs: the pages read without JavaScript,
+ * and a box that does nothing is worse than none.
+ */
+function searchBox(): string {
+  const label = escapeHtml(SEARCH_PLACEHOLDER);
+  return `<form class="search" role="search" hidden>
+<input type="search" placeholder="${label}" aria-label="${label}" autocomplete="off" spellcheck="false">
+<ul class="search__results" aria-label="Search results" hidden></ul>
+</form>
+`;
+}
 
 export function document(opts: {
   section?: SiteSection;
@@ -265,14 +303,14 @@ export function document(opts: {
 <meta property="og:url" content="${escapeHtml(canonical)}">
 <meta property="og:image" content="${SITE_URL}og-image.png">
 <meta name="twitter:card" content="summary_large_image">
-<style>${STYLE}</style>
+<style>${STYLE}${section.search === true ? SEARCH_STYLE : ''}</style>
 </head>
 <body>
 <header>
 <strong>${escapeHtml(section.name)}</strong>
 <a href="${index}">${escapeHtml(section.indexLabel)}</a>
 <a href="${home}">Open the app</a>
-</header>
+${section.search === true ? searchBox() : ''}</header>
 <main>
 ${opts.body}
 ${opts.pager}
@@ -280,7 +318,7 @@ ${opts.pager}
 <footer>
 <p>${section.footer(home, fromDir)}</p>
 </footer>
-</body>
+${section.search === true ? `<script type="module" src="${escapeHtml(relative(fromDir, SEARCH_SCRIPT))}"></script>\n` : ''}</body>
 </html>
 `;
 }
@@ -340,6 +378,115 @@ export function generateGuideFiles(pages: readonly SourcePage[]): StaticFile[] {
   return files;
 }
 
+/**
+ * What the search box does in the browser (#409), after the ranking code
+ * (`guideSearch.ts`, types stripped) in the same module: fetch the index when
+ * the box is first used, rank as the dialog does, list the results as links.
+ * Plain JS, no framework; built with the DOM so no text is ever markup.
+ */
+const SEARCH_UI = `
+const form = document.querySelector('form.search');
+if (form) {
+  const input = form.querySelector('input');
+  const list = form.querySelector('ul');
+  const here = import.meta.url;
+  const slug = (id) => id.replace(/^\\d+-/, '');
+  let index = null;
+  let loading = null;
+  const load = () => {
+    loading ??= fetch(new URL('search-index.json', here))
+      .then((r) => r.json())
+      .then((packed) => { index = createIndex(unpack(packed)); });
+    return loading;
+  };
+  const el = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text) e.textContent = text;
+    return e;
+  };
+  const marked = (target, snippet) => {
+    let at = 0;
+    for (const [a, b] of snippet.marks) {
+      target.append(snippet.text.slice(at, a));
+      target.append(Object.assign(document.createElement('mark'), { textContent: snippet.text.slice(a, b) }));
+      at = b;
+    }
+    target.append(snippet.text.slice(at));
+  };
+  const show = (results, message) => {
+    list.replaceChildren();
+    if (message) list.append(el('li', 'search__none', message));
+    for (const r of results) {
+      const a = el('a');
+      a.href = new URL(slug(r.page) + '/#' + r.anchor, here).href;
+      a.append(el('span', 'search__page', r.heading === r.pageTitle ? r.pageTitle : r.pageTitle + ' \\u203a '));
+      if (r.heading !== r.pageTitle) a.append(el('span', 'search__heading', r.heading));
+      const snip = el('span', 'search__snippet');
+      marked(snip, r.snippet);
+      a.append(snip);
+      const li = el('li');
+      li.append(a);
+      list.append(li);
+    }
+    list.hidden = false;
+  };
+  const run = () => {
+    const query = input.value;
+    if (query.trim() === '') { list.hidden = true; return; }
+    load().then(() => {
+      if (input.value !== query) return;
+      const results = search(index, query);
+      show(results, results.length === 0 ? 'No matches.' : '');
+    }, () => { show([], 'Search is not available.'); });
+  };
+  const links = () => [...list.querySelectorAll('a')];
+  form.hidden = false;
+  input.addEventListener('focus', () => { load().catch(() => {}); });
+  input.addEventListener('input', run);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); links()[0]?.focus(); }
+    else if (e.key === 'Escape') {
+      if (input.value !== '') { input.value = ''; list.hidden = true; }
+      else input.blur();
+    }
+  });
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    links()[0]?.click();
+  });
+  list.addEventListener('keydown', (e) => {
+    const all = links();
+    const at = all.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); all[at + 1]?.focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); (all[at - 1] ?? input).focus(); }
+    else if (e.key === 'Escape') { input.focus(); }
+  });
+  document.addEventListener('click', (e) => { if (!form.contains(e.target)) list.hidden = true; });
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    const typing = t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+    if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey && !typing) { e.preventDefault(); input.focus(); }
+  });
+}
+`.trim();
+
+/**
+ * The files that make the guide's search box work: the index of every
+ * section, and the script. `core` is the ranking module's JavaScript
+ * (`guideSearch.ts` with its types stripped), which the build produces so
+ * this file stays pure; the script is that code followed by the box's own.
+ */
+export function generateSearchFiles(pages: readonly SourcePage[], core: string): StaticFile[] {
+  return [
+    {
+      path: SEARCH_INDEX,
+      content: JSON.stringify(pack(guideSections(pages))),
+    },
+    { path: SEARCH_SCRIPT, content: `${core}\n${SEARCH_UI}\n` },
+  ];
+}
+
 /** sitemap.xml: the app and every guide page, from the same list, then `moreUrls` (the tutorials). */
 export function generateSitemap(
   pages: readonly SourcePage[],
@@ -360,7 +507,8 @@ export type StaticRequest =
 
 /**
  * Maps a request URL (query allowed, `base` still on it) to the generated
- * file it names: `guide/`, `guide/<slug>/`, `tutorials/`, `tutorials/<id>/`,
+ * file it names: `guide/`, `guide/<slug>/`, `guide/search.js`,
+ * `guide/search-index.json`, `tutorials/`, `tutorials/<id>/`,
  * `tutorials/files/<name>`, `sitemap.xml`. A directory
  * without its trailing slash redirects to it, as GitHub Pages does, because
  * the pages link relatively. Anything else is null: the app's.
@@ -372,6 +520,7 @@ export function matchStaticRequest(url: string, base: string): StaticRequest | n
   if (!pathname.startsWith(base)) return null;
   const rel = pathname.slice(base.length);
   if (rel === 'sitemap.xml') return { kind: 'file', path: 'sitemap.xml' };
+  if (rel === SEARCH_SCRIPT || rel === SEARCH_INDEX) return { kind: 'file', path: rel };
   if (/^(?:guide|tutorials)\/([^/]+\/)?index\.html$/.test(rel)) return { kind: 'file', path: rel };
   if (/^(?:guide|tutorials)\/([^/]+\/)?$/.test(rel))
     return { kind: 'file', path: `${rel}index.html` };

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, createEvent, fireEvent, render, screen, within } from '@testing-library/react';
 
 import pkg from '../../../package.json' with { type: 'json' };
 
@@ -139,5 +139,186 @@ describe('HelpButton', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     fireEvent.keyDown(document.body, { key: '?' });
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+});
+
+// Item 138 (#409): search of the guide in the dialog.
+/** The element a test has found, or a failure that says nothing was. */
+function must<T>(found: T | undefined): T {
+  if (found === undefined) throw new Error('not found');
+  return found;
+}
+
+describe('the guide’s search box', () => {
+  const open = () => {
+    render(<HelpButton />);
+    fireEvent.click(screen.getByRole('button', { name: 'Help' }));
+    return screen.getByRole('dialog', { name: 'PlasmidPop guide' });
+  };
+  const box = () => screen.getByRole('searchbox', { name: 'Search the guide' });
+  const type = (text: string) => {
+    fireEvent.change(box(), { target: { value: text } });
+  };
+
+  it('stands above the page list, with the placeholder the static pages have', () => {
+    const dialog = open();
+    expect(box()).toHaveAttribute('placeholder', 'Search the guide');
+    const side = box().closest('.help__side');
+    expect(side).not.toBeNull();
+    expect(within(dialog).getByRole('navigation', { name: 'Guide pages' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Search results' })).not.toBeInTheDocument();
+  });
+
+  it('lists the page and heading of each result, with a snippet, in place of the page', () => {
+    open();
+    type('keyboard shortcuts');
+    const results = screen.getByRole('region', { name: 'Search results' });
+    const first = within(results).getAllByRole('button')[0];
+    expect(first).toHaveTextContent('Keyboard shortcuts');
+    expect(first?.querySelector('.help__result-snippet')?.textContent).not.toBe('');
+    expect(screen.getByRole('status')).toHaveTextContent(/\d+ results?/);
+    expect(screen.getByRole('article', { hidden: true })).not.toBeVisible();
+  });
+
+  it('marks what matched in the snippet', () => {
+    open();
+    type('dam');
+    expect(document.querySelector('.help__result-snippet mark')).not.toBeNull();
+  });
+
+  it('says so when nothing matches', () => {
+    open();
+    type('zzzzzzzz');
+    expect(screen.getByRole('status')).toHaveTextContent('No matches for “zzzzzzzz”.');
+  });
+
+  it('opens a result at its heading, scrolling to it, and gives the page back', () => {
+    open();
+    type('Open the app');
+    fireEvent.click(
+      must(
+        within(screen.getByRole('region', { name: 'Search results' })).getAllByRole('button')[0],
+      ),
+    );
+    expect(screen.queryByRole('region', { name: 'Search results' })).not.toBeInTheDocument();
+    expect(box()).toHaveValue('');
+    const article = screen.getByRole('article');
+    expect(article).toBeVisible();
+    expect(article).toHaveFocus();
+  });
+
+  it('opens the page that holds the result and marks it current', () => {
+    open();
+    type('Ctrl+Shift+Z');
+    const nav = screen.getByRole('navigation', { name: 'Guide pages' });
+    const results = screen.getByRole('region', { name: 'Search results' });
+    fireEvent.click(must(within(results).getAllByRole('button')[0]));
+    expect(within(nav).getByRole('button', { name: 'Keyboard shortcuts' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
+  it('scrolls to the heading of the result, every time it is opened', () => {
+    open();
+    // jsdom has no layout: say where the sections are.
+    const offset = vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      return this.tagName === 'H3' ? 500 : 0;
+    });
+    try {
+      const article = screen.getByRole('article', { hidden: true });
+      const openSection = (): void => {
+        type('Jumping to a state');
+        const results = screen.getByRole('region', { name: 'Search results' });
+        const section = within(results)
+          .getAllByRole('button')
+          .find((b) => b.querySelector('strong') !== null);
+        article.scrollTop = 0;
+        fireEvent.click(must(section));
+      };
+      openSection();
+      expect(article.scrollTop).toBe(500);
+      // The page is already at that heading, and opening it again still scrolls.
+      openSection();
+      expect(article.scrollTop).toBe(500);
+    } finally {
+      offset.mockRestore();
+    }
+  });
+
+  it('opens the first result on Enter, and walks the results with the arrow keys', () => {
+    open();
+    type('shortcuts');
+    fireEvent.keyDown(box(), { key: 'ArrowDown' });
+    const buttons = within(screen.getByRole('region', { name: 'Search results' })).getAllByRole(
+      'button',
+    );
+    expect(buttons[0]).toHaveFocus();
+    fireEvent.keyDown(must(buttons[0]), { key: 'ArrowDown' });
+    expect(buttons[1]).toHaveFocus();
+    fireEvent.keyDown(must(buttons[1]), { key: 'ArrowUp' });
+    fireEvent.keyDown(must(buttons[0]), { key: 'ArrowUp' });
+    expect(box()).toHaveFocus();
+    fireEvent.keyDown(box(), { key: 'Enter' });
+    expect(screen.queryByRole('region', { name: 'Search results' })).not.toBeInTheDocument();
+    expect(box()).toHaveValue('');
+  });
+
+  it('does nothing on Enter when there is nothing to open', () => {
+    open();
+    fireEvent.keyDown(box(), { key: 'Enter' });
+    type('zzzzzzzz');
+    fireEvent.keyDown(box(), { key: 'Enter' });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(box()).toHaveValue('zzzzzzzz');
+  });
+
+  it('clears the box on Escape before it closes the dialog', () => {
+    const dialog = open();
+    type('dam');
+    fireEvent.keyDown(box(), { key: 'Escape' });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(box()).toHaveValue('');
+    expect(box()).toHaveFocus();
+    expect(screen.queryByRole('region', { name: 'Search results' })).not.toBeInTheDocument();
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('focuses on "/" and on Ctrl+K or Cmd+K inside the dialog, but types "/" in a field', () => {
+    const dialog = open();
+    expect(box()).not.toHaveFocus();
+    const slash = createEvent.keyDown(dialog, { key: '/' });
+    fireEvent(dialog, slash);
+    expect(slash.defaultPrevented).toBe(true);
+    expect(box()).toHaveFocus();
+    screen.getByRole('button', { name: 'Close guide' }).focus();
+    const ctrlK = createEvent.keyDown(dialog, { key: 'k', ctrlKey: true });
+    fireEvent(dialog, ctrlK);
+    expect(ctrlK.defaultPrevented).toBe(true);
+    expect(box()).toHaveFocus();
+    screen.getByRole('button', { name: 'Close guide' }).focus();
+    fireEvent.keyDown(dialog, { key: 'K', metaKey: true });
+    expect(box()).toHaveFocus();
+    // In the box a slash is a character; the other modified keys are not ours.
+    const typed = createEvent.keyDown(box(), { key: '/' });
+    fireEvent(box(), typed);
+    expect(typed.defaultPrevented).toBe(false);
+    screen.getByRole('button', { name: 'Close guide' }).focus();
+    fireEvent.keyDown(dialog, { key: 'k', ctrlKey: true, shiftKey: true });
+    fireEvent.keyDown(dialog, { key: '/', altKey: true });
+    fireEvent.keyDown(dialog, { key: 'j', ctrlKey: true });
+    expect(box()).not.toHaveFocus();
+  });
+
+  it('is left alone by a click on a page in the list: the page shows again', () => {
+    open();
+    type('dam');
+    const nav = screen.getByRole('navigation', { name: 'Guide pages' });
+    fireEvent.click(within(nav).getByRole('button', { name: 'Files and storage' }));
+    expect(screen.queryByRole('region', { name: 'Search results' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Files and storage');
   });
 });

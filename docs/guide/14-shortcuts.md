@@ -174,7 +174,9 @@ In the editor under a feature in the Features tab (see
 
 ## Help
 
-| Keys                            | Action          |
-| ------------------------------- | --------------- |
-| `?` (outside the sequence view) | Open this guide |
-| `Escape`                        | Close it        |
+| Keys                            | Action                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------- |
+| `?` (outside the sequence view) | Open this guide                                                                 |
+| `/`, `Ctrl+K`                   | In the guide: go to its search box (not rebindable; `/` is a letter in a field) |
+| `Enter`, `↓`, `↑`               | In the search box: open the first result; walk the results                      |
+| `Escape`                        | Clear the search box; with it empty, close the guide                            |

@@ -1676,3 +1676,46 @@ On CI the oracle ran under coverage on a shared runner (291 s); it is now four
 files (`sangerAssembly1-4.test.ts` over `sangerAssemblyHarness.ts`) of about
 equal weight, so the runner's cores share it. Same scenarios, same 8
 replicates, same gates.
+
+## Searching the guide (#409, design note 138, 2026-11-06)
+
+What the guide's search costs, measured before it was built in (`main` at
+f958507) and after, `npx vite build --outDir <scratch>`, Node 24, this
+workstation.
+
+| Measure                       | Before           | After            | Difference    |
+| ----------------------------- | ---------------- | ---------------- | ------------- |
+| Main chunk `index-*.js`, raw  | 2,208,669 B      | 2,213,540 B      | +4,871 B      |
+| Main chunk, gzip -9           | 700,609 B        | 702,279 B        | +1,670 B      |
+| Main chunk, brotli            | 563,690 B        | 565,300 B        | +1,610 B      |
+| `index-*.css`, raw / gzip     | 101,417 / 19,590 | 102,394 / 19,737 | +977 / +147 B |
+| `vite build`, three runs      | 5.4, 5.3 s       | 5.3, 5.3, 5.0 s  | none          |
+| `guide/` directory, all files | 511,072 B        | 926,832 B        | +415,760 B    |
+
+The new files of the static guide (neither is precached; the service worker
+leaves `guide/**` to the network):
+
+| File                      | Raw       | gzip -9   | brotli    | Fetched                              |
+| ------------------------- | --------- | --------- | --------- | ------------------------------------ |
+| `guide/search-index.json` | 384,213 B | 129,278 B | 107,030 B | when the box is first focused        |
+| `guide/search.js`         | 8,958 B   | 3,469 B   |           | with every guide page (cached after) |
+
+The index is the text of the guide (415 kB of Markdown, 195 sections, 371 k
+characters of plain text), which is what a snippet needs; nothing in it is
+there for ranking only, since tokens are made in the browser. Dropping the
+text would drop the snippets.
+
+In the dialog, built on the first keystroke and kept: Markdown to sections 53
+ms plus tokenising 33 ms, once (about 90 ms, the first run of three includes
+the JIT). A search then takes 3 to 6 ms (the one-letter query `d`, which
+prefix-matches most of the guide, 6 ms), so it runs on every keystroke
+without a debounce.
+
+MiniSearch 7.2.0, measured the same way on the same 195 sections (fields
+heading, title and text, last word a prefix, every word required): 23.0 kB
+minified, 6.6 kB gzip as a library bundle (a 4x larger addition to the main
+chunk than ours, 1.7 kB), index build 63 ms against our 33 ms, and queries of
+0.02 to 1 ms. It is faster to query and slower to build, a result of no
+consequence at 195 sections, and it would not remove the static index (its
+serialised index is 312 kB: it holds the stored fields and the postings). Not
+clearly better, so not added.

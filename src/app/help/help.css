@@ -103,15 +103,38 @@
   min-height: 0;
 }
 
-.help__nav {
+.help__side {
   display: flex;
   flex: none;
   flex-direction: column;
   width: 200px;
-  padding: 8px;
-  overflow-y: auto;
+  min-height: 0;
   border-right: 1px solid var(--line);
   background: var(--surface-2);
+}
+
+.help__search {
+  padding: 8px 8px 0;
+}
+
+.help__search-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.help__nav {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 8px;
+  overflow-y: auto;
 }
 
 .help__nav-item {
@@ -143,6 +166,64 @@
   overflow-y: auto;
   line-height: 1.55;
   color: var(--ink);
+}
+
+.help__page:focus {
+  outline: none;
+}
+
+/* The results of a search stand where the page does. */
+.help__results-count {
+  margin: 12px 0 8px;
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.help__result-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.help__result {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.help__result:hover,
+.help__result:focus-visible {
+  background: var(--surface-3);
+}
+
+.help__result-where {
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.help__result-where strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.help__result-snippet {
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.help__result-snippet mark {
+  background: rgba(255, 200, 0, 0.35);
+  color: inherit;
+  border-radius: 2px;
 }
 
 .help__page h2 {
@@ -276,13 +357,17 @@ details.help__aside > summary {
     flex-direction: column;
   }
 
-  .help__nav {
-    flex-direction: row;
-    flex-wrap: wrap;
+  .help__side {
     width: auto;
-    gap: 2px;
     border-right: 0;
     border-bottom: 1px solid var(--line);
+  }
+
+  .help__nav {
+    flex: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 2px;
   }
 
   .help__page {

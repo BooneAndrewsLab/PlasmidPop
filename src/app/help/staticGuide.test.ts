@@ -52,9 +52,12 @@ describe('static guide pages', () => {
     );
   });
 
-  it('use no script and no third-party fetches', () => {
+  it('use no script but the search box’s own, and no third-party fetches', () => {
     for (const f of files) {
-      expect(f.content, f.path).not.toMatch(/<script/i);
+      expect(f.content.match(/<script[^>]*>/gi), f.path).toHaveLength(1);
+      expect(f.content, f.path).toMatch(
+        /<script type="module" src="(?:\.\.?\/)search\.js"><\/script>/,
+      );
       expect(f.content, f.path).not.toMatch(
         /<(?:link(?![^>]*canonical)|img|iframe)[^>]+(?:href|src)="https?:/i,
       );
@@ -134,6 +137,13 @@ describe('matchStaticRequest (dev server, #244)', () => {
         path: 'guide/viewing/index.html',
       });
       expect(m('sitemap.xml?v=2')).toEqual({ kind: 'file', path: 'sitemap.xml' });
+      // The search box's script and index (#409).
+      expect(m('guide/search.js')).toEqual({ kind: 'file', path: 'guide/search.js' });
+      expect(m('guide/search-index.json?v=1')).toEqual({
+        kind: 'file',
+        path: 'guide/search-index.json',
+      });
+      expect(m('guide/sub/search.js')).toBeNull();
       expect(m('guide')).toEqual({ kind: 'redirect', to: `${base}guide/` });
       expect(m('guide/viewing?a=b')).toEqual({ kind: 'redirect', to: `${base}guide/viewing/?a=b` });
       expect(m('')).toBeNull();
@@ -171,6 +181,10 @@ const INDEX = `<!doctype html>
 <strong>PlasmidPop user guide</strong>
 <a href="./">All pages</a>
 <a href="../">Open the app</a>
+<form class="search" role="search" hidden>
+<input type="search" placeholder="Search the guide" aria-label="Search the guide" autocomplete="off" spellcheck="false">
+<ul class="search__results" aria-label="Search results" hidden></ul>
+</form>
 </header>
 <main>
 <h1>PlasmidPop user guide</h1>
@@ -184,6 +198,7 @@ const INDEX = `<!doctype html>
 <footer>
 <p>This is the same user guide that opens from the <strong>?</strong> button inside <a href="../">PlasmidPop</a>, a free DNA sequence editor and plasmid viewer that runs in your browser.</p>
 </footer>
+<script type="module" src="./search.js"></script>
 </body>
 </html>
 `;
@@ -210,6 +225,10 @@ const ALPHA = `<!doctype html>
 <strong>PlasmidPop user guide</strong>
 <a href="../">All pages</a>
 <a href="../../">Open the app</a>
+<form class="search" role="search" hidden>
+<input type="search" placeholder="Search the guide" aria-label="Search the guide" autocomplete="off" spellcheck="false">
+<ul class="search__results" aria-label="Search results" hidden></ul>
+</form>
 </header>
 <main>
 <h1 id="alpha-one-title">Alpha <em>one</em> title</h1>
@@ -235,6 +254,7 @@ const ALPHA = `<!doctype html>
 <footer>
 <p>This is the same user guide that opens from the <strong>?</strong> button inside <a href="../../">PlasmidPop</a>, a free DNA sequence editor and plasmid viewer that runs in your browser.</p>
 </footer>
+<script type="module" src="../search.js"></script>
 </body>
 </html>
 `;
@@ -261,6 +281,10 @@ const BETA = `<!doctype html>
 <strong>PlasmidPop user guide</strong>
 <a href="../">All pages</a>
 <a href="../../">Open the app</a>
+<form class="search" role="search" hidden>
+<input type="search" placeholder="Search the guide" aria-label="Search the guide" autocomplete="off" spellcheck="false">
+<ul class="search__results" aria-label="Search results" hidden></ul>
+</form>
 </header>
 <main>
 <h2 id="no-h1">No h1</h2>
@@ -270,6 +294,7 @@ const BETA = `<!doctype html>
 <footer>
 <p>This is the same user guide that opens from the <strong>?</strong> button inside <a href="../../">PlasmidPop</a>, a free DNA sequence editor and plasmid viewer that runs in your browser.</p>
 </footer>
+<script type="module" src="../search.js"></script>
 </body>
 </html>
 `;
@@ -296,6 +321,10 @@ const GAMMA = `<!doctype html>
 <strong>PlasmidPop user guide</strong>
 <a href="../">All pages</a>
 <a href="../../">Open the app</a>
+<form class="search" role="search" hidden>
+<input type="search" placeholder="Search the guide" aria-label="Search the guide" autocomplete="off" spellcheck="false">
+<ul class="search__results" aria-label="Search results" hidden></ul>
+</form>
 </header>
 <main>
 <h1 id="gamma">Gamma</h1>
@@ -305,6 +334,7 @@ const GAMMA = `<!doctype html>
 <footer>
 <p>This is the same user guide that opens from the <strong>?</strong> button inside <a href="../../">PlasmidPop</a>, a free DNA sequence editor and plasmid viewer that runs in your browser.</p>
 </footer>
+<script type="module" src="../search.js"></script>
 </body>
 </html>
 `;

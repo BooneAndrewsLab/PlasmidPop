@@ -1,8 +1,9 @@
 # PlasmidPop user guide
 
 The same pages open inside the app from the **?** button at the right of the
-toolbar. They are also published as plain web pages, readable without
-JavaScript, at `/guide/` on the PlasmidPop site.
+toolbar, where a search box above the page list searches all of them. They are
+also published as plain web pages, readable without JavaScript, at `/guide/` on
+the PlasmidPop site, with the same search box once their script has loaded.
 
 Step-by-step exercises in cloning and sequence analysis, with sample files to download, are the
 [tutorials](../tutorials/README.md), in `docs/tutorials` and at `/tutorials/` on the site.

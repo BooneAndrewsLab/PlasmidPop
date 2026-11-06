@@ -23,6 +23,21 @@ cloning, Gibson and more, and the Enzymes, Align and CRISPR tabs, each ending
 in a checklist of what you should see. Pick the one you want on their index
 page. They are also behind the **Tutorials** button at the top of this guide.
 
+## Searching the guide
+
+The box at the top of this guide's page list searches every page. Type a word
+or two (`dam`, `golden gate`, `Ctrl+Shift+Z`, `BsaI`): the results name the
+page and the heading, with the sentence that matched, and a click or `Enter`
+opens the page at that heading. Every word you type has to be on the page, and
+the last one may be only the start of a word, so the results narrow as you
+type. A match in a heading ranks above one in the text. `Esc` clears the box;
+`Esc` again closes the guide. `/` or `Ctrl+K` (`Cmd+K` on macOS) jumps to the
+box from anywhere in the guide.
+
+The guide's web pages at `/guide/` have the same box in their header, which
+appears when the page's JavaScript has loaded; `/` focuses it there too. The
+tutorials are not searched.
+
 ## Which browsers
 
 PlasmidPop runs in Chrome or Edge 111 or later, Firefox 114 or later, and

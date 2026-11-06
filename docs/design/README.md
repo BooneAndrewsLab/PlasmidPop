@@ -339,3 +339,5 @@ the Bench, item 49). The rest stand.
 136. [The Cloning tab, looked at in a browser (look pass of 133)](136-cloning-look-pass.md)
 
 137. [One tutorials entry point, with categories](137-tutorials-hub.md)
+
+138. [Searching the guide](138-guide-search.md)

@@ -2,12 +2,13 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
 import react from '@vitejs/plugin-react';
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, transformWithOxc, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 import pkg from './package.json' with { type: 'json' };
 import {
   generateGuideFiles,
+  generateSearchFiles,
   generateSitemap,
   matchStaticRequest,
   type SourcePage,
@@ -74,8 +75,10 @@ const ISOLATED_TESTS = ALL_TESTS.filter((f) => {
  * The guide as crawlable static pages and the sitemap that lists them
  * (item 91, #231), written into the build from docs/guide/*.md and served by
  * the dev server (#244). Page order is the file order, as in the app's guide
- * index. The tutorials (#312) ride along: docs/tutorials/*.md as pages, and
- * its files/ folder as downloads, under /tutorials/.
+ * index. The search box on those pages (#409) comes with them: an index file
+ * and a script, the script being `guideSearch.ts` with its types stripped.
+ * The tutorials (#312) ride along: docs/tutorials/*.md as pages, and its
+ * files/ folder as downloads, under /tutorials/.
  */
 function staticGuide(): Plugin {
   const dir = new URL('./docs/guide/', import.meta.url);
@@ -100,12 +103,22 @@ function staticGuide(): Plugin {
       .map((name) => ({ name, content: readFileSync(new URL(`files/${name}`, tdir), 'utf8') }));
     return generateTutorialFiles(readTutorial('README'), pages, samples);
   };
+  // The ranking code the dialog uses, as the browser can run it. Read on
+  // every call, so a dev-server edit shows up like the pages do.
+  const guideFiles = async (): Promise<StaticFile[]> => {
+    const pages = readPages();
+    const core = await transformWithOxc(
+      readFileSync(new URL('./src/app/help/guideSearch.ts', import.meta.url), 'utf8'),
+      'guideSearch.ts',
+    );
+    return [...generateGuideFiles(pages), ...generateSearchFiles(pages, core.code)];
+  };
   const sitemap = (): string =>
     generateSitemap(readPages(), tutorialUrls(TUTORIAL_ORDER.map(readTutorial)));
   return {
     name: 'plasmidpop-static-guide',
-    generateBundle() {
-      for (const f of [...generateGuideFiles(readPages()), ...readTutorials()])
+    async generateBundle() {
+      for (const f of [...(await guideFiles()), ...readTutorials()])
         this.emitFile({ type: 'asset', fileName: f.path, source: f.content });
       this.emitFile({ type: 'asset', fileName: 'sitemap.xml', source: sitemap() });
     },
@@ -126,26 +139,31 @@ function staticGuide(): Plugin {
           res.end();
           return;
         }
-        const content =
-          hit.path === 'sitemap.xml'
-            ? sitemap()
-            : [...generateGuideFiles(readPages()), ...readTutorials()].find(
-                (f) => f.path === hit.path,
-              )?.content;
-        if (content === undefined) {
-          next();
-          return;
-        }
-        res.setHeader(
-          'Content-Type',
-          hit.path.endsWith('.xml')
-            ? 'application/xml; charset=utf-8'
-            : hit.path.endsWith('.html')
-              ? 'text/html; charset=utf-8'
-              : 'text/plain; charset=utf-8',
-        );
-        res.setHeader('Cache-Control', 'no-cache');
-        res.end(req.method === 'HEAD' ? undefined : content);
+        void (async () => {
+          const content =
+            hit.path === 'sitemap.xml'
+              ? sitemap()
+              : [...(await guideFiles()), ...readTutorials()].find((f) => f.path === hit.path)
+                  ?.content;
+          if (content === undefined) {
+            next();
+            return;
+          }
+          res.setHeader(
+            'Content-Type',
+            hit.path.endsWith('.xml')
+              ? 'application/xml; charset=utf-8'
+              : hit.path.endsWith('.html')
+                ? 'text/html; charset=utf-8'
+                : hit.path.endsWith('.js')
+                  ? 'text/javascript; charset=utf-8'
+                  : hit.path.endsWith('.json')
+                    ? 'application/json; charset=utf-8'
+                    : 'text/plain; charset=utf-8',
+          );
+          res.setHeader('Cache-Control', 'no-cache');
+          res.end(req.method === 'HEAD' ? undefined : content);
+        })().catch(next);
       });
     },
   };

@@ -15,6 +15,8 @@
     "eslint.config.js",
     "scripts/*.mjs",
     "src/pwa/shareTarget.ts",
+    "src/app/help/guideIndex.ts",
+    "src/app/help/guideSearch.ts",
     "src/app/help/staticGuide.ts",
     "src/app/help/staticTutorials.ts",
     "src/app/help/markdown.ts"
