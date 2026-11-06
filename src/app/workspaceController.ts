@@ -32,19 +32,19 @@ export interface WorkspaceController<P extends string> {
    * page is the panels' own memory, so a slim panel's links can land on a
    * page without the store knowing the pages.
    */
-  open(documentId: string | null, page?: P): void;
+  readonly open: (documentId: string | null, page?: P) => void;
   /** Shuts the workspace; with `returnFocus`, the slim panel takes the keyboard. */
-  close(returnFocus?: boolean): void;
+  readonly close: (returnFocus?: boolean) => void;
   /**
    * Whether the slim panel should take the keyboard now; asking clears it.
    * The panel mounts only after the shut, so it asks on its first render
    * rather than the workspace reaching for a button that does not exist yet.
    */
-  takeFocusRequest(): boolean;
-  recallPage(documentId: string | null): P;
-  rememberPage(documentId: string | null, page: P): void;
+  readonly takeFocusRequest: () => boolean;
+  readonly recallPage: (documentId: string | null) => P;
+  readonly rememberPage: (documentId: string | null, page: P) => void;
   /** The page in front, as state, remembered for the document. */
-  usePage(documentId: string | null): [P, (page: P) => void];
+  readonly usePage: (documentId: string | null) => [P, (page: P) => void];
 }
 
 export function createWorkspaceController<P extends string>(
@@ -55,8 +55,9 @@ export function createWorkspaceController<P extends string>(
   const slot = `${kind}.workspace`;
   let focusWanted = false;
   const recallPage = (documentId: string | null): P => recallPanel<P>(slot, documentId, initial);
-  const rememberPage = (documentId: string | null, page: P): void =>
+  const rememberPage = (documentId: string | null, page: P): void => {
     rememberPanel(slot, documentId, page);
+  };
   return {
     kind,
     pages,
@@ -78,7 +79,15 @@ export function createWorkspaceController<P extends string>(
     rememberPage,
     usePage(documentId) {
       const [page, set] = useRemembered<P>(slot, documentId, initial);
-      return [page, useCallback((next: P) => set(next), [set])];
+      return [
+        page,
+        useCallback(
+          (next: P) => {
+            set(next);
+          },
+          [set],
+        ),
+      ];
     },
   };
 }

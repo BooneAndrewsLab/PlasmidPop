@@ -12,28 +12,38 @@ const controller = createWorkspaceController('align', ['align', 'results'] as co
 
 describe('createWorkspaceController', () => {
   beforeEach(() => {
-    act(() => editorStore.openDocument(doc));
+    act(() => {
+      editorStore.openDocument(doc);
+    });
   });
   afterEach(() => {
-    act(() => editorStore.closeDocument());
+    act(() => {
+      editorStore.closeDocument();
+    });
     forgetPanels();
   });
 
   it('opens on a page, remembers it per document, and shuts', () => {
     const id = editorStore.getState().documentId;
     expect(controller.recallPage(id)).toBe('align');
-    act(() => controller.open(id, 'results'));
+    act(() => {
+      controller.open(id, 'results');
+    });
     expect(editorStore.getState().workspace).toBe('align');
     expect(controller.recallPage(id)).toBe('results');
     expect(controller.recallPage('another')).toBe('align');
-    act(() => controller.close());
+    act(() => {
+      controller.close();
+    });
     expect(editorStore.getState().workspace).toBeNull();
   });
 
   it('opens on the remembered page when none is given', () => {
     const id = editorStore.getState().documentId;
     controller.rememberPage(id, 'results');
-    act(() => controller.open(id));
+    act(() => {
+      controller.open(id);
+    });
     expect(controller.recallPage(id)).toBe('results');
   });
 
@@ -46,7 +56,9 @@ describe('createWorkspaceController', () => {
   });
 
   it('shuts only its own workspace', () => {
-    act(() => editorStore.setWorkspace('primers'));
+    act(() => {
+      editorStore.setWorkspace('primers');
+    });
     controller.close();
     expect(editorStore.getState().workspace).toBe('primers');
   });
