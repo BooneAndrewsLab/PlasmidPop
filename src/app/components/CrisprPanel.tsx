@@ -22,7 +22,9 @@ import {
 
 import { analytics } from '../analytics';
 import { copyText } from '../clipboard';
+import { openCrisprWorkspace, takeCrisprFocusRequest } from '../crisprWorkspace';
 import { editorStore } from '../state/editorStore';
+import { useEditorState } from '../state/useEditorStore';
 import { rememberSeen, wasSeen } from '../state/seenOnce';
 import { savePrimers } from '../state/primerCollection';
 import { type SortBy } from '../crisprSession';
@@ -44,7 +46,21 @@ function offTargetSummary(g: CrisprGuide): string {
   return g.offTargets.map((n) => n.toLocaleString()).join('·');
 }
 
-export function CrisprPanel({ doc }: Props) {
+/** What `useCrisprScan` hands a host: the panel and the workspace read one of these. */
+export type CrisprScan = ReturnType<typeof useCrisprScan>;
+
+/**
+ * The guide list with its options, over a scan its host owns (item 133,
+ * C2): the panel mounts it under its own links, the workspace's Guides page
+ * as it is. Whichever is mounted, the state is the session's.
+ */
+export function CrisprGuideList({
+  doc,
+  scan,
+}: {
+  readonly doc: SeqDocument;
+  readonly scan: CrisprScan;
+}) {
   const {
     s,
     set,
@@ -68,7 +84,7 @@ export function CrisprPanel({ doc }: Props) {
     others,
     selected,
     selectedId,
-  } = useCrisprScan(doc);
+  } = scan;
   const { nucleaseId, pam, spacerLength, maxMismatches, searchOthers, sortBy } = s;
   const { spacerFilter, showFlagged, onlyEditable, schemeId } = s;
   const [noteSeen, setNoteSeen] = useState(() => wasSeen(NOTE_SEEN_KEY));
@@ -86,7 +102,7 @@ export function CrisprPanel({ doc }: Props) {
   const scheme = schemes.find((o) => o.id === schemeId) ?? schemes[0];
 
   return (
-    <div className="panel">
+    <>
       <fieldset className="panel__group">
         <legend>Options</legend>
         <div className="panel__controls">
@@ -454,6 +470,26 @@ export function CrisprPanel({ doc }: Props) {
           )}
         </fieldset>
       )}
+    </>
+  );
+}
+
+/** The id the workspace's Escape hands the keyboard back to (item 107, point 1). */
+export const MORE_BUTTON_ID = 'crispr-workspace-open';
+
+export function CrisprPanel({ doc }: Props) {
+  const scan = useCrisprScan(doc);
+  const { guides, nuclease, problem } = scan;
+  const { documentId } = useEditorState();
+  const more = useRef<HTMLButtonElement>(null);
+  // The workspace shut with Escape: the keyboard comes back here.
+  useEffect(() => {
+    if (takeCrisprFocusRequest()) more.current?.focus();
+  }, []);
+
+  return (
+    <div className="panel">
+      <CrisprGuideList doc={doc} scan={scan} />
       {problem === null &&
         nuclease !== null &&
         guides !== null &&
@@ -463,6 +499,20 @@ export function CrisprPanel({ doc }: Props) {
       {problem === null && nuclease !== null && guides !== null && supportsNickPairs(nuclease) && (
         <PairedNickases doc={doc} guides={guides} />
       )}
+      <div className="panel__links">
+        <button
+          type="button"
+          id={MORE_BUTTON_ID}
+          ref={more}
+          className="link panel__door"
+          data-tip="The guide list on a page of its own, with the paired nickases and prime editing: the CRISPR workspace"
+          onClick={() => {
+            openCrisprWorkspace(documentId);
+          }}
+        >
+          Open CRISPR workspace ›
+        </button>
+      </div>
     </div>
   );
 }

@@ -16,6 +16,7 @@ import { VerifyClonesDialog } from './components/VerifyClonesDialog';
 import { NewDocumentDialog } from './components/NewDocumentDialog';
 import { PhoneShell } from './components/PhoneShell';
 import { AlignWorkspace } from './components/AlignWorkspace';
+import { CrisprWorkspace } from './components/CrisprWorkspace';
 import { EnzymeWorkspace } from './components/EnzymeWorkspace';
 import { PrimerWorkspace } from './components/PrimerWorkspace';
 import { CopyBanner } from './components/CopyBanner';
@@ -81,6 +82,7 @@ const WORKSPACES: Readonly<
 > = {
   primers: { label: 'primer', View: PrimerWorkspace },
   align: { label: 'Align', View: AlignWorkspace },
+  crispr: { label: 'CRISPR', View: CrisprWorkspace },
   enzymes: { label: 'Enzyme', View: EnzymeWorkspace },
 };
 

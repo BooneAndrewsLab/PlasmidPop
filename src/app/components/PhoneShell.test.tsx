@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { SeqDocument, createFeature } from '@/core';
 
@@ -112,6 +112,19 @@ describe('PhoneShell', () => {
     expect(editorStore.getState().sidebarTab).toBe('enzymes');
     fireEvent.click(screen.getByRole('button', { name: 'Open Enzyme workspace ›' }));
     expect(editorStore.getState().workspace).toBe('enzymes');
+  });
+
+  it('opens the CRISPR workspace from the CRISPR subtab (item 133)', async () => {
+    setup();
+    fireEvent.click(pane('Details'));
+    fireEvent.click(screen.getByRole('tab', { name: 'CRISPR' }));
+    // The tab's scan lands on a promise: wait for it, or it lands outside act.
+    await waitFor(() => {
+      expect(screen.queryByText('Looking for guides…')).not.toBeInTheDocument();
+    });
+    expect(editorStore.getState().sidebarTab).toBe('crispr');
+    fireEvent.click(screen.getByRole('button', { name: 'Open CRISPR workspace ›' }));
+    expect(editorStore.getState().workspace).toBe('crispr');
   });
 
   it('goes back to the view last looked at when a list reveals a position', () => {

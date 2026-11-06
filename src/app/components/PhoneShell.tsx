@@ -22,7 +22,9 @@ const PANES: readonly [PhonePane, string][] = [
  * primers…" opens the full-screen workspace. Align the same since item
  * 129: a read dropped on the slim panel is aligned there, and "Options and
  * more" opens its workspace. Enzymes likewise since item 133: the list is
- * read there, and "Open Enzyme workspace ›" opens the rest.
+ * read there, and "Open Enzyme workspace ›" opens the rest. CRISPR the
+ * same: the guide list is read there, and "Open CRISPR workspace ›" opens
+ * the rest.
  */
 const DETAIL_TABS: readonly [SidebarTab, string][] = [
   ['features', 'Features'],
@@ -30,6 +32,7 @@ const DETAIL_TABS: readonly [SidebarTab, string][] = [
   ['enzymes', 'Enzymes'],
   ['primers', 'Primers'],
   ['align', 'Align'],
+  ['crispr', 'CRISPR'],
 ];
 
 interface Props {

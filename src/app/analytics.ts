@@ -155,7 +155,7 @@ export const EVENTS = {
   share: ['copy', 'open', 'without-references'],
   /**
    * Which sidebar tab the user opened; also `primer-workspace`,
-   * `align-workspace` and `enzyme-workspace` (items 107, 129 and 133), and `msa-window`, the multiple
+   * `align-workspace`, `enzyme-workspace` and `crispr-workspace` (items 107, 129 and 133), and `msa-window`, the multiple
    * alignment window that needs no document (#369).
    */
   panel: ['open'],

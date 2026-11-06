@@ -585,6 +585,34 @@ describe('the Enzyme workspace (item 133)', () => {
   });
 });
 
+describe('the CRISPR workspace (item 133)', () => {
+  it('takes the workspace column from the CRISPR tab, which Escape hands back', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    act(() => {
+      editorStore.setSidebarTab('crispr');
+    });
+    // The tab's scan lands on a promise: wait for it, or it lands outside act.
+    await waitFor(() => {
+      expect(screen.queryByText('Looking for guides…')).not.toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Open CRISPR workspace ›' }));
+    const region = screen.getByRole('region', { name: 'CRISPR workspace' });
+    expect(
+      screen.getByRole('separator', { name: 'Resize the CRISPR workspace' }),
+    ).toBeInTheDocument();
+    expect(document.querySelector('.app__views--map')).not.toBeNull();
+    const sidebarRail = screen.getByRole('tablist', { name: 'Sidebar' });
+    expect(within(sidebarRail).getByRole('tab', { name: 'CRISPR' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    fireEvent.keyDown(screen.getByRole('heading', { name: /^Guides/ }), { key: 'Escape' });
+    expect(region).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open CRISPR workspace ›' })).toHaveFocus();
+  }, 20_000);
+});
+
 describe('find and feature editing', () => {
   it('finds bases and features, and edits a feature location', async () => {
     render(<App />);

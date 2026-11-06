@@ -1644,6 +1644,32 @@ describe('EditorStore primer workspace (item 107)', () => {
     expect(store.getState().workspace).toBeNull();
   });
 
+  it('holds the CRISPR workspace on the CRISPR tab as the others (item 133)', () => {
+    const store = new EditorStore();
+    store.openDocument(doc, 'x.gb');
+    store.setSidebarOpen(false);
+    store.setWorkspace('crispr');
+    expect(store.getState()).toMatchObject({
+      workspace: 'crispr',
+      sidebarTab: 'crispr',
+      sidebarOpen: true,
+    });
+    store.setWorkspace('enzymes');
+    expect(store.getState()).toMatchObject({ workspace: 'enzymes', sidebarTab: 'enzymes' });
+    store.setWorkspace('crispr');
+    store.setSidebarTab('crispr');
+    expect(store.getState().workspace).toBe('crispr');
+    store.setSidebarTab('features');
+    expect(store.getState().workspace).toBeNull();
+    store.setWorkspace('crispr');
+    store.setSidebarOpen(false);
+    expect(store.getState().workspace).toBeNull();
+    // A protein has no CRISPR tab, so no workspace for it.
+    store.openDocument(SeqDocument.create({ sequence: 'MKLV', alphabet: 'protein' }), 'p.fa');
+    store.setWorkspace('crispr');
+    expect(store.getState().workspace).toBeNull();
+  });
+
   it('is per document, and refused where there is no Primers tab', () => {
     const store = new EditorStore();
     const first = store.openDocument(doc, 'x.gb');

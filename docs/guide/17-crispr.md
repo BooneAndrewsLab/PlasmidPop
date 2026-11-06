@@ -21,6 +21,24 @@ scrolls the list to it. Past 200 guides none are drawn and only the first
 200 are listed — filter the list or narrow the scan to a selection to see
 the rest.
 
+## The tab and the workspace
+
+**Open CRISPR workspace ›**, at the foot of the tab, opens the same pieces in
+a larger view beside the map, as **Open Enzyme workspace ›** does for
+[Enzymes](07-enzymes.md#the-tab-and-the-workspace). It has three pages down
+its left edge:
+
+- **Guides** — the options and the guide list, as in the tab.
+- **Pairs** — the [paired nickases](#paired-nickases).
+- **Prime** — [prime editing](#prime-editing).
+
+The tab and the workspace share one scan, so what is set or found in one is
+set and found in the other, and switching between them does not scan again.
+The workspace is a region of the window, not a dialog: `Esc` with the
+keyboard inside closes it and puts the keyboard back on **Open CRISPR
+workspace ›**, and choosing another sidebar tab closes it too; the page it was
+left on is remembered. On a phone it fills the screen.
+
 ## Filtering the list
 
 The tab is two groups: **Options** sets what is scanned for, and **Guides**
