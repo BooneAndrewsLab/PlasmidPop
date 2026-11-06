@@ -38,6 +38,7 @@ export const TUTORIAL_ORDER: readonly string[] = [
   'overlap-pcr',
   'gateway',
   'mutagenesis',
+  'align',
   'sample-files',
 ];
 

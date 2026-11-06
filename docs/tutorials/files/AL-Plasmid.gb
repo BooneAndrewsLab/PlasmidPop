@@ -1,0 +1,27 @@
+LOCUS       AL-Plasmid          480 bp    DNA     circular SYN 05-NOV-2026
+DEFINITION  AL-Plasmid, circular 480 bp plasmid for the Align tutorial (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     promoter        21..140
+                     /label="synthetic promoter"
+                     /note="synthetic example"
+     CDS             151..333
+                     /label="synthORF"
+                     /codon_start=1
+                     /note="synthetic example ORF, ATG to stop, 183 bp with the stop"
+     terminator      344..403
+                     /label="synthetic terminator"
+                     /note="synthetic example"
+ORIGIN
+        1 gagctcactc tcgtcgtaga atcggtaaca taaagtgcct cccgttcgcc gtagcggcag
+       61 ccgtgacgta aagatgagcc gtaggctcgt aagtagataa acactcggct tcacacgggg
+      121 ggtttgtggt tgcttacgtt tccagcaacg atgattcgac aagtcctaag ttcacacagt
+      181 gagcccagtg gatcattact acgcgagggt gtggtgagtt ggagtcggaa gaccaaactg
+      241 gaaccaccaa cgaccgaagt aattaccgtt acaccgaacg atagatccag gcggcgtggc
+      301 aatgacagat ctagaggcgt tcgtttgcgg taaactagat gtctgttaag ttcgtatctc
+      361 tagtaagctt atcccacctc ccgtgactgc tggcagggga ggatcacgat tcattttgtc
+      421 ttccgacaac gccctcctgc agaaagcata atcgagccga taggtaccgg attactaggg
+//
