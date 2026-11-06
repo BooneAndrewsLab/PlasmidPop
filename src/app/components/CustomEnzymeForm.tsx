@@ -9,9 +9,10 @@ import { describeEnzyme, notationOf } from './customEnzymeText';
 /**
  * Adding one enzyme by hand (#217): a name and a recognition site in REBASE
  * notation. The notation is read by the same function as the REBASE import,
- * so the preview is exactly what the enzyme will do everywhere.
+ * so the preview is exactly what the enzyme will do everywhere. Without
+ * `onClose` it is a section of a page, open, and has nothing to close.
  */
-export function CustomEnzymeForm({ onClose }: { readonly onClose: () => void }) {
+export function CustomEnzymeForm({ onClose }: { readonly onClose?: () => void }) {
   const { enzymeSetInfo } = useEditorState();
   const [name, setName] = useState('');
   const [notation, setNotation] = useState('');
@@ -126,10 +127,15 @@ export function CustomEnzymeForm({ onClose }: { readonly onClose: () => void }) 
           onClick={save}
         >
           Save enzyme
-        </button>{' '}
-        <button type="button" className="button button--quiet button--small" onClick={onClose}>
-          Close
         </button>
+        {onClose !== undefined && (
+          <>
+            {' '}
+            <button type="button" className="button button--quiet button--small" onClick={onClose}>
+              Close
+            </button>
+          </>
+        )}
       </p>
     </div>
   );

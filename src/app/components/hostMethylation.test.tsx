@@ -113,9 +113,9 @@ describe('Grown in', () => {
   }
 
   const host = (): HTMLElement => screen.getByLabelText('Host methylation');
+  // The Digest page's table has a row for each piece the host leaves open.
   const bands = (): number =>
-    // Sizes are listed ", "-separated; a size's own thousands comma has no space.
-    (document.querySelector('.panel__mono')?.textContent ?? '').split(', ').length;
+    document.querySelectorAll('table[aria-label="Fragments"] tbody tr[data-row]').length;
 
   it('the plasmid has each site once, so what is cut is only a matter of the host', () => {
     expect(findCutSites(PLASMID, 'circular', all).map((s) => s.enzyme)).toEqual([
@@ -139,6 +139,10 @@ describe('Grown in', () => {
       fireEvent.change(host(), { target: { value: label } });
     });
     expect(current().methylation).toEqual(state);
+    // The fragments wait for the worker's scan of the edited document (#138).
+    act(() => {
+      editorStore.setAnalysis(current(), findCutSites(PLASMID, 'circular', all), []);
+    });
     view.rerender(<EnzymesTab doc={current()} />);
     expect(host()).toHaveValue(label);
     // On a circle every cut left open is one more piece.
@@ -206,8 +210,8 @@ describe('double-digest partners and the host', () => {
   const all = enzymes('EcoRI', 'XbaI', 'MscI', 'ClaI');
 
   const partners = (): string[] =>
-    [...screen.getByTestId('double-digests').querySelectorAll('.enzyme-row__pair')]
-      .map((n) => n.textContent.split(' + ')[1] ?? '')
+    [...screen.getByTestId('double-digests').querySelectorAll('tbody tr')]
+      .map((r) => r.querySelectorAll('.enzyme-row__pair')[1]?.textContent ?? '')
       .sort((a, b) => a.localeCompare(b));
   const pairOptions = (): string[] =>
     [...screen.getByRole('combobox', { name: 'Pair' }).querySelectorAll('option')]

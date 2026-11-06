@@ -4,9 +4,11 @@ import { type EnzymePage, enzymeWorkspace } from '../enzymeWorkspace';
 import { rememberPanel } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';
 import type { WorkspaceLayout } from '../workspaceController';
+import { DigestPage } from './DigestPage';
 import { DoubleDigests } from './DoubleDigestsPage';
 import { useEnzymeList } from './enzymeList';
-import { EnzymeFragments, EnzymeSource, GrownIn } from './EnzymeListView';
+import { GrownIn } from './EnzymeListView';
+import { EnzymeSource } from './EnzymeSource';
 import { EnzymeTable } from './EnzymeTable';
 import { WorkspaceShell } from './WorkspaceShell';
 
@@ -40,8 +42,9 @@ interface Props {
 /**
  * The Enzyme workspace (item 133, E2): the shared shell around four pages.
  * Enzymes is the table of what cuts, with its filters; Digest the ticked enzymes'
- * fragments on the gel; Double the best pairs of enzymes; Table the table
- * in use, to import into or add to. All over one `useEnzymeList`, the
+ * chips, gel and table of fragments, off while nothing is ticked; Double the
+ * best pairs of enzymes in a table with a gel; Table the table in use, to
+ * import into or add to, with the enzymes of your own. All over one `useEnzymeList`, the
  * panel's own, so the ticks and filters are the same ones in both; **Grown
  * in** is in the head because it changes every page's answer.
  */
@@ -58,6 +61,8 @@ export function EnzymeWorkspace({ doc, layout = 'split' }: Props) {
   };
 
   const badge = (p: EnzymePage): number | null => {
+    if (p === 'table')
+      return enzymeSetInfo.custom.length === 0 ? null : enzymeSetInfo.custom.length;
     if (!ready) return null;
     if (p === 'enzymes') return rows.length;
     if (p === 'digest') return fragments.length === 0 ? null : fragments.length;
@@ -85,6 +90,8 @@ export function EnzymeWorkspace({ doc, layout = 'split' }: Props) {
           <span className="panel__heading-note">
             {listedEnzymes.toLocaleString()} of {enzymeSetInfo.count.toLocaleString()}
           </span>
+        ) : page === 'digest' && ready && shownEnzymes.size === 0 ? (
+          <span className="panel__heading-note">Nothing is ticked</span>
         ) : undefined
       }
       head={<GrownIn doc={doc} className="ws__host" />}
@@ -96,23 +103,13 @@ export function EnzymeWorkspace({ doc, layout = 'split' }: Props) {
       )}
       {page === 'digest' && (
         <div className="panel enzymes enzymes--page">
-          {!ready && <p className="panel__note">Scanning for restriction sites…</p>}
-          {ready && fragments.length === 0 && (
-            <p className="panel__note">
-              Nothing is ticked, so there is no digest.{' '}
-              <button
-                type="button"
-                className="link"
-                onClick={() => {
-                  setPage('enzymes');
-                }}
-              >
-                Tick enzymes
-              </button>{' '}
-              in the list first.
-            </p>
-          )}
-          <EnzymeFragments list={list} />
+          <DigestPage
+            doc={doc}
+            list={list}
+            onEnzymes={() => {
+              setPage('enzymes');
+            }}
+          />
         </div>
       )}
       {page === 'pairs' && (

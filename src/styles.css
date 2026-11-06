@@ -8119,3 +8119,104 @@ button {
 .crispr-ws__added {
   margin-top: 6px;
 }
+
+/*
+ * The Digest, Double digests and Table pages (item 133, E5). The ticked
+ * enzymes are chips; the gel keeps its own width beside the table of pieces
+ * and the table wraps under it where there is not room, as the Enzymes
+ * page's detail pane does. Both tables scroll in their own box, so the
+ * links and notes under them stay in reach.
+ */
+.dig-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.dig-chips__list {
+  display: contents;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dig-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 2px 1px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 12.5px;
+}
+
+.dig-chip--idle {
+  color: var(--ink-3);
+  border-style: dashed;
+}
+
+.dig-chip__x {
+  padding: 0 6px;
+  border: 0;
+  background: none;
+  color: var(--ink-3);
+  font-size: 14px;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.dig-chip__x:hover {
+  color: var(--ink);
+}
+
+.dig-ws__body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: flex-start;
+}
+
+.dig-ws__gel {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dig-ws__main {
+  flex: 1 1 420px;
+  min-width: 0;
+}
+
+.dig-ws--off {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0.6;
+}
+
+.dig-frag__scroll,
+.pairs-ws__scroll {
+  max-height: min(60vh, 560px);
+}
+
+.wst td.dig-frag__features {
+  min-width: 90px;
+  max-width: 16em;
+  white-space: normal;
+}
+
+.wst td.dig-frag__add {
+  white-space: nowrap;
+}
+
+.pairs-ws__gel {
+  margin-top: 8px;
+}
+
+.enz-source > .panel__section:first-child {
+  margin-top: 0;
+}

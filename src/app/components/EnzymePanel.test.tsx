@@ -86,6 +86,13 @@ function setup(sites: readonly CutSite[], page: EnzymePage | null = 'enzymes') {
   return render(<Host doc={doc} />);
 }
 
+/** The pairs the Double page lists, "A + B" a row, in its order. */
+function pairNames(): string[] {
+  return [...document.querySelectorAll('table[aria-label="Double digests"] tbody tr')].map((r) =>
+    [...r.querySelectorAll('.enzyme-row__pair')].map((c) => c.textContent).join(' + '),
+  );
+}
+
 /** Goes to one of the workspace's pages by its rail tab. */
 function goTo(name: 'Enzymes' | 'Digest' | 'Double' | 'Table'): void {
   act(() => {
@@ -388,8 +395,7 @@ describe('EnzymePanel', () => {
     // together, so not offered), b+c into 2,000 + 1,500 + 500, a+c into
     // 1,000 + 2,500 + 500.
     setup([at(a, 1000), at(b, 2000), at(c, 3500)], 'pairs');
-    const section = screen.getByTestId('double-digests');
-    const pairs = [...section.querySelectorAll('.enzyme-row__pair')].map((n) => n.textContent);
+    const pairs = pairNames();
     // Each pair is named alphabetically, whatever order the list is in.
     const named = (x: string, y: string) => [x, y].sort((p, q) => p.localeCompare(q)).join(' + ');
     expect(pairs).toEqual([named(a, c), named(b, c)]);
@@ -436,9 +442,7 @@ describe('EnzymePanel', () => {
       fireEvent.click(screen.getByRole('button', { name: `Find a partner for ${a}` }));
     });
     expect(screen.getByRole('combobox', { name: 'Pair' })).toHaveValue(a);
-    expect([...section.querySelectorAll('.enzyme-row__pair')].map((n) => n.textContent)).toEqual([
-      `${a} + ${b}`,
-    ]);
+    expect(pairNames()).toEqual([`${a} + ${b}`]);
     expect(section).toHaveTextContent(`Partners for ${a} among all 2 enzymes`);
     act(() => {
       fireEvent.change(screen.getByRole('combobox', { name: 'Pair' }), { target: { value: c } });
@@ -633,7 +637,7 @@ describe('the slim EnzymePanel (item 133, E3)', () => {
     expect(editorStore.getState().workspace).toBe('enzymes');
     expect(recallEnzymePage(editorStore.getState().documentId)).toBe('digest');
     expect(screen.getByRole('heading', { name: 'Digest' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Fragments from ticked enzymes' })).toBeVisible();
+    expect(screen.getByRole('grid', { name: 'Fragments' })).toBeVisible();
   });
 
   it('has no gel sentence with nothing ticked', () => {
@@ -1049,7 +1053,7 @@ describe('host methylation (#45)', () => {
     expect(host()).toHaveValue('dam+/dcm+');
     // Blocked: only ClaI cuts, so the circle opens into one piece.
     const bands = (): number =>
-      (document.querySelector('.panel__mono')?.textContent ?? '').split(',').length;
+      document.querySelectorAll('table[aria-label="Fragments"] tbody tr[data-row]').length;
     expect(bands()).toBe(1);
 
     act(() => {

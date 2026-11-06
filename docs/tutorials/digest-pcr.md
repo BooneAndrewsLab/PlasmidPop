@@ -17,7 +17,7 @@
 4. Type `EcoRI` in **Filter** and tick it.
 
    > [!NOTE]
-   > You see `2,664 bp` under **Fragments from ticked enzymes**, and **On a gel: 1 band, 2,664 bp.**
+   > The tab says **On a gel: 1 band, 2,664 bp.** **Digest ›** next to it opens the Enzyme workspace's Digest page, with the gel and a table whose one row is the `2,664 bp` fragment.
 
 5. Click the **Cloning** tab and pick **Digest** under **Reaction**.
 

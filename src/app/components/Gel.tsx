@@ -150,6 +150,12 @@ interface Props {
    * gel this draws.
    */
   readonly lanes: readonly GelLane[];
+  /**
+   * How much larger than the panel's 320 px to draw it, at most (default 1):
+   * a workspace page has the room, and the slab, its bands and their sizes
+   * grow together. Where the container is narrower the gel gives way, as ever.
+   */
+  readonly scale?: number;
 }
 
 /** "HindIII" fits under a shared lane; "BsaXI-HF" is cut to it, and named in full on hover. */
@@ -169,7 +175,7 @@ function laneName(label: string, shared: boolean): string {
  * lanes' bands are named on hover, and every size is listed under the
  * picture by whoever draws it.
  */
-export function Gel({ lanes }: Props) {
+export function Gel({ lanes, scale = 1 }: Props) {
   const options = useGelOptions();
   const { gelAgarose, gelLadder } = useEditorState();
   const shared = lanes.length > 1;
@@ -204,7 +210,7 @@ export function Gel({ lanes }: Props) {
       <svg
         className="gel__svg"
         viewBox={`0 0 ${width} ${HEIGHT}`}
-        style={{ maxWidth: Math.round(width * SCALE) }}
+        style={{ maxWidth: Math.round(width * SCALE * scale) }}
         role="group"
         aria-label={`${lanes
           .map((l) => `${l.label}: ${l.profile.bands.map(bandLabel).join(', ')} bp`)

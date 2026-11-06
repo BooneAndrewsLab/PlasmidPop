@@ -75,10 +75,24 @@ function digestPreview(
 
 /**
  * The digest's pieces for one document: which sites it cuts, the fragments
- * listed, how many there are, and the preview those draw on the views. The
- * Cloning panel's Digest reaction is its one user so far.
+ * listed, how many there are, and the preview those draw on the views. Its
+ * users are the Cloning panel's Digest reaction and the Enzyme workspace's
+ * Digest page (item 133); only one of them is mounted at a time.
  */
-export function useDigestPieces(doc: SeqDocument, { partial }: { readonly partial: boolean }) {
+export function useDigestPieces(
+  doc: SeqDocument,
+  {
+    partial,
+    alwaysPreview = false,
+  }: {
+    readonly partial: boolean;
+    /**
+     * Draw the preview whichever reaction the Cloning tab last had: the Enzyme
+     * workspace's Digest page has no reaction picker, so it is the digest.
+     */
+    readonly alwaysPreview?: boolean;
+  },
+) {
   const { analysis, shownEnzymes, sidebarReaction, previewActivated: activated } = useEditorState();
   const [hovered, setHovered] = useState<string | null>(null);
   // Sites carried through an edit are provisional (#138): they lack any site
@@ -146,8 +160,9 @@ export function useDigestPieces(doc: SeqDocument, { partial }: { readonly partia
   // There is one preview channel, so the digest has it only while it is the
   // one shown: PCR and Mutate have primer sites and products to point at.
   const previewed = useMemo(
-    () => (sidebarReaction === 'digest' ? digestPreview(listed, hovered, partial) : []),
-    [listed, hovered, sidebarReaction, partial],
+    () =>
+      alwaysPreview || sidebarReaction === 'digest' ? digestPreview(listed, hovered, partial) : [],
+    [listed, hovered, sidebarReaction, partial, alwaysPreview],
   );
   useEffect(() => {
     editorStore.setPreview('cloning', previewed);

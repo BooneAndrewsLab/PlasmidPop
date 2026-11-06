@@ -36,8 +36,9 @@ function describeSkipped(s: RebaseImportSummary['skipped']): string | null {
  * `rebase.neb.com` sends no CORS header, so the app can neither ship the
  * data nor fetch it. What it can do is make the round trip short: a link
  * straight to the file, then a file picker. See docs/design/07-rebase-enzymes.md.
+ * Without `onClose` it is a section of a page, open, and has nothing to close.
  */
-export function EnzymeImport({ onClose }: { readonly onClose: () => void }) {
+export function EnzymeImport({ onClose }: { readonly onClose?: () => void }) {
   const { enzymeSetInfo } = useEditorState();
   const [busy, setBusy] = useState(false);
   const [summary, setSummary] = useState<RebaseImportSummary | null>(null);
@@ -157,11 +158,13 @@ export function EnzymeImport({ onClose }: { readonly onClose: () => void }) {
         REBASE is © Dr. Richard J. Roberts, all rights reserved. PlasmidPop does not redistribute
         it: your copy stays in this browser. Please cite REBASE if you publish work that used it.
       </p>
-      <p className="panel__buttons">
-        <button type="button" className="button button--quiet button--small" onClick={onClose}>
-          Close
-        </button>
-      </p>
+      {onClose !== undefined && (
+        <p className="panel__buttons">
+          <button type="button" className="button button--quiet button--small" onClick={onClose}>
+            Close
+          </button>
+        </p>
+      )}
     </div>
   );
 }

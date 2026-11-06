@@ -40,12 +40,12 @@ It has four pages down its left edge:
 - **Enzymes** — the [enzyme table](#the-enzyme-table): every enzyme that
   cuts, with its filters and supplier, **Show listed** and **Hide all**, and
   the selected enzyme in full beside it.
-- **Digest** — the **Fragments from ticked enzymes**: the gel, the sizes
-  and how it would read.
-- **Double** — the best double digests (see
+- **Digest** — [the ticked enzymes](#the-digest-page) as chips, their digest
+  on a gel, and a table of the fragments it cuts, to put on the shelf.
+- **Double** — the best double digests, in a table with a gel under it (see
   [Choosing a diagnostic digest](#choosing-a-diagnostic-digest)).
-- **Table** — the table in use, with **Add enzyme…** and **Import a REBASE
-  table…**.
+- **Table** — the table in use, with **Import an enzyme table** and **Add an
+  enzyme** open under it, and the enzymes of your own listed.
 
 **Digest ›** and **Double digests ›** open it on those pages; **Open Enzyme
 workspace ›** on the page it was left on. **Grown in** is in the
@@ -191,35 +191,40 @@ that is HincII, at 3,254 + 1,107 bp, with BstAPI and DrdI (3,948 + 413) just
 behind it; BtsI also cuts twice, but its two cuts are 20 bp apart, so it is
 at the bottom with a ⚠ and one band you could see.
 
-When no single enzyme will do, the **Double** page offers the five best
-pairs of the enzymes listed, judged by the same rule on the digest with
-both — on pBR322, EagI + MscI at 3,854 + 507 bp. It pairs only enzymes that
-cut three times or fewer, and follows the other filters, so _Sold by_ narrows the pairs to
-what you can buy from one place. A pair whose second enzyme cuts only where
-the first already does is left out, since it is the same digest as one
-enzyme alone. **Tick both** ticks that pair and nothing else, and the gel
-then shows it beside each enzyme alone. With a big imported table only the
-120 enzymes that cut least are paired; narrow the list to pair the others.
+When no single enzyme will do, the **Double** page lists the twenty best
+pairs of the enzymes listed, one to a row, judged by the same rule on the
+digest with both — on pBR322, EagI + MscI at 3,854 + 507 bp. It pairs only
+enzymes that cut three times or fewer, and follows the other filters, so
+_Sold by_ narrows the pairs to what you can buy from one place. A pair whose
+second enzyme cuts only where the first already does is left out, since it
+is the same digest as one enzyme alone. Under the table is a gel of the
+pair on the row you chose — the best one until you click another, or move to
+it with the arrow keys and press `Enter` — with a lane for each enzyme alone
+and a last one, **Both**; choosing a row ticks nothing. **Tick both** ticks
+that pair and nothing else, so the map follows and the Digest page is its
+digest. With a big imported table only the 120 enzymes that cut least are
+paired; narrow the list to pair the others.
 
 ### A partner for one enzyme
 
 Often the question is narrower: _what do I cut with EcoRI to check this?_
 Select EcoRI in the table and choose **Find a partner ›**, or set **Pair**
-above the double digests to _EcoRI with a partner_, and the
-five best partners for it are listed, looked for among **every** enzyme
+above the table to _EcoRI with a partner_, and the
+twenty best partners for it are listed, looked for among **every** enzyme
 that cuts three times or fewer — the name filter and the **Cuts** filter do
 not narrow them, only **Sold by** does. With exactly one enzyme ticked, the
 page offers **Find a partner for** it in one click. Set **Pair** back to
 _any two listed enzymes_ for the pairs of the list.
 
-Tick a candidate and the **Fragments from ticked enzymes** on the Digest page
-say what the whole digest would look like — several enzymes ticked
-together give a lane none of their own rows can predict.
+Tick a candidate and the Digest page says what the whole digest would look
+like — several enzymes ticked together give a lane none of their own rows
+can predict.
 
 ### A double digest beside the single ones
 
-Tick two enzymes (or three) and the gel draws a lane for each of them alone
-and a last lane, **Both** (or **All 3**), for the digest with all of them —
+Tick two enzymes (or three) and the gel on the Digest page draws a lane for
+each of them alone and a last lane, **Both** (or **All 3**), for the digest
+with all of them —
 the way a double digest is run at the bench, so a band can be read off
 against the lanes that explain it. A band in **Both** that is in neither
 single lane is the piece between the two enzymes' sites. The sizes are
@@ -268,33 +273,66 @@ While it is off:
 
 - the sequence view, the map and **File ▸ Export figure…** draw no cut
   sites;
-- the **Fragments from ticked enzymes** list below and the
+- the Digest page's gel and fragments and the
   [Cloning](12-cloning.md) tab's digest are unchanged — they follow the
   ticks, not the toggle.
 
 The Enzymes tab says so while the sites are hidden, and offers a **Show cut
 sites** link to bring them back.
 
-## Fragments
+## The Digest page
 
-**Fragments from ticked enzymes** draws the lane a complete digest with all
-ticked enzymes would give (with a lane for each enzyme alone beside it when
-two or three are ticked), beside a ladder — 1 kb, or 100 bp when everything
-is small, unless you choose one (see [The gel](#the-gel) below). A short band is drawn faint, because a stain binds DNA by mass and
-a 200 bp band really is faint next to a 4 kb one. **Click a band to select
-that piece** — in a single enzyme's lane, the piece that enzyme alone cuts — in the sequence view and on the map; where two pieces run
-together, the click takes the larger one, and the band says so when you hover
-it.
+The **Digest** page of the workspace is where the ticked enzymes are cut. It
+is off, with a note in its heading, while nothing is ticked; **Tick
+enzymes** takes you to the list.
 
-Under the lane are the fragment sizes themselves, largest first — on a
-circular molecule, n cuts give n fragments; on a linear one, n + 1 — and then
-**On a gel**, which says in words what the picture cannot: which pieces would
-run together, and whether any are too small to stay on the gel.
+Across the top, the ticked enzymes are **chips**: the × on one unticks it
+(the same ticks as the Enzymes page and the tab), **Untick all** clears
+them, and a chip drawn dashed is an enzyme that does not cut this DNA, or
+whose every site its methylation blocks.
+
+The **gel** draws the lane a complete digest with all ticked enzymes would
+give (with a lane for each enzyme alone beside it when two or three are
+ticked), beside a ladder — 1 kb, or 100 bp when everything is small, unless
+you choose one (see [The gel](#the-gel) below). A short band is drawn faint,
+because a stain binds DNA by mass and a 200 bp band really is faint next to
+a 4 kb one. **Click a band to select that piece** — in a single enzyme's
+lane, the piece that enzyme alone cuts — in the sequence view and on the map;
+where two pieces run together, the click takes the larger one, and the band
+says so when you hover it. Under it, **On a gel** says in words what the
+picture cannot: which pieces would run together, and whether any are too
+small to stay on the gel. The gel is drawn larger than the tab's, where the
+window has the room.
+
+Beside it (or under it, in a narrow window) is the **table of fragments**,
+largest first — on a circular molecule, n cuts give n fragments; on a linear
+one, n + 1. A row has the piece's number, its length, its span (1-based, and
+round the origin on a circle), the enzyme that cut each end with the
+overhang it left (hover for the full description) and the features it
+carries. Point at a row, or move to it with the arrow keys, and the piece is
+drawn on the map and the sequence view, the way the Cloning tab's rows do;
+click a row, or press `Enter` on it, to select the piece. **Add** puts it on
+the shelf, to be joined on the Bench (and **Add again** puts a second copy
+there, which a tandem insert needs); clicking the piece on the map adds it
+too. **Open the Bench ›** under the table goes there.
+
+**Partial digest** lists every piece a digest that missed some of the sites
+could give, not only the complete digest's: with two EcoRI sites on a
+plasmid, the two complete pieces and the circle opened at either site. A
+piece says how many sites it left **uncut**; the table lists the 200 that
+miss the fewest, and only the row under the pointer is drawn on the views,
+since the pieces overlap. The gel stays the complete digest. The choice is
+remembered for each document, and is the page's own: the Cloning tab's
+toggle is kept separately for now.
+
+When the document's host methylation blocks some of the ticked sites, the
+page says how many are left out and which enzymes they are (see
+[Where the DNA was grown](#where-the-dna-was-grown)).
 
 ### The gel
 
-Under every drawn gel — here and in the [Cloning](12-cloning.md) tab's PCR
-— two menus say what it is a picture of:
+Under every drawn gel — on the Digest page and in the
+[Cloning](12-cloning.md) tab's PCR — two menus say what it is a picture of:
 
 - **Agarose**: 0.7, 1, 1.5 or 2 %. A thinner gel spreads out large
   fragments and loses small ones off the end; a thicker one the reverse. The
@@ -315,9 +353,8 @@ top of it will compress near the well, and anything under a fifth of the
 foot of it (100 bp on a 1 % gel, 20 bp on a 2 % one) may run off the end.
 Your gel may do better or worse.
 
-For the fragments themselves, with their ends and the features they carry,
-and to join them into a new construct, use the [Cloning](12-cloning.md)
-tab.
+To join the fragments into a new construct, put them on the shelf and use
+the Bench (see [Cloning](12-cloning.md)).
 
 ## How to check whether an enzyme is a unique cutter
 
@@ -338,23 +375,23 @@ PlasmidPop cannot download it for you. REBASE files are copyright "all
 rights reserved", so we have no right to ship them, and rebase.neb.com does
 not allow a web page to fetch them. You download the file; the app reads it.
 
-1. Open the **Enzymes** tab, then its workspace, go to the **Table** page and
-   click **Import a REBASE table…**.
+1. Open the **Enzymes** tab, then its workspace, and go to the **Table**
+   page. **Import an enzyme table** is open there.
 2. Follow **Download withrefm from REBASE**. The file opens as plain text in
    a new tab — save it with Ctrl+S, or right-click the link and choose _Save
    link as_. It is about 4 MB.
 3. Back in PlasmidPop, click **Choose file…** and pick what you saved
-   (usually `link_withrefm.txt`), or drop the file onto the panel. The
+   (usually `link_withrefm.txt`), or drop the file onto the section. The
    picker asks for text files; if your browser saved it without an
    extension, switch the picker to _All files_.
 
 The table is read in your browser, kept in this browser's local storage, and
-never uploaded anywhere. It survives reloads, and the Enzymes tab says which
+never uploaded anywhere. It survives reloads, and the Table page says which
 release it is scanning with. **Go back to the bundled table** undoes the
 import.
 
 Of the roughly 6,100 records in REBASE, about 1,580 become usable enzymes.
-The panel reports what it left out: enzymes whose cut position nobody has
+The section reports what it left out: enzymes whose cut position nobody has
 determined, and the ones that cut at a modified base rather than at a
 sequence (AbaSI, MspJI and kin), whose REBASE site is a base or two and
 would otherwise appear to cut everywhere.
@@ -384,9 +421,9 @@ modification: enzymes, genes and genomes_, Nucleic Acids Research.
 ## Adding your own enzyme
 
 For an engineered enzyme, a nicking or homing enzyme the table lacks, or a
-site you want to treat as an "enzyme" in a Golden Gate design, click
-**Add enzyme…** on the Enzyme workspace's **Table** page. Give it a name and its
-recognition site in REBASE notation:
+site you want to treat as an "enzyme" in a Golden Gate design, use
+**Add an enzyme** on the Enzyme workspace's **Table** page, open under the
+import. Give it a name and its recognition site in REBASE notation:
 
 - `G^AATTC` — the caret is the top-strand cut; the bottom strand is cut
   symmetrically (EcoRI, a 4-base 5′ overhang).
@@ -399,14 +436,15 @@ recognition site in REBASE notation:
   (`GGTCTCN^NNNN_`) needs the underscore, because the caret alone does not
   say where the bottom strand is cut.
 
-The dialog shows how the site was read: where the top and bottom strands are
+The section shows how the site was read: where the top and bottom strands are
 cut, the overhang that leaves, and whether the site is palindromic. **Save
 enzyme** stores it in this browser, and it is at once in the sites list,
 digests, Golden Gate and the diagnostic ranking, like any other enzyme. It
 is read by the same code as the REBASE import, so both mean the same by a
 notation. Your enzymes survive a reload and an imported table (importing or
-**Go back to the bundled table** leaves them alone); use **Remove** in the
-dialog to delete one. A name already in the table in use is refused, and a
+**Go back to the bundled table** leaves them alone); use **Remove**, beside it
+under **Your enzymes**, to delete one. The page's tab in the workspace's rail
+counts them. A name already in the table in use is refused, and a
 site with too few specific bases to be a real cutter is too.
 
 ## Notes

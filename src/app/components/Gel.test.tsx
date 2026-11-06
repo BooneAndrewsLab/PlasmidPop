@@ -28,6 +28,21 @@ describe('Gel', () => {
     expect(screen.getByText('321')).toBeInTheDocument();
   });
 
+  it('is drawn larger on a page with the room, by `scale`, and the same drawing otherwise', () => {
+    const lanes = [{ profile: gelProfile([4000, 200]), label: 'EcoRI' }];
+    const width = (node: HTMLElement): number =>
+      Number(node.querySelector<SVGElement>('.gel__svg')?.style.maxWidth.replace('px', ''));
+    const { container: plain } = render(<Gel lanes={lanes} />);
+    const { container: wide } = render(<Gel lanes={lanes} scale={2} />);
+    // Rounded to a pixel each, so the doubling is to within one.
+    expect(Math.abs(width(wide) - 2 * width(plain))).toBeLessThanOrEqual(1);
+    // The panel's size is unchanged: one lane beside a ladder is 320 px.
+    expect(width(plain)).toBe(320);
+    expect(wide.querySelector('.gel__svg')?.getAttribute('viewBox')).toBe(
+      plain.querySelector('.gel__svg')?.getAttribute('viewBox'),
+    );
+  });
+
   it('stains a short band faintly', () => {
     const { container } = render(
       <Gel lanes={[{ profile: gelProfile([4000, 200]), label: 'EcoRI' }]} />,

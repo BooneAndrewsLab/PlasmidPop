@@ -1,13 +1,23 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
-import { type Enzyme, type EnzymeSites, type SeqDocument, bestPairs, bestPartners } from '@/core';
+import {
+  type Enzyme,
+  type EnzymeSites,
+  type SeqDocument,
+  bestPairs,
+  bestPartners,
+  digestFragments,
+  gelProfile,
+} from '@/core';
 
 import { editorStore } from '../state/editorStore';
 import { useRemembered } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';
 import { useGelOptions } from '../state/useGel';
 import { BandLine } from './BandLine';
-import { MAX_PAIR_CUTS, type PairRow } from './enzymeList';
+import { MAX_PAIR_CUTS, type PairRow, pickPiece } from './enzymeList';
+import { Gel, type GelLane } from './Gel';
+import { useRowCursor } from './useRowCursor';
 
 /**
  * How many of them are paired, fewest cuts first. Every pair is a digest,
@@ -15,7 +25,11 @@ import { MAX_PAIR_CUTS, type PairRow } from './enzymeList';
  * table can list several hundred (docs/perf-notes.md).
  */
 const MAX_PAIR_CANDIDATES = 120;
-const PAIRS_SHOWN = 5;
+/** Pairs listed, best first: the page has room for a table of them. */
+const PAIRS_SHOWN = 20;
+
+/** The gel under the table is drawn this much larger than the panel's. */
+const GEL_SCALE = 1.5;
 
 interface DoubleDigestsProps {
   /** The rows the list is showing, in its order, so its filters narrow the pairs too. */
@@ -33,13 +47,15 @@ interface DoubleDigestsProps {
 }
 
 /**
- * The best double digests, under a list ordered by band separation: the same
- * question asked of pairs, for when no enzyme on its own gives a lane worth
+ * The Double page (item 133, E5): the best double digests, the same question
+ * the Enzymes page asks of single enzymes, for when none gives a lane worth
  * running. By default among the enzymes listed; with **Pair** set to one
  * enzyme, its best partners among every enzyme that cuts few enough times,
  * which is the question as it is usually asked — "what do I cut with EcoRI"
- * (item 42). "Tick both" ticks the pair alone, and the gel below then draws
- * their digest beside each single one.
+ * (item 42). A table of the pairs, each with the bands it gives; a click on
+ * one draws its three lanes under the table, the digest beside each enzyme
+ * alone, without touching the ticks. **Tick both** ticks the pair alone, so
+ * the map and the Digest page follow.
  */
 export function DoubleDigests({ listed, pairable, cuts, doc, shownEnzymes }: DoubleDigestsProps) {
   const gel = useGelOptions();
@@ -88,8 +104,61 @@ export function DoubleDigests({ listed, pairable, cuts, doc, shownEnzymes }: Dou
           ),
     [anchor, pairable, doc.length, doc.topology, gel],
   );
-  const pairs = anchor === undefined ? listedPairs : partnerPairs;
-  if (pairable.length < 2) return null;
+  const found = anchor === undefined ? listedPairs : partnerPairs;
+  // A pair reads the same whichever way the list happened to be sorted; a
+  // partner comes after the enzyme it was found for.
+  const pairs = useMemo(
+    () =>
+      found.map((pair) => {
+        const [first, second] =
+          anchor !== undefined || pair.first.localeCompare(pair.second) <= 0
+            ? [pair.first, pair.second]
+            : [pair.second, pair.first];
+        return { first, second, profile: pair.profile, id: `${first}+${second}` };
+      }),
+    [found, anchor],
+  );
+
+  // The row clicked draws its lanes; before one is, the best pair's.
+  const [pickedId, setPicked] = useState<string | null>(null);
+  const picked = pairs.find((p) => p.id === pickedId) ?? pairs[0];
+  const { body, cursor, setCursor, onKeyDown } = useRowCursor(pairs.length);
+  const lanes = useMemo((): GelLane[] => {
+    if (picked === undefined) return [];
+    const open = (name: string): number[] => [
+      ...(pairable.find((r) => r.members.includes(name))?.cuts ?? []),
+    ];
+    const [a, b] = [open(picked.first), open(picked.second)];
+    const alone = (name: string, at: number[]): GelLane => {
+      const pieces = digestFragments(at, doc.length, doc.topology);
+      return {
+        profile: gelProfile(
+          pieces.map((f) => f.length),
+          gel,
+        ),
+        label: name,
+        ...pickPiece(pieces, `${name} alone: `),
+      };
+    };
+    return [
+      alone(picked.first, a),
+      alone(picked.second, b),
+      {
+        profile: picked.profile,
+        label: 'Both',
+        ...pickPiece(digestFragments([...a, ...b], doc.length, doc.topology), 'Both: '),
+      },
+    ];
+  }, [picked, pairable, doc.length, doc.topology, gel]);
+
+  if (pairable.length < 2) {
+    return (
+      <p className="panel__note" data-testid="double-digests">
+        Fewer than two enzymes cut {doc.name} {MAX_PAIR_CUTS} times or fewer, so there is nothing to
+        pair. Methylation can leave fewer: see Grown in above.
+      </p>
+    );
+  }
   // One enzyme ticked is the usual start of "and what do I cut it with".
   const [onlyTicked] = shownEnzymes.size === 1 ? [...shownEnzymes] : [];
   const offer =
@@ -98,8 +167,7 @@ export function DoubleDigests({ listed, pairable, cuts, doc, shownEnzymes }: Dou
       : undefined;
 
   return (
-    <div className="panel__section" data-testid="double-digests">
-      <h3 className="panel__heading">Double digests</h3>
+    <div className="pairs-ws" data-testid="double-digests">
       <div className="panel__form">
         <label>
           <span>Pair</span>
@@ -144,42 +212,89 @@ export function DoubleDigests({ listed, pairable, cuts, doc, shownEnzymes }: Dou
             : `No enzyme with ${anchor.name} gives a lane that can be read at a glance.`}
         </p>
       ) : (
-        <ul className="enzyme-list">
-          {pairs.map((pair) => {
-            // A pair reads the same whichever way the list happened to be
-            // sorted; a partner comes after the enzyme it was found for.
-            const [first, second] =
-              anchor !== undefined || pair.first.localeCompare(pair.second) <= 0
-                ? [pair.first, pair.second]
-                : [pair.second, pair.first];
-            const { profile } = pair;
-            const both =
-              shownEnzymes.size === 2 && shownEnzymes.has(first) && shownEnzymes.has(second);
-            return (
-              <li key={`${first}+${second}`} className="enzyme-row">
-                <span className="enzyme-row__pair">
-                  {first} + {second}
-                </span>
-                <button
-                  type="button"
-                  className="button button--quiet button--small"
-                  disabled={both}
-                  data-tip={
-                    both
-                      ? 'These two are what is ticked; the gel below is their digest'
-                      : `Tick ${first} and ${second} alone, to see their digest beside each on its own`
-                  }
-                  onClick={() => {
-                    editorStore.setShownEnzymes([pair.first, pair.second]);
-                  }}
-                >
-                  {both ? 'Ticked' : 'Tick both'}
-                </button>
-                <BandLine profile={profile} />
-              </li>
-            );
-          })}
-        </ul>
+        <>
+          <div className="tablewrap pairs-ws__scroll">
+            <table className="wst dt" role="grid" aria-label="Double digests">
+              <thead>
+                <tr>
+                  <th className="wst__th">Enzyme 1</th>
+                  <th className="wst__th">Enzyme 2</th>
+                  <th
+                    className="wst__th"
+                    data-tip="The bands the digest with both would give, best separated first; a ⚠ is a lane that hides something"
+                  >
+                    Bands
+                  </th>
+                  <th className="wst__th" aria-label="Tick" />
+                </tr>
+              </thead>
+              <tbody ref={body} onKeyDown={onKeyDown}>
+                {pairs.map((pair, i) => {
+                  const { first, second, id } = pair;
+                  const on = pair === picked;
+                  const both =
+                    shownEnzymes.size === 2 && shownEnzymes.has(first) && shownEnzymes.has(second);
+                  return (
+                    <tr
+                      key={id}
+                      className={`cand${on ? ' is-selected' : ''}`}
+                      data-row={i}
+                      tabIndex={i === cursor ? 0 : -1}
+                      aria-selected={on}
+                      onFocus={() => {
+                        setCursor(i);
+                      }}
+                      onClick={(e) => {
+                        if (e.target instanceof Element && e.target.closest('button') !== null) {
+                          return;
+                        }
+                        setPicked(id);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.target === e.currentTarget) {
+                          e.preventDefault();
+                          setPicked(id);
+                        }
+                      }}
+                    >
+                      <td className="enzyme-row__pair">{first}</td>
+                      <td className="enzyme-row__pair">{second}</td>
+                      <td>
+                        <BandLine profile={pair.profile} />
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="button button--quiet button--small"
+                          disabled={both}
+                          data-tip={
+                            both
+                              ? 'These two are what is ticked; the Digest page is their digest'
+                              : `Tick ${first} and ${second} alone, to see their digest on the Digest page`
+                          }
+                          onClick={() => {
+                            editorStore.setShownEnzymes([first, second]);
+                          }}
+                        >
+                          {both ? 'Ticked' : 'Tick both'}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {picked !== undefined && (
+            <div className="pairs-ws__gel">
+              <Gel lanes={lanes} scale={GEL_SCALE} />
+              <p className="panel__note panel__note--quiet">
+                {picked.first} + {picked.second}, beside each enzyme alone. Select another pair to
+                draw its lanes; the ticks are not changed.
+              </p>
+            </div>
+          )}
+        </>
       )}
       <p className="panel__note panel__note--quiet">
         {anchor === undefined ? (

@@ -1,8 +1,5 @@
-import { useState } from 'react';
-
 import {
   type SeqDocument,
-  describeBands,
   type HostMethylationState,
   describeHost,
   hostMarksFromBits,
@@ -11,11 +8,9 @@ import {
 
 import { cutCountPhrase } from '../state/cutFilter';
 import { editorStore } from '../state/editorStore';
-import { useGelOptions } from '../state/useGel';
 import { useEditorState } from '../state/useEditorStore';
 import { BandLine } from './BandLine';
-import { CustomEnzymeForm } from './CustomEnzymeForm';
-import { type EnzymeList, gelSentence } from './enzymeList';
+import { type EnzymeList } from './enzymeList';
 import {
   MAX_SHOW_LISTED,
   MAX_SITES_SHOWN,
@@ -27,8 +22,6 @@ import {
   selectCutSite,
   tickRow,
 } from './enzymeRows';
-import { EnzymeImport } from './EnzymeImport';
-import { Gel } from './Gel';
 
 /**
  * The strains a document can say it came from (#45). Not every combination
@@ -221,89 +214,5 @@ export function EnzymeRow({
       />
       <BandLine profile={profile()} />
     </li>
-  );
-}
-
-/** The table in use, with **Add enzyme…** and **Import a REBASE table…** and their forms. */
-export function EnzymeSource() {
-  const { enzymeSetInfo } = useEditorState();
-  const [importing, setImporting] = useState(false);
-  const [adding, setAdding] = useState(false);
-  return (
-    <>
-      <p className="panel__note panel__note--quiet">
-        {enzymeSetInfo.bundled
-          ? 'Scanning with the bundled table of common cloning enzymes.'
-          : `Scanning with ${enzymeSetInfo.label}${
-              enzymeSetInfo.fileName === null ? '' : `, from ${enzymeSetInfo.fileName}`
-            }.`}
-        {enzymeSetInfo.custom.length > 0
-          ? ` Plus ${enzymeSetInfo.custom.length.toLocaleString()} of your own.`
-          : ''}{' '}
-        <button
-          type="button"
-          className="link"
-          onClick={() => {
-            setAdding((v) => !v);
-          }}
-        >
-          {adding ? 'Hide add enzyme' : 'Add enzyme…'}
-        </button>{' '}
-        <button
-          type="button"
-          className="link"
-          onClick={() => {
-            setImporting((v) => !v);
-          }}
-        >
-          {importing ? 'Hide import' : 'Import a REBASE table…'}
-        </button>
-      </p>
-      {adding && (
-        <CustomEnzymeForm
-          onClose={() => {
-            setAdding(false);
-          }}
-        />
-      )}
-      {importing && (
-        <EnzymeImport
-          onClose={() => {
-            setImporting(false);
-          }}
-        />
-      )}
-    </>
-  );
-}
-
-/** The ticked enzymes' fragments: the gel, the lengths and how it would read. */
-export function EnzymeFragments({ list }: { readonly list: EnzymeList }) {
-  const gel = useGelOptions();
-  const { fragments, ticked, tickedGroups, lanes } = list;
-  if (fragments.length === 0) return null;
-  return (
-    <div className="panel__section">
-      <h3 className="panel__heading">Fragments from ticked enzymes</h3>
-      {/* The lane before the numbers: the question a diagnostic digest
-                  is chosen to answer is "will I see two bands", and that is a
-                  question for the eye. Clicking one selects the piece it is. */}
-      <Gel lanes={lanes} />
-      <p className="panel__mono">{fragments.map((f) => f.length.toLocaleString()).join(', ')} bp</p>
-      {lanes.length > 1 && (
-        <p className="panel__note panel__note--quiet" data-testid="gel-singles">
-          Beside it, each alone:{' '}
-          {tickedGroups.map((g) => `${g.name} ${describeBands(g.profile)}`).join('; ')}.
-        </p>
-      )}
-      {/* The pieces are one thing, the lane is another: a digest of
-                  five fragments can still show three bands. */}
-      <p
-        className={`panel__note${ticked.misleading ? ' panel__note--warn' : ''}`}
-        data-testid="gel-reading"
-      >
-        {gelSentence(ticked, gel)}
-      </p>
-    </div>
   );
 }

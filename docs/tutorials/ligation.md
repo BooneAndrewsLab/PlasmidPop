@@ -192,7 +192,7 @@ Optional, a miniprep-style check: which single enzyme tells a colony that took t
 
 1. Click **Hide all**, so EcoRI and BamHI stop counting in the digest.
 2. **Cuts** is a remembered setting. If it says **Once**, MluI is not listed, because it cuts twice. Change it to **Twice**, **Once or twice**, **3 times or fewer** or **Any number**; **Filter** (the name box) narrows the list further, so type `MluI` there to find it quickly.
-3. Tick **MluI**. **Fragments from ticked enzymes** reads `2,414, 565 bp`, two bands on the gel lane.
+3. Tick **MluI**. The tab reads **On a gel: 2 bands, 2,414 + 565 bp.**; **Digest ›** opens the gel and the table of the two fragments.
 
 **Done when:**
 

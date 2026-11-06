@@ -77,7 +77,8 @@ describe('EnzymeWorkspace (item 133, E2)', () => {
     expect(filterBox()).toHaveValue('E');
     fireEvent.click(screen.getByRole('button', { name: 'Hide all' }));
     fireEvent.click(screen.getByRole('tab', { name: /^Digest/ }));
-    expect(screen.getByRole('heading', { name: 'Digest' })).toBeInTheDocument();
+    // Nothing ticked: the page is there but off, and the heading says why.
+    expect(screen.getByRole('heading', { name: 'DigestNothing is ticked' })).toBeInTheDocument();
     expect(screen.getByText(/Nothing is ticked, so there is no digest/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /close the enzyme workspace/i }));
     expect(editorStore.getState().workspace).toBeNull();
@@ -85,7 +86,7 @@ describe('EnzymeWorkspace (item 133, E2)', () => {
     expect(editorStore.getState().shownEnzymes.size).toBe(0);
     // Reopened, it is on the page it was left on.
     fireEvent.click(screen.getByRole('button', { name: 'Open Enzyme workspace ›' }));
-    expect(screen.getByRole('heading', { name: 'Digest' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^Digest/ })).toBeInTheDocument();
   });
 
   it('has Grown in in the head of every page, the same edit as the panel', () => {
@@ -106,19 +107,23 @@ describe('EnzymeWorkspace (item 133, E2)', () => {
     });
   });
 
-  it('mounts the gel on Digest, the pairs on Double and the table forms on Table', () => {
+  it('mounts the gel and fragments on Digest, the pairs on Double and the open forms on Table', () => {
     render(<Host />);
     act(() => {
       openEnzymeWorkspace(editorStore.getState().documentId, 'digest');
     });
-    expect(screen.getByRole('heading', { name: 'Fragments from ticked enzymes' })).toBeVisible();
+    expect(screen.getByRole('grid', { name: 'Fragments' })).toBeVisible();
     expect(screen.getByTestId('gel-reading')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: /^Double/ }));
-    expect(screen.getByRole('heading', { level: 2, name: 'Double digests' })).toBeInTheDocument();
+    // One heading, the shell's: the page no longer has a second of its own.
+    expect(screen.getAllByRole('heading', { name: 'Double digests' })).toHaveLength(1);
+    expect(screen.getByRole('grid', { name: 'Double digests' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: /^Table/ }));
     expect(screen.getByRole('heading', { name: 'Enzyme table' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Add enzyme…' }));
-    expect(screen.getByRole('button', { name: 'Import a REBASE table…' })).toBeInTheDocument();
+    // Both forms are open sections, with nothing to open or close.
+    expect(screen.getByRole('heading', { name: 'Import an enzyme table' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Add an enzyme' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
   });
 
   it('walks the rail with the arrow keys, keeping the keyboard on the rail', () => {
