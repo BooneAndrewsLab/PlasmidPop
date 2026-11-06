@@ -329,3 +329,5 @@ the Bench, item 49). The rest stand.
 131. [Detect features: show what the rules hid](131-detect-hidden-calls.md)
 
 132. [The wrong clones beside the right one on the check gel](132-wrong-clone-lanes.md)
+
+133. [The CRISPR, Enzymes and Cloning panels beside Primers and Align (plan)](133-panel-workspaces.md)
