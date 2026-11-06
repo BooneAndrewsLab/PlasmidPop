@@ -3,9 +3,25 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 
 import { type HostMethylationState, SeqDocument, findCutSites, getEnzyme } from '@/core';
 
+import { type EnzymePage, openEnzymeWorkspace } from '../enzymeWorkspace';
 import { editorStore } from '../state/editorStore';
+import { useEditorState } from '../state/useEditorStore';
 import { CloningPanel } from './CloningPanel';
 import { EnzymePanel } from './EnzymePanel';
+import { EnzymeWorkspace } from './EnzymeWorkspace';
+
+/** The Enzymes tab as the app mounts it: the slim panel, or the workspace while it is open. */
+function EnzymesTab({ doc }: { doc: SeqDocument }) {
+  const { workspace } = useEditorState();
+  return workspace === 'enzymes' ? <EnzymeWorkspace doc={doc} /> : <EnzymePanel doc={doc} />;
+}
+
+/** Opens the Enzyme workspace on `page`, where the digest and the pairs are. */
+function openWorkspace(page: EnzymePage): void {
+  act(() => {
+    openEnzymeWorkspace(editorStore.getState().documentId, page);
+  });
+}
 
 /**
  * The host a document was grown in, as the panels use it (#45, item 44).
@@ -92,7 +108,8 @@ describe('Grown in', () => {
       editorStore.setAnalysis(doc, findCutSites(PLASMID, 'circular', all), []);
       editorStore.setShownEnzymes(['MscI', 'XbaI', 'ClaI']);
     });
-    return render(<EnzymePanel doc={current()} />);
+    openWorkspace('digest');
+    return render(<EnzymesTab doc={current()} />);
   }
 
   const host = (): HTMLElement => screen.getByLabelText('Host methylation');
@@ -122,7 +139,7 @@ describe('Grown in', () => {
       fireEvent.change(host(), { target: { value: label } });
     });
     expect(current().methylation).toEqual(state);
-    view.rerender(<EnzymePanel doc={current()} />);
+    view.rerender(<EnzymesTab doc={current()} />);
     expect(host()).toHaveValue(label);
     // On a circle every cut left open is one more piece.
     expect(bands()).toBe(open(state).length);
@@ -142,7 +159,7 @@ describe('Grown in', () => {
       act(() => {
         fireEvent.change(host(), { target: { value: label } });
       });
-      view.rerender(<EnzymePanel doc={current()} />);
+      view.rerender(<EnzymesTab doc={current()} />);
     }
     // Chosen: dam+ only, dcm+ only, unmethylated, then dam+/dcm+ again.
     for (const { state } of [HOSTS[0], HOSTS[3], HOSTS[2], HOSTS[1]].filter(
@@ -212,7 +229,8 @@ describe('double-digest partners and the host', () => {
       editorStore.apply({ type: 'setMethylation', methylation: state });
       editorStore.setEnzymeSort('bands');
     });
-    render(<EnzymePanel doc={current()} />);
+    openWorkspace('pairs');
+    render(<EnzymesTab doc={current()} />);
     act(() => {
       fireEvent.change(screen.getByRole('combobox', { name: 'Pair' }), {
         target: { value: 'EcoRI' },

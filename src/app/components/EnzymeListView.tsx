@@ -5,7 +5,6 @@ import {
   type Enzyme,
   type EnzymeSites,
   type SeqDocument,
-  bandProblems,
   cutLabel,
   describeBands,
   formatInt,
@@ -25,7 +24,7 @@ import { useGelOptions } from '../state/useGel';
 import { useEditorState } from '../state/useEditorStore';
 import { BandLine } from './BandLine';
 import { CustomEnzymeForm } from './CustomEnzymeForm';
-import type { EnzymeList } from './enzymeList';
+import { type EnzymeList, gelSentence } from './enzymeList';
 import { EnzymeImport } from './EnzymeImport';
 import { Gel } from './Gel';
 import { useRowWindow } from './useRowWindow';
@@ -184,6 +183,55 @@ export function GrownIn({
 }
 
 /**
+ * The two notes a hidden or empty tick state needs: cut sites are hidden in
+ * the views, and nothing is ticked, with the way to tick what a digest
+ * wants. The slim panel shows them too, over its few rows.
+ */
+export function EnzymeNotes({ list }: { readonly list: EnzymeList }) {
+  const { showCutSites, shownEnzymes } = useEditorState();
+  const { ready, cutters, offerFilter, offered } = list;
+  return (
+    <>
+      {!showCutSites && (
+        <p className="panel__note">
+          Cut sites are hidden in the views and in the SVG exports. The ticks below still choose the
+          fragments here and the enzymes the Cloning tab digests with.{' '}
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              editorStore.setShowCutSites(true);
+            }}
+          >
+            Show cut sites
+          </button>
+        </p>
+      )}
+      {ready && shownEnzymes.size === 0 && cutters > 0 && (
+        <p className="panel__note">
+          Nothing is ticked, so no cut sites are drawn and the Cloning tab has nothing to digest
+          with.{' '}
+          {offered.length > 0 && offered.length <= MAX_SHOW_LISTED && (
+            <>
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  editorStore.setShownEnzymes(offered);
+                }}
+              >
+                Tick the {offered.length} enzymes that {cutCountPhrase(offerFilter)}
+              </button>
+              .
+            </>
+          )}
+        </p>
+      )}
+    </>
+  );
+}
+
+/**
  * The filters, the order, the supplier, the ticks' buttons and the notes a
  * hidden or empty tick state needs. `host` puts **Grown in** among them: the
  * workspace has it in its head instead.
@@ -194,8 +242,6 @@ export function EnzymeControls({
   host = true,
 }: ListProps & { readonly host?: boolean }) {
   const {
-    showCutSites,
-    shownEnzymes,
     enzymeSetInfo,
     enzymeCutFilter,
     enzymeSort,
@@ -203,7 +249,7 @@ export function EnzymeControls({
     enzymeSortReversed: reversed,
   } = useEditorState();
   const orderId = useId();
-  const { filter, setFilter, supplier, ready, rows, cutters, offerFilter, offered } = list;
+  const { filter, setFilter, supplier, rows } = list;
   return (
     <>
       <div className="panel__controls">
@@ -340,42 +386,99 @@ export function EnzymeControls({
           </button>
         </div>
       </div>
-      {!showCutSites && (
-        <p className="panel__note">
-          Cut sites are hidden in the views and in the SVG exports. The ticks below still choose the
-          fragments here and the enzymes the Cloning tab digests with.{' '}
-          <button
-            type="button"
-            className="link"
-            onClick={() => {
-              editorStore.setShowCutSites(true);
-            }}
-          >
-            Show cut sites
-          </button>
-        </p>
-      )}
-      {ready && shownEnzymes.size === 0 && cutters > 0 && (
-        <p className="panel__note">
-          Nothing is ticked, so no cut sites are drawn and the Cloning tab has nothing to digest
-          with.{' '}
-          {offered.length > 0 && offered.length <= MAX_SHOW_LISTED && (
-            <>
-              <button
-                type="button"
-                className="link"
-                onClick={() => {
-                  editorStore.setShownEnzymes(offered);
-                }}
-              >
-                Tick the {offered.length} enzymes that {cutCountPhrase(offerFilter)}
-              </button>
-              .
-            </>
-          )}
-        </p>
-      )}
+      <EnzymeNotes list={list} />
     </>
+  );
+}
+
+/** One enzyme's row: ticked or not, its site, where it cuts, and the bands it would give. */
+export function EnzymeRow({
+  row: { enzyme, members, count, site, host: marks, profile },
+  doc,
+  shownEnzymes,
+  liRef,
+}: {
+  readonly row: EnzymeList['rows'][number];
+  readonly doc: SeqDocument;
+  readonly shownEnzymes: ReadonlySet<string>;
+  readonly liRef?: (el: HTMLElement | null) => void;
+}) {
+  const selectSite = (site: CutSite): void => {
+    const enzyme = getEnzyme(site.enzyme);
+    const len = enzyme?.site.length ?? 1;
+    editorStore.setSelection({ start: site.siteStart, end: site.siteStart + len });
+    editorStore.revealPosition(site.siteStart);
+  };
+
+  return (
+    <li className="enzyme-row" ref={liRef}>
+      <label
+        className="enzyme-row__toggle"
+        data-tip="Tick to draw this enzyme's cut sites and to digest with it"
+      >
+        <input
+          type="checkbox"
+          checked={members.some((e) => shownEnzymes.has(e.name))}
+          onChange={(e) => {
+            if (e.target.checked) editorStore.setEnzymeShown(enzyme.name, true);
+            else {
+              // Unticking the row unticks the whole group, or an
+              // isoschizomer ticked earlier would keep it ticked.
+              const names = new Set(members.map((m) => m.name));
+              editorStore.setShownEnzymes([...shownEnzymes].filter((name) => !names.has(name)));
+            }
+          }}
+        />
+        <span className="enzyme-row__name">{enzyme.name}</span>
+        {members.length > 1 && (
+          <span
+            className="enzyme-row__more"
+            data-tip={`Same site and cut: ${describeOthers(enzyme, members)}`}
+          >
+            {' '}
+            +{members.length - 1}
+          </span>
+        )}
+      </label>
+      <span className="enzyme-row__site" data-tip={describeEnzyme(enzyme)}>
+        {enzyme.site}
+      </span>
+      <span className="enzyme-row__cuts">
+        {firstSites(site, count).map((s, i) => {
+          // Dam or Dcm inside this site in DNA from a methylating
+          // strain; see `hostMethylationAt`.
+          const host = hostMarksFromBits(marks[i] ?? 0);
+          return (
+            <button
+              key={i}
+              type="button"
+              className={`link link--mono${host.length > 0 ? ' link--methylated' : ''}`}
+              data-tip={`Select the ${enzyme.name} site cut after base ${describeSite(s, doc)}${
+                host.length > 0
+                  ? ` — ${host.join(' and ')} methylation overlaps it, so it may not cut DNA grown in a ${host.map((h) => h.toLowerCase()).join('+/')}+ strain of E. coli`
+                  : ''
+              }`}
+              onClick={() => {
+                selectSite(s);
+              }}
+            >
+              {describeSite(s, doc)}
+              {host.length > 0 && <sup>m</sup>}
+            </button>
+          );
+        })}
+        {count > MAX_SITES_SHOWN && (
+          <span className="enzyme-row__more" data-tip={`${enzyme.name} cuts ${count} times in all`}>
+            +{count - MAX_SITES_SHOWN}
+          </span>
+        )}
+      </span>
+      <MethylationNote
+        count={isHostMethylationSensitive(enzyme.name) ? countMarked(marks) : 0}
+        of={count}
+      />
+      <BandLine profile={profile()} />
+    </li>
   );
 }
 
@@ -399,92 +502,19 @@ export function EnzymeRows({ doc, list }: ListProps) {
     scrollToTop();
   }, [needle, supplier, enzymeCutFilter, enzymeSort, reversed, scrollToTop]);
 
-  const selectSite = (site: CutSite): void => {
-    const enzyme = getEnzyme(site.enzyme);
-    const len = enzyme?.site.length ?? 1;
-    editorStore.setSelection({ start: site.siteStart, end: site.siteStart + len });
-    editorStore.revealPosition(site.siteStart);
-  };
-
   if (!ready) return <p className="panel__note">Scanning for restriction sites…</p>;
   return (
     <>
       <div className="enzyme-list__scroll" ref={attachScroller}>
         <ul className="enzyme-list" style={{ paddingTop: padTop, paddingBottom: padBottom }}>
-          {rows.slice(first, end).map(({ enzyme, members, count, site, host: marks, profile }) => (
-            <li key={enzyme.name} className="enzyme-row" ref={attachRow(enzyme.name)}>
-              <label
-                className="enzyme-row__toggle"
-                data-tip="Tick to draw this enzyme's cut sites and to digest with it"
-              >
-                <input
-                  type="checkbox"
-                  checked={members.some((e) => shownEnzymes.has(e.name))}
-                  onChange={(e) => {
-                    if (e.target.checked) editorStore.setEnzymeShown(enzyme.name, true);
-                    else {
-                      // Unticking the row unticks the whole group, or an
-                      // isoschizomer ticked earlier would keep it ticked.
-                      const names = new Set(members.map((m) => m.name));
-                      editorStore.setShownEnzymes(
-                        [...shownEnzymes].filter((name) => !names.has(name)),
-                      );
-                    }
-                  }}
-                />
-                <span className="enzyme-row__name">{enzyme.name}</span>
-                {members.length > 1 && (
-                  <span
-                    className="enzyme-row__more"
-                    data-tip={`Same site and cut: ${describeOthers(enzyme, members)}`}
-                  >
-                    {' '}
-                    +{members.length - 1}
-                  </span>
-                )}
-              </label>
-              <span className="enzyme-row__site" data-tip={describeEnzyme(enzyme)}>
-                {enzyme.site}
-              </span>
-              <span className="enzyme-row__cuts">
-                {firstSites(site, count).map((s, i) => {
-                  // Dam or Dcm inside this site in DNA from a methylating
-                  // strain; see `hostMethylationAt`.
-                  const host = hostMarksFromBits(marks[i] ?? 0);
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      className={`link link--mono${host.length > 0 ? ' link--methylated' : ''}`}
-                      data-tip={`Select the ${enzyme.name} site cut after base ${describeSite(s, doc)}${
-                        host.length > 0
-                          ? ` — ${host.join(' and ')} methylation overlaps it, so it may not cut DNA grown in a ${host.map((h) => h.toLowerCase()).join('+/')}+ strain of E. coli`
-                          : ''
-                      }`}
-                      onClick={() => {
-                        selectSite(s);
-                      }}
-                    >
-                      {describeSite(s, doc)}
-                      {host.length > 0 && <sup>m</sup>}
-                    </button>
-                  );
-                })}
-                {count > MAX_SITES_SHOWN && (
-                  <span
-                    className="enzyme-row__more"
-                    data-tip={`${enzyme.name} cuts ${count} times in all`}
-                  >
-                    +{count - MAX_SITES_SHOWN}
-                  </span>
-                )}
-              </span>
-              <MethylationNote
-                count={isHostMethylationSensitive(enzyme.name) ? countMarked(marks) : 0}
-                of={count}
-              />
-              <BandLine profile={profile()} />
-            </li>
+          {rows.slice(first, end).map((row) => (
+            <EnzymeRow
+              key={row.enzyme.name}
+              row={row}
+              doc={doc}
+              shownEnzymes={shownEnzymes}
+              liRef={attachRow(row.enzyme.name)}
+            />
           ))}
         </ul>
       </div>
@@ -579,9 +609,7 @@ export function EnzymeFragments({ list }: { readonly list: EnzymeList }) {
         className={`panel__note${ticked.misleading ? ' panel__note--warn' : ''}`}
         data-testid="gel-reading"
       >
-        {ticked.misleading
-          ? `On a gel: ${describeBands(ticked, 6)} — ${bandProblems(ticked, gel).join('; ')}.`
-          : `On a gel: ${ticked.bands.length === 1 ? '1 band' : `${ticked.bands.length} bands`}, ${describeBands(ticked, 6)}.`}
+        {gelSentence(ticked, gel)}
       </p>
     </div>
   );

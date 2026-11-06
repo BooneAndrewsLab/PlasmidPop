@@ -298,7 +298,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
     fireEvent.click(screen.getByRole('tab', { name: 'Enzymes' }));
     await waitFor(() => {
-      expect(screen.getByText(/enzymes cut/)).toBeInTheDocument();
+      expect(screen.getByText(/enzymes: \d+ cut once/)).toBeInTheDocument();
     });
     // The list renders only the rows on screen, so reach EcoRI the way a
     // user would, through the filter box.

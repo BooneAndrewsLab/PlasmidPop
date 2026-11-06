@@ -7,9 +7,12 @@ import {
   type EnzymeSites,
   type Fragment,
   type GelBand,
+  type GelOptions,
   type SeqDocument,
   activeEnzymes,
+  bandProblems,
   compareDiagnostic,
+  describeBands,
   digestFragments,
   enzymeDigest,
   gelProfile,
@@ -64,6 +67,13 @@ function describeBandFragments(band: GelBand): string {
   const shown = band.fragments.slice(0, 3).map((n) => n.toLocaleString());
   const rest = band.fragments.length - shown.length;
   return rest > 0 ? `${shown.join(', ')} and ${rest} more` : shown.join(' and ');
+}
+
+/** How everything ticked together would read on a gel, in a sentence. */
+export function gelSentence(ticked: DigestProfile, gel: GelOptions): string {
+  return ticked.misleading
+    ? `On a gel: ${describeBands(ticked, 6)} — ${bandProblems(ticked, gel).join('; ')}.`
+    : `On a gel: ${ticked.bands.length === 1 ? '1 band' : `${ticked.bands.length} bands`}, ${describeBands(ticked, 6)}.`;
 }
 
 /** An enzyme that may go into a double digest: a row of the list, filters aside. */

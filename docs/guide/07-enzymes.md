@@ -14,12 +14,30 @@ below, or add a single enzyme of your own — see
 
 ## The tab and the workspace
 
-**Open Enzyme workspace ›**, at the foot of the tab, opens the same list in a
-larger view beside the map, as **Open Align workspace ›** does for
-[Align](11-align.md#the-tab-and-the-workspace). It has four pages down its
-left edge:
+The tab is a slim panel for the common case, and the **Enzyme workspace** is
+the rest. The tab has:
 
-- **Enzymes** — the list, with its filters, order and supplier, **Show
+- a **Filter** box. With text in it the tab lists the enzymes whose name or
+  site match, a dozen at most, then **and N more ›**, which opens the
+  workspace on its list. Tick one there, or click where it cuts to select the
+  site;
+- a line, read aloud as a status: how many enzymes there are, how many of
+  them cut once, more than once and not at all, and how many are ticked.
+  When the DNA's host methylation blocks some ticked sites, it says how many
+  (see [Where the DNA was grown](#where-the-dna-was-grown));
+- with the box empty, the **ticked enzymes**, a row each (see
+  [Reading the list](#reading-the-list)), and **Hide all** under them;
+- **Grown in**;
+- how everything ticked would read on a gel, in a sentence, with **Digest ›**
+  to the picture;
+- **Open Enzyme workspace ›** and, when two enzymes could be paired,
+  **Double digests ›**.
+
+**Open Enzyme workspace ›** opens a larger view beside the map, as **Open
+Align workspace ›** does for [Align](11-align.md#the-tab-and-the-workspace).
+It has four pages down its left edge:
+
+- **Enzymes** — the whole list, with its filters, order and supplier, **Show
   listed** and **Hide all**.
 - **Digest** — the **Fragments from ticked enzymes**: the gel, the sizes
   and how it would read.
@@ -28,13 +46,14 @@ left edge:
 - **Table** — the table in use, with **Add enzyme…** and **Import a REBASE
   table…**.
 
-**Grown in** is in the workspace's head, on every page, since it changes every
-page's answer. The tab and the workspace share the filter and the ticks, so
-what is set in one is set in the other. The workspace is a region of the
-window, not a dialog: `Esc` with the keyboard inside closes it and puts the
-keyboard back on **Open Enzyme workspace ›**, and choosing another sidebar tab
-closes it too; the page it was left on is remembered. On a phone it fills the
-screen.
+**Digest ›** and **Double digests ›** open it on those pages; **Open Enzyme
+workspace ›** on the page it was left on. **Grown in** is in the
+workspace's head, on every page, since it changes every page's answer. The
+tab and the workspace share the filter and the ticks, so what is set in one
+is set in the other. The workspace is a region of the window, not a dialog:
+`Esc` with the keyboard inside closes it and puts the keyboard back on
+**Open Enzyme workspace ›**, whichever link opened it, and choosing another
+sidebar tab closes it too. On a phone it fills the screen.
 
 ## Reading the list
 
@@ -264,8 +283,8 @@ tab.
 
 1. Open the **Enzymes** tab.
 2. Type the enzyme name in the filter box.
-3. Look at the number of cut positions in its row. Set **Cuts** to _Once_ to
-   list all unique cutters at once.
+3. Look at the number of cut positions in its row. To list all unique
+   cutters at once, open the workspace and set **Cuts** to _Once_.
 
 ## Importing the full REBASE table
 
@@ -278,8 +297,8 @@ PlasmidPop cannot download it for you. REBASE files are copyright "all
 rights reserved", so we have no right to ship them, and rebase.neb.com does
 not allow a web page to fetch them. You download the file; the app reads it.
 
-1. Open the **Enzymes** tab and click **Import a REBASE table…** at the
-   bottom of the list.
+1. Open the **Enzymes** tab, then its workspace, go to the **Table** page and
+   click **Import a REBASE table…**.
 2. Follow **Download withrefm from REBASE**. The file opens as plain text in
    a new tab — save it with Ctrl+S, or right-click the link and choose _Save
    link as_. It is about 4 MB.
@@ -325,7 +344,7 @@ modification: enzymes, genes and genomes_, Nucleic Acids Research.
 
 For an engineered enzyme, a nicking or homing enzyme the table lacks, or a
 site you want to treat as an "enzyme" in a Golden Gate design, click
-**Add enzyme…** at the foot of the Enzymes tab. Give it a name and its
+**Add enzyme…** on the Enzyme workspace's **Table** page. Give it a name and its
 recognition site in REBASE notation:
 
 - `G^AATTC` — the caret is the top-strand cut; the bottom strand is cut
@@ -386,7 +405,7 @@ inside a GATC, so plasmid grown in an ordinary strain may not cut there.
 ### Where the DNA was grown
 
 Whether those marks matter depends on where the DNA came from, and the
-document says so: **Grown in**, among the list's controls, is one of
+document says so: **Grown in**, in the tab and in the workspace's head, is one of
 **dam+/dcm+** (an ordinary laboratory strain of E. coli, and the default
 for any plasmid), **dam+ only**, **dcm+ only**, or **unmethylated** — DNA
 from a `dam− dcm−` strain, from mammalian cells, or straight out of a PCR.

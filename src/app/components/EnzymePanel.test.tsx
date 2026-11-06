@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 
 import {
   type CutSite,
@@ -14,8 +14,12 @@ import {
 
 import { packCutSites, packEnzymeDigest, unpackScan } from '@/workers/analysisProtocol';
 
+import { type EnzymePage, openEnzymeWorkspace, recallEnzymePage } from '../enzymeWorkspace';
 import { MAX_DEFAULT_ENZYMES, editorStore } from '../state/editorStore';
+import { forgetPanels } from '../state/panelMemory';
+import { useEditorState } from '../state/useEditorStore';
 import { EnzymePanel } from './EnzymePanel';
+import { EnzymeWorkspace } from './EnzymeWorkspace';
 import { getByTip } from '@/test/tips';
 
 // 4,000 bp, linear: the fragment sizes below are cut positions on it.
@@ -62,12 +66,31 @@ function listed(): (string | null)[] {
   return [...document.querySelectorAll('.enzyme-row__name')].map((n) => n.textContent);
 }
 
-function setup(sites: readonly CutSite[]) {
+/** The Enzymes tab as the app mounts it: the slim panel, or the workspace while it is open (item 133). */
+function Host({ doc: d }: { doc: SeqDocument }) {
+  const { workspace } = useEditorState();
+  return workspace === 'enzymes' ? <EnzymeWorkspace doc={d} /> : <EnzymePanel doc={d} />;
+}
+
+/**
+ * Opens the document with `sites` as its scan and renders the tab, with the
+ * workspace open on `page` where the full list, the digest and the pairs are,
+ * or as the slim panel with `null`.
+ */
+function setup(sites: readonly CutSite[], page: EnzymePage | null = 'enzymes') {
   act(() => {
     editorStore.openDocument(doc);
     editorStore.setAnalysis(doc, sites, []);
+    if (page !== null) openEnzymeWorkspace(editorStore.getState().documentId, page);
   });
-  return render(<EnzymePanel doc={doc} />);
+  return render(<Host doc={doc} />);
+}
+
+/** Goes to one of the workspace's pages by its rail tab. */
+function goTo(name: 'Enzymes' | 'Digest' | 'Double' | 'Table'): void {
+  act(() => {
+    fireEvent.click(screen.getByRole('tab', { name: new RegExp(`^${name}`) }));
+  });
 }
 
 describe('EnzymePanel', () => {
@@ -83,13 +106,15 @@ describe('EnzymePanel', () => {
   });
 
   afterEach(() => {
+    cleanup();
     act(() => {
       editorStore.closeDocument();
     });
+    forgetPanels();
   });
 
   it('ticks a handful of single cutters by itself', () => {
-    setup(singleCutters(5));
+    setup(singleCutters(5), null);
     expect(editorStore.getState().shownEnzymes.size).toBe(5);
     expect(screen.queryByText(/enzymes that cut once/)).toBeNull();
   });
@@ -185,7 +210,7 @@ describe('EnzymePanel', () => {
     // Ticked together the two enzymes give 400, 1,700 and 1,900: the last
     // two are within 15 % and run as one band, which neither enzyme's own
     // line can say.
-    setup([at(a, 400), at(b, 2100)]);
+    setup([at(a, 400), at(b, 2100)], 'digest');
     act(() => {
       editorStore.setShownEnzymes([a, b]);
     });
@@ -213,7 +238,7 @@ describe('EnzymePanel', () => {
       siteStart: cut - 1,
       strand: 'forward' as const,
     });
-    setup([at(a, 400), at(b, 2100)]);
+    setup([at(a, 400), at(b, 2100)], 'digest');
     act(() => {
       editorStore.setShownEnzymes([a, b]);
     });
@@ -329,13 +354,14 @@ describe('EnzymePanel', () => {
       editorStore.setShownEnzymes([a]);
     });
     expect(document.querySelector('.enzyme-row__bands--muddy')).not.toBeNull();
+    // The gel and its settings are on the Digest page; the list's marks follow them.
+    goTo('Digest');
     act(() => {
       fireEvent.change(screen.getByRole('combobox', { name: 'Agarose' }), {
         target: { value: '2' },
       });
     });
     expect(editorStore.getState().gelAgarose).toBe(2);
-    expect(document.querySelector('.enzyme-row__bands--muddy')).toBeNull();
     expect(screen.getByText(/model of a 2 % gel/)).toBeVisible();
     act(() => {
       fireEvent.change(screen.getByRole('combobox', { name: 'Ladder' }), {
@@ -345,9 +371,11 @@ describe('EnzymePanel', () => {
     expect(document.querySelector('.gel__svg')?.getAttribute('aria-label')).toMatch(
       /100 bp ladder$/,
     );
+    goTo('Enzymes');
+    expect(document.querySelector('.enzyme-row__bands--muddy')).toBeNull();
   });
 
-  it('offers the best double digests when ordered by band separation', () => {
+  it('offers the best double digests on the Double page', () => {
     const names = activeEnzymes()
       .slice(0, 3)
       .map((e) => e.name);
@@ -363,11 +391,7 @@ describe('EnzymePanel', () => {
     // On the linear 4 kb: a+b cut it into 1,000 + 1,000 + 2,000 (two run
     // together, so not offered), b+c into 2,000 + 1,500 + 500, a+c into
     // 1,000 + 2,500 + 500.
-    setup([at(a, 1000), at(b, 2000), at(c, 3500)]);
-    expect(screen.queryByTestId('double-digests')).toBeNull();
-    act(() => {
-      editorStore.setEnzymeSort('bands');
-    });
+    setup([at(a, 1000), at(b, 2000), at(c, 3500)], 'pairs');
     const section = screen.getByTestId('double-digests');
     const pairs = [...section.querySelectorAll('.enzyme-row__pair')].map((n) => n.textContent);
     // Each pair is named alphabetically, whatever order the list is in.
@@ -380,6 +404,7 @@ describe('EnzymePanel', () => {
     expect([...editorStore.getState().shownEnzymes].sort()).toEqual([a, c].sort());
     // The ticked pair says so, and the gel below draws it beside each alone.
     expect(screen.getByRole('button', { name: 'Ticked' })).toBeDisabled();
+    goTo('Digest');
     expect(
       [...document.querySelectorAll('.gel__lane')].map((l) => l.getAttribute('data-lane')),
     ).toEqual([a, c, 'Both']);
@@ -401,13 +426,13 @@ describe('EnzymePanel', () => {
     // and b + c both leave two pieces within 15 % of each other.
     setup([at(a, 1000), at(b, 1500), at(c, 2900)]);
     act(() => {
-      editorStore.setEnzymeSort('bands');
       editorStore.setShownEnzymes([a]);
     });
     // Filtered down to one enzyme, the listed pairs have nothing to pair.
     fireEvent.change(screen.getByRole('searchbox', { name: 'Filter enzymes' }), {
       target: { value: c },
     });
+    goTo('Double');
     const section = screen.getByTestId('double-digests');
     expect(section).toHaveTextContent('Fewer than two of the enzymes listed');
     // One enzyme ticked: offered as the one to find a partner for.
@@ -425,16 +450,267 @@ describe('EnzymePanel', () => {
     expect(section).toHaveTextContent(`No enzyme with ${c} gives a lane`);
   });
 
-  it('offers the single cutters when there were too many to tick', () => {
-    setup(singleCutters(MAX_DEFAULT_ENZYMES + 1));
-    expect(editorStore.getState().shownEnzymes.size).toBe(0);
-    const offer = screen.getByRole('button', {
-      name: `Tick the ${MAX_DEFAULT_ENZYMES + 1} enzymes that cut once`,
-    });
+  it.each([null, 'enzymes'] as const)(
+    'offers the single cutters when there were too many to tick (%s)',
+    (page) => {
+      setup(singleCutters(MAX_DEFAULT_ENZYMES + 1), page);
+      expect(editorStore.getState().shownEnzymes.size).toBe(0);
+      const offer = screen.getByRole('button', {
+        name: `Tick the ${MAX_DEFAULT_ENZYMES + 1} enzymes that cut once`,
+      });
+      act(() => {
+        fireEvent.click(offer);
+      });
+      expect(editorStore.getState().shownEnzymes.size).toBe(MAX_DEFAULT_ENZYMES + 1);
+    },
+  );
+});
+
+describe('the slim EnzymePanel (item 133, E3)', () => {
+  const COUNTS = [1, 1, 1, 2, 2, 3, 4];
+  const names = activeEnzymes()
+    .slice(0, COUNTS.length)
+    .map((e) => e.name);
+
+  beforeEach(() => {
     act(() => {
-      fireEvent.click(offer);
+      editorStore.setEnzymeCutFilter('any');
+      editorStore.setEnzymeSupplier('');
+      editorStore.setEnzymeSort('name');
+      editorStore.setEnzymeSortReversed(false);
+      editorStore.setEnzymeGroupIsoschizomers(true);
+      editorStore.setShowCutSites(true);
     });
-    expect(editorStore.getState().shownEnzymes.size).toBe(MAX_DEFAULT_ENZYMES + 1);
+  });
+
+  afterEach(() => {
+    cleanup();
+    act(() => {
+      editorStore.setEnzymeGroupIsoschizomers(true);
+      editorStore.setShowCutSites(true);
+      editorStore.closeDocument();
+    });
+    forgetPanels();
+  });
+
+  const search = (text: string): void => {
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Filter enzymes' }), {
+      target: { value: text },
+    });
+  };
+
+  it('keeps to the filter, the summary, the ticked rows and the links, and nothing of the list', () => {
+    setup(cutsEach(COUNTS), null);
+    expect(screen.getByRole('searchbox', { name: 'Filter enzymes' })).toBeVisible();
+    // The three single cutters are ticked by themselves; the other four are
+    // the workspace's to list.
+    expect(listed()).toEqual(names.slice(0, 3));
+    for (const label of ['Cuts', 'Order', 'Show listed', 'Add enzyme…', 'Import a REBASE table…']) {
+      expect(screen.queryByLabelText(label)).toBeNull();
+      expect(screen.queryByRole('button', { name: label })).toBeNull();
+    }
+    expect(document.querySelector('.enzyme-list__scroll')).toBeNull();
+    expect(screen.queryByText(/enzymes cut/)).toBeNull();
+    expect(screen.queryByTestId('double-digests')).toBeNull();
+    expect(screen.queryByRole('heading', { name: /Fragments from ticked enzymes/ })).toBeNull();
+    expect(document.querySelector('.gel')).toBeNull();
+  });
+
+  it('sums the enzymes up in a status line, and says when it is still scanning', () => {
+    act(() => {
+      editorStore.openDocument(doc);
+    });
+    render(<Host doc={doc} />);
+    expect(screen.getByRole('status')).toHaveTextContent('Scanning for restriction sites…');
+    act(() => {
+      editorStore.setAnalysis(doc, cutsEach(COUNTS), []);
+    });
+    const total = activeEnzymes().length;
+    expect(screen.getByRole('status')).toHaveTextContent(
+      `${total} enzymes: 3 cut once, 4 more than once, ${total - 7} not at all. 3 ticked.`,
+    );
+    act(() => {
+      editorStore.setShownEnzymes([]);
+    });
+    expect(screen.getByRole('status')).toHaveTextContent(/ 0 ticked\.$/);
+  });
+
+  it('lists what a search finds, ticks one of them, and goes back to the ticked rows', () => {
+    setup(cutsEach(COUNTS), null);
+    search(names[3] ?? '');
+    expect(listed()).toEqual([names[3]]);
+    const row = document.querySelector('.enzyme-row');
+    const box = row?.querySelector('input');
+    if (!box) throw new Error('no tick box');
+    expect(box).not.toBeChecked();
+    fireEvent.click(box);
+    expect([...editorStore.getState().shownEnzymes]).toContain(names[3]);
+    search('');
+    expect(listed()).toEqual([...names.slice(0, 3), names[3]]);
+    // The same search by site.
+    const site = getEnzyme(names[0] ?? '')?.site ?? '';
+    search(site.toLowerCase());
+    expect(listed()).toContain(names[0]);
+  });
+
+  it('lists a dozen matches and links to the rest in the workspace, with the filter kept', () => {
+    act(() => {
+      editorStore.setEnzymeGroupIsoschizomers(false);
+    });
+    setup(singleCutters(100), null);
+    search('g');
+    // Only enzymes that cut are listed.
+    const matching = activeEnzymes()
+      .slice(0, 100)
+      .filter(
+        (e) => e.name.toLowerCase().includes('g') || e.site.toLowerCase().includes('g'),
+      ).length;
+    expect(matching).toBeGreaterThan(12);
+    expect(listed()).toHaveLength(12);
+    fireEvent.click(screen.getByRole('button', { name: `and ${matching - 12} more ›` }));
+    expect(editorStore.getState().workspace).toBe('enzymes');
+    expect(screen.getByRole('heading', { name: /^Enzymes/ })).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: 'Filter enzymes' })).toHaveValue('g');
+    expect(listed().length).toBeGreaterThan(0);
+  });
+
+  it('has no "and N more" for twelve matches or fewer, and says when none match', () => {
+    setup(cutsEach(COUNTS), null);
+    search(names[1] ?? '');
+    expect(screen.queryByRole('button', { name: /more ›$/ })).toBeNull();
+    search('zzzz');
+    expect(listed()).toEqual([]);
+    expect(screen.getByText('No enzyme matches that.')).toBeVisible();
+  });
+
+  it('unticks everything with Hide all, which is only there with something ticked', () => {
+    setup(cutsEach(COUNTS), null);
+    fireEvent.click(screen.getByRole('button', { name: 'Hide all' }));
+    expect(editorStore.getState().shownEnzymes.size).toBe(0);
+    expect(screen.queryByRole('button', { name: 'Hide all' })).toBeNull();
+    expect(listed()).toEqual([]);
+    // The note that recovers from an empty tick state.
+    expect(screen.getByRole('button', { name: 'Tick the 3 enzymes that cut once' })).toBeVisible();
+  });
+
+  it('keeps the note on hidden cut sites, with the way to show them', () => {
+    setup(cutsEach(COUNTS), null);
+    act(() => {
+      editorStore.setShowCutSites(false);
+    });
+    expect(screen.getByText(/Cut sites are hidden in the views/)).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Show cut sites' }));
+    expect(editorStore.getState().showCutSites).toBe(true);
+  });
+
+  it('keeps Grown in, as the same edit as the workspace head', () => {
+    setup(cutsEach(COUNTS), null);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Host methylation' }), {
+      target: { value: 'unmethylated' },
+    });
+    expect(editorStore.getState().history?.present.methylation).toEqual({
+      dam: false,
+      dcm: false,
+    });
+  });
+
+  it('reads the gel in a sentence with Digest ›, which opens the workspace on the Digest page', () => {
+    const [a, b] = names;
+    if (a === undefined || b === undefined) throw new Error('table');
+    const at = (enzyme: string, cut: number): CutSite => ({
+      enzyme,
+      cut,
+      cutBottom: cut,
+      siteStart: cut - 1,
+      strand: 'forward' as const,
+    });
+    setup([at(a, 400), at(b, 2100)], null);
+    act(() => {
+      editorStore.setShownEnzymes([a, b]);
+    });
+    const reading = screen.getByTestId('gel-reading');
+    expect(reading).toHaveTextContent(
+      'On a gel: 1,900 ×2 + 400 bp — 1,900 and 1,700 run together. Digest ›',
+    );
+    expect(reading).toHaveClass('panel__note--warn');
+    fireEvent.click(within(reading).getByRole('button', { name: 'Digest ›' }));
+    expect(editorStore.getState().workspace).toBe('enzymes');
+    expect(recallEnzymePage(editorStore.getState().documentId)).toBe('digest');
+    expect(screen.getByRole('heading', { name: 'Digest' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Fragments from ticked enzymes' })).toBeVisible();
+  });
+
+  it('has no gel sentence with nothing ticked', () => {
+    setup(cutsEach(COUNTS), null);
+    act(() => {
+      editorStore.setShownEnzymes([]);
+    });
+    expect(screen.queryByTestId('gel-reading')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Digest ›' })).toBeNull();
+  });
+
+  it('opens the workspace from its link, on the page it was left on', () => {
+    setup(cutsEach(COUNTS), null);
+    fireEvent.click(screen.getByRole('button', { name: 'Open Enzyme workspace ›' }));
+    expect(editorStore.getState()).toMatchObject({ workspace: 'enzymes', sidebarTab: 'enzymes' });
+    expect(screen.getByRole('heading', { name: /^Enzymes/ })).toBeInTheDocument();
+    goTo('Table');
+    fireEvent.click(screen.getByRole('button', { name: /close the enzyme workspace/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open Enzyme workspace ›' }));
+    expect(screen.getByRole('heading', { name: 'Enzyme table' })).toBeInTheDocument();
+  });
+
+  it('offers Double digests › only when two enzymes could be paired, and opens that page', () => {
+    setup(singleCutters(1), null);
+    expect(screen.queryByRole('button', { name: 'Double digests ›' })).toBeNull();
+    act(() => {
+      editorStore.setAnalysis(doc, singleCutters(3), []);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Double digests ›' }));
+    expect(editorStore.getState().workspace).toBe('enzymes');
+    expect(recallEnzymePage(editorStore.getState().documentId)).toBe('pairs');
+    expect(screen.getByRole('heading', { level: 2, name: 'Double digests' })).toBeInTheDocument();
+  });
+
+  it('puts the keyboard back on the link when the workspace is shut with Escape', () => {
+    setup(cutsEach(COUNTS), null);
+    fireEvent.click(screen.getByRole('button', { name: 'Double digests ›' }));
+    fireEvent.keyDown(screen.getByRole('heading', { level: 2, name: 'Double digests' }), {
+      key: 'Escape',
+    });
+    expect(editorStore.getState().workspace).toBeNull();
+    expect(screen.getByRole('button', { name: 'Open Enzyme workspace ›' })).toHaveFocus();
+  });
+
+  it('says how many ticked sites the host blocks, and drops the sentence when none are', () => {
+    // The Dcm-blocked MscI site and the ClaI site that nothing blocks.
+    const text = `AAAACCTGGCCAAAAA${'ACGT'.repeat(20)}AAATCGATAAA${'TTAG'.repeat(20)}`;
+    const plasmid = SeqDocument.create({ name: 'pMeth', sequence: text, topology: 'circular' });
+    const mscI = getEnzyme('MscI');
+    const claI = getEnzyme('ClaI');
+    if (mscI === undefined || claI === undefined) throw new Error('missing enzymes');
+    act(() => {
+      editorStore.openDocument(plasmid);
+      editorStore.setAnalysis(plasmid, findCutSites(text, 'circular', [mscI, claI]), []);
+      editorStore.setShownEnzymes(['MscI', 'ClaI']);
+    });
+    const view = render(<Host doc={plasmid} />);
+    expect(screen.getByRole('status')).toHaveTextContent(
+      '2 ticked. 1 ticked site blocked by Dam/Dcm (grown in dam+/dcm+).',
+    );
+    act(() => {
+      editorStore.setShownEnzymes(['ClaI']);
+    });
+    expect(screen.getByRole('status')).not.toHaveTextContent(/blocked/);
+    act(() => {
+      editorStore.setShownEnzymes(['MscI', 'ClaI']);
+      editorStore.apply({
+        type: 'setMethylation',
+        methylation: { dam: false, dcm: false },
+      });
+    });
+    view.rerender(<Host doc={editorStore.document ?? plasmid} />);
+    expect(screen.getByRole('status')).not.toHaveTextContent(/blocked/);
   });
 });
 
@@ -451,10 +727,12 @@ describe('EnzymePanel cut-count filter', () => {
   });
 
   afterEach(() => {
+    cleanup();
     act(() => {
       editorStore.setEnzymeCutFilter('any');
       editorStore.closeDocument();
     });
+    forgetPanels();
   });
 
   /** Picks a value in the "Cuts" select. */
@@ -509,7 +787,7 @@ describe('EnzymePanel cut-count filter', () => {
     const view = setup(cutsEach(COUNTS));
     chooseCuts('twice');
     view.unmount();
-    render(<EnzymePanel doc={doc} />);
+    render(<Host doc={doc} />);
     expect(screen.getByLabelText('Cuts')).toHaveValue('twice');
     expect(listed()).toEqual(names.slice(3, 5));
   });
@@ -577,7 +855,9 @@ describe('EnzymePanel isoschizomers', () => {
   });
 
   afterEach(() => {
+    cleanup();
     setActiveEnzymeSet(null);
+    forgetPanels();
     act(() => {
       editorStore.closeDocument();
       editorStore.setEnzymeGroupIsoschizomers(true);
@@ -647,9 +927,11 @@ describe('EnzymePanel isoschizomers', () => {
 
 describe('EnzymePanel host methylation', () => {
   afterEach(() => {
+    cleanup();
     act(() => {
       editorStore.closeDocument();
     });
+    forgetPanels();
   });
 
   it('marks a site Dam methylation overlaps, and says how many there are', () => {
@@ -663,8 +945,9 @@ describe('EnzymePanel host methylation', () => {
       editorStore.setAnalysis(methylDoc, findCutSites(sequence, 'linear', [claI]), []);
       editorStore.setEnzymeCutFilter('any');
       editorStore.setEnzymeSupplier('');
+      openEnzymeWorkspace(editorStore.getState().documentId, 'enzymes');
     });
-    render(<EnzymePanel doc={methylDoc} />);
+    render(<Host doc={methylDoc} />);
     const cuts = [...document.querySelectorAll('.enzyme-row__cuts .link')];
     expect(cuts.map((c) => c.classList.contains('link--methylated'))).toEqual([true, false]);
     expect(cuts[0]?.getAttribute('data-tip')).toMatch(/Dam methylation overlaps it/);
@@ -691,8 +974,9 @@ describe('EnzymePanel host methylation', () => {
       editorStore.setEnzymeCutFilter('any');
       editorStore.setEnzymeSupplier('');
       editorStore.setEnzymeSort('bands');
+      openEnzymeWorkspace(editorStore.getState().documentId, 'enzymes');
     });
-    const view = render(<EnzymePanel doc={plasmid} />);
+    const view = render(<Host doc={plasmid} />);
     const inline = rows();
     expect(inline.length).toBeGreaterThan(2);
     expect(inline.some(({ cuts }) => cuts.some((c) => c.endsWith('m')))).toBe(true);
@@ -700,7 +984,7 @@ describe('EnzymePanel host methylation', () => {
     act(() => {
       editorStore.setAnalysis(plasmid, sites, [], enzymeDigest(sites, sequence, 'circular'));
     });
-    view.rerender(<EnzymePanel doc={plasmid} />);
+    view.rerender(<Host doc={plasmid} />);
     expect(rows()).toEqual(inline);
     // And unpacked as the client unpacks it: grouped on the way, the lengths
     // views into one buffer, the bands worked out as asked for (#278).
@@ -713,7 +997,7 @@ describe('EnzymePanel host methylation', () => {
     act(() => {
       editorStore.setAnalysis(plasmid, unpacked.sites, [], unpacked.digest);
     });
-    view.rerender(<EnzymePanel doc={plasmid} />);
+    view.rerender(<Host doc={plasmid} />);
     expect(rows()).toEqual(inline);
     expect(view.container.textContent).toBe(whole);
     act(() => {
@@ -723,7 +1007,7 @@ describe('EnzymePanel host methylation', () => {
     act(() => {
       editorStore.setAnalysis(plasmid, sites, []);
     });
-    view.rerender(<EnzymePanel doc={plasmid} />);
+    view.rerender(<Host doc={plasmid} />);
     expect(rows()).toEqual(byName);
   });
 });
@@ -754,8 +1038,9 @@ describe('host methylation (#45)', () => {
       editorStore.openDocument(plasmid);
       editorStore.setAnalysis(plasmid, findCutSites(text, 'circular', [mscI, claI]), []);
       editorStore.setShownEnzymes(['MscI', 'ClaI']);
+      openEnzymeWorkspace(editorStore.getState().documentId, 'digest');
     });
-    const view = render(<EnzymePanel doc={current()} />);
+    const view = render(<Host doc={current()} />);
     const host = (): HTMLElement => screen.getByLabelText('Host methylation');
     expect(host()).toHaveValue('dam+/dcm+');
     // Blocked: only ClaI cuts, so the circle opens into one piece.
@@ -767,7 +1052,7 @@ describe('host methylation (#45)', () => {
       fireEvent.change(host(), { target: { value: 'unmethylated' } });
     });
     expect(current().methylation).toEqual({ dam: false, dcm: false });
-    view.rerender(<EnzymePanel doc={current()} />);
+    view.rerender(<Host doc={current()} />);
     // Now MscI cuts as well, so the digest gives two pieces.
     expect(bands()).toBe(2);
 
