@@ -53,8 +53,9 @@ you would put in the tube, then come back. It follows the ticks alone: the
 toolbar's **Cut sites** toggle only hides the sites drawn in the views, so a
 decluttered map still digests with everything ticked. One status line says
 what was cut and what it gave, such as **EcoRI, BamHI: 3 fragments, largest
-first.**, and the fragments are listed under it, largest first. Each row is
-two lines:
+first.**, and the fragments are listed under it, largest first. Past four
+enzymes the line names the first four and counts the rest (**AatII, AlwNI,
+AseI, AvaI and 28 more**). Each row is two lines:
 
 - on the first, its **length** (click it to select the fragment in the
   views) and the buttons below;

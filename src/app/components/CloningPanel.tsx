@@ -18,7 +18,7 @@ import { copiesOnShelf } from '../shelfPieces';
 import { SIDEBAR_REACTIONS } from '../state/cloningReaction';
 import { editorStore, hasSidebarTab } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
-import { fragmentId, shelve, useDigestPieces } from './digestPieces';
+import { fragmentId, namedEnzymes, shelve, useDigestPieces } from './digestPieces';
 import { MutagenesisPanel } from './MutagenesisPanel';
 import { PcrPanel } from './PcrPanel';
 import { ShelfSummary } from './ShelfSummary';
@@ -243,7 +243,7 @@ export function CloningPanel({ doc }: Props) {
             </p>
           ) : (
             <p className="panel__note" role="status">
-              {enzymesUsed.join(', ')}:{' '}
+              {namedEnzymes(enzymesUsed)}:{' '}
               {total === 1 ? '1 fragment' : `${total.toLocaleString()} fragments`}, largest first
               {total > listed.length
                 ? ` (the ${listed.length.toLocaleString()} that miss the fewest sites shown)`

@@ -192,3 +192,14 @@ export function useDigestPieces(
 
   return { ready, listed, total, blocked, enzymesUsed, setHovered };
 }
+
+/** How many enzymes the digest's status line names before it counts the rest. */
+const MAX_NAMED = 4;
+
+/** The enzymes a digest used, as many as fit a line: the first few, then how many more. */
+export function namedEnzymes(names: readonly string[]): string {
+  const shown = names.slice(0, MAX_NAMED);
+  return names.length > MAX_NAMED
+    ? `${shown.join(', ')} and ${(names.length - MAX_NAMED).toLocaleString()} more`
+    : shown.join(', ');
+}
