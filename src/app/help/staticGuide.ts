@@ -214,7 +214,7 @@ details.aside{margin:.6rem 0}details.aside summary{cursor:pointer;color:var(--mu
 li.task{list-style:none;margin-left:-1.4em}li.task input{margin-right:.5em}
 th,td{border:1px solid var(--line);padding:.3rem .6rem;text-align:left;vertical-align:top}
 nav.pager{display:flex;justify-content:space-between;gap:1rem;margin:2rem 0;padding-top:1rem;border-top:1px solid var(--line)}
-nav.pager a{display:flex;flex-direction:column;max-width:40%}nav.pager .pager__dir{color:var(--muted);font-size:.85em}nav.pager .pager__next{text-align:right;margin-left:auto}
+nav.pager a{display:flex;flex-direction:column}nav.pager>:first-child,nav.pager>:last-child{flex:1 1 0}nav.pager .pager__dir{color:var(--muted);font-size:.85em}nav.pager .pager__next{align-items:flex-end;text-align:right}
 footer{color:var(--muted);font-size:.9em;padding-bottom:2rem}
 `
   .trim()

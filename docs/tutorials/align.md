@@ -37,7 +37,7 @@ The **Align** tab of the sidebar aligns sequences you put in its box to the docu
    > [!NOTE]
    > You see the plasmid on top and the read under it, with one coloured column. It is red, because it falls inside the CDS `synthORF`: the plasmid has **A** there and the read **G**, at base **230**.
 
-6. In the workspace, point at the score line of the **Results** page.
+6. Close the large view (**Close** or `Esc`). In the workspace's **Results** page, point at the heading that reads **Local alignment** with the numbers beside it (score 491, 99%); it is the score line, and a button.
 
    > [!NOTE]
    > You see the region the read covers, bases **181** to **280**, drawn on the map and in the sequence view; click the score line and those bases are selected.

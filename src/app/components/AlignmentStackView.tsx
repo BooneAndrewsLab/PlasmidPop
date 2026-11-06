@@ -183,7 +183,7 @@ export function AlignmentStackView({
    * The columns a tool brought into view (Go to, Find, Prev and Next, the
    * List): a band through every row and the overview, apart from the
    * selection, which is one row's and the pointer's (#370). Only `focus`
-   * sets it; a click does not.
+   * sets it; a press on the rows or `Esc` clears it.
    */
   const [marked, setMarked] = useState<{ start: number; end: number } | null>(null);
   const [colours, setColours] = useState<Colours | null>(null);
@@ -354,7 +354,12 @@ export function AlignmentStackView({
             },
       fitZoom: () => fitZoom(stack.columns, size.width - NAME_WIDTH, baseCharWidth),
       clearSelection: () => {
-        if (selection === null) return false;
+        // The selection goes first, then the band a tool marked.
+        if (selection === null) {
+          if (marked === null) return false;
+          setMarked(null);
+          return true;
+        }
         setGesture(idleGesture());
         setPanelAt(null);
         return true;
@@ -370,6 +375,7 @@ export function AlignmentStackView({
       colours,
       drawing,
       selection,
+      marked,
     ],
   );
 
@@ -756,6 +762,7 @@ export function AlignmentStackView({
               const shift = e.shiftKey;
               setPanelAt(null);
               setCopyNote('');
+              setMarked(null);
               setGesture((g) => gesturePress(g, cell, shift, GESTURE_OPS));
               if (cell !== null) e.currentTarget.setPointerCapture(e.pointerId);
             }}

@@ -274,6 +274,12 @@ describe('selecting in the large view (#370)', () => {
     expect(selected()).toBeNull();
     expect(bar()).toBeNull();
     expect(drawn().marked).toEqual({ start: 7, end: 9 });
+    // The next one takes the band a tool marked (#410).
+    act(() => {
+      cleared = handle.current?.clearSelection() ?? false;
+    });
+    expect(cleared).toBe(true);
+    expect(drawn().marked).toBeNull();
     act(() => {
       cleared = handle.current?.clearSelection() ?? true;
     });

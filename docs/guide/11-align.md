@@ -749,9 +749,9 @@ once the ORFs panel has found them. With no document behind the reference
   numbers the document, and scrolls to its column and marks it, however many
   columns another sample's insertion has opened before it. The mark is a
   pale band down through every row, and on the overview: it says where Go
-  to, Find, Prev or Next brought you, and only they set it (a click does
-  not); it stays until the next of them, apart from the selection described
-  below. A position past
+  to, Find, Prev or Next (or a click on a feature's verdict) brought you, and only they set it; it stays until the next of them, until you
+  press on the rows, or until `Esc` (after the selection, which goes
+  first), apart from the selection described below. A position past
   the end of the document (or of a circular one) is refused with the last
   position; one in the document but outside the stretch the alignment covers
   (when the document's selection was aligned) says which positions are. When
