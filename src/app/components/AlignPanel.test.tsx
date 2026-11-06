@@ -526,9 +526,12 @@ describe('AlignPanel', () => {
     fireEvent.change(position, { target: { value: '5' } });
     fireEvent.keyDown(position, { key: 'Enter' });
     expect(within(goto).queryByText(/Past the end/)).toBeNull();
-    // Esc closes the popover first and the window on the second.
+    // Esc closes the popover first, then clears the band Go to marked (#410),
+    // and the window on the third.
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(within(dialog).queryByRole('group', { name: 'Go to a position' })).toBeNull();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).toBeNull();
