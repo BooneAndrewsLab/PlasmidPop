@@ -81,7 +81,7 @@ const SECTION: SiteSection = {
   indexPath: 'tutorials/',
   indexLabel: 'All tutorials',
   footer: (home, fromDir) =>
-    `Step-by-step exercises in cloning and sequence analysis for <a href="${home}">PlasmidPop</a>, a free DNA sequence editor and plasmid viewer that runs in your browser. The sample files are synthetic. Reference: the <a href="${escapeHtml(relative(fromDir, 'guide/'))}">user guide</a>.`,
+    `Step-by-step exercises for <a href="${home}">PlasmidPop</a>, a free DNA sequence editor and plasmid viewer that runs in your browser. The sample files are synthetic. Reference: the <a href="${escapeHtml(relative(fromDir, 'guide/'))}">user guide</a>.`,
 };
 
 /**
@@ -150,12 +150,14 @@ export function generateTutorialFiles(
     const dir = pagePath(p.id);
     const prev = parsed[i - 1];
     const next = parsed[i + 1];
-    const link = (t: typeof prev, label: string): string =>
+    // The name before the first colon: the full title is a sentence, too long for a pager.
+    const short = (title: string): string => escapeHtml(title.split(':')[0] ?? title);
+    const link = (t: typeof prev, dir_: 'Previous' | 'Next'): string =>
       t === undefined
         ? '<span></span>'
-        : `<a href="${escapeHtml(relative(dir, pagePath(t.id)))}">${label}</a>`;
+        : `<a class="pager__${dir_ === 'Next' ? 'next' : 'prev'}" href="${escapeHtml(relative(dir, pagePath(t.id)))}"><span class="pager__dir">${dir_ === 'Next' ? 'Next &rarr;' : '&larr; Previous'}</span>${short(t.title)}</a>`;
     const up = `<a href="${escapeHtml(relative(dir, pagePath(null)))}">All tutorials</a>`;
-    const pager = `<nav class="pager" aria-label="Tutorials">${link(prev, `&larr; ${escapeHtml(prev?.title ?? '')}`)}${up}${link(next, `${escapeHtml(next?.title ?? '')} &rarr;`)}</nav>`;
+    const pager = `<nav class="pager" aria-label="Tutorials">${link(prev, 'Previous')}${up}${link(next, 'Next')}</nav>`;
     files.push({
       path: `${dir}index.html`,
       content: document({
