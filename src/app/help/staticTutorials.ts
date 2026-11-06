@@ -40,6 +40,7 @@ export const TUTORIAL_ORDER: readonly string[] = [
   'mutagenesis',
   'align',
   'enzymes',
+  'crispr',
   'sample-files',
 ];
 

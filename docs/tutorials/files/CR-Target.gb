@@ -1,0 +1,22 @@
+LOCUS       CR-Target           600 bp    DNA     linear   SYN 06-NOV-2026
+DEFINITION  CR-Target, linear 600 bp target for the CRISPR tutorial (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     misc_feature    231..300
+                     /label="synthetic target"
+                     /note="synthetic example"
+ORIGIN
+        1 tcgcgcgaat acatatgcac aatgtatact cacttgagcg cttggtagca cacgtgatag
+       61 tatgactctt gctcttctcg cgtgagcatc taaaggtatt acactcatac gcatagcgtt
+      121 tcgttaaaca gtgttgtcga ttttgctcga cttggtaata gaacagtgtc aagacactac
+      181 tgttcattaa caatttgtca gacaggagct cagcgaatac atcacgaaca atcgtacctg
+      241 atcaacgcta cagtagagtt atcgacatca gcattcatgc tcgactggtc atcgttgatg
+      301 aacattgacg acattgacac atgtgctact tctcgcgtga gcatctaaag gtaatgtgat
+      361 tgagtgcgcg atgaacgcag tttctttcgt gtgattctca cgcacattgg ccatcgcact
+      421 tagactctag acatatcatc gctcatagaa atcgatacgc tagtgtttat tcatttctcg
+      481 taaacagcat ttctcgcgtt gacagcgtcg aagttgcaag cgcgctctct cagcgtttag
+      541 cgacttattc agtcactaca cgtttcgtgc gtgcattgct tacactgacg caactaagaa
+//
