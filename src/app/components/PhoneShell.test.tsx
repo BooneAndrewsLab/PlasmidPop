@@ -105,6 +105,15 @@ describe('PhoneShell', () => {
     expect(editorStore.getState().workspace).toBe('align');
   });
 
+  it('opens the Enzyme workspace from the Enzymes subtab (item 133)', () => {
+    setup();
+    fireEvent.click(pane('Details'));
+    fireEvent.click(screen.getByRole('tab', { name: 'Enzymes' }));
+    expect(editorStore.getState().sidebarTab).toBe('enzymes');
+    fireEvent.click(screen.getByRole('button', { name: 'Open Enzyme workspace ›' }));
+    expect(editorStore.getState().workspace).toBe('enzymes');
+  });
+
   it('goes back to the view last looked at when a list reveals a position', () => {
     setup();
     fireEvent.click(pane('Sequence'));

@@ -16,6 +16,7 @@ import { VerifyClonesDialog } from './components/VerifyClonesDialog';
 import { NewDocumentDialog } from './components/NewDocumentDialog';
 import { PhoneShell } from './components/PhoneShell';
 import { AlignWorkspace } from './components/AlignWorkspace';
+import { EnzymeWorkspace } from './components/EnzymeWorkspace';
 import { PrimerWorkspace } from './components/PrimerWorkspace';
 import { CopyBanner } from './components/CopyBanner';
 import { CompareDialog } from './components/CompareDialog';
@@ -80,6 +81,7 @@ const WORKSPACES: Readonly<
 > = {
   primers: { label: 'primer', View: PrimerWorkspace },
   align: { label: 'Align', View: AlignWorkspace },
+  enzymes: { label: 'Enzyme', View: EnzymeWorkspace },
 };
 
 export function App() {

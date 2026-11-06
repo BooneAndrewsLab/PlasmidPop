@@ -21,7 +21,8 @@ const PANES: readonly [PhonePane, string][] = [
  * panel checks a pasted primer and lists the document's, and "Design
  * primers…" opens the full-screen workspace. Align the same since item
  * 129: a read dropped on the slim panel is aligned there, and "Options and
- * more" opens its workspace.
+ * more" opens its workspace. Enzymes likewise since item 133: the list is
+ * read there, and "Open Enzyme workspace ›" opens the rest.
  */
 const DETAIL_TABS: readonly [SidebarTab, string][] = [
   ['features', 'Features'],

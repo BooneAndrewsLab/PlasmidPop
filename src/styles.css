@@ -7992,3 +7992,12 @@ button {
     text-align: center;
   }
 }
+
+/* The Enzyme workspace's Grown in, in the head beside the heading. */
+.ws__host {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-3);
+  font-size: 12.5px;
+}

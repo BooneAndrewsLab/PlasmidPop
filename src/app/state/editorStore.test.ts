@@ -1618,6 +1618,32 @@ describe('EditorStore primer workspace (item 107)', () => {
     expect(store.getState().workspace).toBeNull();
   });
 
+  it('holds the Enzyme workspace on the Enzymes tab as the others (item 133)', () => {
+    const store = new EditorStore();
+    store.openDocument(doc, 'x.gb');
+    store.setSidebarOpen(false);
+    store.setWorkspace('enzymes');
+    expect(store.getState()).toMatchObject({
+      workspace: 'enzymes',
+      sidebarTab: 'enzymes',
+      sidebarOpen: true,
+    });
+    store.setWorkspace('align');
+    expect(store.getState()).toMatchObject({ workspace: 'align', sidebarTab: 'align' });
+    store.setWorkspace('enzymes');
+    store.setSidebarTab('enzymes');
+    expect(store.getState().workspace).toBe('enzymes');
+    store.setSidebarTab('features');
+    expect(store.getState().workspace).toBeNull();
+    store.setWorkspace('enzymes');
+    store.setSidebarOpen(false);
+    expect(store.getState().workspace).toBeNull();
+    // A protein has no Enzymes tab, so no workspace for it.
+    store.openDocument(SeqDocument.create({ sequence: 'MKLV', alphabet: 'protein' }), 'p.fa');
+    store.setWorkspace('enzymes');
+    expect(store.getState().workspace).toBeNull();
+  });
+
   it('is per document, and refused where there is no Primers tab', () => {
     const store = new EditorStore();
     const first = store.openDocument(doc, 'x.gb');

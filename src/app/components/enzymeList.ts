@@ -415,3 +415,6 @@ export function useEnzymeList(doc: SeqDocument) {
     offered,
   };
 }
+
+/** What `useEnzymeList` answers with, for the pieces that take it as a prop. */
+export type EnzymeList = ReturnType<typeof useEnzymeList>;

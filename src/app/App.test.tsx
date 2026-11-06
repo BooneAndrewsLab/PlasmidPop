@@ -561,6 +561,30 @@ describe('previews', () => {
   });
 });
 
+describe('the Enzyme workspace (item 133)', () => {
+  it('takes the workspace column from the Enzymes tab, which Escape hands back', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    act(() => {
+      editorStore.setSidebarTab('enzymes');
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Open Enzyme workspace ›' }));
+    const region = screen.getByRole('region', { name: 'Enzyme workspace' });
+    expect(
+      screen.getByRole('separator', { name: 'Resize the Enzyme workspace' }),
+    ).toBeInTheDocument();
+    expect(document.querySelector('.app__views--map')).not.toBeNull();
+    const sidebarRail = screen.getByRole('tablist', { name: 'Sidebar' });
+    expect(within(sidebarRail).getByRole('tab', { name: 'Enzymes' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    fireEvent.keyDown(screen.getByRole('heading', { name: /^Enzymes/ }), { key: 'Escape' });
+    expect(region).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open Enzyme workspace ›' })).toHaveFocus();
+  });
+});
+
 describe('find and feature editing', () => {
   it('finds bases and features, and edits a feature location', async () => {
     render(<App />);

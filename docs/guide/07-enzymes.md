@@ -12,6 +12,30 @@ of REBASE — see [Importing the full REBASE table](#importing-the-full-rebase-t
 below, or add a single enzyme of your own — see
 [Adding your own enzyme](#adding-your-own-enzyme).
 
+## The tab and the workspace
+
+**Open Enzyme workspace ›**, at the foot of the tab, opens the same list in a
+larger view beside the map, as **Open Align workspace ›** does for
+[Align](11-align.md#the-tab-and-the-workspace). It has four pages down its
+left edge:
+
+- **Enzymes** — the list, with its filters, order and supplier, **Show
+  listed** and **Hide all**.
+- **Digest** — the **Fragments from ticked enzymes**: the gel, the sizes
+  and how it would read.
+- **Double** — the best double digests (see
+  [Choosing a diagnostic digest](#choosing-a-diagnostic-digest)).
+- **Table** — the table in use, with **Add enzyme…** and **Import a REBASE
+  table…**.
+
+**Grown in** is in the workspace's head, on every page, since it changes every
+page's answer. The tab and the workspace share the filter and the ticks, so
+what is set in one is set in the other. The workspace is a region of the
+window, not a dialog: `Esc` with the keyboard inside closes it and puts the
+keyboard back on **Open Enzyme workspace ›**, and choosing another sidebar tab
+closes it too; the page it was left on is remembered. On a phone it fills the
+screen.
+
 ## Reading the list
 
 Each row is one enzyme that cuts the sequence — or, with isoschizomers

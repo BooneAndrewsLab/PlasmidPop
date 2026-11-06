@@ -148,7 +148,7 @@ export type SidebarTab =
 export type PhonePane = 'map' | 'sequence' | 'details';
 
 /** The workspaces, each standing in for the sidebar tab of the same name while open. */
-export type Workspace = Extract<SidebarTab, 'primers' | 'align'>;
+export type Workspace = Extract<SidebarTab, 'primers' | 'align' | 'enzymes'>;
 
 export const PHONE_PANES: readonly PhonePane[] = ['map', 'sequence', 'details'];
 
@@ -571,8 +571,8 @@ export interface DocumentState {
    */
   readonly phonePane: PhonePane;
   /**
-   * Which workspace (the primer workspace, item 107, or the Align
-   * workspace, item 129) is open on this document, if one is: a modeless
+   * Which workspace (the primer workspace, item 107, the Align
+   * workspace, item 129, or the Enzyme workspace, item 133) is open on this document, if one is: a modeless
    * region in the sidebar's column, widened, beside the live map. Open only
    * while the sidebar is on the tab of the same name, and shut by choosing
    * another tab or putting the sidebar away; which of its pages it is on

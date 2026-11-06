@@ -16,6 +16,7 @@ export type WorkspaceLayout = 'split' | 'full' | 'phone';
 const EVENT: Readonly<Record<Workspace, string>> = {
   primers: 'primer-workspace',
   align: 'align-workspace',
+  enzymes: 'enzyme-workspace',
 };
 
 /**
