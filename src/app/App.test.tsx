@@ -538,7 +538,7 @@ describe('previews', () => {
       editorStore.setSidebarTab('align');
     });
     expect(screen.getByText(/^Reference: SYNPBR322, 4,361 bp, circular\.$/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Options and more ›' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open Align workspace ›' }));
     const region = screen.getByRole('region', { name: 'Align workspace' });
     expect(document.activeElement).toBe(
       screen.getByRole('heading', { name: 'Align to the document' }),
@@ -552,7 +552,7 @@ describe('previews', () => {
       'aria-selected',
       'true',
     );
-    expect(screen.queryByRole('button', { name: 'Options and more ›' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Open Align workspace ›' })).toBeNull();
     // The Primers tab shuts it and opens its own slim panel, not a second workspace.
     fireEvent.click(within(sidebarRail).getByRole('tab', { name: 'Primers' }));
     expect(region).not.toBeInTheDocument();

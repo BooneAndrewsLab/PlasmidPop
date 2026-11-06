@@ -93,7 +93,7 @@ describe('AlignPanel', () => {
     expect(screen.queryByRole('group', { name: 'Options' })).toBeNull();
     expect(screen.queryByRole('combobox', { name: 'Alignment mode' })).toBeNull();
     expect(screen.queryByRole('region', { name: 'Align workspace' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Options and more ›' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open Align workspace ›' }));
     expect(editorStore.getState()).toMatchObject({ workspace: 'align', sidebarTab: 'align' });
     expect(screen.getByRole('region', { name: 'Align workspace' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Align to the document' })).toHaveFocus();
@@ -190,7 +190,7 @@ describe('AlignPanel', () => {
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: /close the align workspace/i }));
     });
-    expect(screen.getByRole('button', { name: 'Options and more ›' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Open Align workspace ›' })).toHaveFocus();
     expect(screen.getByRole('status')).toHaveTextContent(
       /(Global|Local) alignment: score .*identity 100%/,
     );
@@ -1205,7 +1205,7 @@ describe('AlignPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Align' }));
     expect(screen.getByRole('button', { name: 'Aligning…' })).toBeDisabled();
     // The panel gives way to the workspace: the run goes on, on its Results page.
-    fireEvent.click(screen.getByRole('button', { name: 'Options and more ›' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open Align workspace ›' }));
     await new Promise((r) => setTimeout(r, 5));
     expect(long.signal?.aborted).toBe(false);
     expect(screen.getByText('Aligning…')).toBeInTheDocument();

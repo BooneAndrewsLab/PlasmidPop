@@ -13,7 +13,7 @@ The tab itself is the common case and nothing else: the box for a read or
 a sequence, the **Reference** line (the document, its length and topology,
 or the selection when only that is aligned against), one **Align** button,
 and a line on what came of it. Everything else is in the **Align
-workspace**, a larger view beside the map that **Options and more ›** opens,
+workspace**, a larger view beside the map that **Open Align workspace ›** opens,
 as **Design primers…** opens the [primer workspace](10-primers.md#the-primer-workspace).
 It has four pages down its left edge:
 
@@ -35,7 +35,7 @@ workspace's **Results** and **Assemble** tabs count what they hold.
 
 The workspace is a region of the window, not a dialog: `Tab` moves in and
 out of it, `Esc` with the keyboard inside closes it and puts the keyboard
-back on **Options and more ›**, and choosing another sidebar tab or putting
+back on **Open Align workspace ›**, and choosing another sidebar tab or putting
 the sidebar away closes it too; its page is remembered. Beside the map it
 shares the primer workspace's width (drag the boundary; double-click to
 reset); narrower than 1000 px it takes the whole main area with the

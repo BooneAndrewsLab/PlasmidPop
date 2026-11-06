@@ -7201,18 +7201,14 @@ button {
   margin-top: 6px;
 }
 
-.primers__last,
-.primers__more,
-.align__more {
+.panel__door {
   display: block;
   margin: 6px 0 2px;
   font-size: 12.5px;
   text-decoration: none;
 }
 
-.primers__last:hover,
-.primers__more:hover,
-.align__more:hover {
+.panel__door:hover {
   text-decoration: underline;
 }
 
@@ -7237,7 +7233,7 @@ button {
   margin: 0 0 4px;
 }
 
-.align__links {
+.panel__links {
   margin-top: 6px;
 }
 

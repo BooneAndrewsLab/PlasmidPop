@@ -92,7 +92,7 @@ export function PrimerPanel({ doc }: Props) {
         {pairs !== null && (
           <button
             type="button"
-            className="link primers__last"
+            className="link panel__door"
             data-tip="Open the last results"
             onClick={() => {
               openPrimerWorkspace(documentId, 'results');
@@ -104,7 +104,7 @@ export function PrimerPanel({ doc }: Props) {
         {cloneCheck !== null && (
           <button
             type="button"
-            className="link primers__last"
+            className="link panel__door"
             data-tip="Design colony-PCR primers for this product, across its junctions"
             onClick={() => {
               openPrimerWorkspace(documentId, 'clone');
@@ -164,7 +164,7 @@ export function PrimerPanel({ doc }: Props) {
             )}
             <button
               type="button"
-              className="link primers__more"
+              className="link panel__door"
               data-tip="Warnings, dimers, Add sites, Save"
               onClick={() => {
                 openPrimerWorkspace(documentId, 'check');

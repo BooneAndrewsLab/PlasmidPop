@@ -122,7 +122,7 @@ as #300 did for primers (item 107).
 - **Phone: the primer workspace's layout.** `App` renders whichever
   workspace is open with `layout="phone"`; Align is a fifth Details subtab
   (`PhoneShell`), the slim panel there, so a read dropped on a phone has
-  its Options and more. Nothing phone-specific in the pages: the batch list
+  its Open Align workspace ›. Nothing phone-specific in the pages: the batch list
   scrolls sideways as the primer tables do.
 - **One workspace at a time.** The store's `primerWorkspace: boolean`
   became `workspace: 'primers' | 'align' | null` with the same invariants

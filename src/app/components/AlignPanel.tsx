@@ -91,7 +91,7 @@ export function AlignPanel({ doc }: Props) {
           {assembly !== null && <p className="panel__note">{assemblyLine(assembly.assembly)}.</p>}
           <button
             type="button"
-            className="link align__more"
+            className="link panel__door"
             data-tip={
               assembly !== null && result === null && batch === null
                 ? 'The contigs, their layout and warnings, and the consensus to save'
@@ -105,23 +105,23 @@ export function AlignPanel({ doc }: Props) {
           </button>
         </div>
       )}
-      <div className="align__links">
+      <div className="panel__links">
         <button
           type="button"
           id={MORE_BUTTON_ID}
           ref={more}
-          className="link align__more"
+          className="link panel__door"
           data-tip="Mode, the selection, trimming and quality, and the results in full: the Align workspace"
           onClick={() => {
             open('align');
           }}
         >
-          Options and more ›
+          Open Align workspace ›
         </button>
         {records.length > 1 && records.length <= BATCH_LIMIT && (
           <button
             type="button"
-            className="link align__more"
+            className="link panel__door"
             data-tip="Join the records into contigs by their overlaps, with no reference"
             onClick={() => {
               open('assemble');
@@ -133,7 +133,7 @@ export function AlignPanel({ doc }: Props) {
         {records.length > 1 && (
           <button
             type="button"
-            className="link align__more"
+            className="link panel__door"
             data-tip="Align the records with each other, and with this document, in one view"
             onClick={() => {
               open('multiple');

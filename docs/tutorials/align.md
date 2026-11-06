@@ -30,7 +30,7 @@ The **Align** tab of the sidebar aligns sequences you put in its box to the docu
    > You see **Local alignment**: score 491, identity 99% over 100 columns, 0 gap columns, reverse complement of the pasted sequence.
 
    > [!TIP]
-   > The read is 100 bp of a 480 bp plasmid, under half its length, so the mode was chosen for you as Local: Global would score the read across the whole plasmid. **Options and more ›** opens the Align workspace, where the **Options** group shows the mode and says why. The read is given on the opposite strand, and both orientations are tried.
+   > The read is 100 bp of a 480 bp plasmid, under half its length, so the mode was chosen for you as Local: Global would score the read across the whole plasmid. **Open Align workspace ›** opens the Align workspace, where the **Options** group shows the mode and says why. The read is given on the opposite strand, and both orientations are tried.
 
 5. Click **Results ›**, then **Large view**.
 

@@ -43,7 +43,7 @@ describe('AlignWorkspace (item 129, #354)', () => {
 
   it('opens from the slim panel on the page asked for, with the sidebar on Align', () => {
     render(<Host />);
-    fireEvent.click(screen.getByRole('button', { name: 'Options and more ›' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open Align workspace ›' }));
     expect(editorStore.getState()).toMatchObject({
       workspace: 'align',
       sidebarTab: 'align',
@@ -67,7 +67,7 @@ describe('AlignWorkspace (item 129, #354)', () => {
     expect(editorStore.getState().workspace).toBeNull();
     expect(box()).toHaveValue('GGCCAATTGGCC');
     // Reopened, it is on the page it was left on.
-    fireEvent.click(screen.getByRole('button', { name: 'Options and more ›' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open Align workspace ›' }));
     expect(screen.getByRole('heading', { name: 'Align to the document' })).toBeInTheDocument();
   });
 
@@ -107,7 +107,7 @@ describe('AlignWorkspace (item 129, #354)', () => {
     // With nothing inner to take it, Escape shuts the workspace.
     fireEvent.keyDown(screen.getByRole('heading', { name: 'Results' }), { key: 'Escape' });
     expect(editorStore.getState().workspace).toBeNull();
-    expect(screen.getByRole('button', { name: 'Options and more ›' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Open Align workspace ›' })).toHaveFocus();
   });
 
   it('is shut by another sidebar tab, and by the sidebar being put away', () => {
