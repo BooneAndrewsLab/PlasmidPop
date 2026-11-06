@@ -2,48 +2,33 @@ import { useEffect, useId, useMemo, useState } from 'react';
 
 import {
   type CutSite,
-  type DigestProfile,
   type Enzyme,
   type EnzymeSites,
-  type Fragment,
-  type GelBand,
   type SeqDocument,
-  activeEnzymes,
   bandProblems,
-  bestPairs,
-  bestPartners,
   cutLabel,
-  compareDiagnostic,
   describeBands,
-  digestFragments,
-  enzymeDigest,
   formatInt,
-  gelProfile,
   getEnzyme,
   type HostMethylationState,
   describeHost,
   hostMarksFromBits,
-  hostStateBits,
   isHostMethylationSensitive,
   isDoubleCutter,
-  isoschizomerGroups,
   overhangKind,
-  sitesByEnzyme,
 } from '@/core';
 
-import {
-  CUT_COUNT_OPTIONS,
-  cutCountPhrase,
-  isCutCountFilter,
-  matchesCutCount,
-} from '../state/cutFilter';
+import { CUT_COUNT_OPTIONS, cutCountPhrase, isCutCountFilter } from '../state/cutFilter';
 import { ENZYME_SORT_OPTIONS, isEnzymeSort } from '../state/enzymeSort';
 import { editorStore } from '../state/editorStore';
 import { useGelOptions } from '../state/useGel';
 import { useEditorState } from '../state/useEditorStore';
+import { BandLine } from './BandLine';
 import { CustomEnzymeForm } from './CustomEnzymeForm';
+import { DoubleDigests } from './DoubleDigestsPage';
+import { useEnzymeList } from './enzymeList';
 import { EnzymeImport } from './EnzymeImport';
-import { Gel, type GelLane } from './Gel';
+import { Gel } from './Gel';
 import { useRowWindow } from './useRowWindow';
 
 interface Props {
@@ -86,31 +71,11 @@ function firstSites(site: EnzymeSites['site'], count: number): CutSite[] {
  */
 const ROW_ESTIMATE = 46;
 
-const NO_SITES: readonly CutSite[] = [];
-
 /** How many of a row's sites carry a Dam or Dcm mark. */
 function countMarked(marks: Iterable<number>): number {
   let n = 0;
   for (const bits of marks) if (bits !== 0) n++;
   return n;
-}
-const NO_MARKS = new Uint8Array(0);
-/** The sites of an enzyme that does not cut. */
-const NOT_CUT: EnzymeSites = {
-  count: 0,
-  cuts: NO_MARKS,
-  host: NO_MARKS,
-  site: () => undefined,
-  sites: () => NO_SITES,
-};
-
-/** One enzyme of the list, with its sites, their marks, and its lane. */
-interface EnzymeEntry extends EnzymeSites {
-  readonly enzyme: Enzyme;
-  /** Whether it cuts this sequence at all, so has a lane. */
-  readonly cutting: boolean;
-  /** Its lane on a gel, null when it does not cut; worked out on the first call. */
-  readonly profile: () => DigestProfile | null;
 }
 
 /**
@@ -120,34 +85,6 @@ interface EnzymeEntry extends EnzymeSites {
  * list instead of taking the page down.
  */
 const MAX_SHOW_LISTED = 200;
-
-/**
- * How many ticked enzymes still get a lane each beside the combined digest.
- * Three is a triple digest; more than that is not a digest anyone runs to
- * check a construct, and five lanes of 32 units are too narrow to name.
- */
-const MAX_SINGLE_LANES = 3;
-
-/**
- * The enzymes a double digest is looked for among: those cutting at most
- * this many times. A pair of frequent cutters is a lane of a dozen bands,
- * which `compareDiagnostic` would rank last anyway.
- */
-const MAX_PAIR_CUTS = 3;
-/**
- * How many of them are paired, fewest cuts first. Every pair is a digest,
- * so this is quadratic: 120 is 7,140 pairs and about 13 ms, and a REBASE
- * table can list several hundred (docs/perf-notes.md).
- */
-const MAX_PAIR_CANDIDATES = 120;
-const PAIRS_SHOWN = 5;
-
-/** "2,181 and 2,180", the pieces hidden under one band. */
-function describeBandFragments(band: GelBand): string {
-  const shown = band.fragments.slice(0, 3).map((n) => n.toLocaleString());
-  const rest = band.fragments.length - shown.length;
-  return rest > 0 ? `${shown.join(', ')} and ${rest} more` : shown.join(' and ');
-}
 
 function describeSite(site: CutSite, doc: SeqDocument): string {
   return formatInt(cutLabel(site.cut, doc.length, doc.topology));
@@ -207,542 +144,39 @@ function describeOthers(shown: Enzyme, members: readonly Enzyme[]): string {
     : named.join('');
 }
 
-/**
- * The bands this enzyme alone would give, which is what a diagnostic digest
- * is actually chosen by: a cut count says nothing about whether the pieces
- * can be told apart. Bands that would run together, or off the end of the
- * gel, are said rather than left to be worked out from the numbers.
- */
-function BandLine({ profile }: { readonly profile: DigestProfile | null }) {
-  if (profile === null) return null;
-  return <BandLineOf profile={profile} />;
-}
-
-function BandLineOf({ profile }: { readonly profile: DigestProfile }) {
-  const problems = bandProblems(profile, useGelOptions());
-  // A single cutter gives one band and no warning: it linearises the
-  // plasmid, which is what it is for. The mark is for a lane that hides
-  // something, not for one with nothing to say.
-  const clear = !profile.misleading;
-  return (
-    <span
-      className={`enzyme-row__bands${clear ? '' : ' enzyme-row__bands--muddy'}`}
-      data-tip={
-        clear
-          ? `On a gel: ${describeBands(profile, 12)}`
-          : `On a gel: ${describeBands(profile, 12)} — ${problems.join('; ')}`
-      }
-    >
-      {describeBands(profile)}
-      {clear ? '' : ' ⚠'}
-    </span>
-  );
-}
-
-/** An enzyme that may go into a double digest: a row of the list, filters aside. */
-interface PairRow {
-  /** The name it is offered under, as on its row. */
-  readonly name: string;
-  /** Every enzyme the row stands for, so a partner chosen by any name is found. */
-  readonly members: readonly string[];
-  readonly cuts: readonly number[];
-}
-
-interface DoubleDigestsProps {
-  /** The rows the list is showing, in its order, so its filters narrow the pairs too. */
-  readonly listed: readonly (EnzymeSites & { readonly enzyme: Enzyme })[];
-  /**
-   * Every row that cuts at most `MAX_PAIR_CUTS` times, whatever the name and
-   * cut-count filters say (the supplier filter still holds): where a partner
-   * for one chosen enzyme is looked for.
-   */
-  readonly pairable: readonly PairRow[];
-  /** The cuts of a row's sites that this DNA's methylation leaves open (#45). */
-  readonly cuts: (entry: EnzymeSites) => number[];
-  readonly doc: SeqDocument;
-  readonly shownEnzymes: ReadonlySet<string>;
-}
-
-/**
- * The best double digests, under a list ordered by band separation: the same
- * question asked of pairs, for when no enzyme on its own gives a lane worth
- * running. By default among the enzymes listed; with **Pair** set to one
- * enzyme, its best partners among every enzyme that cuts few enough times,
- * which is the question as it is usually asked — "what do I cut with EcoRI"
- * (item 42). "Tick both" ticks the pair alone, and the gel below then draws
- * their digest beside each single one.
- */
-function DoubleDigests({ listed, pairable, cuts, doc, shownEnzymes }: DoubleDigestsProps) {
-  const gel = useGelOptions();
-  const [anchorName, setAnchorName] = useState('');
-  const anchor =
-    anchorName === '' ? undefined : pairable.find((r) => r.members.includes(anchorName));
-  // Keyed on the names rather than on `listed`, a new array every render.
-  const key = listed
-    .filter((g) => {
-      const open = cuts(g).length;
-      return open > 0 && open <= MAX_PAIR_CUTS;
-    })
-    .map((g) => g.enzyme.name)
-    .join(' ');
-  const poolSize = key === '' ? 0 : key.split(' ').length;
-  const listedPairs = useMemo(() => {
-    if (anchor !== undefined) return [];
-    const names = new Set(key.split(' '));
-    const pool = listed
-      .filter((g) => names.has(g.enzyme.name))
-      .sort((a, b) => a.count - b.count)
-      .slice(0, MAX_PAIR_CANDIDATES);
-    return bestPairs(
-      pool.map((g) => ({ name: g.enzyme.name, cuts: cuts(g) })),
-      doc.length,
-      doc.topology,
-      PAIRS_SHOWN,
-      gel,
-    );
-    // `listed` is read only through the names in `key`.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, anchor, doc.length, doc.topology, gel]);
-  const partnerPairs = useMemo(
-    () =>
-      anchor === undefined
-        ? []
-        : bestPartners(
-            anchor,
-            pairable.filter((r) => r !== anchor),
-            doc.length,
-            doc.topology,
-            PAIRS_SHOWN,
-            gel,
-          ),
-    [anchor, pairable, doc.length, doc.topology, gel],
-  );
-  const pairs = anchor === undefined ? listedPairs : partnerPairs;
-  if (pairable.length < 2) return null;
-  // One enzyme ticked is the usual start of "and what do I cut it with".
-  const [onlyTicked] = shownEnzymes.size === 1 ? [...shownEnzymes] : [];
-  const offer =
-    anchor === undefined && onlyTicked !== undefined
-      ? pairable.find((r) => r.members.includes(onlyTicked))
-      : undefined;
-
-  return (
-    <div className="panel__section" data-testid="double-digests">
-      <h3 className="panel__heading">Double digests</h3>
-      <div className="panel__form">
-        <label>
-          <span>Pair</span>
-          <select
-            className="panel__select"
-            value={anchor?.name ?? ''}
-            data-tip="Pairs among the enzymes listed, or the best partners for one enzyme"
-            onChange={(e) => {
-              setAnchorName(e.target.value);
-            }}
-          >
-            <option value="">any two listed enzymes</option>
-            {pairable.map((r) => (
-              <option key={r.name} value={r.name}>
-                {r.name} with a partner
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      {offer !== undefined && (
-        <p className="panel__note">
-          <button
-            type="button"
-            className="link"
-            onClick={() => {
-              setAnchorName(offer.name);
-            }}
-          >
-            Find a partner for {offer.name}
-          </button>
-        </p>
-      )}
-      {anchor === undefined && poolSize < 2 ? (
-        <p className="panel__note">
-          Fewer than two of the enzymes listed cut {MAX_PAIR_CUTS} times or fewer.
-        </p>
-      ) : pairs.length === 0 ? (
-        <p className="panel__note">
-          {anchor === undefined
-            ? 'No pair of the enzymes listed gives a lane that can be read at a glance.'
-            : `No enzyme with ${anchor.name} gives a lane that can be read at a glance.`}
-        </p>
-      ) : (
-        <ul className="enzyme-list">
-          {pairs.map((pair) => {
-            // A pair reads the same whichever way the list happened to be
-            // sorted; a partner comes after the enzyme it was found for.
-            const [first, second] =
-              anchor !== undefined || pair.first.localeCompare(pair.second) <= 0
-                ? [pair.first, pair.second]
-                : [pair.second, pair.first];
-            const { profile } = pair;
-            const both =
-              shownEnzymes.size === 2 && shownEnzymes.has(first) && shownEnzymes.has(second);
-            return (
-              <li key={`${first}+${second}`} className="enzyme-row">
-                <span className="enzyme-row__pair">
-                  {first} + {second}
-                </span>
-                <button
-                  type="button"
-                  className="button button--quiet button--small"
-                  disabled={both}
-                  data-tip={
-                    both
-                      ? 'These two are what is ticked; the gel below is their digest'
-                      : `Tick ${first} and ${second} alone, to see their digest beside each on its own`
-                  }
-                  onClick={() => {
-                    editorStore.setShownEnzymes([pair.first, pair.second]);
-                  }}
-                >
-                  {both ? 'Ticked' : 'Tick both'}
-                </button>
-                <BandLine profile={profile} />
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      <p className="panel__note panel__note--quiet">
-        {anchor === undefined ? (
-          <>
-            Pairs of the listed enzymes that cut {MAX_PAIR_CUTS} times or fewer, best separated
-            first
-            {poolSize > MAX_PAIR_CANDIDATES
-              ? ` — the ${MAX_PAIR_CANDIDATES} that cut least of ${poolSize.toLocaleString()}; narrow the list to pair the others`
-              : ''}
-            .
-          </>
-        ) : (
-          <>
-            Partners for {anchor.name} among all {(pairable.length - 1).toLocaleString()} enzymes
-            that cut {MAX_PAIR_CUTS} times or fewer, whatever the list shows, best separated first.
-          </>
-        )}
-      </p>
-    </div>
-  );
-}
-
 export function EnzymePanel({ doc }: Props) {
   const {
-    analysis,
     shownEnzymes,
     showCutSites,
     enzymeSetInfo,
     enzymeCutFilter,
-    enzymeSupplier,
     enzymeSort,
     enzymeGroupIsoschizomers: grouped,
     enzymeSortReversed: reversed,
   } = useEditorState();
   const gel = useGelOptions();
   const orderId = useId();
-  const [filter, setFilter] = useState('');
+  const {
+    filter,
+    setFilter,
+    needle,
+    supplier,
+    ready,
+    cuts,
+    fragments,
+    ticked,
+    tickedGroups,
+    lanes,
+    pairable,
+    rows,
+    listedEnzymes,
+    cutters,
+    nonCutters,
+    offerFilter,
+    offered,
+  } = useEnzymeList(doc);
   const [importing, setImporting] = useState(false);
   const [adding, setAdding] = useState(false);
-  // The sites, once the restriction scan has answered for this document;
-  // the ORFs may still be on their way (#274) and are not waited for.
-  // Both are kept as they are when the ORFs land, so the memos below do not
-  // run again for them.
-  const current = analysis?.doc === doc ? analysis : null;
-  const sites = current?.cutSites ?? null;
-  const workerDigest = current?.digest ?? null;
-  const ready = sites !== null;
-  // A supplier is a code out of the table in use. A code stored from another
-  // import — or from before "Go back to the bundled table" — names nobody
-  // here, and filtering on it would empty the list with no way to see why.
-  const supplier = enzymeSetInfo.suppliers.some((s) => s.code === enzymeSupplier)
-    ? enzymeSupplier
-    : '';
-
-  /**
-   * The host methylation inside each site and the fragments each enzyme
-   * alone would give: the worker's, taken with the scan (item 98), or taken
-   * here for a result carried through an edit, whose sites have moved. At
-   * 1 Mb the two were 120 ms of main thread per scan (docs/perf-notes.md).
-   */
-  const digest = useMemo(
-    () =>
-      sites === null
-        ? null
-        : (workerDigest ?? enzymeDigest(sites.all(), doc.sequence.toString(), doc.topology)),
-    [sites, workerDigest, doc],
-  );
-
-  const groups = useMemo((): EnzymeEntry[] => {
-    // Read off the worker's packed answer (#281), or grouped here.
-    const byName =
-      digest === null || sites === null
-        ? null
-        : (digest.byEnzyme ?? sitesByEnzyme(sites.all(), digest.host));
-    return activeEnzymes().map((enzyme) => {
-      const own = byName?.get(enzyme.name);
-      const lengths = digest?.lengths.get(enzyme.name);
-      // The bands each enzyme alone would give, taken when first asked for
-      // (#278): by a row on screen, by a tick, or for every enzyme when the
-      // list is ordered by them. Taken for every enzyme up front they were
-      // 30-40 ms of the open of a 4.64 Mb sequence, and a copy of each
-      // enzyme's lengths kept as long as the tab was.
-      let profile: DigestProfile | null | undefined;
-      const { count, cuts, host, site, sites: all } = own ?? NOT_CUT;
-      return {
-        enzyme,
-        count,
-        cuts,
-        host,
-        site,
-        sites: all,
-        cutting: lengths !== undefined,
-        profile: () => (profile ??= lengths === undefined ? null : gelProfile(lengths, gel)),
-      };
-    });
-    // The enzymes come from module state, so the memo has to be told to
-    // re-run when the set changes; `enzymeSetInfo` is the store's record of
-    // which set that is, and the linter cannot see the connection.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sites, digest, enzymeSetInfo, gel]);
-
-  /**
-   * The cuts this DNA's own methylation would block (#45) are left out of a
-   * digest. The list still shows them, marked: "blocked in a dam+ strain" is
-   * worth knowing whatever this DNA is. Read off each site's marks rather
-   * than kept as a set of the blocked sites, which at 4.64 Mb was 42,000
-   * entries built on every open (#278).
-   */
-  const mask = hostStateBits(doc.methylation);
-  const cuts = useMemo(
-    () =>
-      ({ count, cuts: at, host }: EnzymeSites): number[] => {
-        const out: number[] = [];
-        for (let i = 0; i < count; i++) {
-          if (((host[i] ?? 0) & mask) === 0) out.push(at[i] ?? 0);
-        }
-        return out;
-      },
-    [mask],
-  );
-
-  const shownCuts = useMemo(() => {
-    const out: number[] = [];
-    for (const g of groups) {
-      if (!shownEnzymes.has(g.enzyme.name)) continue;
-      // A loop, not a spread: a ticked enzyme can cut a genome 100,000 times.
-      for (const c of cuts(g)) out.push(c);
-    }
-    return out;
-  }, [groups, shownEnzymes, cuts]);
-  const fragments = useMemo(
-    () =>
-      shownCuts.length === 0
-        ? []
-        : digestFragments(shownCuts, doc.length, doc.topology).sort((a, b) => b.length - a.length),
-    [shownCuts, doc.length, doc.topology],
-  );
-  /** How everything ticked together would read on a gel. */
-  const ticked = useMemo(
-    () =>
-      gelProfile(
-        fragments.map((f) => f.length),
-        gel,
-      ),
-    [fragments, gel],
-  );
-  /** The ticked enzymes that cut, each with its own profile. */
-  const tickedGroups = useMemo(
-    () =>
-      groups.flatMap((g) => {
-        const profile = shownEnzymes.has(g.enzyme.name) ? g.profile() : null;
-        return profile === null ? [] : [{ ...g, name: g.enzyme.name, profile }];
-      }),
-    [groups, shownEnzymes],
-  );
-  /**
-   * Two or three enzymes ticked is a double or triple digest, and one of
-   * those is read against the single digests beside it: a band in the
-   * combined lane that is in none of the others is the piece between two
-   * enzymes' sites. Past three it is a survey of cut sites rather than a
-   * digest anyone runs, and one lane says as much as it can.
-   */
-  const lanes = useMemo((): GelLane[] => {
-    const pick = (pieces: readonly Fragment[], who: string) => ({
-      onPick: (band: GelBand) => {
-        const piece = pieces.find((f) => f.length === band.length);
-        if (piece === undefined) return;
-        editorStore.setSelection({ start: piece.start, end: piece.end });
-        editorStore.revealPosition(piece.start);
-      },
-      pickTitle: (band: GelBand) =>
-        `${who}${
-          band.fragments.length > 1
-            ? `${describeBandFragments(band)} bp run here; select the ${band.length.toLocaleString()} bp one`
-            : `Select the ${band.length.toLocaleString()} bp fragment in the views`
-        }`,
-    });
-    const n = tickedGroups.length;
-    const alone = n >= 2 && n <= MAX_SINGLE_LANES;
-    // A lane is narrow, so the heading under it is a name or a count, never
-    // a list of five enzymes run together into one word.
-    const combined: GelLane = {
-      profile: ticked,
-      label:
-        n === 1
-          ? (tickedGroups[0]?.name ?? 'Digest')
-          : alone
-            ? n === 2
-              ? 'Both'
-              : `All ${n}`
-            : `${n} enzymes`,
-      ...pick(fragments, alone ? `${n === 2 ? 'Both' : `All ${n}`}: ` : ''),
-    };
-    if (!alone) return [combined];
-    return [
-      ...tickedGroups.map((g) => ({
-        profile: g.profile,
-        label: g.name,
-        ...pick(digestFragments(cuts(g), doc.length, doc.topology), `${g.name} alone: `),
-      })),
-      combined,
-    ];
-  }, [tickedGroups, ticked, fragments, cuts, doc.length, doc.topology]);
-
-  /**
-   * What one row of the list stands for: an enzyme, or with isoschizomers
-   * grouped, every enzyme that cuts the same site in the same place, best
-   * known first. They cut identically, so any member's sites are the row's.
-   */
-  const units = useMemo(
-    () =>
-      grouped
-        ? isoschizomerGroups(activeEnzymes()).map((g) => g.members)
-        : activeEnzymes().map((e) => [e]),
-    // Module state again; see `groups`.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [grouped, enzymeSetInfo],
-  );
-  const entryByName = useMemo(() => new Map(groups.map((g) => [g.enzyme.name, g])), [groups]);
-  const pairable = useMemo(
-    () =>
-      units
-        .flatMap((all): PairRow[] => {
-          const members =
-            supplier === '' ? all : all.filter((e) => e.suppliers?.includes(supplier) === true);
-          const entry = members[0] === undefined ? undefined : entryByName.get(members[0].name);
-          if (entry === undefined) return [];
-          // A site this DNA's methylation blocks is not a cut, so an enzyme
-          // it silences is no partner for a digest (#45). An enzyme that
-          // cuts a 1 Mb sequence thousands of times is out at its fourth
-          // open cut, not after a walk down all of them.
-          const open: number[] = [];
-          for (let i = 0; i < entry.count; i++) {
-            if (((entry.host[i] ?? 0) & mask) !== 0) continue;
-            open.push(entry.cuts[i] ?? 0);
-            if (open.length > MAX_PAIR_CUTS) return [];
-          }
-          if (open.length === 0) return [];
-          const name = (members.find((e) => shownEnzymes.has(e.name)) ?? entry.enzyme).name;
-          return [{ name, members: members.map((e) => e.name), cuts: open }];
-        })
-        .sort((a, b) => a.name.localeCompare(b.name)),
-    [units, supplier, entryByName, shownEnzymes, mask],
-  );
-
-  const needle = filter.trim().toLowerCase();
-  const rows = useMemo(() => {
-    const matching = units.flatMap((all) => {
-      // Only what the supplier sells can stand for the row, or the name on it
-      // would be one you cannot buy there.
-      const members =
-        supplier === '' ? all : all.filter((e) => e.suppliers?.includes(supplier) === true);
-      const entry = members[0] === undefined ? undefined : entryByName.get(members[0].name);
-      if (entry === undefined || !matchesCutCount(enzymeCutFilter, entry.count)) return [];
-      const named =
-        needle === '' ? [] : members.filter((e) => e.name.toLowerCase().includes(needle));
-      if (
-        needle !== '' &&
-        named.length === 0 &&
-        !entry.enzyme.site.toLowerCase().includes(needle)
-      ) {
-        return [];
-      }
-      // The name on the row is the one ticked, or the one searched for, so
-      // neither disappears behind a better-known isoschizomer.
-      const enzyme = members.find((e) => shownEnzymes.has(e.name)) ?? named[0] ?? entry.enzyme;
-      return [
-        {
-          enzyme,
-          members,
-          count: entry.count,
-          cuts: entry.cuts,
-          host: entry.host,
-          site: entry.site,
-          sites: entry.sites,
-          cutting: entry.cutting,
-          profile: entry.profile,
-        },
-      ];
-    });
-    // Ungrouped, `activeEnzymes()` is already in name order; grouped, the name
-    // on a row can be any member's. Ties in the other sort keep that order,
-    // which is why it is a stable sort.
-    const byName = grouped
-      ? [...matching].sort((a, b) => a.enzyme.name.localeCompare(b.enzyme.name))
-      : matching;
-    const ordered =
-      enzymeSort === 'bands'
-        ? [...byName].sort((a, b) => {
-            const pa = a.profile();
-            const pb = b.profile();
-            return pa === null || pb === null
-              ? Number(pa === null) - Number(pb === null)
-              : compareDiagnostic(pa, pb, gel);
-          })
-        : byName;
-    if (!reversed) return ordered;
-    // Backwards is Z–A, or the lanes that would mislead first — a search
-    // for the enzyme whose pieces run together. Enzymes that do not cut have
-    // no lane to judge, so they stay at the foot either way.
-    if (enzymeSort === 'name') return [...ordered].reverse();
-    const cutting = ordered.filter((r) => r.cutting).reverse();
-    return [...cutting, ...ordered.filter((r) => !r.cutting)];
-  }, [
-    units,
-    supplier,
-    entryByName,
-    enzymeCutFilter,
-    needle,
-    shownEnzymes,
-    grouped,
-    enzymeSort,
-    reversed,
-    gel,
-  ]);
-  const listedEnzymes = rows.reduce((n, r) => n + r.members.length, 0);
-  const nonCutters = groups.filter((g) => g.count === 0).length;
-  const cutters = groups.length - nonCutters;
-  /**
-   * What the "nothing is ticked" note offers, whatever the name and supplier
-   * boxes say: the enzymes the cut-count filter asks for, or the single
-   * cutters when it is not narrowing anything. Single cutters are what a
-   * document ticks by itself when there are few enough of them
-   * (`MAX_DEFAULT_ENZYMES`); with a REBASE table there are too many, and this
-   * note is how you ask for them anyway.
-   */
-  const offerFilter = enzymeCutFilter === 'any' ? 'once' : enzymeCutFilter;
-  const offered = units.flatMap((members) => {
-    const first = members[0];
-    const count = first === undefined ? undefined : entryByName.get(first.name)?.count;
-    return first !== undefined && count !== undefined && matchesCutCount(offerFilter, count)
-      ? [first.name]
-      : [];
-  });
 
   // Only the rows on screen are rendered: an imported table lists thousands.
   const { first, end, padTop, padBottom, attachScroller, attachRow, scrollToTop } = useRowWindow(
