@@ -4,6 +4,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { type CutSite, SeqDocument, findCutSites, getEnzyme } from '@/core';
 
 import { DEFAULT_BENCH } from '../state/benchSettings';
+import { recallWorkspace } from '../primerWorkspace';
 import { editorStore } from '../state/editorStore';
 import { Bench } from './Bench';
 import { CloningPanel } from './CloningPanel';
@@ -57,6 +58,36 @@ describe('CloningPanel', () => {
       editorStore.clearShelf();
       editorStore.closeDocument();
     });
+  });
+
+  it('ends in two doors: the Bench, and cloning an insert in the primer workspace (#381)', () => {
+    setup();
+    const frontId = editorStore.getState().documentId ?? '';
+    fireEvent.click(screen.getByRole('button', { name: 'Clone an insert into this plasmid ›' }));
+    expect(editorStore.getState().workspace).toBe('primers');
+    expect(recallWorkspace(editorStore.getState().documentId)).toEqual({
+      page: 'design',
+      mode: 'cloning',
+    });
+    act(() => {
+      editorStore.setWorkspace(null);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Open the Bench ›' }));
+    expect(editorStore.getState().front).toBe('bench');
+    // The Bench left no document in front: put this one back for the next test.
+    act(() => {
+      editorStore.activateDocument(frontId);
+    });
+  });
+
+  it('offers no primer door where there is no Primers tab (#381)', () => {
+    const protein = SeqDocument.create({ sequence: 'MKLV', alphabet: 'protein' });
+    act(() => {
+      editorStore.openDocument(protein);
+    });
+    render(<CloningPanel doc={protein} />);
+    expect(screen.getByRole('button', { name: 'Open the Bench ›' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Clone an insert/ })).toBeNull();
   });
 
   it('shows one of the digest, PCR and Mutate at a time', () => {

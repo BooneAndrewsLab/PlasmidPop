@@ -1,4 +1,4 @@
-import { recallPanel } from './state/panelMemory';
+import { recallPanel, rememberPanel } from './state/panelMemory';
 import { createWorkspaceController } from './workspaceController';
 
 /**
@@ -47,7 +47,20 @@ export function recallWorkspace(documentId: string | null): WorkspaceMemory {
   return { page: primerWorkspace.recallPage(documentId), mode: recallDesignMode(documentId) };
 }
 
-export const openPrimerWorkspace = primerWorkspace.open;
+/**
+ * Opens the workspace, on `page` and, when given, the Design page's `mode`
+ * (the Cloning tab's "Clone an insert into this plasmid ›" lands on Design
+ * in cloning mode).
+ */
+export function openPrimerWorkspace(
+  documentId: string | null,
+  page?: WorkspacePage,
+  mode?: DesignMode,
+): void {
+  if (mode !== undefined) rememberPanel(MODE_SLOT, documentId, mode);
+  primerWorkspace.open(documentId, page);
+}
+
 export const rememberWorkspacePage = primerWorkspace.rememberPage;
 export const closePrimerWorkspace = primerWorkspace.close;
 export const takeFocusRequest = primerWorkspace.takeFocusRequest;

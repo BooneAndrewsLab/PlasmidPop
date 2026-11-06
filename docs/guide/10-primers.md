@@ -133,7 +133,11 @@ With a plasmid open as the vector it designs the two primers that amplify
 an insert from another tab with a restriction site on each 5′ tail, so
 that after PCR and a double digest the insert's ends match the vector cut
 with the same two enzymes, in one direction. The mode is remembered per
-document, and **Results** shows whichever design was made last.
+document, and **Results** shows whichever design was made last. The
+Cloning tab's **Clone an insert into this plasmid ›** opens the workspace
+here; Gibson, In-Fusion and overlap-PCR tails are designed on the
+[Bench](12-cloning.md#the-bench), beside their reaction, which the mode's
+note links to.
 
 1. **Where on the vector.** The selection, live, as in the plain mode —
    the polylinker, say — with the same **Selection** / **Feature** chooser.

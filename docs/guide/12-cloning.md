@@ -1,6 +1,8 @@
 # Simulated cloning
 
-Cloning happens in two places, split by what each thing works on.
+## The tab, the Bench and the primer workspace
+
+Cloning happens in three places, split by what each thing works on.
 
 The **Cloning** tab in the sidebar is about the document in front of you,
 and draws on its views. Its picker chooses one of three: **Digest**, which
@@ -8,7 +10,8 @@ cuts the document with restriction enzymes and describes the fragments end
 by end, **PCR**, which amplifies a stretch of it with two primers, and
 **Mutate**, which designs the primers for a point mutation, insertion or
 deletion. The fragments and PCR products you keep go on the
-[shelf](#the-shelf).
+[shelf](#the-shelf). Two links end the tab: **Open the Bench ›** and
+**Clone an insert into this plasmid ›**.
 
 The **[Bench](#the-bench)**, a tab of its own beside **Files** in the tab
 strip, is where the parts are joined, from any number of documents:
@@ -17,6 +20,22 @@ Gate**, **Modular** (MoClo and Yeast Toolkit positions, and every
 combination of parts), **Gibson** (with the In-Fusion and NEBuilder primer design),
 **Overlap PCR** (fusing fragments by PCR, with the primers designed), and **Gateway**. Beside the reaction it draws what the reaction would make, and
 a digest to check it by.
+
+The **[primer workspace](10-primers.md#cloning-ends-primers-that-put-two-restriction-sites-on-an-insert)**
+designs the primers for an insert from another tab, with two restriction
+sites or a Golden Gate end on their tails, ready to cut into this plasmid.
+It is where **Clone an insert into this plasmid ›** goes, and it is only
+there for DNA.
+
+Which to open:
+
+| You want to                                              | Go to                                   |
+| -------------------------------------------------------- | --------------------------------------- |
+| Cut this document and keep fragments                     | Cloning tab, **Digest**                 |
+| Amplify a stretch of it, or change a base                | Cloning tab, **PCR** or **Mutate**      |
+| Put an insert from another tab into this plasmid         | **Clone an insert into this plasmid ›** |
+| Join parts: ligation, Golden Gate, Gibson, Gateway, etc. | The **Bench**                           |
+| Design Gibson, In-Fusion or overlap-PCR tails            | The **Bench**, beside the reaction      |
 
 Step-by-step exercises for ligation and Golden Gate, with sample files to
 download, are in the [cloning tutorials](https://booneandrewslab.github.io/PlasmidPop/tutorials/), a section of the site of its own.
@@ -97,7 +116,7 @@ they are.
 **Add** in its row does. On the map that is the thin dashed ring just inside
 the backbone; in the sequence view it is the band outside the feature lanes.
 The last line of the Cloning tab counts what is on the shelf, so you see it
-land, and **Open the Bench** takes you to it.
+land, and **Open the Bench ›** takes you to it.
 
 ## Sticky ends on a document
 

@@ -72,7 +72,7 @@
     - [ ] The last line of the tab reads **The shelf holds 1 part, 834 bp.**
 
     > [!WARNING]
-    > The shelf lives in the browser, so parts from an earlier session are still on it and add to the count. To start from none, open the **Bench** (the link at the bottom of the Cloning tab) and press **Clear shelf**.
+    > The shelf lives in the browser, so parts from an earlier session are still on it and add to the count. To start from none, open the **Bench** (**Open the Bench ›** at the bottom of the Cloning tab) and press **Clear shelf**.
 
 13. Click **Open** on the **1,830 bp** row.
 
@@ -103,7 +103,7 @@
 
 ## Exercise 2 of 2: the PCR
 
-1. Open the **Bench** (the link at the bottom of the Cloning tab) and press **Clear shelf**, so the counts below start at none.
+1. Open the **Bench** (**Open the Bench ›** at the bottom of the Cloning tab) and press **Clear shelf**, so the counts below start at none.
 2. **File ▸ Open** `SDM-Template.gb`, close the other tabs, and make `SDM-Template` the tab in front.
 3. In the **Cloning** tab pick **PCR** under **Reaction**.
 

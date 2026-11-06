@@ -18,9 +18,10 @@ import {
 } from '@/core';
 import { type OverlaySpan } from '@/view/overlay';
 
+import { openPrimerWorkspace } from '../primerWorkspace';
 import { copiesOnShelf } from '../shelfPieces';
 import { SIDEBAR_REACTIONS } from '../state/cloningReaction';
-import { editorStore } from '../state/editorStore';
+import { editorStore, hasSidebarTab } from '../state/editorStore';
 import { useRemembered } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';
 import { MutagenesisPanel } from './MutagenesisPanel';
@@ -496,6 +497,30 @@ export function CloningPanel({ doc }: Props) {
       )}
 
       <ShelfSummary />
+      <div className="panel__links">
+        <button
+          type="button"
+          className="link panel__door"
+          data-tip="Arrange the shelf's parts and join them: Gibson, Golden Gate, ligation"
+          onClick={() => {
+            editorStore.showBench('link');
+          }}
+        >
+          Open the Bench ›
+        </button>
+        {hasSidebarTab(doc, 'primers') && (
+          <button
+            type="button"
+            className="link panel__door"
+            data-tip="Design primers for an insert from another tab, with restriction or Golden Gate ends, in the primer workspace"
+            onClick={() => {
+              openPrimerWorkspace(documentId, 'design', 'cloning');
+            }}
+          >
+            Clone an insert into this plasmid ›
+          </button>
+        )}
+      </div>
     </div>
   );
 }

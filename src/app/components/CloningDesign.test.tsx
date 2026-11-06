@@ -167,6 +167,19 @@ afterEach(() => {
 });
 
 describe('the Design page’s cloning mode (#303)', () => {
+  it('says where Gibson, In-Fusion and overlap-PCR tails are designed, with a way there (#381)', () => {
+    const { vectorId: frontId } = setup();
+    expect(
+      screen.getByText(/Gibson, In-Fusion and overlap-PCR tails are designed on the Bench/),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Open the Bench ›' }));
+    expect(editorStore.getState().front).toBe('bench');
+    // The Bench left no document in front: put this one back for the next test.
+    act(() => {
+      editorStore.activateDocument(frontId);
+    });
+  });
+
   it('remembers the mode and gates Design with the reason, step by step', async () => {
     const { vectorId } = setup();
     expect(recallWorkspace(vectorId).mode).toBe('cloning');

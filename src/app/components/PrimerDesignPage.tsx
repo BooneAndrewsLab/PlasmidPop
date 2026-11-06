@@ -172,6 +172,18 @@ export function PrimerDesignPage({
     return (
       <>
         {switcher}
+        <p className="panel__note">
+          Gibson, In-Fusion and overlap-PCR tails are designed on the Bench beside their reaction.{' '}
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              editorStore.showBench('link');
+            }}
+          >
+            Open the Bench ›
+          </button>
+        </p>
         <CloningDesign
           doc={doc}
           cloning={cloning}

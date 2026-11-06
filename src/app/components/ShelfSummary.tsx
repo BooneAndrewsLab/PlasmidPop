@@ -1,10 +1,9 @@
-import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
 /**
  * The shelf as the sidebar's Cloning tab shows it since the Bench (item 49):
- * a line saying what is on it and a way over to the Bench, where it is
- * arranged and joined. A fragment added here is seen landing in the count.
+ * a line saying what is on it; the Cloning panel's links row is the way over
+ * to the Bench, where it is arranged and joined. A fragment added here is seen landing in the count.
  */
 export function ShelfSummary() {
   const { shelf } = useEditorState();
@@ -14,16 +13,7 @@ export function ShelfSummary() {
       <p className="panel__note">
         {shelf.length === 0
           ? 'The shelf is empty. Fragments and PCR products put on it are joined on the Bench.'
-          : `The shelf holds ${shelf.length === 1 ? '1 part' : `${String(shelf.length)} parts`}, ${total.toLocaleString()} bp.`}{' '}
-        <button
-          type="button"
-          className="link"
-          onClick={() => {
-            editorStore.showBench('link');
-          }}
-        >
-          Open the Bench
-        </button>
+          : `The shelf holds ${shelf.length === 1 ? '1 part' : `${String(shelf.length)} parts`}, ${total.toLocaleString()} bp.`}
       </p>
     </div>
   );
