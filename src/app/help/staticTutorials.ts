@@ -39,6 +39,7 @@ export const TUTORIAL_ORDER: readonly string[] = [
   'gateway',
   'mutagenesis',
   'align',
+  'enzymes',
   'sample-files',
 ];
 

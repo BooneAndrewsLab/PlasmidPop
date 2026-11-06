@@ -1,0 +1,28 @@
+LOCUS       EN-Plasmid          600 bp    DNA     circular SYN 06-NOV-2026
+DEFINITION  EN-Plasmid, circular 600 bp plasmid for the Enzymes tutorial (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     promoter        11..80
+                     /label="synthetic promoter"
+                     /note="synthetic example"
+     misc_feature    101..450
+                     /label="synthetic cassette"
+                     /note="synthetic example"
+     terminator      561..600
+                     /label="synthetic terminator"
+                     /note="synthetic example"
+ORIGIN
+        1 actcaattgt ttatatagta gtatgtaccg ccgggtccgt cgtacatttc caagcggttg
+       61 caatgtctat gaatccaaaa gaacgcttgc gaattccaat tagataactc tcgaataggg
+      121 catctaacgg gcatcttaag cgcaagggtt cttctgagaa ctggtaacat aggcctaacc
+      181 aaaggacgga gatctagagg cgagcagcac ggcggtacag acggaaacaa taagtggata
+      241 tatgcccaaa atattctccc gattgcacct aagccgctta tgtgctgctt acgataacag
+      301 ggatcctgag cacgtcttct ggttgactcc agcggtgact gttcagatga atatcaaggc
+      361 ctgaatatgc atagcacacg cctggccagg ttgaatgggc agccgctgcg cgatcgtgcc
+      421 cgtcgtatgc cctggtaggc ccggtgtctc aagcttcgaa cctccgtccg cgactgtcgt
+      481 gatggtattg gtaaacaacg ctggaagcga atatgaagcg ttgtcctata tgcgactctg
+      541 gtctagacga tgcgtatata ataacgcctg aaggtgacca actgcaagtt ttcccgaaat
+//

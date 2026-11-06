@@ -1,10 +1,10 @@
 # PlasmidPop cloning tutorials
 
-Hands-on, step-by-step exercises for cloning in PlasmidPop, and one for aligning sequences. Each tutorial is one page with numbered steps, the numbers to expect, and sample files you can download ([all files](sample-files.md)). Every file is a **synthetic example**, and every number is checked by a test that runs the same files through the functions the app uses, so the pages cannot drift from the app. They are also published as plain web pages, readable without JavaScript, at `/tutorials/` on the PlasmidPop site.
+Hands-on, step-by-step exercises for cloning in PlasmidPop, one for aligning sequences, and one for restriction enzymes. Each tutorial is one page with numbered steps, the numbers to expect, and sample files you can download ([all files](sample-files.md)). Every file is a **synthetic example**, and every number is checked by a test that runs the same files through the functions the app uses, so the pages cannot drift from the app. They are also published as plain web pages, readable without JavaScript, at `/tutorials/` on the PlasmidPop site.
 
 New to the Bench or to the sample files? Read [Before you start](before-you-start.md) first (five minutes).
 
-Suggested order: [Digest and PCR basics](digest-pcr.md), then [Ligation](ligation.md), then [Golden Gate](golden-gate.md) before [Modular cloning](modular.md), and [Gibson](gibson.md) before [In-Fusion](in-fusion.md) and [Overlap-extension PCR](overlap-pcr.md); [Gateway](gateway.md), [Site-directed mutagenesis](mutagenesis.md) and [Align](align.md) stand alone.
+Suggested order: [Digest and PCR basics](digest-pcr.md), then [Ligation](ligation.md), then [Golden Gate](golden-gate.md) before [Modular cloning](modular.md), and [Gibson](gibson.md) before [In-Fusion](in-fusion.md) and [Overlap-extension PCR](overlap-pcr.md); [Gateway](gateway.md), [Site-directed mutagenesis](mutagenesis.md) and [Align](align.md) and [Enzymes](enzymes.md) stand alone.
 
 | Method                     | Level        | Minutes | You end with                                                                             | Page                                                                  |
 | -------------------------- | ------------ | ------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
@@ -19,6 +19,7 @@ Suggested order: [Digest and PCR basics](digest-pcr.md), then [Ligation](ligatio
 | Gateway                    | Intermediate | 25      | a 1,412 bp entry clone, then a 1,551 bp expression clone                                 | [Gateway: a BP reaction, then an LR reaction](gateway.md)             |
 | Site-directed mutagenesis  | Beginner     | 25      | a point mutation, a tag, a deletion and a silent EcoRV site                              | [Site-directed mutagenesis](mutagenesis.md)                           |
 | Align                      | Beginner     | 25      | a read checked against a plasmid, four clones and four proteins aligned, a range copied  | [Align: a read, four clones, proteins and a copied range](align.md)   |
+| Enzymes                    | Beginner     | 20      | the enzymes that cut once, a 390 + 210 bp double digest, and a site blocked by Dam/Dcm   | [Enzymes: cut once, a double digest, and methylation](enzymes.md)     |
 
 ## Reference
 
