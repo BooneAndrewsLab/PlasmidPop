@@ -11,6 +11,7 @@ import {
 } from '@/core';
 
 import { DEFAULT_BENCH } from '../state/benchSettings';
+import { recallEnzymePage } from '../enzymeWorkspace';
 import { recallWorkspace } from '../primerWorkspace';
 import { editorStore } from '../state/editorStore';
 import { Bench } from './Bench';
@@ -133,12 +134,6 @@ describe('CloningPanel', () => {
     // The enzymes are no longer a note on the heading, and the line has no
     // second sentence about the shelf: the shelf line below says that.
     expect(document.querySelector('.panel__heading-note')).toBeNull();
-    act(() => {
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Partial digest' }));
-    });
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'EcoRI: 4 fragments a partial digest can give, largest first.',
-    );
   });
 
   it('keeps one status line for each recovery state of the digest (#392)', () => {
@@ -366,23 +361,25 @@ describe('CloningPanel', () => {
     });
   });
 
-  it('lists a partial digest on request, drawing only the piece pointed at', () => {
+  it('has no Partial digest toggle: a door opens the workspace on Digest (#393)', () => {
+    setup();
+    expect(screen.queryByRole('checkbox', { name: 'Partial digest' })).toBeNull();
+    const door = screen.getByRole('button', { name: 'All fragments and partial digest ›' });
+    expect(door).toHaveClass('panel__door');
+    act(() => {
+      fireEvent.click(door);
+    });
+    const id = editorStore.getState().documentId;
+    expect(editorStore.getState().workspace).toBe('enzymes');
+    expect(recallEnzymePage(id)).toBe('digest');
+  });
+
+  it('shows the door only while a digest has fragments (#393)', () => {
     setup();
     act(() => {
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Partial digest' }));
+      editorStore.setShownEnzymes([]);
     });
-    // Two sites on a circle: the two complete pieces and the circle opened
-    // at either site, which is where one of them was missed.
-    expect(screen.getByText(/4 fragments a partial digest can give/)).toBeInTheDocument();
-    expect(screen.getAllByText(/1 site uncut/)).toHaveLength(2);
-    expect(preview()?.items ?? []).toEqual([]);
-    const rows = screen.getAllByRole('listitem').filter((li) => li.className === 'fragment');
-    const first = rows[0];
-    if (first === undefined) throw new Error('no rows');
-    act(() => {
-      fireEvent.mouseEnter(first);
-    });
-    expect(preview()?.items.map((s) => s.label)).toEqual(['4,000 bp']);
+    expect(screen.queryByRole('button', { name: /All fragments and partial digest/ })).toBeNull();
   });
 
   it('stops a dephosphorylated part closing on itself', () => {

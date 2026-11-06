@@ -322,8 +322,8 @@ plasmid, the two complete pieces and the circle opened at either site. A
 piece says how many sites it left **uncut**; the table lists the 200 that
 miss the fewest, and only the row under the pointer is drawn on the views,
 since the pieces overlap. The gel stays the complete digest. The choice is
-remembered for each document, and is the page's own: the Cloning tab's
-toggle is kept separately for now.
+remembered for each document. It lives only here: the Cloning tab's Digest
+links to this page instead of having a toggle of its own.
 
 When the document's host methylation blocks some of the ticked sites, the
 page says how many are left out and which enzymes they are (see

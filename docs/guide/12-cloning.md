@@ -101,15 +101,11 @@ meantime, but an edit can make a site as well as break one, so the digest
 waits rather than list or shelve fragments the tube would not give. If the
 scan fails it is tried twice more, and then an error says so.
 
-**Partial digest** lists every piece a digest that misses some of the sites
-can give, not only the complete digest's: each stretch from one cut to any
-later one, with the sites between left uncut, and on a circle the whole
-molecule opened at each single site. It is how an insert is cut out when the
-enzyme also cuts inside it. Each piece says how many sites it leaves uncut
-(none for a complete digest's). The count grows fast — two sites give 4
-pieces on a circle, 35 give over a thousand — so beyond 200 the list keeps
-the pieces that miss the fewest sites, which are what a partial digest mostly
-gives, and only the piece under the pointer is drawn on the views.
+Under the list, **All fragments and partial digest ›** opens the Enzyme
+workspace on its [Digest page](07-enzymes.md#the-digest-page), where the table
+shows every fragment and the **Partial digest** toggle lists every piece a
+digest that misses some of the sites can give. This tab lists the complete
+digest's fragments only.
 
 Every fragment is also drawn on the map and in the sequence view while the
 tab is open, in the dashed preview colour (see
@@ -356,9 +352,10 @@ The phone reader has no Bench.
 
 ## The shelf
 
-**Add** in the digest, and **Shelve** under a PCR product, put a part on the
-**shelf**. The shelf belongs to the Bench rather than to one reaction:
-Ligation joins its fragments, and Golden Gate and Gibson take them into the
+**Add** in the digest (here and on the Enzyme workspace's
+[Digest page](07-enzymes.md#the-digest-page)), and **Shelve** under a PCR
+product, put a part on the **shelf**. The shelf belongs to the Bench rather
+than to one reaction: Ligation joins its fragments, and Golden Gate and Gibson take them into the
 tube beside the open documents. A shelved part is a copy, sequence, ends and
 features, so it does not need the file it came from: it survives closing
 every tab, deleting the file and reloading the page. Fragments you collected

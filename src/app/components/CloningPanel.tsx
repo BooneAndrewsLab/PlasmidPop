@@ -12,11 +12,11 @@ import {
   fragmentWithLineage,
 } from '@/core';
 
+import { openEnzymeWorkspace } from '../enzymeWorkspace';
 import { openPrimerWorkspace } from '../primerWorkspace';
 import { copiesOnShelf } from '../shelfPieces';
 import { SIDEBAR_REACTIONS } from '../state/cloningReaction';
 import { editorStore, hasSidebarTab } from '../state/editorStore';
-import { useRemembered } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';
 import { fragmentId, shelve, useDigestPieces } from './digestPieces';
 import { MutagenesisPanel } from './MutagenesisPanel';
@@ -167,9 +167,9 @@ function FragmentRow({
 
 export function CloningPanel({ doc }: Props) {
   const { showCutSites, sidebarReaction, documentId, shelf } = useEditorState();
-  const [partial, setPartial] = useRemembered('cloning.partial', documentId, false);
+  // The partial digest is on the Enzyme workspace's Digest page; this is the complete one.
   const { ready, listed, total, blocked, enzymesUsed, setHovered } = useDigestPieces(doc, {
-    partial,
+    partial: false,
   });
 
   return (
@@ -244,29 +244,12 @@ export function CloningPanel({ doc }: Props) {
           ) : (
             <p className="panel__note" role="status">
               {enzymesUsed.join(', ')}:{' '}
-              {total === 1 ? '1 fragment' : `${total.toLocaleString()} fragments`}
-              {partial ? ' a partial digest can give' : ''}, largest first
+              {total === 1 ? '1 fragment' : `${total.toLocaleString()} fragments`}, largest first
               {total > listed.length
                 ? ` (the ${listed.length.toLocaleString()} that miss the fewest sites shown)`
                 : ''}
               .
             </p>
-          )}
-          {ready && enzymesUsed.length > 0 && (
-            <label
-              className="toggle"
-              data-tip="List every piece a digest that misses some of the sites can give, not only the complete digest's"
-            >
-              <input
-                type="checkbox"
-                checked={partial}
-                onChange={(e) => {
-                  setPartial(e.target.checked);
-                  setHovered(null);
-                }}
-              />
-              Partial digest
-            </label>
           )}
           {enzymesUsed.length > 0 && blocked.sites > 0 && (
             <p className="panel__note panel__note--quiet">
@@ -310,6 +293,20 @@ export function CloningPanel({ doc }: Props) {
                 />
               ))}
             </ul>
+          )}
+          {ready && enzymesUsed.length > 0 && (
+            <div className="panel__links">
+              <button
+                type="button"
+                className="link panel__door"
+                data-tip="Every fragment, and the partial digest that misses some sites, on the Enzyme workspace's Digest page"
+                onClick={() => {
+                  openEnzymeWorkspace(documentId, 'digest');
+                }}
+              >
+                All fragments and partial digest ›
+              </button>
+            </div>
           )}
         </>
       )}
