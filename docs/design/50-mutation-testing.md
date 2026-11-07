@@ -885,8 +885,11 @@ only the files changed since the tag, and a two-file run's dry run took
   (Stryker's differ carries old mutants outside the mutated scope into the
   new report), so the score still covers the whole list. A file of the list
   with no result in the incremental report (new to the list, or a thin report)
-  has no baseline, so it is mutated whole; with no incremental file at all the
-  script says it is a full run. `--whole-files` mutates the whole of each
+  has no baseline, so it is mutated whole if it changed since the ref; one with
+  no diff is reported as an unmeasured gap and left out (#400: in the 1.22
+  pre-release run pairwise.ts and quality.ts, unchanged, were mutated whole
+  and their dry run passed the 45 min ceiling twice). With no incremental file
+  at all the script says it is a full run. `--whole-files` mutates the whole of each
   changed file instead. Not done: a test change in unchanged lines does not
   retest the mutants there; use `--whole-files` or a full run when the tests
   of a file were reworked rather than added to.

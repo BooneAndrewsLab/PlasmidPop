@@ -114,6 +114,25 @@ function mergeRanges(ranges) {
 }
 
 /**
+ * Splits the files of the list that the incremental report has no result for.
+ * One that changed since the ref is mutated whole (its changed lines alone
+ * would leave the rest never tested); one with no diff is an unmeasured gap,
+ * reported and left out, because its whole-file dry run can pass the ceiling
+ * (#400).
+ * @param {readonly string[]} mutateList
+ * @param {ReadonlySet<string>} baseline
+ * @param {ReadonlySet<string>} changedFiles
+ * @returns {{ whole: Set<string>; unmeasured: string[] }}
+ */
+export function splitUnbaselined(mutateList, baseline, changedFiles) {
+  const missing = mutateList.filter((f) => !baseline.has(f));
+  return {
+    whole: new Set(missing.filter((f) => changedFiles.has(f))),
+    unmeasured: missing.filter((f) => !changedFiles.has(f)),
+  };
+}
+
+/**
  * The `--mutate` patterns for the mutate-list files that changed: a file
  * with its line ranges (`src/a.ts:10-20`) when `ranges` is given, else the
  * whole file. With ranges, a file that has none (a rename or a mode change)

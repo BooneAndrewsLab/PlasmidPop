@@ -29,11 +29,11 @@
 //                       killed by a test, so the pass loses that signal on
 //                       loop counters.
 //   --without <file>    leave this file out of the pass (repeatable). A file
-//                       with no baseline here is mutated whole and its
-//                       instrumented suites can be very slow (the 1.22.0
-//                       dry run for pairwise.ts and quality.ts passed the 45
-//                       min ceiling); mutate those on the machine that has
-//                       their results and bring the report back with
+//                       with no baseline here that changed is mutated whole and
+//                       its instrumented suites can be very slow; one that did
+//                       not change is reported as unmeasured and left out
+//                       anyway. Mutate such a file on the machine that has its
+//                       results and bring the report back with
 //                       --incremental-from.
 //   --unit-only         run the tests without the jsdom component tests
 //                       (*.test.tsx) that the mutated files do not need; a
@@ -64,6 +64,7 @@ import {
   isTestFile,
   matchGlobs,
   mutatePatterns,
+  splitUnbaselined,
   readSources,
   relatedTests,
   workerCount,
@@ -120,7 +121,8 @@ if (incrementalFrom !== undefined) {
 }
 // A file of the list that the incremental report has no mutant of has no
 // baseline: mutating only its changed lines would leave the rest never
-// tested, so it is mutated whole.
+// tested, so it is mutated whole if it changed, and reported as an unmeasured
+// gap if it did not (#400).
 /** @type {Set<string>} */
 let baseline = new Set();
 if (existsSync(incrementalFile)) {
@@ -128,12 +130,16 @@ if (existsSync(incrementalFile)) {
   const report = /** @type {{ files?: Record<string, unknown> }} */ (parsed);
   baseline = new Set(Object.keys(report.files ?? {}));
 }
-const unbaselined = new Set(mutate.filter((f) => !baseline.has(f)));
 const ranges = changedRanges(
   execFileSync('git', ['diff', '-U0', '--no-renames', ref, 'HEAD', '--', 'src'], {
     encoding: 'utf8',
     maxBuffer: 256 * 1024 * 1024,
   }),
+);
+const { whole: unbaselined, unmeasured } = splitUnbaselined(
+  mutate,
+  baseline,
+  new Set(ranges.keys()),
 );
 const patterns = mutatePatterns(
   mutate,
@@ -143,13 +149,20 @@ const patterns = mutatePatterns(
 );
 const files = mutate.filter((f) => ranges.has(f) || unbaselined.has(f));
 
+if (unmeasured.length > 0) {
+  out(
+    `${unmeasured.length} file(s) of the list have no result in ${incrementalFile} and no diff since ${ref}: ` +
+      `an unmeasured gap, not mutated (their whole-file dry run can pass the ceiling; triage their old ` +
+      `survivors by hand, see design note 50):\n  ${unmeasured.join('\n  ')}`,
+  );
+}
 if (patterns.length === 0) {
   out(`No file in the mutate list changed since ${ref}; nothing to run.`);
   process.exit(0);
 }
 if (unbaselined.size > 0) {
   out(
-    `${unbaselined.size} file(s) of the list have no result in ${incrementalFile} and are mutated whole` +
+    `${unbaselined.size} file(s) of the list have no result in ${incrementalFile}, changed since ${ref}, and are mutated whole` +
       `${unbaselined.size === mutate.length ? ' (no baseline: this is a full run, and a long one)' : ''}:` +
       `\n  ${[...unbaselined].join('\n  ')}`,
   );

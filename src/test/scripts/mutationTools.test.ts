@@ -19,6 +19,7 @@ import {
   relatedTests,
   resolveSpecifier,
   specifiers,
+  splitUnbaselined,
   triageText,
   workerCount,
 } from '../../../scripts/mutationTools.mjs';
@@ -132,6 +133,26 @@ describe('mutatePatterns', () => {
       'src/a.ts',
       'src/c.ts',
     ]);
+  });
+});
+
+describe('splitUnbaselined', () => {
+  const list = ['src/a.ts', 'src/b.ts', 'src/c.ts'];
+
+  it('mutates a changed file with no baseline whole and reports an unchanged one as unmeasured', () => {
+    const { whole, unmeasured } = splitUnbaselined(
+      list,
+      new Set(['src/a.ts']),
+      new Set(['src/b.ts']),
+    );
+    expect([...whole]).toEqual(['src/b.ts']);
+    expect(unmeasured).toEqual(['src/c.ts']);
+  });
+
+  it('leaves a file with a baseline to its changed lines', () => {
+    const { whole, unmeasured } = splitUnbaselined(list, new Set(list), new Set(['src/a.ts']));
+    expect(whole.size).toBe(0);
+    expect(unmeasured).toEqual([]);
   });
 });
 
