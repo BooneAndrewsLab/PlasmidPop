@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import {
@@ -17,6 +17,9 @@ import {
   setActiveEnzymeSet,
   translate,
 } from '@/core';
+import { detectFeatures } from '@/core/annotate/detect';
+import { featureFromHit } from '@/core/annotate/hits';
+import { loadFeatureLibrary } from '@/core/annotate/library';
 import { parseGenBank } from '@/io/genbank/parseGenBank';
 import { writeGenBank } from '@/io/genbank/writeGenBank';
 
@@ -345,3 +348,236 @@ describe('yeast-assembly.md: exercise 5, tails for a plain gene', () => {
     ]);
   });
 });
+
+const NCBI_DIR = join(__dirname, '../../../fixtures/local/ncbi');
+const ncbiFile = (accession: string): string => join(NCBI_DIR, `${accession}.gb`);
+const NCBI_FILES = ['NM_000207', 'NM_001183340', 'U03450', 'U03451'].map(ncbiFile);
+const ncbi = (accession: string): SeqDocument => {
+  const doc = parseGenBank(readFileSync(ncbiFile(accession), 'utf8')).documents[0];
+  if (doc === undefined) throw new Error(accession);
+  return doc;
+};
+/** The Insert box's CDS, as the designer takes it. */
+function cdsOf(doc: SeqDocument): { start: number; end: number } {
+  const seg = [...doc.features].find((f) => f.type === 'CDS')?.segments[0];
+  if (seg?.kind !== 'range') throw new Error('no CDS');
+  return { start: seg.start, end: seg.end };
+}
+/** The Cloning tab's SmaI digest and Open (a blunt, single cut in both vectors). */
+function smaI(vector: SeqDocument): SeqDocument {
+  const enzyme = getEnzyme('SmaI');
+  if (enzyme === undefined) throw new Error('no SmaI');
+  const text = vector.sequence.toString();
+  const fragments = digest(
+    vector,
+    cuttableSites(
+      text,
+      vector.topology,
+      vector.methylation,
+      findCutSites(text, vector.topology, [enzyme]),
+      (x) => getEnzyme(x)?.site.length ?? 0,
+    ),
+  );
+  expect(fragments).toHaveLength(1);
+  const only = fragments[0];
+  if (only === undefined) throw new Error('no fragment');
+  return documentFromFragment(only);
+}
+/** The Features tab's Detect features with every hit ticked, then Add. */
+async function detected(doc: SeqDocument): Promise<SeqDocument> {
+  const library = await loadFeatureLibrary();
+  return doc.addFeatures(
+    detectFeatures(doc.sequence.toString(), doc.topology, library).map((hit) => {
+      const part = library.parts[hit.part];
+      if (part === undefined) throw new Error('no part');
+      return featureFromHit(hit, part);
+    }),
+  );
+}
+const NOTE = 'Yeast assembly asks for 40 bases of homology, which both tails carry.';
+const NO_MARKER =
+  'No yeast selectable marker (URA3, LEU2, HIS3, TRP1, MET15, LYS2, ADE2, KanMX) is annotated on the product, so nothing selects the assembly.';
+const NO_ORIGIN =
+  'No ARS, CEN or 2-micron feature is annotated on the product, so it will not replicate in yeast.';
+const SMA_END = 'CTCGAGGTCGACGGTATCGATAAGCTTGATATCGAATTCCTGCAGCCC';
+
+/** Primers, the amplicon and the circle of one design, in the numbers the page prints. */
+function summary(d: ReturnType<typeof designOverlapPrimers>, vector: SeqDocument) {
+  const r = yeastAssembly([vector, d.amplicon ?? vector], { vector });
+  return {
+    primers: [d.forward, d.reverse].map((p) => [
+      p.sequence.length,
+      p.tail.length,
+      p.annealLength,
+      p.tm.toFixed(0),
+    ]),
+    amplicon: d.amplicon?.length,
+    product: d.product?.length,
+    topology: d.product?.topology,
+    name: d.product?.name,
+    junctions: r.assembly?.junctions.map((j) => [j.name, j.start + 1, j.end]),
+    gc: r.assembly?.joins.map((j) => Number(gcPercent(j.overlap).toFixed(0))),
+    warnings: d.warnings,
+  };
+}
+
+describe.skipIf(!NCBI_FILES.every((f) => existsSync(f)))(
+  'yeast-assembly.md: exercises 6 to 8, records fetched from NCBI',
+  () => {
+    // The gitignored records are read in beforeAll, which a skip does not run.
+    let insulin: SeqDocument;
+    let adh1: SeqDocument;
+    let prs416: SeqDocument;
+    let prs426: SeqDocument;
+    beforeAll(() => {
+      insulin = ncbi('NM_000207');
+      adh1 = ncbi('NM_001183340');
+      prs416 = ncbi('U03450');
+      prs426 = ncbi('U03451');
+    });
+
+    it('are the records the page describes', () => {
+      expect([insulin.length, insulin.topology]).toEqual([465, 'linear']);
+      expect(cdsOf(insulin)).toEqual({ start: 59, end: 392 });
+      expect([adh1.length, adh1.topology]).toEqual([1047, 'linear']);
+      expect(cdsOf(adh1)).toEqual({ start: 0, end: 1047 });
+      expect(translate(seq(adh1)).slice(0, 10)).toBe('MSIPETQKGV');
+      expect([prs416.length, prs416.topology, prs416.name]).toEqual([4898, 'circular', 'PRS416']);
+      expect([prs426.length, prs426.topology, prs426.name]).toEqual([5726, 'circular', 'PRS426']);
+      // Neither vector is annotated beyond its source feature.
+      expect([...prs416.features].map((f) => f.type)).toEqual(['source']);
+      expect([...prs426.features].map((f) => f.type)).toEqual(['source']);
+    });
+
+    it('exercise 6: insulin into the tutorial vector, 2,550 bp, no warning but the note', () => {
+      const vector = cut(tut('YA-Vector')).opened;
+      const d = designOverlapPrimers(vector, insulin, cdsOf(insulin), 'yeast');
+      expect(d.problem).toBeNull();
+      expect(d.forward.tail).toBe(seq(vector).slice(-40));
+      expect(d.reverse.tail).toBe(reverseComplement(seq(vector).slice(0, 40)));
+      expect(summary(d, vector)).toEqual({
+        primers: [
+          [58, 40, 18, '61'],
+          [66, 40, 26, '61'],
+        ],
+        amplicon: 413,
+        product: 2550,
+        topology: 'circular',
+        name: 'YA-Vector EcoRV fragment+NM_000207 PCR product assembly',
+        junctions: [
+          ['homology 1', 2178, 2217],
+          ['homology 2', 1, 40],
+        ],
+        gc: [50, 53],
+        warnings: [NOTE],
+      });
+      expect(d.forward.sequence).toBe('TGAAGCATTCGCCTGCCTCTCTAACTGTTGCTAGACCGATatggccctgtggatgcgc');
+      expect(d.reverse.sequence).toBe(
+        'TGGACTTCCACAGGGCTCTCGACGGAATAAGAGAACCGATctagttgcagtagttctccagctggt',
+      );
+      expect(2217 + 333).toBe(2550);
+      expect(names(d.product ?? vector)).toEqual(
+        expect.arrayContaining([
+          'URA3',
+          'CEN6',
+          'ARSH4',
+          'INS',
+          'insulin preproprotein',
+          'proinsulin',
+          'insulin B chain',
+          'C-peptide',
+          'insulin A chain',
+        ]),
+      );
+    });
+
+    it('SmaI cuts each pRS vector once, blunt, in the polylinker', () => {
+      for (const v of [prs416, prs426]) {
+        const frag = smaI(v);
+        expect(frag.length).toBe(v.length);
+        expect(frag.topology).toBe('linear');
+        expect(seq(frag).slice(0, 3)).toBe('GGG');
+        expect(seq(frag).slice(-3)).toBe('CCC');
+        expect(seq(frag).slice(-SMA_END.length)).toBe(SMA_END);
+      }
+    });
+
+    it('exercise 7: ADH1 into pRS416, bare: 5,945 bp, and the two warnings of an unannotated vector', () => {
+      const vector = smaI(prs416);
+      const d = designOverlapPrimers(vector, adh1, cdsOf(adh1), 'yeast');
+      expect(d.problem).toBeNull();
+      expect(summary(d, vector)).toEqual({
+        primers: [
+          [70, 40, 30, '59'],
+          [70, 40, 30, '56'],
+        ],
+        amplicon: 1127,
+        product: 5945,
+        topology: 'circular',
+        name: 'PRS416 SmaI fragment+NM_001183340 PCR product assembly',
+        junctions: [
+          ['homology 1', 4859, 4898],
+          ['homology 2', 1, 40],
+        ],
+        gc: [50, 70],
+        warnings: [NOTE, NO_MARKER, NO_ORIGIN],
+      });
+      expect(4898 + 1047).toBe(5945);
+      expect(d.forward.sequence).toBe(
+        'CGACGGTATCGATAAGCTTGATATCGAATTCCTGCAGCCCatgtctatcccagaaactcaaaaaggtgtt',
+      );
+      expect(d.reverse.sequence).toBe(
+        'CCACCGCGGTGGCGGCCGCTCTAGAACTAGTGGATCCCCCttatttagaagtgtcaacaacgtatctacc',
+      );
+    });
+
+    it('exercise 7: after Detect features the vector carries URA3, CEN6 and ARSH4, and only the note is left', async () => {
+      const vector = smaI(await detected(prs416));
+      const have = names(vector);
+      expect(have).toEqual(expect.arrayContaining(['URA3', 'CEN6', 'ARSH4', 'AmpR', 'pBR322 ori']));
+      const d = designOverlapPrimers(vector, adh1, cdsOf(adh1), 'yeast');
+      expect(d.product?.length).toBe(5945);
+      expect(d.warnings).toEqual([NOTE]);
+      expect(names(d.product ?? vector)).toEqual(
+        expect.arrayContaining(['URA3', 'CEN6', 'ARSH4', 'ADH1', 'alcohol dehydrogenase ADH1']),
+      );
+    });
+
+    it('exercise 8: pRS426 has a real 81 bp direct repeat in its 2-micron piece', async () => {
+      const bare = smaI(prs426);
+      const d0 = designOverlapPrimers(bare, adh1, cdsOf(adh1), 'yeast');
+      expect(d0.product?.length).toBe(6773);
+      expect(d0.warnings).toEqual([
+        NOTE,
+        '81 bp at 2,278 in PRS426 SmaI fragment is repeated at 2,403 in PRS426 SmaI fragment. Direct repeats recombine in yeast and can delete what lies between them.',
+        NO_MARKER,
+        NO_ORIGIN,
+      ]);
+      const vector = smaI(await detected(prs426));
+      expect(names(vector)).toEqual(
+        expect.arrayContaining(['URA3', '2-micron inverted repeat', 'FRT']),
+      );
+      expect(names(vector)).not.toContain('CEN6');
+      const d = designOverlapPrimers(vector, adh1, cdsOf(adh1), 'yeast');
+      expect(summary(d, vector)).toEqual({
+        primers: [
+          [70, 40, 30, '59'],
+          [70, 40, 30, '56'],
+        ],
+        amplicon: 1127,
+        product: 6773,
+        topology: 'circular',
+        name: 'PRS426 SmaI fragment+NM_001183340 PCR product assembly',
+        junctions: [
+          ['homology 1', 5687, 5726],
+          ['homology 2', 1, 40],
+        ],
+        gc: [50, 70],
+        warnings: [d.warnings[0], d.warnings[1]],
+      });
+      expect(d.warnings[0]).toBe(NOTE);
+      expect(d.warnings[1]).toMatch(/^81 bp at 2,278 in PRS426 SmaI fragment is repeated at 2,403/);
+      expect(6773 - 1047).toBe(5726);
+    });
+  },
+);
