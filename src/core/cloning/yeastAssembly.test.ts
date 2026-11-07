@@ -195,6 +195,11 @@ describe('the yeast kit of gibson()', () => {
 });
 
 describe('yeastAssembly', () => {
+  it('makes an unmethylated product: it is made and isolated in yeast (#411)', () => {
+    const { assembly } = run(good().parts);
+    expect(assembly.product.methylation).toEqual({ dam: false, dcm: false });
+  });
+
   it('assembles the circle, 40 bp by default, with no warning for a good one', () => {
     const { parts, junctions, bodies } = good();
     const { result, assembly } = run(parts, { vector: parts[0] ?? null });

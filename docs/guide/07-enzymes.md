@@ -519,7 +519,9 @@ A piece of a molecule is that molecule's DNA: a selection exported as a
 file, a digest fragment put on the shelf or opened as a document, keeps the
 host of the document it came from, so a fragment of a PCR product stays
 unmethylated. A ligation, Golden Gate, Gibson or Gateway product is what
-you would transform and grow, so it starts as dam+/dcm+.
+you would transform and grow, so it starts as dam+/dcm+. A yeast assembly
+product is made and isolated in yeast, which has neither Dam nor Dcm, so it
+starts unmethylated; set **Grown in** if you took it through E. coli.
 
 Changing it is an edit like any other, so **Undo** takes it back, and it is
 saved with the document: GenBank has nowhere to put it, so it travels as a

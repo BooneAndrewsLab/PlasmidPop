@@ -1,3 +1,4 @@
+import { UNMETHYLATED_HOST } from '../analysis/methylation';
 import { type SeqDocument } from '../document';
 import { type Feature, createFeature, rangeSegment } from '../features';
 import {
@@ -112,7 +113,11 @@ export function yeastAssembly(
   }
 
   const junctions = junctionsOf(assembly);
-  const product = assembly.product.addFeatures(junctions.map(junctionFeature));
+  // Made in the cell from PCR products, and isolated from yeast, which has no
+  // Dam or Dcm: unmethylated until the user says it was grown in E. coli.
+  const product = assembly.product
+    .addFeatures(junctions.map(junctionFeature))
+    .setMethylation(UNMETHYLATED_HOST);
   return {
     usable,
     dropped,
