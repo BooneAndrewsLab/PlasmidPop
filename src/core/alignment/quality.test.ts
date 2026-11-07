@@ -1,4 +1,4 @@
-import { alignPairwise } from './pairwise';
+import { type Alignment, alignPairwise } from './pairwise';
 import {
   CONFIDENT_QUALITY_CHOICES,
   TRIM_CUTOFF,
@@ -119,5 +119,104 @@ describe('quality settings (#56)', () => {
     expect(trimByQuality(q, 0.05)).toEqual({ start: 0, end: 40 });
     // At 0.1% the Q10 base costs more than the ten before it earn.
     expect(trimByQuality(q, 0.001)).toEqual({ start: 11, end: 40 });
+  });
+});
+
+/**
+ * An alignment written out by hand: only the strings and the starts matter to
+ * the functions under test, the rest is what they imply.
+ */
+function byHand(alignedA: string, alignedB: string, matchLine: string, startA = 0, startB = 0) {
+  const alignment: Alignment = {
+    mode: 'global',
+    score: 0,
+    alignedA,
+    alignedB,
+    matchLine,
+    startA,
+    endA: startA + alignedA.replaceAll('-', '').length,
+    startB,
+    endB: startB + alignedB.replaceAll('-', '').length,
+    identities: 0,
+    ambiguous: 0,
+    gaps: 0,
+    columns: alignedA.length,
+    identity: 0,
+  };
+  return alignment;
+}
+
+describe('columnQualities, a gap in the read (#399)', () => {
+  it('takes the quality of the first read base for a gap before it', () => {
+    // No read base before the gap, so it is the base after alone: not the
+    // quality of a base at -1 (which would be 0).
+    expect(columnQualities(byHand('GAC', '-AC', ' ||'), [30, 40])).toEqual([30, 30, 40]);
+  });
+
+  it('takes the lower of the read bases either side of a gap inside the read', () => {
+    // Gap between read bases 1 and 2.
+    const aligned = byHand('ACGGT', 'AC-GT', '|| ||');
+    expect(columnQualities(aligned, [40, 20, 35, 50])).toEqual([40, 20, 20, 35, 50]);
+    // The lower one is the one after when that is poorer.
+    expect(columnQualities(aligned, [40, 50, 35, 60])).toEqual([40, 50, 35, 35, 60]);
+  });
+
+  it('takes the last read base for a gap after it', () => {
+    // No read base after the gap: not the quality of a base past the end.
+    expect(columnQualities(byHand('ACG', 'AC-', '|| '), [40, 30])).toEqual([40, 30, 30]);
+  });
+
+  it('gives a run of gaps the quality of the same two neighbours', () => {
+    expect(columnQualities(byHand('ACGGGT', 'AC--GT', '||  ||'), [40, 15, 35, 50])).toEqual([
+      40, 15, 15, 15, 35, 50,
+    ]);
+  });
+
+  it('starts from where the aligned part of the read starts', () => {
+    // startB 2: the gap lies between read bases 3 and 4, qualities 25 and 45.
+    const aligned = byHand('ACGGT', 'AC-GT', '|| ||', 0, 2);
+    expect(columnQualities(aligned, [9, 9, 30, 25, 45, 9])).toEqual([30, 25, 25, 45, 9]);
+  });
+});
+
+describe('readDifferences, positions past a gap (#399)', () => {
+  it('does not move along the reference through an insertion', () => {
+    // The read has a T the reference lacks (column 2), then a mismatch at column 4.
+    const aligned = byHand('AC-GT', 'ACTGA', '|| |.', 10, 5);
+    const q = [40, 40, 12, 40, 25];
+    const diffs = readDifferences(aligned, q);
+    expect(diffs).toEqual([
+      { column: 2, kind: 'insertion', positionA: 12, positionB: 7, quality: 12, confident: false },
+      { column: 4, kind: 'mismatch', positionA: 13, positionB: 9, quality: 25, confident: true },
+    ]);
+  });
+
+  it('does not move along the read through a deletion', () => {
+    // The read lacks the reference's T (column 2), then a mismatch at column 4.
+    const aligned = byHand('ACTGA', 'AC-GT', '|| |.', 10, 5);
+    const q = [40, 40, 15, 40, 19];
+    const diffs = readDifferences(aligned, q);
+    expect(diffs).toEqual([
+      { column: 2, kind: 'deletion', positionA: 12, positionB: 7, quality: 15, confident: false },
+      { column: 4, kind: 'mismatch', positionA: 14, positionB: 8, quality: 19, confident: false },
+    ]);
+  });
+});
+
+describe('trimByQuality at the edges of its sum (#399)', () => {
+  it('starts after a base that brings the sum exactly to zero', () => {
+    // At 10% a Q10 base earns exactly 0: the stretch cannot start on it.
+    expect(trimByQuality([10, 40], 0.1)).toEqual({ start: 1, end: 2 });
+  });
+
+  it('keeps the first stretch when a later one only ties it', () => {
+    // The Q10 base adds exactly 0 at 10%: the sum is the same, the stretch no longer.
+    expect(trimByQuality([40, 10], 0.1)).toEqual({ start: 0, end: 1 });
+  });
+
+  it('never ends past the read, even when every base scores above the cutoff', () => {
+    // A cutoff above 1 is not offered, but a base scores cutoff - p > 0 for any p < 1.
+    expect(trimByQuality([10, 10], 2)).toEqual({ start: 0, end: 2 });
+    expect(trimByQuality([], 2)).toEqual({ start: 0, end: 0 });
   });
 });

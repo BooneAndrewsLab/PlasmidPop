@@ -1430,3 +1430,107 @@ sits on the line after the `Stryker disable` comment that covers the
 **`protocol.ts`: 1 equivalent.** L510 `wrongClones.length === 0` to `false`:
 `compareCheckAll` with no wrong lanes gives `apart` 0, `weakest` 1 and
 `faintest` 0 for both candidates and falls through to `compareDiagnostic`.
+
+### Old survivors of `alignment/pairwise.ts` and `quality.ts` (#399)
+
+Neither file changed after 1.21.0, so the 1.22 pre-release pass left them out
+(see "Triaged at the 1.22 release (#372)"). Their survivors came from duncan's
+run 10, which mutated both whole: 178 survivors and uncovered mutants, 151 in
+`pairwise.ts` (8 of them uncovered) and 27 in `quality.ts`. They were rechecked
+on 2026-11-07 against today's tests, each mutant applied by hand to the source
+and run against the six direct test files (`pairwise`, `protein`, `quality`,
+`banded`, `quality.property`, `strands`): 41 are killed now, 137 were not. The
+new tests below kill 99 of the 137, and 38 are equivalent. Production files are
+untouched, so the equivalents are recorded here and carry no `Stryker disable`
+comment.
+
+**New tests (99 killed: 21 in `quality.ts`, 78 in `pairwise.ts`).**
+
+- `quality.test.ts`. `columnQualities` called on alignments written
+  out by hand: a gap before the first read base, inside the read (the lower of
+  the bases either side, with the poorer one on either side), after the last
+  base, a run of gaps, a local alignment that starts inside the read.
+  `readDifferences` positions after an insertion and after a deletion (the
+  other sequence's position must not move). `trimByQuality` where a base scores
+  exactly 0 (a stretch cannot start on it, nor grow by it) and a cutoff above 1
+  (the end cannot pass the read).
+- `pairwiseLimits.test.ts` (new). The text of each
+  `AlignmentTooLargeError` reason and its `name`; the cells of a full matrix
+  counted from both sides; a matrix of exactly `maxCells` cells runs and one
+  more refuses, for `alignPairwise` and for `alignInBand` (whose own check
+  `alignPairwise` normally shadows); `scoreInBand` keeps nothing and so has no
+  limit; a refused allocation (the `Uint8Array` stubbed to refuse the one length)
+  reports `memory`; `bandCells`; a band of the wrong length, a global band
+  that stops short of the last column, a path that leaves its band; `mode` is
+  global when not given; a gap in the first sequence counts and is marked.
+- `pairwiseBand.test.ts` (new). 700 random small alignments, global
+  and local, in a band round a random corner-to-corner path, against a plain
+  reference (the same recurrence with `-Infinity` outside the band, written
+  separately): `scoreInBand` and `alignInBand` give its score, the returned
+  strings are the stretches they claim, their rescoring is the score, and the
+  path stays in the band. 300 more with a first row that starts right of column
+  0 (score only). Then 10 pinned cases of equal alignments (which of equal gap
+  placements or stretches comes back: `>=` against `>` on `openX`, `extX`, `openY`,
+  `extY`, `mScore <= 0`, `mScore > best`), with the band edge a path ran along
+  (`touchedEdge` from the left edge, from the right edge and not from the
+  matrix edge). The pins were found by trying each surviving mutant on random
+  inputs until its output differed, and were then checked by the reference
+  and the rescoring, so a pin that moves is told apart from a worse alignment. A
+  global band that does not hold the origin cannot be traced back, and the
+  fill reports its progress by the rows two million cells make.
+
+**Equivalent (38).**
+
+- `quality.ts` (3). L27 and L39 `typeof v === 'number'` to `true`: the guards
+  `isConfidentQuality` and `isTrimCutoff` call `includes(v)` on a list of numbers,
+  which is never true for a value that is not one. L142 `c < alignment.columns`
+  to `<=`: the extra column reads `charAt` past the end, `''`, which is not a gap
+  or a `.`, so no difference is recorded.
+- **Defaults that are only compared (2).** L96 `reason = 'limit'` to `""`: the
+  reason is tested against `'memory'` and `'unanchored'`, and anything else
+  gives the limit message. L255 `options.mode ?? 'global'` to `""` in
+  `fillBand`: `local` is the only thing it feeds (`traceBack`'s own L445 is the
+  alignment's `mode`, and is killed).
+- **A check done twice (3).** L169 `maxCells ?? DEFAULT_MAX_CELLS` to `&&`, L171
+  `cells > maxCells` to `false`, and L171's throw removed: `alignPairwise` checks
+  the full matrix, and `fillBand` checks the same cells with the same options
+  and throws the same error, so an unchecked `alignPairwise` still stops. The
+  rest of L169-171 is killed: `>=` by the exact boundary, the three mutants of
+  the cell count by the exact message.
+- **Cache hit or miss (3).** L234 (`e.a === a && e.protein === protein` to `false`),
+  L235 `at < 0` to `<= 0` and `[undefined]` to `[]`: `encodedFirst` only avoids
+  encoding the first sequence again; a miss encodes it again to the same codes.
+- **`mismatch` as a fallback (3).** L258 (`* SCALE` to `/ SCALE`, `-4` to `+4`,
+  `??` to `&&`): the variable is read only in `scores[...] ?? mismatch`, and an
+  index inside the table is never undefined.
+- **A sentinel written twice, or past the typed array (13).** Row 0's `lo0 > 0`
+  block (L317-320: the condition as `false`, `>=` and `<=`, the block emptied,
+  `prevX[lo0 + 1]`) and the `rowLo > 0 && rowLo - 1 < aboveLo` block of each
+  later row (L338: false, `rowLo > 0` to `true`, `>=` and `<=`, `rowLo + 1`, the
+  block emptied) write `NEG` to the cell left of the row above's band. The
+  `curM[rowLo - 1] = NEG` of L348 has written it already, as `cur` of the row
+  before, and row 0's block covers row 1 the other way round, so either of the
+  pair alone gives the same fill. `rowLo >= 0` and `true` on L338 and L348 also
+  write at index -1 of a typed array, which is dropped. (The `lo0 + 1` forms of
+  `prevM` and `prevY` are not equivalent: they alter a real cell of row 0, and
+  the reference kills them.)
+- **Column 0 is not a path (7).** L305-309 (the `j === 0` block emptied, and
+  `if (keep)` to `true` or `false` in it): `tb` at (0, 0) is never read, since
+  the traceback stops when `i` and `j` are both 0, and the zeros the arrays
+  start with tie with `pm` and fall to `M`. L354 (`rowLo === 0` to `false`, or
+  its block emptied) and L358 (`i === 1` to `false`): the general recurrence gives
+  the same values at column 0 (a gap in the second sequence from the cell above)
+  for a global alignment; in local mode a path that starts with a gap scores
+  no more than one that starts after it (gap open `<= 0`) and ties go to the
+  `M` of the start cell; and the `X` state that `i === 1` would send to row 0 ends
+  the traceback there anyway. L358 `keep` to `true` writes into a zero-length
+  array when nothing is kept.
+- **Guards the traceback never meets (4).** L463 `i === 0` and `j === 0` in the `M`
+  branch, L470 `i === 0` in `X`, L476 `j === 0` in `Y`: the traceback only
+  reaches row 0 or column 0 in a state the fill gave a finite score there, which
+  is `Y` on row 0 and `X` in column 0, and `M` at the cell (0, 0) where the loop ends; a
+  band with no path to the corner throws at L458 before it.
+
+No survivor is left unclassified. The classes were also tried on 40,000 random
+alignments, bands and options each (`pairwise.ts` copied and mutated outside the
+repository): none changes a result or an error message.
