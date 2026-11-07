@@ -23,7 +23,7 @@ import { loadFeatureLibrary } from '@/core/annotate/library';
 import { parseGenBank } from '@/io/genbank/parseGenBank';
 import { writeGenBank } from '@/io/genbank/writeGenBank';
 
-import { designOverlapPrimers, yeastAssembly } from './index';
+import { designMultiOverlapPrimers, designOverlapPrimers, yeastAssembly } from './index';
 
 /**
  * Verifies docs/tutorials/yeast-assembly.md: the files it hands out and every
@@ -578,6 +578,66 @@ describe.skipIf(!NCBI_FILES.every((f) => existsSync(f)))(
       expect(d.warnings[0]).toBe(NOTE);
       expect(d.warnings[1]).toMatch(/^81 bp at 2,278 in PRS426 SmaI fragment is repeated at 2,403/);
       expect(6773 - 1047).toBe(5726);
+    });
+  },
+);
+
+const PART_FILES = ['U03450', 'U50963']
+  .map(ncbiFile)
+  .concat(['ADH1-window', 'CYC1-window'].map((n) => join(NCBI_DIR, `${n}.gb`)));
+
+describe.skipIf(!PART_FILES.every((f) => existsSync(f)))(
+  'yeast-assembly.md: exercise 9, a promoter, a reporter and a terminator in pRS416',
+  () => {
+    let vector: SeqDocument;
+    let parts: { template: SeqDocument; region: { start: number; end: number } }[];
+    beforeAll(() => {
+      const read = (path: string): SeqDocument => {
+        const doc = parseGenBank(readFileSync(path, 'utf8')).documents[0];
+        if (doc === undefined) throw new Error(path);
+        return doc;
+      };
+      vector = smaI(read(ncbiFile('U03450')));
+      parts = [
+        { template: read(join(NCBI_DIR, 'ADH1-window.gb')), region: { start: 300, end: 1000 } },
+        { template: read(ncbiFile('U50963')), region: { start: 0, end: 717 } },
+        { template: read(join(NCBI_DIR, 'CYC1-window.gb')), region: { start: 1330, end: 1530 } },
+      ];
+    });
+
+    it('closes in the order asked, 6,515 bp, with 40 bp of homology at each of four junctions', () => {
+      const d = designMultiOverlapPrimers(vector, parts, 'yeast');
+      expect(d.problem).toBeNull();
+      expect(d.inserts.map((i) => i.amplicon?.length)).toEqual([760, 757, 260]);
+      expect(d.inserts.map((i) => [i.forward, i.reverse].map((p) => p.sequence))).toEqual([
+        [
+          'CGACGGTATCGATAAGCTTGATATCGAATTCCTGCAGCCCgggtgtacaatatggacttcctcttttctg',
+          'AGTTCCTCGCCCTTGCTCATtgtatatgagatagttgattgtatgcttgg',
+        ],
+        [
+          'AATCAACTATCTCATATACAatgagcaagggcgaggaactgt',
+          'ACAAAGGAAAAGGGGCCTGTtcacttgtacagctcgtccatgcc',
+        ],
+        [
+          'TGGACGAGCTGTACAAGTGAacaggccccttttcctttgtcg',
+          'CCACCGCGGTGGCGGCCGCTCTAGAACTAGTGGATCCCCCtttgtacagaaaaaaaagaaaaatttgaaa',
+        ],
+      ]);
+      expect(d.inserts.map((i) => [i.forward.tail.length, i.reverse.tail.length])).toEqual([
+        [40, 20],
+        [20, 20],
+        [20, 40],
+      ]);
+      expect(d.product?.length).toBe(4898 + 700 + 717 + 200);
+      expect(d.product?.topology).toBe('circular');
+      expect(d.product?.name).toBe(
+        'PRS416 SmaI fragment+NC_001147 PCR product+XXU50963 PCR product+NC_001142 PCR product 1 assembly',
+      );
+      expect(d.warnings).toEqual([
+        'Yeast assembly asks for 40 bases of homology at each of the 4 junctions. The two primers at an internal junction carry half each.',
+        NO_MARKER,
+        NO_ORIGIN,
+      ]);
     });
   },
 );

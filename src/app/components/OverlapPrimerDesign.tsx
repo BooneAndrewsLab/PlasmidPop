@@ -1,11 +1,15 @@
 import { useMemo, useState } from 'react';
 
 import {
+  type AssemblyInsert,
+  type JunctionSplit,
   type OverlapKit,
   type OverlapPrimer,
   type SeqDocument,
   KIT_NAMES,
   KIT_OVERLAP,
+  YEAST_OVERLAP,
+  designMultiOverlapPrimers,
   designOverlapPrimers,
   recordOverlapDesign,
 } from '@/core';
@@ -13,22 +17,38 @@ import {
 import { analytics } from '../analytics';
 import { FIXED_BY, cloneCheckFromParts, openCloneCheck } from '../cloneCheck';
 import { copyText } from '../clipboard';
+import { OVERLAP_MAX_INSERTS, type OverlapSlot } from '../state/benchSettings';
 import { cloningDocuments, editorStore } from '../state/editorStore';
 import { savePrimers } from '../state/primerCollection';
 import { useEditorState } from '../state/useEditorStore';
 import { AssemblyWarnings } from './AssemblyWarnings';
-import { insertChoices } from './insertChoices';
+import { type InsertChoice, insertChoices } from './insertChoices';
 import { ProductSummary } from './ProductSummary';
 
 const KITS: readonly OverlapKit[] = ['in-fusion', 'nebuilder', 'yeast'];
 
-function PrimerLine({ label, primer }: { readonly label: string; readonly primer: OverlapPrimer }) {
+const SPLITS: readonly { readonly value: JunctionSplit; readonly label: string }[] = [
+  { value: 'both', label: 'Half on each primer' },
+  { value: 'forward', label: 'On the next insert’s forward primer' },
+  { value: 'reverse', label: 'On the previous insert’s reverse primer' },
+];
+
+function PrimerLine({
+  label,
+  primer,
+  tailOf = 'vector',
+}: {
+  readonly label: string;
+  readonly primer: OverlapPrimer;
+  /** What the 5′ tail is taken from: the vector's end, or (several inserts) a mix with the neighbour. */
+  readonly tailOf?: string;
+}) {
   return (
     <li className="pair">
       <div className="pair__row pair__row--wide">
         <span className="pair__length">{label}</span>
         <span className="pair__meta">
-          {primer.sequence.length} nt: {primer.tail.length} of vector, {primer.annealLength}{' '}
+          {primer.sequence.length} nt: {primer.tail.length} of {tailOf}, {primer.annealLength}{' '}
           annealing at {primer.tm.toFixed(0)} °C
         </span>
       </div>
@@ -62,7 +82,7 @@ function PrimerLine({ label, primer }: { readonly label: string; readonly primer
  */
 export function OverlapPrimerDesign({ fixedKit }: { readonly fixedKit?: OverlapKit } = {}) {
   const { documents, bench } = useEditorState();
-  const { vectorId, templateId, insert } = bench.overlap;
+  const { vectorId, templateId, insert, reverse, more, split, overlap } = bench.overlap;
   const kit = fixedKit ?? bench.overlap.kit;
   const [saved, setSaved] = useState('');
   const setKit = (next: OverlapKit): void => {
@@ -77,6 +97,12 @@ export function OverlapPrimerDesign({ fixedKit }: { readonly fixedKit?: OverlapK
   };
   const setInsert = (next: string): void => {
     editorStore.updateBench('overlap', { insert: next });
+  };
+  const setMore = (next: readonly OverlapSlot[]): void => {
+    editorStore.updateBench('overlap', { more: next });
+  };
+  const setSlot = (n: number, patch: Partial<OverlapSlot>): void => {
+    setMore(more.map((m, i) => (i === n ? { ...m, ...patch } : m)));
   };
 
   const tabs = useMemo(
@@ -98,10 +124,46 @@ export function OverlapPrimerDesign({ fixedKit }: { readonly fixedKit?: OverlapK
 
   const design = useMemo(
     () =>
-      vector === undefined || template === undefined || region === null || vector === template
+      more.length > 0 ||
+      vector === undefined ||
+      template === undefined ||
+      region === null ||
+      vector === template
         ? null
         : designOverlapPrimers(vector.doc, template.doc, region, kit),
-    [vector, template, region, kit],
+    [more.length, vector, template, region, kit],
+  );
+
+  // Two or more inserts (#413): each further one is a tab and a part of it,
+  // like the first, and the design is run on the whole assembly.
+  const further = useMemo(
+    () =>
+      more.map((m) => {
+        const tab = tabs.find((t) => t.id === m.templateId);
+        const options = insertChoices(tab);
+        const picked = options.find((c) => c.value === m.insert) ?? options[0];
+        return { tab, options, value: picked?.value ?? '', range: picked?.range ?? null };
+      }),
+    [more, tabs],
+  );
+  const assemblyInserts = useMemo((): readonly AssemblyInsert[] | null => {
+    if (more.length === 0 || template === undefined || region === null) return null;
+    const out: AssemblyInsert[] = [{ template: template.doc, region, reverse }];
+    for (const [n, f] of further.entries()) {
+      if (f.tab === undefined || f.range === null) return null;
+      out.push({ template: f.tab.doc, region: f.range, reverse: more[n]?.reverse ?? false });
+    }
+    return out;
+  }, [more, further, template, region, reverse]);
+  const multi = useMemo(
+    () =>
+      assemblyInserts === null || vector === undefined
+        ? null
+        : designMultiOverlapPrimers(vector.doc, assemblyInserts, kit, {
+            split,
+            overlap,
+          }),
+    [assemblyInserts, vector, kit, split, overlap],
   );
 
   const picker = (label: string, value: string, set: (id: string) => void): React.ReactElement => (
@@ -147,6 +209,27 @@ export function OverlapPrimerDesign({ fixedKit }: { readonly fixedKit?: OverlapK
         notes: `Yeast assembly, reverse tail primer for ${template.doc.name}`,
       },
     ];
+    void savePrimers(drafts, 'design').then((r) => {
+      setSaved(
+        r.added.length === 0
+          ? 'Already in My primers.'
+          : `Saved ${r.added.length.toLocaleString()} ${r.added.length === 1 ? 'primer' : 'primers'} to My primers.`,
+      );
+    });
+  };
+
+  /** Every insert's two primers, as `<template>-YA<n>-F` and `-R` (#413). */
+  const saveMulti = (): void => {
+    if (multi === null || assemblyInserts === null) return;
+    analytics.track('cloning', 'yeast-oligos');
+    const drafts = multi.inserts.flatMap((m, n) => {
+      const name = `${assemblyInserts[n]?.template.name ?? 'insert'}-YA${n + 1}`;
+      const notes = `Yeast assembly, insert ${n + 1} of ${multi.inserts.length}`;
+      return [
+        { name: `${name}-F`, sequence: m.forward.sequence, notes: `${notes}, forward tail primer` },
+        { name: `${name}-R`, sequence: m.reverse.sequence, notes: `${notes}, reverse tail primer` },
+      ];
+    });
     void savePrimers(drafts, 'design').then((r) => {
       setSaved(
         r.added.length === 0
@@ -205,8 +288,205 @@ export function OverlapPrimerDesign({ fixedKit }: { readonly fixedKit?: OverlapK
             </select>
           </label>
         )}
+        {more.length > 0 && (
+          <label className="panel__field panel__field--row">
+            <input
+              type="checkbox"
+              aria-label="Insert 1 reverse strand"
+              checked={reverse}
+              onChange={(e) => {
+                editorStore.updateBench('overlap', { reverse: e.target.checked });
+              }}
+            />
+            <span>Insert 1 on the reverse strand</span>
+          </label>
+        )}
+        {more.map((m, n) => (
+          <div key={n} className="panel__controls" role="group" aria-label={`Insert ${n + 2}`}>
+            <label className="panel__field panel__field--row">
+              <span>{`Insert ${n + 2} from`}</span>
+              <select
+                className="panel__select"
+                aria-label={`Insert ${n + 2} from`}
+                value={m.templateId}
+                onChange={(e) => {
+                  setSlot(n, { templateId: e.target.value, insert: '' });
+                }}
+              >
+                <option value="">choose a tab</option>
+                {tabs.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.doc.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {(further[n]?.options.length ?? 0) > 0 && (
+              <label className="panel__field panel__field--row">
+                <span>{`Insert ${n + 2}`}</span>
+                <select
+                  className="panel__select"
+                  aria-label={`Insert ${n + 2}`}
+                  value={further[n]?.value ?? ''}
+                  onChange={(e) => {
+                    setSlot(n, { insert: e.target.value });
+                  }}
+                >
+                  {(further[n]?.options ?? []).map((c: InsertChoice) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <label className="panel__field panel__field--row">
+              <input
+                type="checkbox"
+                aria-label={`Insert ${n + 2} reverse strand`}
+                checked={m.reverse}
+                onChange={(e) => {
+                  setSlot(n, { reverse: e.target.checked });
+                }}
+              />
+              <span>{`Insert ${n + 2} on the reverse strand`}</span>
+            </label>
+            <button
+              type="button"
+              className="button button--quiet button--small"
+              aria-label={`Remove insert ${n + 2}`}
+              onClick={() => {
+                setMore(more.filter((_, i) => i !== n));
+              }}
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+        <div className="panel__buttons">
+          <button
+            type="button"
+            className="button button--small"
+            disabled={more.length + 1 >= OVERLAP_MAX_INSERTS}
+            data-tip="Add another PCR product after the last insert, with the homology between them in the tails"
+            onClick={() => {
+              setMore([...more, { templateId, insert: '', reverse: false }]);
+            }}
+          >
+            Add another insert
+          </button>
+        </div>
+        {more.length > 0 && (
+          <>
+            <label className="panel__field panel__field--row">
+              <span>Homology between inserts</span>
+              <select
+                className="panel__select"
+                aria-label="Homology between inserts"
+                value={split}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  editorStore.updateBench('overlap', {
+                    split: v === 'forward' || v === 'reverse' ? v : 'both',
+                  });
+                }}
+              >
+                {SPLITS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {kit === 'yeast' && (
+              <label className="panel__field panel__field--row">
+                <span>Homology (bp)</span>
+                <input
+                  className="panel__input"
+                  type="number"
+                  aria-label="Homology in bp"
+                  min={YEAST_OVERLAP.min}
+                  max={YEAST_OVERLAP.max}
+                  value={overlap}
+                  onChange={(e) => {
+                    editorStore.updateBench('overlap', { overlap: Number(e.target.value) });
+                  }}
+                />
+              </label>
+            )}
+          </>
+        )}
       </div>
-      {template !== undefined && region === null ? (
+      {more.length > 0 ? (
+        multi === null ? (
+          <p className="panel__note">
+            Choose the linearised vector and, for each insert, the tab to amplify it from and which
+            part of it. The inserts join in the order listed.
+          </p>
+        ) : multi.problem !== null ? (
+          <p className="panel__error">{multi.problem}</p>
+        ) : (
+          <>
+            <ol className="pair-list" aria-label="Insert primers">
+              {multi.inserts.map((m, n) => (
+                <li key={n}>
+                  <ol className="pair-list" aria-label={`Insert ${n + 1} primers`}>
+                    <PrimerLine
+                      label={`Insert ${n + 1} forward`}
+                      primer={m.forward}
+                      tailOf={n === 0 ? 'vector' : 'homology'}
+                    />
+                    <PrimerLine
+                      label={`Insert ${n + 1} reverse`}
+                      primer={m.reverse}
+                      tailOf={n === multi.inserts.length - 1 ? 'vector' : 'homology'}
+                    />
+                  </ol>
+                </li>
+              ))}
+            </ol>
+            <p className="panel__note panel__note--quiet">
+              Upper case is the tail, the vector&rsquo;s end or homology to the neighbouring insert;
+              the rest anneals to the template.
+            </p>
+            {multi.product !== null && (
+              <>
+                <ProductSummary product={multi.product} />
+                <AssemblyWarnings texts={multi.warnings} />
+                <div className="panel__controls">
+                  <div className="panel__buttons">
+                    <button
+                      type="button"
+                      className="button button--primary button--small"
+                      data-tip="Open the circle the amplicons and the vector would make"
+                      onClick={() => {
+                        if (multi.product !== null) open(multi.product);
+                      }}
+                    >
+                      Open product
+                    </button>
+                    {kit === 'yeast' && (
+                      <button
+                        type="button"
+                        className="button button--small"
+                        data-tip="Keep these primers in My primers, in this browser"
+                        onClick={saveMulti}
+                      >
+                        Save primers
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {saved !== '' && (
+                  <p className="panel__note panel__note--quiet" role="status">
+                    {saved}
+                  </p>
+                )}
+              </>
+            )}
+          </>
+        )
+      ) : template !== undefined && region === null ? (
         <p className="panel__note">
           {template.doc.name} has nothing selected and no features to amplify. Select the insert in
           its tab, or annotate it.

@@ -955,6 +955,24 @@ and shows the circle the amplicon and the vector would make. **Open product**
 and **Check primers…** work as there. **Save primers** keeps the pair in My
 primers as `<template>-YA-F` and `<template>-YA-R`.
 
+#### Two or more inserts
+
+A real assembly is often the vector and several PCR products, such as a
+promoter, a gene and a terminator. **Add another insert**, under the pickers,
+adds one more, each with its own tab, its own part of it and a tick to read
+it on the reverse strand; **Remove** takes one away again. The inserts join in
+the order listed. The first one's forward primer carries the vector's right
+end, the last one's reverse primer the reverse complement of its left end, and
+at each junction between two inserts the tails carry the homology. **Homology
+between inserts** says how: half on each primer (the default), all on the next
+insert's forward primer, or all on the previous insert's reverse primer. For
+yeast, **Homology (bp)** sets how much, 20 to 80 and 40 by default; In-Fusion
+and NEBuilder use their own length. As with one insert, the panel runs the
+design, and it refuses a design whose circle is not the vector and the inserts
+in the order asked for. **Open product** and, for yeast, **Save primers**
+(`<template>-YA<n>-F` and `-R`) work as above; **Check primers…** is for a
+single insert. At most eight inserts.
+
 ## What a product was made from
 
 Every product remembers how it was made: a fragment you **Open**, a PCR

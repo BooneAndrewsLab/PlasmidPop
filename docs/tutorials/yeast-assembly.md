@@ -1,13 +1,13 @@
 # Yeast assembly: a vector and two inserts, joined in the cell
 
-- **You will end with:** a 2,797 bp circle from an EcoRV-cut vector and two inserts that share 40 bp at each junction, then three designs that carry a warning, the two primers that put 40 bp tails on a plain gene, and (exercises 6 to 8) real records from NCBI: human insulin in the tutorial vector (2,550 bp), and a yeast gene in the real vectors pRS416 (5,945 bp) and pRS426 (6,773 bp).
-- **Time:** about 30 minutes for exercises 1 to 5, and 20 more for 6 to 8.
-- **Files:** [YA-Vector.gb](files/YA-Vector.gb), [YA-Insert1.gb](files/YA-Insert1.gb), [YA-Insert2.gb](files/YA-Insert2.gb), [YA-repeat-Insert2.gb](files/YA-repeat-Insert2.gb), [YA-short-Insert2.gb](files/YA-short-Insert2.gb) and [YA-gene.gb](files/YA-gene.gb) (exercise 5 only). Every file is a **synthetic example** (invented sequence). Exercises 6 to 8 use files that are not here: [NM_000207](https://www.ncbi.nlm.nih.gov/nuccore/NM_000207), [NM_001183340](https://www.ncbi.nlm.nih.gov/nuccore/NM_001183340), [U03450](https://www.ncbi.nlm.nih.gov/nuccore/U03450) and [U03451](https://www.ncbi.nlm.nih.gov/nuccore/U03451) are third-party data that you fetch in the app, with a network connection; nothing in this folder contains them.
+- **You will end with:** a 2,797 bp circle from an EcoRV-cut vector and two inserts that share 40 bp at each junction, then three designs that carry a warning, the two primers that put 40 bp tails on a plain gene, and (exercises 6 to 9) real records from NCBI: human insulin in the tutorial vector (2,550 bp), a yeast gene in the real vectors pRS416 (5,945 bp) and pRS426 (6,773 bp), and a promoter, a reporter and a terminator joined into pRS416 in one assembly (6,515 bp).
+- **Time:** about 30 minutes for exercises 1 to 5, and 35 more for 6 to 9.
+- **Files:** [YA-Vector.gb](files/YA-Vector.gb), [YA-Insert1.gb](files/YA-Insert1.gb), [YA-Insert2.gb](files/YA-Insert2.gb), [YA-repeat-Insert2.gb](files/YA-repeat-Insert2.gb), [YA-short-Insert2.gb](files/YA-short-Insert2.gb) and [YA-gene.gb](files/YA-gene.gb) (exercise 5 only). Every file is a **synthetic example** (invented sequence). Exercises 6 to 9 use files that are not here: [NM_000207](https://www.ncbi.nlm.nih.gov/nuccore/NM_000207), [NM_001183340](https://www.ncbi.nlm.nih.gov/nuccore/NM_001183340), [U03450](https://www.ncbi.nlm.nih.gov/nuccore/U03450) and [U03451](https://www.ncbi.nlm.nih.gov/nuccore/U03451), [U50963](https://www.ncbi.nlm.nih.gov/nuccore/U50963) and the two yeast genes ADH1 and CYC1 (exercise 9) are third-party data that you fetch in the app, with a network connection; nothing in this folder contains them.
 - **Before this:** [Gibson](gibson.md) and [In-Fusion and NEBuilder](in-fusion.md), whose Bench panel and primer designer this one shares; [Before you start](before-you-start.md) if the Bench or the sample files are new to you.
 
 Before you click anything, close every tab you do not need.
 
-## Exercise 1 of 8: cut the vector and join three pieces
+## Exercise 1 of 9: cut the vector and join three pieces
 
 `YA-Vector.gb` is a circular 2,217 bp shuttle vector with a yeast marker (`URA3`), a centromere (`CEN6`), a yeast origin (`ARSH4`), and the bacterial `ori` and `AmpR`, all stand-ins. It has one EcoRV site. The inserts end in the bases of the cut vector, so the yeast cell can close the circle.
 
@@ -99,7 +99,7 @@ Before you click anything, close every tab you do not need.
     > [!WARNING]
     > If not: check that **Vector** is the EcoRV fragment and that no other insert is ticked in the tube, then close the assembly tab and assemble again.
 
-## Exercise 2 of 8: homology that occurs twice
+## Exercise 2 of 9: homology that occurs twice
 
 `YA-repeat-Insert2.gb` is `YA-Insert2` with its 40 bp of homology with insert 1 copied once more, over the terminator (bases 361 to 400). In a tube that changes nothing. In a yeast cell the homology has two places to recombine.
 
@@ -134,7 +134,7 @@ Before you click anything, close every tab you do not need.
    > [!NOTE]
    > You see the warning go.
 
-## Exercise 3 of 8: homology that is too short
+## Exercise 3 of 9: homology that is too short
 
 `YA-short-Insert2.gb` is `YA-Insert2` without the first 15 bases of its homology with insert 1 (445 bp), so it shares only 25 bp with insert 1.
 
@@ -167,7 +167,7 @@ Before you click anything, close every tab you do not need.
 
 6. Set **Overlap** back to `40`, untick `YA-short-Insert2` and tick `YA-Insert2` again.
 
-## Exercise 4 of 8: no vector, a linear product
+## Exercise 4 of 9: no vector, a linear product
 
 1. Untick `YA-Vector EcoRV fragment`.
 
@@ -193,7 +193,7 @@ Before you click anything, close every tab you do not need.
 
 4. Tick `YA-Vector EcoRV fragment` and **Circular product** again.
 
-## Exercise 5 of 8: tails for a plain gene
+## Exercise 5 of 9: tails for a plain gene
 
 `YA-gene.gb` is a plain 450 bp open reading frame, `synthProt`, ATG to stop, with no cloning ends. The designer puts 40 bases of the cut vector on each primer.
 
@@ -244,9 +244,9 @@ Before you click anything, close every tab you do not need.
 
 ## Real genes and real vectors
 
-Exercises 6 to 8 repeat exercise 5 with records from NCBI instead of invented ones. The records are third-party data, so you fetch them; nothing in this folder contains them. It needs a network connection, and only the accessions you type leave the browser. Close every tab you do not need before each exercise.
+Exercises 6 to 9 repeat exercise 5 with records from NCBI instead of invented ones. The records are third-party data, so you fetch them; nothing in this folder contains them. It needs a network connection, and only the accessions you type leave the browser. Close every tab you do not need before each exercise.
 
-## Exercise 6 of 8: a gene from NCBI (human insulin, NM_000207)
+## Exercise 6 of 9: a gene from NCBI (human insulin, NM_000207)
 
 1. Cut the tutorial vector as in exercise 1 (steps 1 to 5): open `YA-Vector.gb`, tick **EcoRV** alone in the **Enzymes** tab, and **Open** its one fragment in the **Cloning** tab. Then close any other tab.
 
@@ -285,7 +285,7 @@ Exercises 6 to 8 repeat exercise 5 with records from NCBI instead of invented on
    > You see a new tab, `YA-Vector EcoRV fragment+NM_000207 PCR product assembly`.
    - [ ] The new tab is **2,550 bp** (2,217 + 333), **circular**, with the junctions `homology 1` at 2,178 to 2,217 (50% GC) and `homology 2` at 1 to 40 (53% GC), and the `INS` features in the **Features** tab: `insulin preproprotein`, `proinsulin`, `insulin B chain`, `C-peptide` and `insulin A chain`.
 
-## Exercise 7 of 8: a real yeast vector and a yeast gene (pRS416 and ADH1)
+## Exercise 7 of 9: a real yeast vector and a yeast gene (pRS416 and ADH1)
 
 pRS416 (GenBank `U03450`, 4,898 bp) is a real yeast centromere vector with `URA3` and a polylinker. `NM_001183340` is the _S. cerevisiae_ S288C alcohol dehydrogenase gene _ADH1_: the record is its 1,047 bp coding sequence, with no promoter. Both records are plain sequence: the vector has no annotations but its `source`.
 
@@ -332,7 +332,7 @@ pRS416 (GenBank `U03450`, 4,898 bp) is a real yeast centromere vector with `URA3
    > You see a new tab, `PRS416 SmaI fragment+NM_001183340 PCR product assembly`.
    - [ ] The new tab is **5,945 bp**, **circular**, with `URA3`, `CEN6`, `ARSH4`, `AmpR`, `ADH1` and `alcohol dehydrogenase ADH1` in its **Features** tab, and the junctions `homology 1` at 4,859 to 4,898 (50% GC) and `homology 2` at 1 to 40 (70% GC).
 
-## Exercise 8 of 8: a 2 micron vector (pRS426), where the repeat is real
+## Exercise 8 of 9: a 2 micron vector (pRS426), where the repeat is real
 
 pRS426 (`U03451`, 5,726 bp) is the 2 micron version of pRS416: the same `URA3` and polylinker, with a piece of the yeast 2 micron plasmid in place of the centromere. It has one SmaI site as well.
 
@@ -360,6 +360,59 @@ pRS426 (`U03451`, 5,726 bp) is the 2 micron version of pRS416: the same `URA3` a
    > You see a new tab, `PRS426 SmaI fragment+NM_001183340 PCR product assembly`.
    - [ ] The new tab is **6,773 bp**, **circular**, with the junctions `homology 1` at 5,687 to 5,726 and `homology 2` at 1 to 40 (50% and 70% GC).
 
+## Exercise 9 of 9: a promoter, a reporter and a terminator in one assembly
+
+Real constructs are rarely one insert: a promoter, a gene and a terminator go into the vector together, and the tails of the PCR primers carry the homology between the pieces as well as the vector's ends. The designer takes as many inserts as the assembly has, in the order you list them. Here the _ADH1_ promoter, a GFP reporter (`U50963`, a 717 bp coding sequence) and the _CYC1_ terminator go into pRS416. The two yeast pieces are stretches of chromosome, so you open the genes with their flanks and mark the parts to amplify.
+
+1. Cut pRS416 with SmaI as in exercise 7 (steps 1 to 3): open `U03450`, tick **SmaI** alone in the **Enzymes** tab and **Open** the one **4,898 bp** fragment in the **Cloning** tab. Then close the `PRS416` tab and open `U50963` with **File ▸ Open from NCBI…**.
+
+2. Choose **File ▸ Open from NCBI…**, switch to **Gene**, choose **budding yeast**, type `ADH1` and pick it. Set **Upstream** and **Downstream** to `1000` (the **1 kb each side** button does both), and click **Open**.
+
+   > [!NOTE]
+   > You see a tab named `ADH1`, 3,047 bp, with the gene reading 5′ to 3′: its CDS is `1001..2047`, and the 1,000 bp before it are the promoter side. _ADH1_ is on the minus strand of chromosome XV, which the box reverse-complements for you.
+
+3. Select any bases in that tab, click **Add feature**, and in the editor that opens set **Name** to `ADH1 promoter` and **Location** to `301..1000`, then press `Enter`.
+
+   > [!TIP]
+   > The 700 bp ending at the start codon is the promoter. Setting the Location by typing it beats dragging a selection to the base.
+
+4. Open the gene box again with `CYC1` (budding yeast, **Upstream** and **Downstream** `1000`). In the new `CYC1` tab (2,330 bp) add a feature named `CYC1 terminator` with **Location** `1331..1530`.
+
+   > [!NOTE]
+   > The CYC1 CDS is `1001..1330` and the next gene begins at 1,550, so the 200 bp between are the terminator.
+
+5. Click the **Bench** tab, then **Yeast assembly**. Open **Design insert primers (Yeast assembly)**, set **Linearised vector** to `PRS416 SmaI fragment`, **Insert from** to `ADH1` and **Insert** to `ADH1 promoter (misc_feature), 301..1,000, 700 bp`.
+
+6. Click **Add another insert**. Set **Insert 2 from** to `XXU50963` (the record's own name) and **Insert 2** to `GFP (CDS), 1..717, 717 bp`. Click **Add another insert** again, set **Insert 3 from** to `CYC1` and **Insert 3** to `CYC1 terminator (misc_feature), 1,331..1,530, 200 bp`.
+
+   > [!NOTE]
+   > You see six primers, two for each insert, and **Homology between inserts** reading **Half on each primer**.
+
+7. Compare the primers with this table (upper case is the tail: the vector's end, or 20 bases from each side of a junction):
+
+   | Primer               | Length and parts                                 | Sequence                                                                 |
+   | -------------------- | ------------------------------------------------ | ------------------------------------------------------------------------ |
+   | **Insert 1 forward** | **70 nt: 40 of vector, 30 annealing at 60 °C**   | `CGACGGTATCGATAAGCTTGATATCGAATTCCTGCAGCCCgggtgtacaatatggacttcctcttttctg` |
+   | **Insert 1 reverse** | **50 nt: 20 of homology, 30 annealing at 56 °C** | `AGTTCCTCGCCCTTGCTCATtgtatatgagatagttgattgtatgcttgg`                     |
+   | **Insert 2 forward** | **42 nt: 20 of homology, 22 annealing at 61 °C** | `AATCAACTATCTCATATACAatgagcaagggcgaggaactgt`                             |
+   | **Insert 2 reverse** | **44 nt: 20 of homology, 24 annealing at 62 °C** | `ACAAAGGAAAAGGGGCCTGTtcacttgtacagctcgtccatgcc`                           |
+   | **Insert 3 forward** | **42 nt: 20 of homology, 22 annealing at 60 °C** | `TGGACGAGCTGTACAAGTGAacaggccccttttcctttgtcg`                             |
+   | **Insert 3 reverse** | **70 nt: 40 of vector, 30 annealing at 52 °C**   | `CCACCGCGGTGGCGGCCGCTCTAGAACTAGTGGATCCCCCtttgtacagaaaaaaaagaaaaatttgaaa` |
+
+   > [!NOTE]
+   > You see the **Product** line read **6,515 bp, circular** (4,898 + 700 + 717 + 200), and three notes: the 40-base note for the **4 junctions**, and the two notes about no marker or origin, because the pRS416 record is not annotated (exercise 7 explains).
+
+8. Set **Homology between inserts** to **On the next insert's forward primer**.
+
+   > [!NOTE]
+   > You see insert 2's and insert 3's forward primers grow to 62 nt (40 of homology plus 22 annealing), the reverse primers of inserts 1 and 2 shrink to just their annealing parts (30 and 24 nt), and the product stays **6,515 bp**.
+
+9. Click **Open product**.
+
+   > [!NOTE]
+   > You see a new tab named `PRS416 SmaI fragment+NC_001147 PCR product+XXU50963 PCR product+NC_001142 PCR product 1 assembly`.
+   - [ ] The new tab is **6,515 bp**, **circular**, with a `homology` feature at each of its four junctions, and the promoter, the GFP coding sequence and the terminator in the order you listed them.
+
 **Done when:**
 
 - [ ] Exercise 1 gave a **2,797 bp** circle, three `homology` features of 40 bp, and no warning.
@@ -370,6 +423,7 @@ pRS426 (`U03451`, 5,726 bp) is the 2 micron version of pRS416: the same `URA3` a
 - [ ] Exercise 6 gave **2,550 bp**, with `INS` and its chain features, and the one note about the 40 bases.
 - [ ] Exercise 7 gave **5,945 bp**, with the two annotation notes before **Detect features** and only the 40-base note after.
 - [ ] Exercise 8 gave **6,773 bp** and the warning about an 81 bp direct repeat in the vector.
+- [ ] Exercise 9 gave six primers for three inserts and a **6,515 bp** circle with four junctions.
 
 Next: [Gibson](gibson.md) is the same reaction in a tube, where the melting temperature of each overlap matters. Back to the [tutorials index](README.md).
 

@@ -108,3 +108,69 @@ describe('OverlapPrimerDesign', () => {
     );
   });
 });
+
+describe('OverlapPrimerDesign with several inserts (#413)', () => {
+  afterEach(() => {
+    act(() => {
+      while (editorStore.getState().documents.length > 0) editorStore.closeDocument();
+      editorStore.restoreBench(DEFAULT_BENCH);
+    });
+  });
+
+  it('adds an insert, designs the junction tails, and takes it away again', () => {
+    act(() => {
+      editorStore.openDocument(vector);
+      editorStore.openDocument(source);
+      editorStore.setSelection({ start: 500, end: 1200 });
+    });
+    const other = SeqDocument.create({
+      name: 'gene2',
+      sequence: filler(1500, 5),
+      topology: 'linear',
+    });
+    act(() => {
+      editorStore.openDocument(other);
+    });
+    render(<OverlapPrimerDesign fixedKit="yeast" />);
+    act(() => {
+      screen
+        .getByText('Design insert primers (Yeast assembly)')
+        .closest('details')
+        ?.setAttribute('open', '');
+    });
+    const ids = editorStore.getState().documents.map((d) => d.documentId);
+    act(() => {
+      fireEvent.change(screen.getByLabelText('Linearised vector'), { target: { value: ids[0] } });
+      fireEvent.change(screen.getByLabelText('Insert from'), { target: { value: ids[1] } });
+    });
+    expect(screen.getByLabelText('Product')).toHaveTextContent('2,700 bp, circular');
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Add another insert' }));
+    });
+    act(() => {
+      fireEvent.change(screen.getByLabelText('Insert 2 from'), { target: { value: ids[2] } });
+    });
+    // Vector 2,000 + 700 + the whole of the linear second insert, 1,500.
+    expect(screen.getByLabelText('Product')).toHaveTextContent('4,200 bp, circular');
+    expect(screen.getByRole('list', { name: 'Insert 1 primers' })).toBeInTheDocument();
+    // Insert 1's forward tail is 40 of vector; the junction is half on each primer.
+    const first = within(screen.getByRole('list', { name: 'Insert 1 primers' }));
+    expect(first.getByText(/40 of vector/)).toBeInTheDocument();
+    expect(first.getByText(/20 of homology/)).toBeInTheDocument();
+
+    act(() => {
+      fireEvent.change(screen.getByLabelText('Homology between inserts'), {
+        target: { value: 'forward' },
+      });
+    });
+    const second = within(screen.getByRole('list', { name: 'Insert 2 primers' }));
+    expect(second.getByText(/40 of homology/)).toBeInTheDocument();
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Remove insert 2' }));
+    });
+    expect(screen.getByLabelText('Product')).toHaveTextContent('2,700 bp, circular');
+    expect(screen.queryByLabelText('Insert 2 from')).toBeNull();
+  });
+});

@@ -8,6 +8,7 @@ export * from './gibson';
 export * from './yeastAssembly';
 export * from './mutagenesis';
 export * from './gateway';
+export * from './overlapAssembly';
 export * from './overlapPrimers';
 export * from './protocol';
 export * from './protocolText';

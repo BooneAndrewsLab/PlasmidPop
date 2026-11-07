@@ -1,5 +1,6 @@
 import {
   type GatewayReaction,
+  type JunctionSplit,
   type OverlapKit,
   GIBSON_DEFAULTS,
   SOE_DEFAULTS,
@@ -65,6 +66,14 @@ export interface BenchSettings {
      * `'whole'` for all of a linear template, else a feature's id.
      */
     readonly insert: string;
+    /** The first insert is read on the reverse strand (#413). */
+    readonly reverse: boolean;
+    /** Inserts after the first, in assembly order (#413); none is the single-insert design. */
+    readonly more: readonly OverlapSlot[];
+    /** Which primer carries the homology between two inserts. */
+    readonly split: JunctionSplit;
+    /** Homology at the junctions, yeast only; the other kits use their own. */
+    readonly overlap: number;
   };
   /** Overlap-extension (SOE) PCR: fragments in order, and how the overlaps are made (#216). */
   readonly soe: {
@@ -97,6 +106,14 @@ export interface SoeSlot {
   readonly insert: string;
 }
 
+/** A further insert of a multi-insert primer design (#413): a tab, which part of it, and which strand. */
+export interface OverlapSlot extends SoeSlot {
+  readonly reverse: boolean;
+}
+
+/** The most inserts one assembly's primers are designed for. */
+export const OVERLAP_MAX_INSERTS = 8;
+
 /** The overlap Tms offered, in °C. */
 export const SOE_OVERLAP_TMS: readonly number[] = [52, 55, 58, 60, 62, 65, 68];
 
@@ -119,7 +136,16 @@ export const DEFAULT_BENCH: BenchSettings = {
   goldenGate: { enzyme: '', secondEnzyme: '', excluded: [], name: '' },
   modular: { standard: '', enzyme: '', secondEnzyme: '', excluded: [], tags: {} },
   gibson: { excluded: [], minOverlap: GIBSON_DEFAULTS.minOverlap, circular: true, name: '' },
-  overlap: { kit: 'in-fusion', vectorId: '', templateId: '', insert: '' },
+  overlap: {
+    kit: 'in-fusion',
+    vectorId: '',
+    templateId: '',
+    insert: '',
+    reverse: false,
+    more: [],
+    split: 'both',
+    overlap: YEAST_OVERLAP.default,
+  },
   soe: {
     fragments: [
       { templateId: '', insert: '' },
@@ -166,6 +192,18 @@ function soeSlots(v: unknown, fallback: readonly SoeSlot[]): readonly SoeSlot[] 
     return { templateId: text(o['templateId'], ''), insert: text(o['insert'], '') };
   });
   return slots.length >= 2 ? slots : fallback;
+}
+
+function overlapSlots(v: unknown): readonly OverlapSlot[] {
+  if (!Array.isArray(v)) return [];
+  return v.slice(0, OVERLAP_MAX_INSERTS - 1).map((s): OverlapSlot => {
+    const o = record(s);
+    return {
+      templateId: text(o['templateId'], ''),
+      insert: text(o['insert'], ''),
+      reverse: flag(o['reverse'], false),
+    };
+  });
 }
 
 function tagMap(v: unknown): Readonly<Record<string, string>> {
@@ -227,6 +265,11 @@ export function normalizeBenchSettings(v: unknown): BenchSettings {
       vectorId: text(o['vectorId'], ''),
       templateId: text(o['templateId'], ''),
       insert: text(o['insert'], ''),
+      reverse: flag(o['reverse'], false),
+      more: overlapSlots(o['more']),
+      split: o['split'] === 'forward' || o['split'] === 'reverse' ? o['split'] : 'both',
+      overlap:
+        typeof o['overlap'] === 'number' ? clampYeastOverlap(o['overlap']) : d.overlap.overlap,
     },
     soe: {
       fragments: soeSlots(x['fragments'], d.soe.fragments),
