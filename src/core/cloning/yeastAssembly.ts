@@ -9,6 +9,7 @@ import {
   describeGibsonDropped,
   gibson,
   junctionRepeats,
+  terminalOverlap,
 } from './gibson';
 
 /**
@@ -277,12 +278,18 @@ export function yeastWarnings(
     const i = spans.parts.findIndex((s) => pos >= s.start && pos < s.end);
     return order[i]?.document.name ?? 'a part';
   };
-  const repeats = directRepeats(
-    product.sequence.toString().toUpperCase(),
-    product.isCircular,
-    YEAST_REPEAT,
-    spans.junctions,
-  );
+  // Cut open, the closing junction's homology is at the product's start and
+  // again at its end: the same homology, not a repeat (#412). The `joins` hold
+  // no closing join for a line, so it is read off the ends.
+  const text = product.sequence.toString().toUpperCase();
+  const closing = product.isCircular
+    ? 0
+    : terminalOverlap(text, text, YEAST_OVERLAP.min, text.length - 1);
+  const blocked =
+    closing === 0
+      ? spans.junctions
+      : [...spans.junctions, { start: text.length - closing, end: text.length }];
+  const repeats = directRepeats(text, product.isCircular, YEAST_REPEAT, blocked);
   for (const r of repeats.slice(0, MAX_REPEATS_LISTED)) {
     const a = partAt(r.a);
     const b = partAt(r.b);

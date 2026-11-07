@@ -623,6 +623,26 @@ describe('yeastAssembly', () => {
       it('is not said of a circle', () => {
         expect(only(run(good().parts).assembly)).not.toContain('linear-product');
       });
+
+      it('does not call the closing homology an internal repeat (#412)', () => {
+        // Three parts that would close into a circle, cut open: the vector's
+        // first 40 bases are at the product's start and again at its end.
+        const [j0, j1, j2] = [template(40, 91), template(40, 92), template(40, 93)];
+        const vector = SeqDocument.create({
+          name: 'vector',
+          sequence: j0 + template(300, 94) + j1,
+          features: [
+            feature('CDS', 'URA3', 60, 200),
+            feature('centromere', 'CEN6', 200, 250),
+            feature('rep_origin', 'pUC ori', 250, 290),
+          ],
+        });
+        const a = SeqDocument.create({ name: 'insert1', sequence: j1 + template(300, 95) + j2 });
+        const b = SeqDocument.create({ name: 'insert2', sequence: j2 + template(300, 96) + j0 });
+        const { assembly } = run([vector, a, b], { circular: false, vector });
+        expect(assembly.product.isCircular).toBe(false);
+        expect(assembly.warnings.map((w) => w.kind)).toEqual(['linear-product']);
+      });
     });
 
     describe('what the product has to be kept in yeast', () => {
