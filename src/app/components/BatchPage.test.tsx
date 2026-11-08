@@ -1,16 +1,23 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { vi } from 'vitest';
+import type * as SaveFile from '../saveFile';
 
 import { createFeature, rangeSegment, SeqDocument } from '@/core';
 
 import { AnalysisCancelledError, analysisClient } from '@/workers/analysisClient';
 
 import { batchSession } from '../batchSession';
+import { downloadText } from '../saveFile';
 import { rememberWorkspacePage } from '../primerWorkspace';
 import { editorStore } from '../state/editorStore';
 import { forgetPanels } from '../state/panelMemory';
 import { PrimerWorkspace } from './PrimerWorkspace';
+
+vi.mock('../saveFile', async (importOriginal) => ({
+  ...(await importOriginal<typeof SaveFile>()),
+  downloadText: vi.fn(),
+}));
 
 // The same fixed 600-bp pseudo-random template the workspace tests use.
 function template(): string {
@@ -123,6 +130,35 @@ describe('the Batch page (#358, item 141)', { timeout: 60_000 }, () => {
     await until(screen.getByRole('button', { name: 'Save all to My primers' }), () => {
       expect(screen.getByText('Saved 4 primers to My primers.')).toBeInTheDocument();
     });
+  });
+
+  it('opens an order sheet of the designed oligos and downloads it', async () => {
+    open();
+    paste(GOOD);
+    expect(screen.queryByRole('button', { name: 'Order sheet…' })).toBeNull();
+    await until(screen.getByRole('button', { name: 'Design 2 rows' }), () => {
+      expect(screen.getByText('2 rows designed.')).toBeInTheDocument();
+    });
+    vi.mocked(downloadText).mockClear();
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Order sheet…' }));
+    });
+    expect(screen.getByRole('dialog', { name: 'Order sheet' })).toBeInTheDocument();
+    expect(screen.getByText(/4 oligos on 1 plate/)).toBeInTheDocument();
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Download CSV' }));
+    });
+    const [name, text] = vi.mocked(downloadText).mock.calls[0] ?? [];
+    expect(name).toBe('order-sheet.csv');
+    const lines = String(text).trimEnd().split('\r\n');
+    expect(lines[0]).toBe('plate,well,name,sequence,length,scale,purification,notes');
+    expect(lines).toHaveLength(5);
+    expect(lines.slice(1).map((l) => l.split(',').slice(0, 3).join(','))).toEqual([
+      '1,A1,A fwd',
+      '1,A2,A rev',
+      '1,A3,B fwd',
+      '1,A4,B rev',
+    ]);
   });
 
   it('selecting a row shows its detail and draws it on the map', async () => {

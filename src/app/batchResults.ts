@@ -1,6 +1,7 @@
 import {
   type BatchTemplate,
   type DesignRow,
+  type OrderOligo,
   type PoolOligo,
   type PrimerDraft,
   type SeqDocument,
@@ -131,6 +132,18 @@ export function batchOligos(lines: readonly ResultLine[]): PoolOligo[] {
       : [
           { name: `${l.name} fwd`, sequence: l.forward.toUpperCase() },
           { name: `${l.name} rev`, sequence: l.reverse.toUpperCase() },
+        ],
+  );
+}
+
+/** The oligos of the order sheet: the same two per designed row, with the row's first warning as the note. */
+export function batchOrderOligos(lines: readonly ResultLine[]): OrderOligo[] {
+  return lines.flatMap((l) =>
+    l.status === 'failed'
+      ? []
+      : [
+          { name: `${l.name} fwd`, sequence: l.forward, note: l.messages[0] ?? '' },
+          { name: `${l.name} rev`, sequence: l.reverse, note: l.messages[0] ?? '' },
         ],
   );
 }

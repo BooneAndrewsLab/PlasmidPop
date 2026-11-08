@@ -21,6 +21,7 @@ import {
   type ResultLine,
   batchDrafts,
   batchOligos,
+  batchOrderOligos,
   resultLines,
   sortLines,
   statusOf,
@@ -30,6 +31,7 @@ import { editorStore } from '../state/editorStore';
 import { savePrimers } from '../state/primerCollection';
 import { useEditorState } from '../state/useEditorStore';
 import { pickerAccept } from '../pickerAccept';
+import { OrderSheetDialog } from './OrderSheetDialog';
 import { SortTh } from './SortTh';
 import { nextRowIndex, toggleSort } from './tableKeys';
 
@@ -257,6 +259,9 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
     () => (run === null || run.running ? null : checkPool(batchOligos(lines))),
     [run, lines],
   );
+
+  const [ordering, setOrdering] = useState(false);
+  const orderOligos = useMemo(() => batchOrderOligos(lines), [lines]);
 
   const selectedLine = lines.find((l) => l.index === selected);
   const selectedRow = run?.rows.find((r) => r.index === selected);
@@ -675,6 +680,17 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
             >
               Save all to My primers
             </button>
+            <button
+              type="button"
+              className="button button--small"
+              disabled={running || designed.length === 0}
+              data-tip="A plate-format CSV of the designed oligos to copy into a vendor's order form; saved on this computer only"
+              onClick={() => {
+                setOrdering(true);
+              }}
+            >
+              Order sheet…
+            </button>
           </div>
           {session.said !== null && (
             <p className="panel__note panel__note--quiet" role="status">
@@ -723,6 +739,14 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
             </section>
           )}
         </>
+      )}
+      {ordering && (
+        <OrderSheetDialog
+          oligos={orderOligos}
+          onClose={() => {
+            setOrdering(false);
+          }}
+        />
       )}
     </div>
   );

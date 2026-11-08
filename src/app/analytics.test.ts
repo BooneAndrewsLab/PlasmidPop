@@ -221,6 +221,11 @@ describe('EVENTS', () => {
     expect(EVENTS.edit).toContain('removeFeature');
     expect(EVENTS.edit.slice(-2)).toEqual(['undo', 'redo']);
   });
+
+  it('lists the Batch page events, which carry no names or counts (#358)', () => {
+    expect(EVENTS.primers).toContain('batch');
+    expect(EVENTS.primers).toContain('order-sheet');
+  });
 });
 
 describe('formatOfFileName', () => {
