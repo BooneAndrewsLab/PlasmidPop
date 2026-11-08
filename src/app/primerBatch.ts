@@ -92,9 +92,12 @@ export interface PrimerBatchOutcome {
 }
 
 /** The Tm window a row's `tm` asks for: as wide as the default 55-65 °C one, around it. */
-const TM_HALF_WINDOW = 5;
+export const TM_HALF_WINDOW = 5;
 
-function findTemplate(templates: readonly BatchTemplate[], name: string): SeqDocument | undefined {
+export function findTemplate(
+  templates: readonly BatchTemplate[],
+  name: string,
+): SeqDocument | undefined {
   const exact = templates.find((t) => t.name === name);
   if (exact !== undefined) return exact.document;
   const lower = name.toLowerCase();
