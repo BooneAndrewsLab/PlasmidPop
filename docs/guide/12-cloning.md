@@ -719,7 +719,8 @@ worth seeing before it is ambiguous in the tube.
 In-Fusion (Takara) and NEBuilder HiFi (NEB) work the way Gibson does, so
 the reaction is the one above; what they need is the two primers that put
 the vector's ends on the insert. **Design insert primers**, under the Gibson
-panel, makes them.
+panel, makes them. It is a closed card under the reaction; open it to
+choose the vector, the template and the insert.
 
 1. Linearise the vector — digest it, or amplify it by inverse PCR — and
    open it in a tab.
@@ -946,8 +947,9 @@ assembled.
 
 ### Putting the homology on with primers
 
-**Design insert primers (Yeast assembly)**, under the panel, puts the
-homology on an insert that does not have it yet. It is the
+**Design insert primers (Yeast assembly)**, a closed card under the panel,
+puts the homology on an insert that does not have it yet. When the panel
+reports that nothing follows a part, it points here. It is the
 [In-Fusion and NEBuilder design](#in-fusion-and-nebuilder-designing-the-insert-primers)
 with 40 bases of the vector's ends on each primer's 5′ tail: choose the
 linearised vector, the template and the insert, and the panel runs the design

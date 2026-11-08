@@ -145,6 +145,14 @@ part list, a junction list showing **bp and GC, never Tm**, and
 `AssemblyWarnings`. Analytics gains `'yeast'` and `'yeast-oligos'` beside
 `'soe'`/`'soe-oligos'`.
 
+**Restyled (#414).** The designer in the Yeast and Gibson panels was a 12 px
+grey `gg__left-out` footnote; it is now a `panel__details` card (as the PCR
+Options) with the note "puts 40 bases of the vector's ends on an insert that
+has no homology yet". Placement (note 133 R4), the summary strings and the
+closed default are unchanged. After a "Nothing follows" error the Yeast panel
+adds one quiet line pointing at it; "Nothing to assemble" gets none, since the
+designer refuses a circular vector too.
+
 ## 6. Tutorial
 
 `docs/tutorials/yeast-assembly.md`, sample files `YA-*` in

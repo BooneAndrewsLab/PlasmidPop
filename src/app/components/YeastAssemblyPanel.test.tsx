@@ -177,6 +177,25 @@ describe('YeastAssemblyPanel', () => {
     expect(document.querySelector('.panel__error')?.textContent).not.toBe('');
   });
 
+  it('points a dead-end error at the insert primer designer, but not "Nothing to assemble"', () => {
+    const hint = /gets it from Design insert primers, below/;
+    open(vector, insert);
+    render(<YeastAssemblyPanel />);
+    fireEvent.change(overlapField(), { target: { value: '60' } });
+    expect(document.querySelector('.panel__error')?.textContent).toMatch(/^Nothing follows /);
+    expect(screen.getByText(hint)).toBeInTheDocument();
+    // The designer it points at is there and closed.
+    const summary = screen.getByText('Design insert primers (Yeast assembly)');
+    expect(summary.closest('details')).not.toHaveAttribute('open');
+    fireEvent.change(overlapField(), { target: { value: '40' } });
+    expect(screen.queryByText(hint)).toBeNull();
+  });
+
+  it('gives no primer hint when nothing is selected to assemble', () => {
+    render(<YeastAssemblyPanel />);
+    expect(screen.queryByText(/Design insert primers, below/)).toBeNull();
+  });
+
   it('says nothing is wrong with a design that has what yeast needs', () => {
     open(vector, insert);
     render(<YeastAssemblyPanel />);

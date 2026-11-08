@@ -290,7 +290,16 @@ export function YeastAssemblyPanel() {
           <AssemblyWarnings texts={assembly.warnings.map((w) => w.text)} />
         </>
       ) : (
-        <p className="panel__error">{result?.problem}</p>
+        <>
+          <p className="panel__error">{result?.problem}</p>
+          {/* Only the dead-end errors: "Nothing to assemble" is also what a
+              circular vector gets, and the designer refuses that too. */}
+          {result?.problem?.startsWith('Nothing follows') === true && (
+            <p className="panel__note panel__note--quiet">
+              An insert without the homology yet gets it from Design insert primers, below.
+            </p>
+          )}
+        </>
       )}
 
       {result !== null && result.dropped.length > 0 && (
