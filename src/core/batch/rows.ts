@@ -281,6 +281,11 @@ export function validateRow(raw: RawRow, context: BatchContext): RowResult {
   }
 }
 
+/** What a row is told when its name was taken by an earlier line. */
+export function usedNameMessage(name: string, line: number): string {
+  return `The name “${name}” is already used on line ${line}.`;
+}
+
 export interface BatchValidation {
   /** One result per row, in the table's order, for the rows within the limit. */
   readonly results: readonly RowResult[];
@@ -313,7 +318,7 @@ export function validateBatch(
           ok: false,
           line: raw.line,
           name: result.row.name,
-          message: `The name “${result.row.name}” is already used on line ${before}.`,
+          message: usedNameMessage(result.row.name, before),
         });
         continue;
       }
