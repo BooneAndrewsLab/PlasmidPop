@@ -1719,3 +1719,25 @@ chunk than ours, 1.7 kB), index build 63 ms against our 33 ms, and queries of
 consequence at 195 sections, and it would not remove the static index (its
 serialised index is 312 kB: it holds the stored fields and the postings). Not
 clearly better, so not added.
+
+## A plate of primer designs and the pool check (#358, #359, design note 141, 2026-11-08)
+
+96 regions of 600 bases at seeded random positions on a seeded random 4.4 kb
+circular template, designed one request per row as the batch runs them
+(`runPrimerBatch`, default criteria, `src/app/batch.timing.test.ts`). vitest
+has no `Worker`, so the analysis client ran the worker's own code on the test
+thread: this is the engine path, without the structured-clone round trip of
+each row (a few kilobytes). `ridiculousbuild` (Xeon E5-2630 v3), Node 24, load
+average 2-4 on 16 threads, five runs:
+
+| What                                           | Time        | Per unit     |
+| ---------------------------------------------- | ----------- | ------------ |
+| 96 primer-pair designs, 600 bp targets, 4.4 kb | 19.6-21.9 s | ~205 ms      |
+| pool check, 192 oligos (96 dimers reported)    | 68-93 ms    | 18,336 pairs |
+
+**Against #359's trigger** (a pool of workers if 96 rows take more than 15 s):
+the design time is over it, by about a third, so a pool is justified as a
+follow-up and has not been built. The pool check is 0.1 s and needs nothing.
+The test's budgets (60 s each, not asserted under mutation) are loose on
+purpose so a slow CI runner does not fail it; the numbers above are what to
+compare a pool against.

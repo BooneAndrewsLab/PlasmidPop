@@ -13,8 +13,9 @@ packet; the sections below say what has been built and what has not.
 Each is one reviewable piece with its own tests, in this order:
 
 1. **Core table and rows** (built): `src/core/batch/{table,rows}.ts`.
-2. Worker requests and the runner, `pool.ts`, the timing test, `designPrimers`
-   moved into the worker.
+2. **Worker requests and the runner** (built): `designPrimers` and
+   `designMutagenesis` requests, `src/app/primerBatch.ts`, `pool.ts`, the
+   timing test, `designPrimers` moved into the worker.
 3. The Batch page (a sixth rail page of the primer workspace), primer cases.
 4. Order sheet. Closes #358.
 5. Cloning rows in the worker (Golden Gate part, homology), `extra5`/`extra3`.
@@ -122,3 +123,70 @@ no table), every bad-row kind, duplicate names, the limit, and a property
 test that written CSV reads back as written. The scan is checked on a CDS on
 each strand and one across the origin: applying every row's `change` to its
 `region` changes exactly that residue to the new one and no other.
+
+## Packet 2: worker requests, the runner and the pool checks
+
+**Requests.** `analysisProtocol` has `designPrimers` (sequence, topology,
+target, `DesignOptions`, answered with the pairs) and `designMutagenesis` (a
+`DocumentSnapshot` of the template, range, replacement, method, options). A
+mutagenesis design holds its `mutant` as a `SeqDocument`, which a structured
+clone would strip, so the worker answers with the mutant as a snapshot and
+`AnalysisClient.designMutagenesis` makes it a document again. Both take
+`LongRequestOptions`, so a signal cancels as any long request does (the
+worker is replaced). Neither engine reports progress, so a row's progress is
+the runner's. `designCloning` is packet 5.
+
+**The Design page.** `usePrimerDesign().design` now asks the worker, so the
+main thread is free while a pair search runs (125-200 ms on a plasmid, longer
+on a large target). It is async and resolves to the pairs, or null when a newer
+Design click, or leaving the document, stopped it; the page goes to Results
+only for a design that finished. The results are the engine's: a test pins
+`client.designPrimers` equal to `designPrimers` on a circle, across the
+origin and on a linear template. The workspace tests now await the click.
+
+**The runner** (`runPrimerBatch(rows, templates, options, hooks)`) is
+`readBatch.ts`'s shape: one request per row, in order; a per-row status
+(`designed` with `kind: 'primers'` or `'mutagenesis'`, or `failed` with a
+message); `onRow`, `onProgress` as (i+f)/n, a signal; a failed row goes on, a
+cancel keeps the rows done; more than `BATCH_ROW_LIMIT` rows throws. The
+client is a hook, so tests stand in for the worker. Decisions:
+
+- A row with `change` is a mutagenesis; any other is a primer pair flanking
+  its region. A row with no region, or only bases, fails with that said:
+  primer pairs flank a target, and a whole template or a literal insert has
+  nothing to flank (a literal insert's ends are the cloning rows' job).
+- `tm` on a primer row is a window of 5 °C either side (the default 55-65 °C
+  is 5 either side of 60); on a mutagenesis row it is the back-to-back
+  target Tm. `size` on a primer row is the product's ceiling. `left`,
+  `right`, `enzyme`, `kit`, `include_*` mean nothing to a primer design, and
+  a row that sets one says so in its warnings rather than failing.
+- A design with no pair that meets the criteria is a failed row (the
+  results table has a place for the message, not for an empty chip); a
+  mutagenesis that falls short still is a design, with its `problem` among the
+  row's warnings. The template's snapshot is made once per template.
+
+**The pool checks** (`core/batch/pool.ts`, pure): duplicate names (without
+regard to case), identical bases under different names, cross-dimers between
+every two oligos of different bases at `DEFAULT_DIMER_DG` (-6, kcal/mol) with
+the existing `dimerEnergy`, most stable first, and the Tm spread
+(`meltingTemperature`, degenerate oligos left out, flagged past 5 °C).
+An oligo with itself is its self-dimer, which its own report has. Rows whose
+regions overlap give primers that are reverse complements of one another
+across rows, so a plate over one template reports many strong cross-dimers
+(96 of them for the timing plate below): that is the check working, and a
+page should say that a dimer between primers of different tubes only matters
+if they share a tube.
+
+**Measured** (`src/app/batch.timing.test.ts`; vitest has no `Worker`, so the
+worker's code runs on the calling thread, which is the engine path without
+the per-row message round trip; numbers in `docs/perf-notes.md`): 96 regions
+of 600 bases on a random 4.4 kb circle took 19.6-21.9 s (about 205 ms a row,
+five runs, machine at a load of 2-4 of 16 cores), and the pool check on the 192
+oligos 68-93 ms. **The design number crosses #359's trigger** (more than 15 s
+per 96 rows), so a pool of workers is now a justified follow-up; it is not
+built here. The pool check is nowhere near needing one. In the browser each
+row is one worker request, the main thread stays free and the table fills as
+rows finish, so 20 s is a wait, not a freeze; the browser has not been timed.
+
+**Guide:** no page changes: nothing a user can see differs yet (the Design
+page gives the same pairs; the Batch page is packet 3).
