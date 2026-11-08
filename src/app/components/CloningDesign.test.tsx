@@ -14,9 +14,10 @@ import U49845_GB from '@/io/fixtures/U49845.gb?raw';
 import type * as FromNcbi from '../openFromNcbi';
 import { recallWorkspace, rememberWorkspacePage } from '../primerWorkspace';
 import { editorStore } from '../state/editorStore';
-import { forgetPanels } from '../state/panelMemory';
+import { forgetPanels, rememberPanel } from '../state/panelMemory';
 import type * as Collection from '../state/primerCollection';
 import { savePrimers } from '../state/primerCollection';
+import { GOLDEN_GATE_MEMORY } from './cloningDesign';
 import { PrimerWorkspace } from './PrimerWorkspace';
 
 /** What a gene fetch comes back with: a record with one CDS, the insert to offer. */
@@ -523,5 +524,162 @@ describe('the Golden Gate option of cloning mode (#310)', () => {
     expect(product?.topology).toBe('circular');
     expect(state.scratch).toBe(true);
     expect(state.sidebarTab).toBe('features');
+  });
+});
+
+/** The linear vector (U49845) in front, pUC19 open beside it as the insert's tab; cloning mode, Homology ends. */
+function homologySetup(): { vectorId: string } {
+  let vectorId = '';
+  act(() => {
+    editorStore.openDocument(pUC19);
+    vectorId = editorStore.openDocument(U49845);
+    rememberWorkspacePage(vectorId, 'design');
+    editorStore.setWorkspace('primers');
+  });
+  render(<PrimerWorkspace doc={U49845} layout="split" />);
+  act(() => {
+    fireEvent.click(screen.getByRole('button', { name: 'Clone an insert into this plasmid' }));
+  });
+  act(() => {
+    fireEvent.click(screen.getByRole('button', { name: 'Homology ends' }));
+  });
+  return { vectorId };
+}
+
+/** Chooses the first feature pUC19 offers (its whole-record source feature, 2.7 kb). */
+function chooseLongFeature(): void {
+  const option = within(insertSelect())
+    .getAllByRole('option')
+    .find((o) => (o as HTMLOptionElement).value !== '');
+  act(() => {
+    fireEvent.change(insertSelect(), {
+      target: { value: (must(option, 'a feature of pUC19') as HTMLOptionElement).value },
+    });
+  });
+}
+
+describe('the Homology ends option of cloning mode (#403)', () => {
+  it('replaces the region and the pair table with the kit, and designs the tails of the vector’s ends', () => {
+    homologySetup();
+    expect(screen.getByRole('heading', { name: 'Homology ends' })).toBeInTheDocument();
+    expect(screen.queryByRole('grid', { name: 'Enzyme pairs' })).toBeNull();
+    expect(screen.getByText(/is the linearised vector/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'In-Fusion' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(designButton()).toBeDisabled();
+    expect(screen.getByText('Choose an insert')).toBeInTheDocument();
+
+    chooseLongFeature();
+    expect(designButton()).toBeEnabled();
+    expect(designButton()).toHaveTextContent('with In-Fusion ends');
+    act(() => {
+      fireEvent.click(designButton());
+    });
+
+    const detail = within(screen.getByRole('complementary', { name: 'Homology ends' }));
+    expect(detail.getByText('In-Fusion ends')).toBeInTheDocument();
+    const text = U49845.sequence.toString().toUpperCase();
+    const cells = detail.getAllByRole('row').map((r) => r.textContent);
+    // 15 bases of the vector's last end head the forward primer, upper case.
+    expect(cells[0]).toContain(text.slice(text.length - 15));
+    expect(screen.getByRole('tab', { name: /Results/ })).toHaveTextContent('1');
+
+    act(() => {
+      fireEvent.click(detail.getByRole('button', { name: 'Save both' }));
+    });
+    expect(saved.mock.calls[0]?.[0].map((d) => d.name)).toEqual([
+      expect.stringMatching(/-IF-F$/),
+      expect.stringMatching(/-IF-R$/),
+    ]);
+
+    const before = editorStore.getState().documents.length;
+    act(() => {
+      fireEvent.click(detail.getByRole('button', { name: 'Simulate' }));
+    });
+    const state = editorStore.getState();
+    expect(state.documents.length).toBe(before + 1);
+    const product = state.documents.find((d) => d.documentId === state.documentId)?.history.present;
+    expect(product?.topology).toBe('circular');
+    expect(state.scratch).toBe(true);
+  });
+
+  it('takes the overlap for yeast assembly only, and carries it onto the tails', () => {
+    homologySetup();
+    expect(screen.queryByRole('spinbutton', { name: 'Homology in bp' })).toBeNull();
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Yeast assembly' }));
+    });
+    const overlap = screen.getByRole('spinbutton', { name: 'Homology in bp' });
+    act(() => {
+      fireEvent.change(overlap, { target: { value: '50' } });
+    });
+    chooseLongFeature();
+    act(() => {
+      fireEvent.click(designButton());
+    });
+    const detail = within(screen.getByRole('complementary', { name: 'Homology ends' }));
+    const text = U49845.sequence.toString().toUpperCase();
+    expect(detail.getAllByRole('row')[0]?.textContent).toContain(text.slice(text.length - 50));
+    expect(detail.getByText(/^50 bases of/)).toBeInTheDocument();
+  });
+
+  it('says why Design is off for a circular vector, as the Bench designer does', () => {
+    act(() => {
+      editorStore.openDocument(U49845);
+      const id = editorStore.openDocument(pUC19);
+      rememberWorkspacePage(id, 'design');
+      editorStore.setWorkspace('primers');
+    });
+    render(<PrimerWorkspace doc={pUC19} layout="split" />);
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Clone an insert into this plasmid' }));
+    });
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Homology ends' }));
+    });
+    chooseLongFeature();
+    expect(designButton()).toBeDisabled();
+    expect(
+      screen.getByText(/is circular, so it has no ends for the tails to match/),
+    ).toBeInTheDocument();
+  });
+
+  it('switches back to the other two kinds of ends, one at a time', () => {
+    homologySetup();
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Golden Gate part' }));
+    });
+    expect(screen.getByRole('heading', { name: 'Golden Gate ends' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Homology ends' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Two restriction sites' }));
+    });
+    expect(screen.getByRole('heading', { name: 'Enzymes' })).toBeInTheDocument();
+  });
+
+  it('still reads a Golden Gate memory kept before the option existed', () => {
+    let id = '';
+    act(() => {
+      editorStore.openDocument(pUC19);
+      id = editorStore.openDocument(U49845);
+      rememberWorkspacePage(id, 'design');
+      editorStore.setWorkspace('primers');
+      // The shape item 113 stored: no homology slot beside it.
+      rememberPanel('primers.cloning.goldenGate', id, { ...GOLDEN_GATE_MEMORY, on: true });
+    });
+    render(<PrimerWorkspace doc={U49845} layout="split" />);
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Clone an insert into this plasmid' }));
+    });
+    expect(screen.getByRole('heading', { name: 'Golden Gate ends' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Golden Gate part' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 });

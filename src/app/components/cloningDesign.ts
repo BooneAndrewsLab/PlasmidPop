@@ -13,14 +13,18 @@ import {
   type Feature,
   type GoldenGatePartContext,
   type GoldenGatePartDesign,
+  type MultiOverlapDesign,
+  type OverlapKit,
   type Range,
   type SeqDocument,
   type Strand,
   type StrandEnd,
   type VectorRegion,
+  YEAST_OVERLAP,
   cutLabel,
   designCloningResults,
   designGoldenGatePart,
+  designMultiOverlapPrimers,
   destinationOverhangs,
   featureExtent,
   formatSpan,
@@ -318,6 +322,31 @@ export const GOLDEN_GATE_MEMORY: GoldenGateMemory = {
   includeStop: false,
 };
 
+/**
+ * The Homology ends option of cloning mode (#403): the kit's tails instead of
+ * restriction sites or a Type IIS part. Kept beside `GoldenGateMemory`, not in
+ * it, so a value remembered before this option existed still reads as it did;
+ * at most one of the two `on` flags is set.
+ */
+export interface HomologyMemory {
+  readonly on: boolean;
+  readonly kit: OverlapKit;
+  /** Bases of homology; only Yeast assembly takes it as an option (20 to 80), the kits' are fixed. */
+  readonly overlap: number;
+}
+
+export const HOMOLOGY_MEMORY: HomologyMemory = {
+  on: false,
+  kit: 'in-fusion',
+  overlap: YEAST_OVERLAP.default,
+};
+
+/** A homology design, kept with the kit and the overlap it was made with. */
+export interface HomologyDesign {
+  readonly kit: OverlapKit;
+  readonly design: MultiOverlapDesign;
+}
+
 /** The overhang picker's own value for two bases typed by hand. */
 export const CUSTOM_OVERHANGS = 'custom';
 /** The overhang picker's own value for the pair read off the destination. */
@@ -333,13 +362,17 @@ interface DesignKey {
   readonly picked: EnzymePick | null;
   /** The Golden Gate settings the design was made with; null in the other mode. */
   readonly goldenGate: GoldenGateMemory | null;
+  /** The homology settings the design was made with; null in the other modes. */
+  readonly homology: HomologyMemory | null;
 }
 
 export interface CloningDesignRecord {
-  /** The restriction-ends design, or null when the record is a Golden Gate part. */
+  /** The restriction-ends design, or null when the record is a Golden Gate part or homology ends. */
   readonly results: CloningResults | null;
-  /** The Golden Gate part, or null when the record is a pair of restriction ends. */
+  /** The Golden Gate part, or null when the record is another kind. */
   readonly goldenGate: GoldenGatePartDesign | null;
+  /** The homology-ends primers (#403), or null when the record is another kind. */
+  readonly homology: HomologyDesign | null;
   readonly key: DesignKey;
   /** "ACT1 CDS (ACT1_cDNA.gb) into pUC19 396–454", the Results heading's line. */
   readonly designedFor: string;
@@ -378,6 +411,10 @@ export interface CloningDesignState {
   /** The Golden Gate option: its settings, what the destination offers, and the tube. */
   readonly goldenGate: GoldenGateMemory;
   readonly setGoldenGate: (next: GoldenGateMemory) => void;
+  /** The Homology ends option (#403), and the primers it would make now. */
+  readonly homology: HomologyMemory;
+  readonly setHomology: (next: HomologyMemory) => void;
+  readonly homologyNow: HomologyDesign | null;
   /** The two overhangs the vector in front asks of a part; null when the enzyme opens nothing in it. */
   readonly destinationOverhangs: DestinationOverhangs | null;
   /** The other open tabs the enzyme releases a part from, which Simulate puts in the tube. */
@@ -434,6 +471,11 @@ function sameGoldenGate(a: GoldenGateMemory | null, b: GoldenGateMemory | null):
     a.includeStart === b.includeStart &&
     a.includeStop === b.includeStop
   );
+}
+
+function sameHomology(a: HomologyMemory | null, b: HomologyMemory | null): boolean {
+  if (a === null || b === null) return a === b;
+  return a.kit === b.kit && (a.kit !== 'yeast' || a.overlap === b.overlap);
 }
 
 /** Whether the two overhangs are the bases the enzyme's cut asks for. */
@@ -526,6 +568,11 @@ export function useCloningDesign(doc: SeqDocument): CloningDesignState {
     documentId,
     GOLDEN_GATE_MEMORY,
   );
+  const [homology, setHomology] = useRemembered<HomologyMemory>(
+    'primers.cloning.homology',
+    documentId,
+    HOMOLOGY_MEMORY,
+  );
   /** A scan the worker could not do, so the page does not wait on it forever. */
   const [failed, setFailed] = useState<string | null>(null);
 
@@ -601,39 +648,78 @@ export function useCloningDesign(doc: SeqDocument): CloningDesignState {
     [insert, doc, tube],
   );
 
-  const blocked = goldenGate.on
+  // Homology ends are designed as the insert is chosen: the design is a few
+  // PCR runs on the insert, cheap beside the scans the restriction ends wait for.
+  const homologyNow = useMemo<HomologyDesign | null>(
+    () =>
+      !homology.on || insert === null
+        ? null
+        : {
+            kit: homology.kit,
+            design: designMultiOverlapPrimers(
+              doc,
+              [
+                {
+                  template: insert.document,
+                  region: insert.range,
+                  reverse: (insert.strand === 'reverse') !== flipped,
+                },
+              ],
+              homology.kit,
+              { overlap: homology.overlap },
+            ),
+          },
+    [homology, insert, doc, flipped],
+  );
+
+  const blocked = homology.on
     ? insertRef !== null && insert === null
       ? "The insert's tab was closed — choose an insert again"
       : insert === null
         ? 'Choose an insert'
-        : !overhangsReady(goldenGate)
-          ? `Choose the two overhangs — ${overhangWidth(goldenGate.enzyme).toString()} bases each`
-          : null
-    : insertRef !== null && insert === null
-      ? "The insert's tab was closed — choose an insert again"
-      : insert === null
-        ? 'Choose an insert'
-        : context === null
-          ? scanning
-            ? 'Scanning the vector and the insert for cut sites…'
-            : 'The cut-site scan failed; choose the insert again'
-          : picked === null
-            ? 'Choose two enzymes'
-            : null;
+        : (homologyNow?.design.problem ?? null)
+    : goldenGate.on
+      ? insertRef !== null && insert === null
+        ? "The insert's tab was closed — choose an insert again"
+        : insert === null
+          ? 'Choose an insert'
+          : !overhangsReady(goldenGate)
+            ? `Choose the two overhangs — ${overhangWidth(goldenGate.enzyme).toString()} bases each`
+            : null
+      : insertRef !== null && insert === null
+        ? "The insert's tab was closed — choose an insert again"
+        : insert === null
+          ? 'Choose an insert'
+          : context === null
+            ? scanning
+              ? 'Scanning the vector and the insert for cut sites…'
+              : 'The cut-site scan failed; choose the insert again'
+            : picked === null
+              ? 'Choose two enzymes'
+              : null;
 
   const key = useMemo<DesignKey | null>(() => {
     const common = { template, insert: insertKey, region: keyOfRegion(region), flipped };
-    if (goldenGate.on) return { ...common, picked: null, goldenGate };
-    return picked === null ? null : { ...common, picked, goldenGate: null };
-  }, [template, insertKey, region, flipped, picked, goldenGate]);
+    // Homology ends use the vector's ends, not the selection: the region is left out.
+    if (homology.on) {
+      return { ...common, region: '', picked: null, goldenGate: null, homology };
+    }
+    if (goldenGate.on) return { ...common, picked: null, goldenGate, homology: null };
+    return picked === null ? null : { ...common, picked, goldenGate: null, homology: null };
+  }, [template, insertKey, region, flipped, picked, goldenGate, homology]);
 
   const design = (): boolean => {
     if (key === null || insert === null || insertRef === null) return false;
-    const designedFor = `${insert.name} (${insert.document.name}) into ${doc.name}${goldenGate.on ? '' : ` ${formatSpan(region.range, doc.length)}`}`;
-    const keep = (results: CloningResults | null, part: GoldenGatePartDesign | null): boolean => {
+    const designedFor = `${insert.name} (${insert.document.name}) into ${doc.name}${goldenGate.on || homology.on ? '' : ` ${formatSpan(region.range, doc.length)}`}`;
+    const keep = (
+      results: CloningResults | null,
+      part: GoldenGatePartDesign | null,
+      ends: HomologyDesign | null = null,
+    ): boolean => {
       setRecord({
         results,
         goldenGate: part,
+        homology: ends,
         key,
         designedFor,
         insert,
@@ -645,6 +731,11 @@ export function useCloningDesign(doc: SeqDocument): CloningDesignState {
       setSelected(0);
       return true;
     };
+    if (homology.on) {
+      if (homologyNow === null || homologyNow.design.problem !== null) return false;
+      analytics.track('primers', 'design-homology');
+      return keep(null, null, homologyNow);
+    }
     if (goldenGate.on) {
       if (ggContext === null || !overhangsReady(goldenGate)) return false;
       analytics.track('primers', 'design-golden-gate');
@@ -690,20 +781,21 @@ export function useCloningDesign(doc: SeqDocument): CloningDesignState {
       liveRecord.key.region === keyOfRegion(region) &&
       liveRecord.key.flipped === flipped &&
       samePick(liveRecord.key.picked, picked) &&
-      sameGoldenGate(liveRecord.key.goldenGate, goldenGate.on ? goldenGate : null));
+      sameGoldenGate(liveRecord.key.goldenGate, goldenGate.on ? goldenGate : null) &&
+      sameHomology(liveRecord.key.homology, homology.on ? homology : null));
 
   const preview = useMemo<OverlaySpan[]>(() => {
     // A Golden Gate part has no sites of its own on the vector: the
     // destination's own are what the reaction uses, and the Enzymes tab
     // draws those.
-    if (goldenGate.on) return [];
+    if (goldenGate.on || homology.on) return [];
     const report = suggestions?.picked ?? null;
     return cloningPreview(
       doc,
       region,
       report === null ? [] : [report.forward.site, report.reverse.site],
     );
-  }, [doc, region, suggestions, goldenGate.on]);
+  }, [doc, region, suggestions, goldenGate.on, homology.on]);
 
   return {
     vector: doc,
@@ -723,6 +815,9 @@ export function useCloningDesign(doc: SeqDocument): CloningDesignState {
     setSettings,
     goldenGate,
     setGoldenGate,
+    homology,
+    setHomology,
+    homologyNow,
     destinationOverhangs: destination,
     tube,
     blocked,

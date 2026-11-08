@@ -30,6 +30,7 @@ import {
 } from './cloningDesign';
 import { CheckSpecificity } from './CheckSpecificity';
 import { GoldenGatePartResult } from './GoldenGatePartResult';
+import { HomologyEndsResult } from './HomologyEndsResult';
 import { Oligo } from './Oligo';
 import { MapStrip } from './MapStrip';
 import { pct } from './primerDesign';
@@ -432,6 +433,19 @@ export function CloningCandidates({ cloning, layout }: Props) {
 
   if (record === null) {
     return <p className="panel__note">No design yet. Design cloning primers first.</p>;
+  }
+  // Homology ends are one pair of tailed primers, like a part (#403).
+  if (record.homology !== null) {
+    return (
+      <div className="results results--clone">
+        <HomologyEndsResult record={record} layout={layout} onSaid={setSaid} />
+        {said !== null && (
+          <p className="panel__note panel__note--quiet" role="status">
+            {said}
+          </p>
+        )}
+      </div>
+    );
   }
   // A Golden Gate part is one design, not a table of pairs (#310).
   if (record.goldenGate !== null) {

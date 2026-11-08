@@ -244,7 +244,9 @@ export const EVENTS = {
    * cloning design and `simulate-cloning` its product opened (#303), never
    * the enzymes, the insert or the vector; `design-golden-gate` a Golden
    * Gate part designed in the same mode and `simulate-golden-gate` its
-   * assembly opened (#310), never the overhangs chosen; `check-open` the
+   * assembly opened (#310), never the overhangs chosen; `design-homology`
+   * and `simulate-homology` the same for homology ends (#403), never the
+   * kit; `check-open` the
    * clone check opened from a reaction, named by the method (`ligation`,
    * `golden-gate`…), and `design-check` a set of colony-PCR pairs designed
    * (#311), named `reuse` when one primer was reused, never the primers,
@@ -261,6 +263,8 @@ export const EVENTS = {
     'simulate-cloning',
     'design-golden-gate',
     'simulate-golden-gate',
+    'design-homology',
+    'simulate-homology',
     'check-open',
     'design-check',
   ],

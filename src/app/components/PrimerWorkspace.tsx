@@ -120,7 +120,7 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
   const badge = (p: WorkspacePage): number | null => {
     if (p === 'results') {
       if (cloningResults) {
-        return cloning.record.goldenGate === null ? designRows(cloning.record.results).length : 1;
+        return cloning.record.results === null ? 1 : designRows(cloning.record.results).length;
       }
       return design.pairs?.length ?? null;
     }
@@ -160,9 +160,11 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
           {page === 'design' && (
             <span className="ws__sub">
               {mode === 'cloning'
-                ? cloning.goldenGate.on
-                  ? 'Golden Gate ends: padding + Type IIS site + spacer + overhang + annealing part'
-                  : 'Restriction-cloning ends: padding + site + annealing part on each primer'
+                ? cloning.homology.on
+                  ? 'Homology ends: the vector’s end sequence + annealing part on each primer'
+                  : cloning.goldenGate.on
+                    ? 'Golden Gate ends: padding + Type IIS site + spacer + overhang + annealing part'
+                    : 'Restriction-cloning ends: padding + site + annealing part on each primer'
                 : 'Up to 10 pairs, best first'}
             </span>
           )}
@@ -171,9 +173,11 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
           )}
           {page === 'results' && cloningResults && !cloning.designUnchanged && (
             <span className="ws__sub ws__sub--note" role="status">
-              {cloning.record.goldenGate === null
-                ? 'Insert, region or pair changed — '
-                : 'Insert, enzyme or overhangs changed — '}
+              {cloning.record.homology !== null
+                ? 'Insert, vector or kit changed — '
+                : cloning.record.goldenGate === null
+                  ? 'Insert, region or pair changed — '
+                  : 'Insert, enzyme or overhangs changed — '}
               <button
                 type="button"
                 className="link"

@@ -1,10 +1,14 @@
-import { type KeyboardEvent, type ReactNode, useMemo, useRef, useState } from 'react';
+import { Fragment, type KeyboardEvent, type ReactNode, useMemo, useRef, useState } from 'react';
 
 import {
   type EnzymePairReport,
   type PairIssue,
   type SeqDocument,
   describePairIssue,
+  KIT_NAMES,
+  KIT_OVERLAP,
+  type OverlapKit,
+  YEAST_OVERLAP,
   formatSpan,
   insertSequence,
 } from '@/core';
@@ -33,6 +37,8 @@ import { nextRowIndex } from './tableKeys';
 
 /** Excluded pairs shown before the fold; the rest wait behind "N more". */
 const SHOWN_EXCLUDED = 4;
+/** The kits Homology ends offers: the ones the Bench's insert-primer designer has. */
+const HOMOLOGY_KITS: readonly OverlapKit[] = ['in-fusion', 'nebuilder', 'yeast'];
 /** Enzymes named on the region's and the insert's lines; a wide region has dozens, the table has them all. */
 const SHOWN_SITES = 12;
 
@@ -131,10 +137,13 @@ export function CloningDesign({ doc, cloning, layout, chooser, onDesigned, onRes
     setSettings,
     goldenGate,
     setGoldenGate,
+    homology,
+    setHomology,
     blocked,
     record,
   } = cloning;
-  const gg = goldenGate.on;
+  const hom = homology.on;
+  const gg = goldenGate.on && !hom;
   const [ncbiOpen, setNcbiOpen] = useRemembered('primers.cloning.ncbiOpen', documentId, false);
   const [overrideOpen, setOverrideOpen] = useRemembered(
     'primers.cloning.override',
@@ -262,20 +271,25 @@ export function CloningDesign({ doc, cloning, layout, chooser, onDesigned, onRes
     </section>
   );
 
-  const endsButton = (on: boolean, text: string, tip: string): ReactNode => (
+  const endsButton = (active: boolean, text: string, tip: string, pick: () => void): ReactNode => (
     <button
       type="button"
-      className={`segmented__button${gg === on ? ' segmented__button--active' : ''}`}
-      aria-pressed={gg === on}
+      className={`segmented__button${active ? ' segmented__button--active' : ''}`}
+      aria-pressed={active}
       data-tip={tip}
-      onClick={() => {
-        setGoldenGate({ ...goldenGate, on });
-      }}
+      onClick={pick}
     >
       {text}
     </button>
   );
-  /** Restriction sites or a Golden Gate part: the two kinds of end (#310). */
+  /** One kind of end at a time: each switch turns the other two off (#310, #403). */
+  const pickEnds = (kind: 'restriction' | 'golden' | 'homology'): void => {
+    if (goldenGate.on !== (kind === 'golden'))
+      setGoldenGate({ ...goldenGate, on: kind === 'golden' });
+    if (homology.on !== (kind === 'homology'))
+      setHomology({ ...homology, on: kind === 'homology' });
+  };
+  /** Restriction sites, a Golden Gate part or a kit's homology tails: the three kinds of end (#310, #403). */
   const endsSwitch = (
     <div className="mode mode--ends">
       <span className="ws__target-label" id="ws-ends-label">
@@ -283,17 +297,88 @@ export function CloningDesign({ doc, cloning, layout, chooser, onDesigned, onRes
       </span>
       <div className="segmented segmented--small" role="group" aria-labelledby="ws-ends-label">
         {endsButton(
-          false,
+          !gg && !hom,
           'Two restriction sites',
           'A site on each tail, so a double digest matches the vector cut with the same two enzymes',
+          () => {
+            pickEnds('restriction');
+          },
         )}
         {endsButton(
-          true,
+          gg,
           'Golden Gate part',
           'One Type IIS site on each tail with an overhang of your own, so the part goes into a destination in one tube',
+          () => {
+            pickEnds('golden');
+          },
+        )}
+        {endsButton(
+          hom,
+          'Homology ends',
+          'The linear vector in front lends its end sequences to the primers’ tails, for In-Fusion, NEBuilder HiFi or yeast assembly',
+          () => {
+            pickEnds('homology');
+          },
         )}
       </div>
     </div>
+  );
+
+  const homologyEnds = (
+    <>
+      <div className="mode mode--ends">
+        <span className="ws__target-label" id="ws-kit-label">
+          Kit
+        </span>
+        <div className="segmented segmented--small" role="group" aria-labelledby="ws-kit-label">
+          {HOMOLOGY_KITS.map((k) => (
+            <Fragment key={k}>
+              {endsButton(
+                homology.kit === k,
+                KIT_NAMES[k],
+                `${KIT_NAMES[k]}: ${KIT_OVERLAP[k]} bases of homology`,
+                () => {
+                  setHomology({ ...homology, kit: k });
+                },
+              )}
+            </Fragment>
+          ))}
+        </div>
+      </div>
+      {homology.kit === 'yeast' && (
+        <label className="panel__field panel__field--row">
+          <span>Homology (bp)</span>
+          <input
+            className="panel__input"
+            type="number"
+            aria-label="Homology in bp"
+            min={YEAST_OVERLAP.min}
+            max={YEAST_OVERLAP.max}
+            value={homology.overlap}
+            onChange={(e) => {
+              setHomology({ ...homology, overlap: Number(e.target.value) });
+            }}
+          />
+        </label>
+      )}
+      <p className="ws__target-value">
+        {homology.kit === 'yeast' ? homology.overlap : KIT_OVERLAP[homology.kit]} bases from each
+        end of <span className="ws__feature-name">{doc.name}</span> go onto the insert&rsquo;s
+        primers, the last bases of the vector before the insert and the first after it. Cut the
+        vector first (a digest product or an inverse PCR in its own tab); the insert may be flipped.
+      </p>
+      <label className="panel__field panel__field--row">
+        <input
+          type="checkbox"
+          aria-label="Insert on the reverse strand"
+          checked={flipped}
+          onChange={(e) => {
+            setFlipped(e.target.checked);
+          }}
+        />
+        <span>Join the insert reverse-complemented</span>
+      </label>
+    </>
   );
 
   const restrictionEnds =
@@ -437,75 +522,85 @@ export function CloningDesign({ doc, cloning, layout, chooser, onDesigned, onRes
 
   return (
     <div className={`cloning cloning--${layout}`}>
-      {gg
+      {hom
         ? step(
             1,
             'Where on the vector',
-            'Golden Gate uses the destination’s own Type IIS sites, so no region is chosen',
+            'Homology ends use the vector’s own ends, so no region is chosen',
             <p className="ws__target-value">
-              <span className="ws__feature-name">{doc.name}</span> is the destination ·{' '}
-              {doc.length.toLocaleString()} bp
-              {cloning.destinationOverhangs === null ? (
-                <span className="dnote">
-                  {' '}
-                  · {goldenGate.enzyme} opens nothing in it — Simulate will run the PCR only
-                </span>
-              ) : (
-                <span className="dnote">
-                  {' '}
-                  · its backbone is {cloning.destinationOverhangs.backbone.toLocaleString()} bp and
-                  asks for{' '}
-                  <span className="panel__mono">
-                    {cloning.destinationOverhangs.left}…{cloning.destinationOverhangs.right}
-                  </span>
-                </span>
-              )}
+              <span className="ws__feature-name">{doc.name}</span> is the linearised vector ·{' '}
+              {doc.length.toLocaleString()} bp · {doc.topology}
             </p>,
           )
-        : step(
-            1,
-            'Where on the vector',
-            region.source === 'given'
-              ? 'the selection, live — click the map or pick a feature'
-              : region.source === 'mcs'
-                ? `the ${region.feature?.name ?? 'MCS'} feature — select a region to change it`
-                : 'the whole plasmid — select a region to narrow',
-            <>
+        : gg
+          ? step(
+              1,
+              'Where on the vector',
+              'Golden Gate uses the destination’s own Type IIS sites, so no region is chosen',
               <p className="ws__target-value">
-                {region.feature !== null && (
-                  <span className="ws__feature-name">{region.feature.name} </span>
+                <span className="ws__feature-name">{doc.name}</span> is the destination ·{' '}
+                {doc.length.toLocaleString()} bp
+                {cloning.destinationOverhangs === null ? (
+                  <span className="dnote">
+                    {' '}
+                    · {goldenGate.enzyme} opens nothing in it — Simulate will run the PCR only
+                  </span>
+                ) : (
+                  <span className="dnote">
+                    {' '}
+                    · its backbone is {cloning.destinationOverhangs.backbone.toLocaleString()} bp
+                    and asks for{' '}
+                    <span className="panel__mono">
+                      {cloning.destinationOverhangs.left}…{cloning.destinationOverhangs.right}
+                    </span>
+                  </span>
                 )}
-                <span className="panel__mono">{formatSpan(region.range, doc.length)}</span> ·{' '}
-                {(region.range.end - region.range.start).toLocaleString()} bp
-                {region.source === 'whole' && (
-                  <span className="dnote"> · enzymes that cut the plasmid once, anywhere</span>
-                )}
-              </p>
-              {chooser}
-              {candidates.length > 0 && (
-                <p className="dnote cloning__sites">
-                  Cuts in the region:{' '}
-                  {shownCandidates.map((name, i) => {
-                    const cut = regionCuts.get(name) ?? null;
-                    const on =
-                      picked !== null && (picked.forward === name || picked.reverse === name);
-                    return (
-                      <span
-                        key={name}
-                        className={on ? 'cloning__site cloning__site--on' : 'cloning__site'}
-                      >
-                        {i > 0 && ' · '}
-                        {name}
-                        {cut !== null && ` ${cut.toLocaleString()}`}
-                      </span>
-                    );
-                  })}
-                  {candidates.length > shownCandidates.length &&
-                    ` · ${(candidates.length - shownCandidates.length).toLocaleString()} more in the table`}
+              </p>,
+            )
+          : step(
+              1,
+              'Where on the vector',
+              region.source === 'given'
+                ? 'the selection, live — click the map or pick a feature'
+                : region.source === 'mcs'
+                  ? `the ${region.feature?.name ?? 'MCS'} feature — select a region to change it`
+                  : 'the whole plasmid — select a region to narrow',
+              <>
+                <p className="ws__target-value">
+                  {region.feature !== null && (
+                    <span className="ws__feature-name">{region.feature.name} </span>
+                  )}
+                  <span className="panel__mono">{formatSpan(region.range, doc.length)}</span> ·{' '}
+                  {(region.range.end - region.range.start).toLocaleString()} bp
+                  {region.source === 'whole' && (
+                    <span className="dnote"> · enzymes that cut the plasmid once, anywhere</span>
+                  )}
                 </p>
-              )}
-            </>,
-          )}
+                {chooser}
+                {candidates.length > 0 && (
+                  <p className="dnote cloning__sites">
+                    Cuts in the region:{' '}
+                    {shownCandidates.map((name, i) => {
+                      const cut = regionCuts.get(name) ?? null;
+                      const on =
+                        picked !== null && (picked.forward === name || picked.reverse === name);
+                      return (
+                        <span
+                          key={name}
+                          className={on ? 'cloning__site cloning__site--on' : 'cloning__site'}
+                        >
+                          {i > 0 && ' · '}
+                          {name}
+                          {cut !== null && ` ${cut.toLocaleString()}`}
+                        </span>
+                      );
+                    })}
+                    {candidates.length > shownCandidates.length &&
+                      ` · ${(candidates.length - shownCandidates.length).toLocaleString()} more in the table`}
+                  </p>
+                )}
+              </>,
+            )}
       {step(
         2,
         'What to insert',
@@ -618,44 +713,50 @@ export function CloningDesign({ doc, cloning, layout, chooser, onDesigned, onRes
                           ' · ',
                         )}${internal.length > SHOWN_SITES ? ` · ${(internal.length - SHOWN_SITES).toLocaleString()} more` : ''} (greys those pairs below)`}
               </p>
-              <p className="orient">
-                <span className="dnote">Orientation</span>
-                <span className="panel__mono">{orientation()}</span>
-                <button
-                  type="button"
-                  className="button button--small"
-                  aria-pressed={flipped}
-                  data-tip="Swap the two sites between the primers, so the insert reads the other way on the vector"
-                  onClick={() => {
-                    setFlipped(!flipped);
-                  }}
-                >
-                  Flip
-                </button>
-              </p>
+              {!hom && (
+                <p className="orient">
+                  <span className="dnote">Orientation</span>
+                  <span className="panel__mono">{orientation()}</span>
+                  <button
+                    type="button"
+                    className="button button--small"
+                    aria-pressed={flipped}
+                    data-tip="Swap the two sites between the primers, so the insert reads the other way on the vector"
+                    onClick={() => {
+                      setFlipped(!flipped);
+                    }}
+                  >
+                    Flip
+                  </button>
+                </p>
+              )}
             </>
           )}
         </>,
       )}
       {step(
         3,
-        gg ? 'Golden Gate ends' : 'Enzymes',
-        gg
-          ? 'one Type IIS enzyme, cutting past its site: the site leaves with the flank'
-          : 'suggested: cut the vector once in the region, not the insert, past dam/dcm, directional',
+        hom ? 'Homology ends' : gg ? 'Golden Gate ends' : 'Enzymes',
+        hom
+          ? 'the kit’s homology, taken from the vector’s ends onto the primers’ 5′ tails'
+          : gg
+            ? 'one Type IIS enzyme, cutting past its site: the site leaves with the flank'
+            : 'suggested: cut the vector once in the region, not the insert, past dam/dcm, directional',
         <>
           {endsSwitch}
-          {gg ? <GoldenGateEnds cloning={cloning} /> : restrictionEnds}
+          {hom ? homologyEnds : gg ? <GoldenGateEnds cloning={cloning} /> : restrictionEnds}
         </>,
       )}
-      <PrimerSettings
-        criteria={primerCriteria}
-        cloning={{
-          padding: settings.padding,
-          avoidJunctionSites: settings.avoidJunctionSites,
-          onChange: setSettings,
-        }}
-      />
+      {!hom && (
+        <PrimerSettings
+          criteria={primerCriteria}
+          cloning={{
+            padding: settings.padding,
+            avoidJunctionSites: settings.avoidJunctionSites,
+            onChange: setSettings,
+          }}
+        />
+      )}
       <div className="ws__actions">
         <button
           type="button"
@@ -663,9 +764,11 @@ export function CloningDesign({ doc, cloning, layout, chooser, onDesigned, onRes
           disabled={blocked !== null}
           aria-describedby={blocked === null ? undefined : 'ws-design-why'}
           data-tip={
-            gg
-              ? "Design both primers: padding, the Type IIS site, the spacer, the overhang and an annealing part on the part's end"
-              : "Design both primers: padding, site and an annealing part on the insert's end"
+            hom
+              ? "Design both primers: the vector's end sequence as a tail and an annealing part on the insert's end"
+              : gg
+                ? "Design both primers: padding, the Type IIS site, the spacer, the overhang and an annealing part on the part's end"
+                : "Design both primers: padding, site and an annealing part on the insert's end"
           }
           onClick={() => {
             if (cloning.design()) onDesigned();
@@ -676,11 +779,13 @@ export function CloningDesign({ doc, cloning, layout, chooser, onDesigned, onRes
             <span className="ws__button-for">
               {' '}
               for {insert.name}{' '}
-              {gg
-                ? `as a ${goldenGate.enzyme} part, ${goldenGate.left}…${goldenGate.right}`
-                : picked === null
-                  ? ''
-                  : `into ${doc.name} at ${pairLabel(picked)}`}
+              {hom
+                ? `into ${doc.name} with ${KIT_NAMES[homology.kit]} ends`
+                : gg
+                  ? `as a ${goldenGate.enzyme} part, ${goldenGate.left}…${goldenGate.right}`
+                  : picked === null
+                    ? ''
+                    : `into ${doc.name} at ${pairLabel(picked)}`}
             </span>
           )}
         </button>
@@ -694,9 +799,11 @@ export function CloningDesign({ doc, cloning, layout, chooser, onDesigned, onRes
         <p className="ws__last">
           Last design · {record.designedFor}
           {record.key.picked === null
-            ? record.goldenGate === null
-              ? ''
-              : ` as a ${record.goldenGate.forward.enzyme} part`
+            ? record.homology !== null
+              ? ` with ${KIT_NAMES[record.homology.kit]} ends`
+              : record.goldenGate === null
+                ? ''
+                : ` as a ${record.goldenGate.forward.enzyme} part`
             : ` at ${pairLabel(record.key.picked)}`}{' '}
           <button type="button" className="link" onClick={onResults}>
             Results ›
