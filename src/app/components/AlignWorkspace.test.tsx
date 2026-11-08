@@ -88,6 +88,10 @@ describe('AlignWorkspace (item 129, #354)', () => {
 
   it('shuts on Escape with the keyboard inside, handing it back to the panel; a window of its own keeps Escape', async () => {
     render(<Host />);
+    // The tab's own door: Escape stays on this tab (a link on another tab goes back to it, #404).
+    act(() => {
+      editorStore.setSidebarTab('align');
+    });
     act(() => {
       openAlignWorkspace(editorStore.getState().documentId, 'align');
     });

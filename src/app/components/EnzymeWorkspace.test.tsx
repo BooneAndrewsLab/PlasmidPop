@@ -143,6 +143,10 @@ describe('EnzymeWorkspace (item 133, E2)', () => {
 
   it('shuts on Escape with the keyboard inside, handing it back to the panel', () => {
     render(<Host />);
+    // The tab's own door: Escape stays on this tab (a link on another tab goes back to it, #404).
+    act(() => {
+      editorStore.setSidebarTab('enzymes');
+    });
     act(() => {
       openEnzymeWorkspace(editorStore.getState().documentId, 'enzymes');
     });

@@ -45,6 +45,8 @@ function Host({ doc: d }: { doc: SeqDocument }) {
 /** Renders the tab with the workspace open on `page`, where every option and result is. */
 function renderAlign(d: SeqDocument = doc, page: AlignPage = 'align') {
   act(() => {
+    // Opened from its own tab, so Escape stays there (a link on another tab goes back to it, #404).
+    editorStore.setSidebarTab('align');
     openAlignWorkspace(editorStore.getState().documentId, page);
   });
   return render(<Host doc={d} />);

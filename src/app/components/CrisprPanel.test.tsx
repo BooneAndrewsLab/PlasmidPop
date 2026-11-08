@@ -497,6 +497,10 @@ describe('CrisprPanel, the slim tab (item 133, C3)', () => {
 
   it('opens the workspace from its door, and the keyboard comes back to it on Escape', async () => {
     await openTab(docOf(`${UNIT}${FILLER}`), null);
+    // The tab's own door: Escape stays on this tab (a link on another tab goes back to it, #404).
+    act(() => {
+      editorStore.setSidebarTab('crispr');
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Open CRISPR workspace ›' }));
     expect(editorStore.getState().workspace).toBe('crispr');
     fireEvent.keyDown(screen.getByRole('heading', { name: /^Guides/ }), { key: 'Escape' });

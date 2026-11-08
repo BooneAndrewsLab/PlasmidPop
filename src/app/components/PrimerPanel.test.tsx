@@ -120,6 +120,7 @@ describe('the slim Primers tab (item 107)', () => {
     act(() => {
       const id = editorStore.openDocument(doc);
       rememberWorkspacePage(id, 'design');
+      editorStore.setSidebarTab('primers');
       editorStore.setWorkspace('primers');
       editorStore.setSelection({ start: 250, end: 350 });
     });

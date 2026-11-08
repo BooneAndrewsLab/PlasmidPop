@@ -2451,7 +2451,8 @@ export class EditorStore {
 
   setSidebarOpen(open: boolean): void {
     // The workspace stands where the panel does: putting the sidebar away shuts it.
-    if (!open && this.state.workspace !== null) this.setActive({ workspace: null, workspaceOpener: null });
+    if (!open && this.state.workspace !== null)
+      this.setActive({ workspace: null, workspaceOpener: null });
     if (open !== this.state.sidebarOpen) this.setShared({ sidebarOpen: open });
   }
 

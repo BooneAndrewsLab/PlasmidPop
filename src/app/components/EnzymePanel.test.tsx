@@ -685,6 +685,10 @@ describe('the slim EnzymePanel (item 133, E3)', () => {
 
   it('puts the keyboard back on the link when the workspace is shut with Escape', () => {
     setup(cutsEach(COUNTS), null);
+    // The tab's own door: Escape stays on this tab (a link on another tab goes back to it, #404).
+    act(() => {
+      editorStore.setSidebarTab('enzymes');
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Double digests ›' }));
     fireEvent.keyDown(screen.getByRole('heading', { level: 2, name: 'Double digests' }), {
       key: 'Escape',

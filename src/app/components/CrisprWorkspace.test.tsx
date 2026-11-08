@@ -136,6 +136,10 @@ describe('CrisprWorkspace (item 133, C2)', () => {
   it('shuts on Escape with the keyboard inside, handing it back to the panel', async () => {
     render(<Host />);
     await scanned();
+    // The tab's own door: Escape stays on this tab (a link on another tab goes back to it, #404).
+    act(() => {
+      editorStore.setSidebarTab('crispr');
+    });
     act(() => {
       openCrisprWorkspace(editorStore.getState().documentId, 'guides');
     });
