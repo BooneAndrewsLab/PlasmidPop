@@ -8,9 +8,13 @@ import {
   type ProtocolStep,
   SeqDocument,
   diagnosticDigests,
+  batchProtocolToHtml,
+  batchProtocolToMarkdown,
   gelProfile,
+  mergeOligos,
   protocolToHtml,
   protocolToMarkdown,
+  renameProtocolOligos,
 } from '@/core';
 
 const oligo = (name: string, sequence: string, inCollection: string | null): ProtocolOligo => ({
@@ -490,5 +494,79 @@ describe('protocol text of colony PCR checks (item 120)', () => {
       expect(html).toContain(`<th>${h}</th>`);
     }
     expect(protocolToMarkdown(base)).not.toContain('Colony PCR');
+  });
+});
+
+describe('a batch protocol (#360)', () => {
+  const one: Protocol = {
+    ...base,
+    product: 'A',
+    steps: [pcr({ product: 'A frag' })],
+    oligos: [
+      { ...oligo('Forward', 'acgtacgtac', null), usedFor: ['A'] },
+      { ...oligo('Reverse', 'TTGGCCAATT', 'kept'), usedFor: ['A'] },
+    ],
+  };
+  const two: Protocol = {
+    ...base,
+    product: 'B',
+    steps: [pcr({ product: 'B frag' })],
+    oligos: [
+      // The same bases as A's forward in another case, then bases of its own.
+      { ...oligo('Forward', 'ACGTACGTAC', 'seen'), usedFor: ['B'] },
+      { ...oligo('Reverse', 'GGGGCCCCAA', null), usedFor: ['B'] },
+    ],
+  };
+
+  it('merges the oligos by sequence, once each, serving every product', () => {
+    const merged = mergeOligos([one, two]);
+    expect(merged.map((o) => o.sequence)).toEqual(['acgtacgtac', 'TTGGCCAATT', 'GGGGCCCCAA']);
+    expect(merged[0]?.usedFor).toEqual(['A', 'B']);
+    // A's forward was nowhere in My primers, B's was: the merged line says so.
+    expect(merged[0]?.inCollection).toBe('seen');
+    expect(mergeOligos([])).toEqual([]);
+  });
+
+  it('writes one oligo table and a section of reactions for each construct', () => {
+    const md = batchProtocolToMarkdown([one, two]);
+    expect(md.startsWith('# Batch protocol\n')).toBe(true);
+    expect(md.match(/^## Oligos to order$/gm)).toHaveLength(1);
+    expect(md).toContain('3 oligos for 2 constructs.');
+    expect(md).toContain('## Construct 1: A');
+    expect(md).toContain('## Construct 2: B');
+    // The reactions sit one level down, under their construct.
+    expect(md).toContain('### Reactions, in order');
+    expect(md).toContain('#### 1. PCR: A frag (1,200 bp)');
+    expect(md).toContain('#### 1. PCR: B frag (1,200 bp)');
+    expect(md).toContain('| Forward | acgtacgtac | 10 nt | A, B | already there as seen |');
+  });
+
+  it('names the constructs it has no protocol for', () => {
+    const md = batchProtocolToMarkdown([one], ['C', 'D']);
+    expect(md).toContain(
+      'No protocol for C, D: they have no construct or no record of how they were made.',
+    );
+    expect(batchProtocolToMarkdown([one], ['C'])).toContain(
+      'No protocol for C: it has no construct',
+    );
+  });
+
+  it('is one HTML page with the same sections, escaped', () => {
+    const html = batchProtocolToHtml([{ ...one, product: 'A<b>' }, two]);
+    expect(html).toContain('<title>Batch protocol</title>');
+    expect(html.match(/<h2>Oligos to order<\/h2>/g)).toHaveLength(1);
+    expect(html).toContain('<h2>Construct 1: A&lt;b&gt;</h2>');
+    expect(html).toContain('<h4>1. PCR: A frag (1,200 bp)</h4>');
+  });
+
+  it('calls oligos by the names a batch gave them, by bases', () => {
+    const names = new Map([['ACGTACGTAC', 'row fwd']]);
+    const renamed = renameProtocolOligos(one, names);
+    expect(renamed.oligos.map((o) => o.name)).toEqual(['row fwd', 'Reverse']);
+    const step = renamed.steps[0];
+    expect(step?.kind === 'pcr' ? [step.forward.name, step.reverse.name] : []).toEqual([
+      'row fwd',
+      'R1',
+    ]);
   });
 });

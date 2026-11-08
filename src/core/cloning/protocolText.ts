@@ -4,13 +4,14 @@ import {
   type DiagnosticDigest,
   type PcrStep,
   type Protocol,
+  type ProtocolOligo,
   type ProtocolStep,
 } from './protocol';
 
 /** A protocol written out as a page, as Markdown or as one self-contained HTML file (#215). */
 
 type Block =
-  | { readonly t: 'h2' | 'h3'; readonly text: string }
+  | { readonly t: 'h2' | 'h3' | 'h4'; readonly text: string }
   | { readonly t: 'p'; readonly text: string }
   | { readonly t: 'ul'; readonly items: readonly string[] }
   | {
@@ -153,22 +154,15 @@ function diagnosticRows(d: DiagnosticDigest): readonly string[] {
   return [d.enzyme, String(d.cuts), describeBands(d.profile, 8), ...d.wrong.map(wrongCell)];
 }
 
-function blocks(p: Protocol): Block[] {
-  const out: Block[] = [
-    {
-      t: 'p',
-      text: `${bp(p.length)}, ${p.topology}. Built from what the product records of how it was made; the programs are the usual ones for each reaction, so follow your supplier's instructions where they differ.`,
-    },
-  ];
-  for (const c of p.caveats) out.push({ t: 'p', text: c });
-  out.push({ t: 'h2', text: 'Oligos to order' });
-  if (p.oligos.length === 0)
-    out.push({ t: 'p', text: 'None: no step of this product used a primer.' });
+/** The 'Oligos to order' section: a table, or the sentence that there are none. */
+function oligoBlocks(oligos: readonly ProtocolOligo[], none: string): Block[] {
+  const out: Block[] = [{ t: 'h2', text: 'Oligos to order' }];
+  if (oligos.length === 0) out.push({ t: 'p', text: none });
   else {
     out.push({
       t: 'table',
       head: ['Name', 'Sequence (5′→3′)', 'Length', 'For', 'My primers'],
-      rows: p.oligos.map((o) => [
+      rows: oligos.map((o) => [
         o.name,
         o.sequence,
         `${String(o.length)} nt`,
@@ -177,6 +171,25 @@ function blocks(p: Protocol): Block[] {
       ]),
     });
   }
+  return out;
+}
+
+function blocks(p: Protocol): Block[] {
+  const out: Block[] = [
+    {
+      t: 'p',
+      text: `${bp(p.length)}, ${p.topology}. Built from what the product records of how it was made; the programs are the usual ones for each reaction, so follow your supplier's instructions where they differ.`,
+    },
+  ];
+  for (const c of p.caveats) out.push({ t: 'p', text: c });
+  out.push(...oligoBlocks(p.oligos, 'None: no step of this product used a primer.'));
+  out.push(...reactionBlocks(p));
+  return out;
+}
+
+/** What follows the oligos: the reactions, the diagnostic digest and the colony PCR check. */
+function reactionBlocks(p: Protocol): Block[] {
+  const out: Block[] = [];
   out.push({ t: 'h2', text: 'Reactions, in order' });
   if (p.steps.length === 0) out.push({ t: 'p', text: 'The record names no reaction.' });
   p.steps.forEach((s, i) => {
@@ -243,16 +256,18 @@ function blocks(p: Protocol): Block[] {
 
 const mdCell = (s: string): string => s.replace(/\|/g, '\\|');
 
-/** The protocol as Markdown. */
-export function protocolToMarkdown(p: Protocol): string {
-  const lines: string[] = [`# Protocol: ${p.product}`, ''];
-  for (const b of blocks(p)) {
+function markdownOf(title: string, page: readonly Block[]): string {
+  const lines: string[] = [`# ${title}`, ''];
+  for (const b of page) {
     switch (b.t) {
       case 'h2':
         lines.push(`## ${b.text}`, '');
         break;
       case 'h3':
         lines.push(`### ${b.text}`, '');
+        break;
+      case 'h4':
+        lines.push(`#### ${b.text}`, '');
         break;
       case 'p':
         lines.push(b.text, '');
@@ -273,16 +288,21 @@ export function protocolToMarkdown(p: Protocol): string {
   return `${lines.join('\n').trimEnd()}\n`;
 }
 
+/** The protocol as Markdown. */
+export function protocolToMarkdown(p: Protocol): string {
+  return markdownOf(`Protocol: ${p.product}`, blocks(p));
+}
+
 const esc = (s: string): string =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-/** The protocol as one HTML page with its own styles, ready to print. */
-export function protocolToHtml(p: Protocol): string {
-  const body: string[] = [`<h1>Protocol: ${esc(p.product)}</h1>`];
-  for (const b of blocks(p)) {
+function htmlOf(title: string, page: readonly Block[]): string {
+  const body: string[] = [`<h1>${esc(title)}</h1>`];
+  for (const b of page) {
     switch (b.t) {
       case 'h2':
       case 'h3':
+      case 'h4':
         body.push(`<${b.t}>${esc(b.text)}</${b.t}>`);
         break;
       case 'p':
@@ -302,7 +322,7 @@ export function protocolToHtml(p: Protocol): string {
   }
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Protocol: ${esc(p.product)}</title>
+<title>${esc(title)}</title>
 <style>body{font:15px/1.5 system-ui,sans-serif;max-width:60rem;margin:2rem auto;padding:0 1rem;color:#1b1b1b}
 table{border-collapse:collapse;margin:.5rem 0 1rem}th,td{border:1px solid #bbb;padding:.25rem .6rem;text-align:left;vertical-align:top}
 td:nth-child(2){font-family:ui-monospace,monospace;word-break:break-all}h2{margin-top:2rem;border-bottom:1px solid #bbb}</style>
@@ -310,4 +330,85 @@ td:nth-child(2){font-family:ui-monospace,monospace;word-break:break-all}h2{margi
 ${body.join('\n')}
 </body></html>
 `;
+}
+
+/** The protocol as one HTML page with its own styles, ready to print. */
+export function protocolToHtml(p: Protocol): string {
+  return htmlOf(`Protocol: ${p.product}`, blocks(p));
+}
+
+// ------------------------------------------------------------------ a batch of constructs
+
+/**
+ * The oligos of several protocols as one list, each sequence once (#360, item
+ * 141): two constructs that need the same bases need one order. The first
+ * name is kept, `usedFor` gathers every product it serves, and a sequence
+ * already in My primers under any of its protocols says so.
+ */
+export function mergeOligos(protocols: readonly Protocol[]): ProtocolOligo[] {
+  const merged = new Map<string, ProtocolOligo>();
+  for (const p of protocols) {
+    for (const o of p.oligos) {
+      const key = o.sequence.toUpperCase();
+      const before = merged.get(key);
+      merged.set(
+        key,
+        before === undefined
+          ? o
+          : {
+              ...before,
+              usedFor: [...new Set([...before.usedFor, ...o.usedFor])],
+              inCollection: before.inCollection ?? o.inCollection,
+            },
+      );
+    }
+  }
+  return [...merged.values()];
+}
+
+/** What a batch protocol says of the constructs it has no protocol for: a name each. */
+function batchBlocks(protocols: readonly Protocol[], without: readonly string[]): Block[] {
+  const merged = mergeOligos(protocols);
+  const out: Block[] = [
+    {
+      t: 'p',
+      text: `${String(protocols.length)} ${protocols.length === 1 ? 'construct' : 'constructs'}, each built from what it records of how it was made; the programs are the usual ones for each reaction, so follow your supplier's instructions where they differ. The oligos of all of them are in one table below, each sequence once.`,
+    },
+  ];
+  if (without.length > 0) {
+    out.push({
+      t: 'p',
+      text: `No protocol for ${without.join(', ')}: ${without.length === 1 ? 'it has' : 'they have'} no construct or no record of how ${without.length === 1 ? 'it was' : 'they were'} made.`,
+    });
+  }
+  out.push(...oligoBlocks(merged, 'None: no step of these constructs used a primer.'), {
+    t: 'p',
+    text: `${String(merged.length)} ${merged.length === 1 ? 'oligo' : 'oligos'} for ${String(protocols.length)} ${protocols.length === 1 ? 'construct' : 'constructs'}.`,
+  });
+  protocols.forEach((p, i) => {
+    out.push({ t: 'h2', text: `Construct ${String(i + 1)}: ${p.product}` });
+    out.push({ t: 'p', text: `${bp(p.length)}, ${p.topology}.` });
+    for (const c of p.caveats) out.push({ t: 'p', text: c });
+    // The oligo table above serves every construct, so this one's own is left out.
+    for (const b of reactionBlocks(p)) {
+      out.push(b.t === 'h2' ? { ...b, t: 'h3' } : b.t === 'h3' ? { ...b, t: 'h4' } : b);
+    }
+  });
+  return out;
+}
+
+/** The protocols of a batch of constructs as Markdown, with one table of the oligos to order. */
+export function batchProtocolToMarkdown(
+  protocols: readonly Protocol[],
+  without: readonly string[] = [],
+): string {
+  return markdownOf('Batch protocol', batchBlocks(protocols, without));
+}
+
+/** The protocols of a batch of constructs as one HTML page, with one table of the oligos to order. */
+export function batchProtocolToHtml(
+  protocols: readonly Protocol[],
+  without: readonly string[] = [],
+): string {
+  return htmlOf('Batch protocol', batchBlocks(protocols, without));
 }

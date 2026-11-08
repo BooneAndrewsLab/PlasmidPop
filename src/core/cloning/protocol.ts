@@ -575,3 +575,22 @@ export function buildProtocol(doc: SeqDocument, options: ProtocolOptions = {}): 
     caveats,
   };
 }
+
+/**
+ * The protocol with its oligos called by `names` (by upper-case bases): a
+ * batch's constructs each record their primers as 'Forward' and 'Reverse', or
+ * as the designer named them, which would be ambiguous in one document.
+ */
+export function renameProtocolOligos(p: Protocol, names: ReadonlyMap<string, string>): Protocol {
+  const rename = (o: ProtocolOligo): ProtocolOligo => ({
+    ...o,
+    name: names.get(o.sequence.toUpperCase()) ?? o.name,
+  });
+  return {
+    ...p,
+    oligos: p.oligos.map(rename),
+    steps: p.steps.map((s) =>
+      s.kind === 'pcr' ? { ...s, forward: rename(s.forward), reverse: rename(s.reverse) } : s,
+    ),
+  };
+}

@@ -88,8 +88,18 @@ export function resultLines(rows: readonly PrimerBatchRow[]): ResultLine[] {
   return rows.map(resultLine);
 }
 
+/** What the table's order and status chip read of a line: the primer table's and the cloning table's both have it. */
+export interface SortableLine {
+  readonly index: number;
+  readonly name: string;
+  readonly status: 'designed' | 'failed';
+  readonly messages: readonly string[];
+  readonly product: number | null;
+  readonly forwardTm: number | null;
+}
+
 /** A column's value for ordering; a row without one goes last whichever way it is turned. */
-function keyOf(line: ResultLine, key: BatchSortKey): number | string | null {
+function keyOf(line: SortableLine, key: BatchSortKey): number | string | null {
   switch (key) {
     case 'row':
       return line.index;
@@ -104,10 +114,10 @@ function keyOf(line: ResultLine, key: BatchSortKey): number | string | null {
   }
 }
 
-export function sortLines(
-  lines: readonly ResultLine[],
+export function sortLines<T extends SortableLine>(
+  lines: readonly T[],
   sort: SortState<BatchSortKey>,
-): ResultLine[] {
+): T[] {
   const sign = sort.dir === 'asc' ? 1 : -1;
   return [...lines].sort((a, b) => {
     const x = keyOf(a, sort.key);
@@ -120,7 +130,7 @@ export function sortLines(
 }
 
 /** The status chip's word for a line. */
-export function statusOf(line: ResultLine): 'designed' | 'warnings' | 'failed' {
+export function statusOf(line: SortableLine): 'designed' | 'warnings' | 'failed' {
   return line.status === 'failed' ? 'failed' : line.messages.length > 0 ? 'warnings' : 'designed';
 }
 
