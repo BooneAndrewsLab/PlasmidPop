@@ -60,7 +60,8 @@ Their settings and filters are kept per document while you look at another
 tab.
 The workspace is a region of the window, not a dialog: `Esc` with the
 keyboard inside closes it and puts the keyboard back on **Open CRISPR
-workspace ›**, and choosing another sidebar tab closes it too; the page it was
+workspace ›** (or on the other tab whose link opened it), and choosing
+another sidebar tab closes it too; the page it was
 left on is remembered. On a phone it fills the screen.
 
 ## The guide table

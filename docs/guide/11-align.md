@@ -35,7 +35,8 @@ workspace's **Results** and **Assemble** tabs count what they hold.
 
 The workspace is a region of the window, not a dialog: `Tab` moves in and
 out of it, `Esc` with the keyboard inside closes it and puts the keyboard
-back on **Open Align workspace ›**, and choosing another sidebar tab or putting
+back on **Open Align workspace ›** (or on the other tab whose link opened it),
+and choosing another sidebar tab or putting
 the sidebar away closes it too; its page is remembered. Beside the map it
 shares the primer workspace's width (drag the boundary; double-click to
 reset); narrower than 1000 px it takes the whole main area with the

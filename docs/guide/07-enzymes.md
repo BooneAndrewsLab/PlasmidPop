@@ -56,8 +56,9 @@ workspace's head, on every page, since it changes every page's answer. The
 tab and the workspace share the filter and the ticks, so what is set in one
 is set in the other. The workspace is a region of the window, not a dialog:
 `Esc` with the keyboard inside closes it and puts the keyboard back on
-**Open Enzyme workspace ›**, whichever link opened it, and choosing another
-sidebar tab closes it too. On a phone it fills the screen.
+**Open Enzyme workspace ›**, or, when a link on another tab opened it (the
+Cloning tab's **All fragments and partial digest ›**, say), takes you back
+to that tab; choosing another sidebar tab closes it too. On a phone it fills the screen.
 
 ## The enzyme table
 
