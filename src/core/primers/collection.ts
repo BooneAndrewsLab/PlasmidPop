@@ -272,7 +272,7 @@ function parseFasta(lines: readonly string[]): ParsedPrimerList {
  * a spreadsheet copies; then a comma or semicolon, when every record has one
  * outside quotes, since a lone comma in one note is not a table.
  */
-function tableDelimiter(text: string): string | null {
+export function tableDelimiter(text: string): string | null {
   for (const d of ['\t', ',', ';']) {
     const records = splitRecords(text, d);
     if (records.length > 0 && records.every((r) => r.cells.length > 1)) return d;
@@ -281,7 +281,7 @@ function tableDelimiter(text: string): string | null {
 }
 
 /** One record of a table: its cells, and the line it starts on (1-based). */
-interface TableRecord {
+export interface TableRecord {
   readonly cells: readonly string[];
   readonly line: number;
 }
@@ -291,7 +291,7 @@ interface TableRecord {
  * them, a quoted cell running over line breaks. Cells are trimmed, except
  * inside quotes; records with nothing in them are left out.
  */
-function splitRecords(text: string, delimiter: string): TableRecord[] {
+export function splitRecords(text: string, delimiter: string): TableRecord[] {
   const out: TableRecord[] = [];
   let cells: string[] = [];
   let cell = '';
