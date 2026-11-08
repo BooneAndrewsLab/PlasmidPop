@@ -5,6 +5,7 @@ import {
   type CheckDesign,
   type CheckOptions,
   type CloneGeometry,
+  type SeqDocument,
   type CodonSlot,
   type CrisprGuide,
   type CrisprOptions,
@@ -40,6 +41,9 @@ import {
   type AnalysisRequest,
   type AnalysisResponse,
   type CheckMolecule,
+  type CloningRequest,
+  type CloningResult,
+  type CloningAnswer,
   type Detection,
   unpackCutSites,
   unpackScan,
@@ -407,6 +411,21 @@ export class AnalysisClient {
     return { ...res.design, mutant: documentOf(res.design.mutant) };
   }
 
+  /**
+   * One construct of a cloning batch, in the worker (#360). The designs' own
+   * documents come back as documents, the simulation having been run there.
+   */
+  async designCloning(
+    cloning: CloningRequest,
+    long: LongRequestOptions = {},
+  ): Promise<CloningResult> {
+    const res = await this.send({ kind: 'designCloning', cloning }, long);
+    if (res.kind === 'error')
+      throw res.uncaught === true ? new AnalysisWorkerError(res.message) : new Error(res.message);
+    if (res.kind !== 'designCloning') throw new Error('Unexpected analysis response');
+    return cloningResultOf(res.answer);
+  }
+
   async checksum(molecule: MoleculeDescription): Promise<Seguid | null> {
     const res = await this.send({ kind: 'checksum', molecule });
     if (res.kind === 'error') throw new Error(res.message);
@@ -418,6 +437,43 @@ export class AnalysisClient {
     this.worker?.terminate();
     this.worker = null;
     this.pending.clear();
+  }
+}
+
+const documentOrNull = (snapshot: DocumentSnapshot | null): SeqDocument | null =>
+  snapshot === null ? null : documentOf(snapshot);
+
+function cloningResultOf(answer: CloningAnswer): CloningResult {
+  switch (answer.recipe) {
+    case 'restriction':
+      return {
+        recipe: 'restriction',
+        design: answer.design,
+        simulation: {
+          ...answer.simulation,
+          amplicon: documentOrNull(answer.simulation.amplicon),
+          product: documentOrNull(answer.simulation.product),
+        },
+      };
+    case 'golden-gate':
+      return {
+        recipe: 'golden-gate',
+        design: answer.design,
+        simulation: {
+          ...answer.simulation,
+          amplicon: documentOrNull(answer.simulation.amplicon),
+          product: documentOrNull(answer.simulation.product),
+        },
+      };
+    case 'homology':
+      return {
+        recipe: 'homology',
+        design: {
+          ...answer.design,
+          amplicon: documentOrNull(answer.design.amplicon),
+          product: documentOrNull(answer.design.product),
+        },
+      };
   }
 }
 

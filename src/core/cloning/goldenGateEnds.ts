@@ -671,6 +671,11 @@ function overhangsInTube(
   ];
 }
 
+/** Why an enzyme that releases nothing from a destination cannot take a part. */
+export function opensNothing(enzyme: string, destination: string): string {
+  return `${enzyme} opens nothing in ${destination}: the destination needs two ${enzyme} sites pointing outwards around the stretch the part replaces.`;
+}
+
 function simulate(
   ctx: GoldenGatePartContext,
   enzyme: Enzyme,
@@ -720,7 +725,7 @@ function simulate(
       amplicon,
       product: null,
       problem: null,
-      missing: `${enzyme.name} opens nothing in ${destination.name}: the destination needs two ${enzyme.name} sites pointing outwards around the stretch the part replaces. Only the PCR was run.`,
+      missing: `${opensNothing(enzyme.name, destination.name)} Only the PCR was run.`,
       warnings,
     };
   }

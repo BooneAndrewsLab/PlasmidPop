@@ -5,6 +5,9 @@ import {
   type CheckDesign,
   type CheckOptions,
   type CloneGeometry,
+  type CloningDesign,
+  type CloningSettings,
+  type CloningSimulation,
   type CrisprGuide,
   type CodonSlot,
   type CrisprOptions,
@@ -14,9 +17,13 @@ import {
   type EnzymeDigest,
   type EnzymeSet,
   type FeatureHit,
+  type GoldenGatePartDesign,
+  type GoldenGatePartSettings,
+  type GoldenGatePartSimulation,
   type LibraryPart,
   type MoleculeDescription,
   type MsaOptions,
+  type MultiOverlapDesign,
   type MultipleAlignment,
   type MutagenesisDesign,
   type MutagenesisMethod,
@@ -24,6 +31,8 @@ import {
   type Nuclease,
   PackedCutSiteSet,
   type Orf,
+  type OverlapKit,
+  type OverlapPrimer,
   type OrfOptions,
   type PrimerPair,
   type PrimerSearch,
@@ -31,6 +40,8 @@ import {
   type RecodeOptions,
   type RecodeResult,
   type Seguid,
+  type SeqDocument,
+  type Strand,
   type StrandedAlignment,
   type Topology,
 } from '@/core';
@@ -169,6 +180,117 @@ export type AnalysisRequest =
       readonly replacement: string;
       readonly method: MutagenesisMethod;
       readonly options: MutagenesisOptions;
+    }
+  | {
+      /** One construct of a cloning batch: an insert into a vector, by one recipe (#360). */
+      readonly id: number;
+      readonly kind: 'designCloning';
+      readonly cloning: CloningRequest;
+    };
+
+/** The insert of a cloning request: a stretch of a template, read as one of its strands. */
+export interface CloningInsertRequest {
+  readonly name: string;
+  readonly template: DocumentSnapshot;
+  readonly range: Range;
+  readonly strand: Strand;
+}
+
+/**
+ * What one cloning design takes, as plain data. The three recipes are the
+ * Cloning workspace's three kinds of end: restriction sites, a Golden Gate
+ * part and a kit's homology (item 141).
+ */
+export type CloningRequest =
+  | {
+      readonly recipe: 'restriction';
+      readonly vector: DocumentSnapshot;
+      /** Where on the vector the insert goes; null is the vector's cloning site, else the whole of it. */
+      readonly region: Range | null;
+      readonly insert: CloningInsertRequest;
+      readonly forward: string;
+      readonly reverse: string;
+      readonly flipped: boolean;
+      readonly settings: Partial<CloningSettings>;
+    }
+  | {
+      readonly recipe: 'golden-gate';
+      readonly destination: DocumentSnapshot;
+      readonly insert: CloningInsertRequest;
+      readonly settings: Partial<GoldenGatePartSettings>;
+    }
+  | {
+      readonly recipe: 'homology';
+      /** The linearised vector. */
+      readonly vector: DocumentSnapshot;
+      readonly insert: CloningInsertRequest;
+      readonly kit: OverlapKit;
+      /** Bases of homology; only the yeast kit takes it. */
+      readonly overlap?: number;
+      readonly flipped: boolean;
+    };
+
+/** A simulation as it crosses from the worker: its documents go as snapshots. */
+export type SimulationAnswer<S extends { amplicon: unknown; product: unknown }> = Omit<
+  S,
+  'amplicon' | 'product'
+> & {
+  readonly amplicon: DocumentSnapshot | null;
+  readonly product: DocumentSnapshot | null;
+};
+
+/**
+ * A cloning design as it crosses from the worker. A design holds a closure
+ * (`simulate`) and documents, which a structured clone would drop or refuse,
+ * so the worker runs the simulation and answers with its result, documents
+ * as snapshots; the client makes them documents again.
+ */
+export type CloningAnswer =
+  | {
+      readonly recipe: 'restriction';
+      readonly design: Omit<CloningDesign, 'simulate'>;
+      readonly simulation: SimulationAnswer<CloningSimulation>;
+    }
+  | {
+      readonly recipe: 'golden-gate';
+      readonly design: Omit<GoldenGatePartDesign, 'simulate'>;
+      readonly simulation: SimulationAnswer<GoldenGatePartSimulation>;
+    }
+  | {
+      readonly recipe: 'homology';
+      readonly design: Omit<MultiOverlapDesign, 'inserts' | 'product'> & {
+        /** The one insert's two primers; null when the design stopped before making them. */
+        readonly primers: {
+          readonly forward: OverlapPrimer;
+          readonly reverse: OverlapPrimer;
+        } | null;
+        readonly amplicon: DocumentSnapshot | null;
+        readonly product: DocumentSnapshot | null;
+      };
+    };
+
+/** `CloningAnswer` as the main thread has it, the snapshots made documents again. */
+export type CloningResult =
+  | {
+      readonly recipe: 'restriction';
+      readonly design: Omit<CloningDesign, 'simulate'>;
+      readonly simulation: CloningSimulation;
+    }
+  | {
+      readonly recipe: 'golden-gate';
+      readonly design: Omit<GoldenGatePartDesign, 'simulate'>;
+      readonly simulation: GoldenGatePartSimulation;
+    }
+  | {
+      readonly recipe: 'homology';
+      readonly design: Omit<MultiOverlapDesign, 'inserts' | 'product'> & {
+        readonly primers: {
+          readonly forward: OverlapPrimer;
+          readonly reverse: OverlapPrimer;
+        } | null;
+        readonly amplicon: SeqDocument | null;
+        readonly product: SeqDocument | null;
+      };
     };
 
 /**
@@ -237,6 +359,7 @@ export type AnalysisResponse =
       readonly kind: 'designMutagenesis';
       readonly design: MutagenesisAnswer;
     }
+  | { readonly id: number; readonly kind: 'designCloning'; readonly answer: CloningAnswer }
   | {
       /** Sent ahead of the answer to a long request; not an answer itself. */
       readonly id: number;

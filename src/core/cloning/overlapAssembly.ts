@@ -8,6 +8,7 @@ import {
   type OverlapOptions,
   type OverlapPrimer,
   KIT_NAMES,
+  homologyVectorProblem,
   KIT_OVERLAP,
   OVERLAP_DEFAULTS,
   growAnnealing,
@@ -94,16 +95,8 @@ export function designMultiOverlapPrimers(
   });
 
   if (inserts.length === 0) return fail('Choose at least one insert.');
-  if (vector.isCircular) {
-    return fail(
-      `${vector.name} is circular, so it has no ends for the tails to match. Digest it, or amplify it by inverse PCR, first.`,
-    );
-  }
-  if (vector.length < overlap) {
-    return fail(
-      `${vector.name} is shorter than the ${overlap} bases of homology ${KIT_NAMES[kit]} asks for.`,
-    );
-  }
+  const unfit = homologyVectorProblem(vector, kit, overlap);
+  if (unfit !== null) return fail(unfit);
 
   const texts = inserts.map((i) => {
     const forwardStrand = i.template.subsequence(i.region);

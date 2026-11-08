@@ -86,6 +86,25 @@ export function growAnnealing(
 }
 
 /**
+ * Why `vector` cannot be the other half of a `kit` design, or null: a
+ * circle has no ends for the tails to match, and the ends must hold the
+ * kit's homology. The one reason both designers give, and a batch gives once.
+ */
+export function homologyVectorProblem(
+  vector: SeqDocument,
+  kit: OverlapKit,
+  overlap: number = KIT_OVERLAP[kit],
+): string | null {
+  if (vector.isCircular) {
+    return `${vector.name} is circular, so it has no ends for the tails to match. Digest it, or amplify it by inverse PCR, first.`;
+  }
+  if (vector.length < overlap) {
+    return `${vector.name} is shorter than the ${overlap} bases of homology ${KIT_NAMES[kit]} asks for.`;
+  }
+  return null;
+}
+
+/**
  * Designs the two primers that amplify `region` of `template` with tails
  * matching the ends of `vector`, and runs them.
  *
@@ -114,16 +133,8 @@ export function designOverlapPrimers(
     problem,
   });
 
-  if (vector.isCircular) {
-    return fail(
-      `${vector.name} is circular, so it has no ends for the tails to match. Digest it, or amplify it by inverse PCR, first.`,
-    );
-  }
-  if (vector.length < overlap) {
-    return fail(
-      `${vector.name} is shorter than the ${overlap} bases of homology ${KIT_NAMES[kit]} asks for.`,
-    );
-  }
+  const unfit = homologyVectorProblem(vector, kit, overlap);
+  if (unfit !== null) return fail(unfit);
   const insert = template.subsequence(region);
   if (insert.length < opts.minAnneal * 2) {
     return fail(

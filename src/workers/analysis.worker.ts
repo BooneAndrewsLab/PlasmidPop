@@ -6,6 +6,10 @@ import {
   alignEitherStrand,
   alignMultiple,
   alignPairwise,
+  type CloningInsert,
+  designCloningEnds,
+  designGoldenGatePart,
+  designMultiOverlapPrimers,
   designMutagenesis,
   designPrimers,
   findCollectionPrimers,
@@ -20,13 +24,18 @@ import {
   moleculeChecksum,
   moleculeChecksumAsync,
   recodeSlots,
+  resolveVectorRegion,
+  scanForCloningNow,
   setActiveEnzymeSet,
 } from '@/core';
 
-import { documentOf, snapshotOf } from './saveProtocol';
+import { type DocumentSnapshot, documentOf, snapshotOf } from './saveProtocol';
 import {
   type AnalysisRequest,
   type AnalysisResponse,
+  type CloningAnswer,
+  type CloningInsertRequest,
+  type CloningRequest,
   type DetectedPart,
   packCutSites,
   packEnzymeDigest,
@@ -59,6 +68,94 @@ function libraryWith(
     combined = { key, library: { parts: [...userParts, ...base.parts] } };
   }
   return combined.library;
+}
+
+function cloningInsert(insert: CloningInsertRequest): CloningInsert {
+  return {
+    name: insert.name,
+    document: documentOf(insert.template),
+    range: insert.range,
+    strand: insert.strand,
+  };
+}
+
+const snapshotOrNull = (doc: SeqDocument | null): DocumentSnapshot | null =>
+  doc === null ? null : snapshotOf(doc);
+
+/**
+ * One construct of a cloning batch: the same calls the Cloning workspace
+ * makes, then its simulation, run here because it is a closure and its
+ * documents are classes (item 141).
+ */
+function designCloning(req: CloningRequest): CloningAnswer {
+  switch (req.recipe) {
+    case 'restriction': {
+      const vector = documentOf(req.vector);
+      const insert = cloningInsert(req.insert);
+      const { simulate, ...design } = designCloningEnds(
+        {
+          vector,
+          region: resolveVectorRegion(vector, req.region),
+          insert,
+          flipped: req.flipped,
+          scans: scanForCloningNow(vector, insert),
+        },
+        { forward: req.forward, reverse: req.reverse },
+        req.settings,
+      );
+      const { amplicon, product, ...simulation } = simulate();
+      return {
+        recipe: 'restriction',
+        design,
+        simulation: {
+          ...simulation,
+          amplicon: snapshotOrNull(amplicon),
+          product: snapshotOrNull(product),
+        },
+      };
+    }
+    case 'golden-gate': {
+      const { simulate, ...design } = designGoldenGatePart(
+        { insert: cloningInsert(req.insert), destination: documentOf(req.destination) },
+        req.settings,
+      );
+      const { amplicon, product, ...simulation } = simulate();
+      return {
+        recipe: 'golden-gate',
+        design,
+        simulation: {
+          ...simulation,
+          amplicon: snapshotOrNull(amplicon),
+          product: snapshotOrNull(product),
+        },
+      };
+    }
+    case 'homology': {
+      const insert = cloningInsert(req.insert);
+      const { inserts, product, ...design } = designMultiOverlapPrimers(
+        documentOf(req.vector),
+        [
+          {
+            template: insert.document,
+            region: insert.range,
+            reverse: (insert.strand === 'reverse') !== req.flipped,
+          },
+        ],
+        req.kit,
+        req.overlap === undefined ? {} : { overlap: req.overlap },
+      );
+      const made = inserts[0];
+      return {
+        recipe: 'homology',
+        design: {
+          ...design,
+          primers: made === undefined ? null : { forward: made.forward, reverse: made.reverse },
+          amplicon: snapshotOrNull(made?.amplicon ?? null),
+          product: snapshotOrNull(product),
+        },
+      };
+    }
+  }
 }
 
 /**
@@ -157,6 +254,8 @@ export function handleAnalysisRequest(
           design: { ...rest, mutant: snapshotOf(mutant) },
         };
       }
+      case 'designCloning':
+        return { id: req.id, kind: 'designCloning', answer: designCloning(req.cloning) };
       case 'align':
         return { id: req.id, kind: 'align', alignment: alignPairwise(req.a, req.b, req.options) };
       case 'alignEitherStrand':
