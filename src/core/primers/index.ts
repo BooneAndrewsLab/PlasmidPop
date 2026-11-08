@@ -4,3 +4,4 @@ export * from './anneal';
 export * from './primerDesign';
 export * from './criteria';
 export * from './collection';
+export * from './orderSheet';

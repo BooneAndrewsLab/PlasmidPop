@@ -531,7 +531,8 @@ function parseLines(lines: readonly string[]): ParsedPrimerList {
 
 // ------------------------------------------------------------------ writing
 
-function csvCell(value: string): string {
+/** One CSV cell, quoted when it holds a comma, quote, line break or edge space. */
+export function csvCell(value: string): string {
   return /[",\r\n]/.test(value) || value !== value.trim()
     ? `"${value.replace(/"/g, '""')}"`
     : value;
