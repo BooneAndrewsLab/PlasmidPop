@@ -269,6 +269,47 @@ row designed, the second held until the signal, `analysisClient` spied) keeping
 the rows done; the scan helper on a CDS; a page switch keeping table, run and
 badge; Open product; an uploaded file; a table with no header.
 
-**Not built here.** The order sheet (packet 4); cloning rows, constructs zip
+**Not built here.** The order sheet (since built, packet 4); cloning rows, constructs zip
 and protocol (5, 6); drag-and-drop of a file onto the box; per-row choice among
 the other pairs; the batch's own Settings (it uses the Design page's).
+
+## Packet 4: the order sheet (closes #358)
+
+`core/primers/orderSheet.ts` (pure): `buildOrderSheet(oligos, {scale,
+purification, wellOrder})` returns the lines, the CSV and a list of
+`problems`. Header `plate,well,name,sequence,length,scale,purification,notes`,
+`\r\n` ends and `csvCell` escaping as My primers' CSV (now exported from
+`collection.ts`). Wells fill A1-H12 along rows or down columns (`wellOf`), the
+97th oligo starts plate 2, plates count from 1. `scale`/`purification` are
+free text, constants for the sheet (`25 nmol`, `desalted`). The sequence is
+upper-cased with whitespace removed, IUPAC kept, `length` counted from it,
+`notes` the row's first warning.
+
+**Names are never changed.** A repeated name (without regard to case, as the
+pool check and a vendor's form read it), an empty name, an empty sequence or a
+character that is not a letter is a `problem`, and the dialog disables the
+download until there are none; renaming silently would hand the user an order
+that does not match their table. The duplicate-name check is repeated in
+`orderSheet.ts` rather than imported from `core/batch/pool.ts`, which imports
+the primers index, so a primers module importing it would make a cycle. Same
+bases under different names is only a warning in the dialog (`sameBases`): a
+vendor accepts it.
+
+**The dialog** (`OrderSheetDialog.tsx`, opened by **Order sheet…** beside Save
+all, enabled with designed rows and no run going): scale, purification, well
+order, the first six lines, the problems, **Download CSV** through
+`downloadText` (the `download` prop is the test seam, as in `ProtocolDialog`).
+Its oligos are `batchOrderOligos`: the same two per designed row as Save all,
+with the first warning as the note. Nothing leaves the machine.
+
+**Analytics.** `primers:order-sheet`, with no label: not the names,
+sequences, scale or how many, and fired only when the file is downloaded.
+
+**Checked** (jsdom only; not looked at in a browser). Core tests: header,
+defaults, both well orders, plate rollover at 97, escaping, duplicates,
+empty input, and a read-back through `splitRow` and `parsePrimerList`. Dialog
+tests: preview, plate count, column order, the downloaded text, duplicate and
+same-base warnings, close. A Batch page test runs two rows and downloads.
+
+**#358 is complete** with this packet: batch design (packets 1-3), the pool
+checks and the order sheet. Cloning rows are #360 (packets 5-6).

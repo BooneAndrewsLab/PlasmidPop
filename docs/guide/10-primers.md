@@ -200,6 +200,8 @@ the map as Results does.
 - **Save all to My primers** keeps every designed oligo, named `name fwd` and
   `name rev`, with a note of the template; oligos already there under the same
   name and bases are skipped.
+- **Order sheet…** opens a small dialog that turns the designed oligos into a
+  plate-format CSV, described below.
 
 **Pool check.** Under the results, once a run is over, a summary reads all the
 oligos together: names used twice, identical bases under two names, cross-dimers
@@ -208,6 +210,28 @@ Two primers only form a cross-dimer if they are in the same tube, so for pairs
 that go into separate reactions the dimer line is a hint, not a fault; it
 matters for oligos you pool. Primers designed for neighbouring regions of one
 template often pair with one another, since they overlap in sequence.
+
+**The order sheet.** **Order sheet…** (enabled once a run has designed oligos)
+lists every designed oligo, two per row (`name fwd`, `name rev`, as Save all
+names them; a mutation's two primers likewise), as a CSV with the columns
+`plate,well,name,sequence,length,scale,purification,notes`. The sequence is
+upper case, 5′ to 3′, with any ambiguity codes as they are; `length` is
+counted from it; `notes` carries the row's first warning, if it has one.
+**Scale** and **Purification** are free text, written unchanged on every line
+(they start as `25 nmol` and `desalted`). Wells are filled **along rows**
+(A1, A2, … A12, B1, …) or **down columns** (A1, B1, … H1, A2, …), and the
+97th oligo starts plate 2, in the same well order; plates count from 1. The
+dialog previews the first lines.
+
+The sheet is vendor-neutral: no vendor's template is built in, so copy the
+columns you need into your vendor's form, or rename the header cells to the
+ones its template wants (the columns are in a fixed order, and a spreadsheet
+program can move or delete them). A vendor rejects a repeated name, so the
+dialog lists duplicate names, without regard to case, as problems and does not
+let you download until they are fixed (rename the rows in the table and run
+again); two names with the same bases are shown as a warning, since the oligo
+would be paid for twice. **Download CSV** only saves a file in your browser;
+nothing is sent anywhere.
 
 ## Cloning ends: primers that put two restriction sites on an insert
 
