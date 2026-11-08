@@ -171,6 +171,36 @@ reporting one.
   the #197/#198 fixes, 18 after, 15 whole-circle shifts at the new length and 3
   two-replace linear histories); by design.
 
+- **Mutation testing is not in CI** (and its 90 floor is enforced only when it
+  runs): decided. A run takes a long time and needs an idle machine, so it
+  runs by hand before a release (`npm run mutate:changed`, design note 50),
+  never in CI. A scheduled nightly job is the only open idea.
+- **`name_1` / `name_2` read as mates** is the documented naming rule
+  (`pairing.ts`); a series with a third member (`clone_1`, `_2`, `_3`) is
+  refused, and mixed letter and number families are not paired. Not a
+  false-positive risk to report without a failing example.
+- **Insert tolerance `max(100, 10 %)`** is a judgment call, measured between
+  the kept ends of two reads that trimming has already shortened (comment on
+  `insertTolerance`); not a demonstrated defect. Report it only with a case it
+  gets wrong.
+- **Synthetic oracles for MSA, Sanger assembly and yeast assembly** are
+  deliberate: real chromatograms are proprietary or cannot be redistributed
+  (third-party data policy), so those tests are fixture-gated (`skipIf`) or
+  synthetic with a committed oracle. A larger real-data benchmark is a wish,
+  not a defect.
+- **Primer structure parameters were fitted to Primer3's output** (design note 124) and are reported separately against held-out sets, where the fit
+  generalises with a small loss. Agreement on the fitting set is not claimed
+  as independent validation; G·T wobble, some mismatch and dangling-end terms
+  and multibranch loops are left out and said so there.
+- **Primer pairs differing from Primer3's top pair** is expected: ranking adds
+  PlasmidPop's own specificity, GC-clamp and structure criteria; the top-five
+  overlap is the comparison that is kept.
+- **Banded MSA equals the full-matrix result by test**, not by proof against an
+  independent oracle; the MAFFT comparison (simulated sets, about 96 % of
+  MAFFT's pair accuracy) is the independent one. Both are labelled as such.
+- **A review that ran nothing** says nothing about the suite: a green run is
+  what CI shows for the commit, not what a report says it could not install.
+
 ## Reference sources that work from here
 
 | Works                                   | Blocked (as of 2026-10-05)                  |
