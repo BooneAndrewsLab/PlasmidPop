@@ -23,7 +23,8 @@ a digest to check it by.
 
 The **[primer workspace](10-primers.md#cloning-ends-primers-that-put-two-restriction-sites-on-an-insert)**
 designs the primers for an insert from another tab, with two restriction
-sites or a Golden Gate end on their tails, ready to cut into this plasmid.
+sites, a Golden Gate end or the homology of a linear vector (In-Fusion,
+NEBuilder, yeast) on their tails, ready to join this plasmid.
 It is where **Clone an insert into this plasmid ›** goes, and it is only
 there for DNA. `Escape` closes it and puts you back on the Cloning tab.
 

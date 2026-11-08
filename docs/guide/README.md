@@ -14,7 +14,7 @@ Step-by-step exercises in cloning and sequence analysis, with sample files to do
 4. [Editing the sequence](04-editing.md): typing, copy and paste, colouring and enlarging bases, reverse complement, origin, edit marks, undo
 5. [Features](05-features.md): the feature list and editor, detecting common features by their bases and by what they code for, and My parts, your own parts for it to look for
 6. [Find](06-find.md): a sequence, an ambiguity code or a feature name, matches shown on the map and in the sequence view
-7. [Restriction enzymes](07-enzymes.md): the enzyme list and what to show, cut sites, a drawn gel and diagnostic digests, isoschizomers, importing REBASE, Dam/Dcm methylation, adding your own enzyme
+7. [Restriction enzymes](07-enzymes.md): the slim tab and the Enzyme workspace; the enzyme table and what to show, cut sites, a drawn gel and diagnostic digests, isoschizomers, importing REBASE, Dam/Dcm methylation, adding your own enzyme
 8. [Open reading frames](08-orfs.md): finding ORFs by minimum length and genetic code, copying the protein, adding one as a CDS feature
 9. [Translation](09-translate.md): under CDS features and in six frames, recoding a CDS for a host, residues numbered
 10. [Primers](10-primers.md): the slim tab and the primer workspace; design, preview and checking; My primers, a list kept in the browser, and finding where its primers bind
