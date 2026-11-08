@@ -41,6 +41,14 @@ const JOINED = /^(.*\d)(f|r|fwd|rev|for|rvs|fp|rp)$/i;
 /** An Illumina header's read number: `NAME 1:N:0:ACGT`. */
 const CASAVA = /^(.*\S)\s+([12]):[YN]:\d+:\S*$/;
 
+/**
+ * An Illumina file name's read: `sample_R1_001`, `sample_S1_L001_R2_001`,
+ * `sample.R1`. The chunk number after the read stays in the stem, so that
+ * `_R1_001` pairs with `_R2_001` and not with `_R2_002`; the lane is before
+ * the read and is in the stem already.
+ */
+const ILLUMINA = /^(.*[^\s_.\-/])[_.-]R([12])(?:[_.-](\d{3}))?$/i;
+
 const CASAVA_READ = /^[12]:[YN]:\d+:\S*$/;
 
 /**
@@ -58,7 +66,7 @@ interface Parsed {
   readonly stem: string;
   readonly mate: 'first' | 'second' | 'other';
   /** Letters and numbers are not mixed: `A_F` is not the mate of `A_2`. */
-  readonly family: 'letters' | 'numbers';
+  readonly family: 'letters' | 'numbers' | 'illumina';
 }
 
 function parseName(raw: string): Parsed | null {
@@ -69,6 +77,14 @@ function parseName(raw: string): Parsed | null {
       stem: casava[1] ?? '',
       mate: casava[2] === '1' ? 'first' : 'second',
       family: 'numbers',
+    };
+  }
+  const illumina = ILLUMINA.exec(name);
+  if (illumina !== null) {
+    return {
+      stem: `${illumina[1] ?? ''}${illumina[3] === undefined ? '' : `_${illumina[3]}`}`,
+      mate: illumina[2] === '1' ? 'first' : 'second',
+      family: 'illumina',
     };
   }
   const m = SEPARATED.exec(name) ?? JOINED.exec(name);
@@ -87,7 +103,8 @@ function parseName(raw: string): Parsed | null {
  * names are the same but for a trailing mate token, one forward (`F`, `fwd`,
  * `for`, `forward`, `FP`, `1`) and one reverse (`R`, `rev`, `reverse`, `RP`,
  * `2`), after a `_`, `.`, `-`, `/` or space, or joined to a digit as in
- * `M13F`; a file extension is ignored and case does not matter. Several
+ * `M13F`, or an Illumina file's `_R1_001` / `_R2_001` (with its lane and
+ * chunk) or `.R1` / `.R2`; a file extension is ignored and case does not matter. Several
  * reads of one stem that are not exactly one of each are not guessed at.
  */
 export function findReadPairs(names: readonly string[]): PairNames {

@@ -404,3 +404,44 @@ describe('pairingName (#415)', () => {
     expect(pairingName('r', undefined)).toBe('r');
   });
 });
+
+describe('findReadPairs: Illumina file names (#416)', () => {
+  it('pairs _R1_001 with _R2_001, compressed or plain', () => {
+    expect(named('sample_R1_001.fastq.gz', 'sample_R2_001.fastq.gz')).toEqual([
+      { first: 0, second: 1, stem: 'sample_001' },
+    ]);
+    expect(named('s_R2_001.fq', 's_R1_001.fq')).toEqual([{ first: 1, second: 0, stem: 's_001' }]);
+    expect(named('a_R1.fastq', 'a_R2.fastq')).toHaveLength(1);
+  });
+
+  it('pairs .R1 with .R2', () => {
+    expect(named('sample.R1.fastq.gz', 'sample.R2.fastq.gz')).toHaveLength(1);
+  });
+
+  it('keeps lanes and chunks apart', () => {
+    const r = named(
+      'x_S1_L001_R1_001.fastq.gz',
+      'x_S1_L002_R1_001.fastq.gz',
+      'x_S1_L002_R2_001.fastq.gz',
+      'x_S1_L001_R2_001.fastq.gz',
+      'x_S1_L001_R1_002.fastq.gz',
+      'x_S1_L001_R2_002.fastq.gz',
+    );
+    expect(r.map((p) => [p.first, p.second])).toEqual([
+      [0, 3],
+      [1, 2],
+      [4, 5],
+    ]);
+  });
+
+  it('does not pair a lane with another lane, or two samples', () => {
+    expect(named('x_L001_R1_001.fq', 'x_L002_R2_001.fq')).toEqual([]);
+    expect(named('a_R1_001.fq', 'b_R2_001.fq')).toEqual([]);
+  });
+
+  it('still does not guess a series', () => {
+    const r = findReadPairs(['clone_1', 'clone_2', 'clone_3']);
+    expect(r.pairs).toEqual([]);
+    expect(r.ambiguous).toHaveLength(1);
+  });
+});
