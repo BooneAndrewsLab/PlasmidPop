@@ -1676,3 +1676,39 @@ above pin them rather than list them here.
 imports and no top-level side effects, so the dry run is unaffected, and as a new
 file in the set it is mutated whole on its first run. Its survivors are untriaged
 until the 1.24.0 pre-release `npm run mutate:changed`.
+
+## At 1.24.0
+
+The pre-release `mutate:changed` left 43 survivors and uncovered mutants on
+lines changed since 1.23.0: `assemble.ts` 9, `pairing.ts` 6, `protocolText.ts` 28. Tests were written for the ones a test could see, and each equivalent one
+was applied by hand to confirm it. No production code was changed and no
+`Stryker disable` comment added.
+
+- **Tested.** `protocolText.ts` (about 24): the batch protocol's exact text
+  for one construct (the singular "construct" and "oligo", the caveats, the
+  empty `without` default, the empty-oligos sentence, the blank lines after
+  headings). `pairing.ts`: the trim in `pairingName`, and the stem of an
+  Illumina name with no chunk number (`a_R1` is `a`, not `a_undefined`).
+  `assemble.ts`: a copy of a repeat on the far side of the second-best copy
+  (the left piece pushed back onto `todo` in `alternativePlacements`), which
+  only matters when the best copy in a stretch is not the nearest one.
+- **Equivalent, `assemble.ts`.** `mate === undefined` to `false` (`extentOf`
+  of an unplaced read is null anyway); `at === null ? 1 : MAX_ALTERNATIVES` to
+  `false` (the limit only changes how many places are returned, and without a
+  mate only whether there are any is read); `only === p.pick ? p : {...p, pick:
+only}` to `false` (the same read and pick either way).
+- **Redundant guards, `assemble.ts` (5).** `out.length < limit` to `true` or
+  `<=`, `aligned < MAX_STRETCHES` to `true` or `<=`, and `aligned++` to
+  `aligned--`. The limit and the stretch cap stop the loop at the same place
+  for a repeat of twelve copies (nine settle, the tenth does not), so removing
+  either alone changes nothing; only a stretch that aligns many times without
+  finding a place would tell them apart, and none was built.
+- **Equivalent, `pairing.ts`.** `family: 'illumina'` to `''` (the family only
+  keys the group, and no other family is `''`); the `?? ''` fallbacks on a
+  capture group that always matched (`illumina[1]`, and the `''` in
+  `description ?? ''`, where any non-matching string reads the same).
+- **Equivalent, `protocolText.ts`.** `toUpperCase` to `toLowerCase` in
+  `mergeOligos` (the key is only compared with itself); a stray string in the
+  `reactionBlocks` list (`markdownOf` and `htmlOf` switch on `b.t` and drop a
+  block that is not one). The blank line after an h4 heading was the one
+  survivor of the rerun that a test could see, and got one.

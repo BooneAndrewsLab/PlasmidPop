@@ -570,3 +570,75 @@ describe('a batch protocol (#360)', () => {
     ]);
   });
 });
+
+describe('a batch protocol, exact text (mutation triage 1.24.0)', () => {
+  const lone: Protocol = {
+    ...base,
+    product: 'A',
+    length: 1234,
+    topology: 'linear',
+    caveats: ['Check the junction.', 'Second caveat.'],
+    oligos: [{ ...oligo('Fwd', 'ACGT', null), usedFor: ['A'] }],
+    steps: [],
+  };
+
+  it('says "1 construct" and "1 oligo", and names no missing construct by default', () => {
+    const md = batchProtocolToMarkdown([lone]);
+    expect(
+      md.startsWith(
+        [
+          '# Batch protocol',
+          '',
+          "1 construct, each built from what it records of how it was made; the programs are the usual ones for each reaction, so follow your supplier's instructions where they differ. The oligos of all of them are in one table below, each sequence once.",
+          '',
+          '## Oligos to order',
+          '',
+          '| Name | Sequence (5′→3′) | Length | For | My primers |',
+          '| --- | --- | --- | --- | --- |',
+          '| Fwd | ACGT | 4 nt | A | order |',
+          '',
+          '1 oligo for 1 construct.',
+          '',
+          '## Construct 1: A',
+          '',
+          '1,234 bp, linear.',
+          '',
+          'Check the junction.',
+          '',
+          'Second caveat.',
+          '',
+          '### Reactions, in order',
+          '',
+          'The record names no reaction.',
+          '',
+          '### Expected diagnostic digest',
+          '',
+          'No enzyme in the set in use cuts the product between once and six times.',
+          '',
+        ].join('\n'),
+      ),
+    ).toBe(true);
+    expect(md).not.toContain('No protocol for');
+    expect(batchProtocolToHtml([lone])).not.toContain('No protocol for');
+  });
+
+  it('says there are no oligos when no construct used a primer', () => {
+    const md = batchProtocolToMarkdown([{ ...lone, oligos: [] }]);
+    expect(md).toContain('None: no step of these constructs used a primer.');
+    expect(md).toContain('0 oligos for 1 construct.');
+  });
+
+  it('writes no stray text in the reactions or the HTML', () => {
+    const md = batchProtocolToMarkdown([lone, { ...lone, product: 'B' }], ['C']);
+    expect(md).toContain('2 constructs, each built');
+    expect(md).toContain(
+      'No protocol for C: it has no construct or no record of how it was made.\n',
+    );
+    expect(md).not.toContain('Stryker');
+  });
+
+  it('leaves a blank line after a reaction heading, one level down', () => {
+    const md = batchProtocolToMarkdown([{ ...lone, steps: [pcr({ product: 'A frag' })] }]);
+    expect(md).toMatch(/^#### 1\. PCR: A frag \(1,200 bp\)\n\n/m);
+  });
+});

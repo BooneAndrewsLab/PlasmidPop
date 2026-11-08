@@ -654,3 +654,43 @@ describe('simulated Sanger pairs over a construct with a repeat (oracle-style)',
     TIMEOUT * 3,
   );
 });
+
+describe('copies in a stretch the first alternative leaves on either side (mutation triage 1.24.0)', () => {
+  const swap = (s: string, at: number): string =>
+    s.slice(0, at) + (s[at] === 'A' ? 'C' : 'A') + s.slice(at + 1);
+
+  it(
+    'finds a copy left of the second-best copy when only that one is where the mate says',
+    async () => {
+      // Copies at 300, 700, 1100. The read is the exact third; the second differs from it by one
+      // base and the first by two, so the second is the best copy in the stretch before the
+      // third and the first is what is left of it (item 130, #419).
+      const r = bases(200, 600);
+      const copies = [swap(swap(r, 70), 120), swap(r, 90), r];
+      const text = [
+        bases(300, 601),
+        copies[0],
+        bases(200, 602),
+        copies[1],
+        bases(200, 603),
+        copies[2],
+        bases(300, 604),
+      ].join('');
+      const cut = (name: string, from: number, to: number, reverse = false): AssemblyRead => ({
+        name,
+        sequence: reverse ? reverseComplement(text.slice(from, to)) : text.slice(from, to),
+        qualities: q(to - from),
+      });
+      // The read is in the third copy, its mate 350 bases on from where the same read would start
+      // in the first: 1150 - 800 = 350 to 800, the mate at 600-700 after the first copy.
+      const reads = [
+        cut('whole', 0, text.length),
+        cut('t_F', 1150, 1250),
+        cut('t_R', 1150 - 800 + 250, 1150 - 800 + 350, true),
+      ];
+      const out = await assembleReads(reads, withPairs(reads, 350));
+      expect(place(out, 't_F')).toBe('350-450+');
+    },
+    TIMEOUT,
+  );
+});

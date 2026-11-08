@@ -403,6 +403,10 @@ describe('pairingName (#415)', () => {
     expect(pairingName('r', 'sample 1')).toBe('r');
     expect(pairingName('r', undefined)).toBe('r');
   });
+
+  it('trims the description before it joins it', () => {
+    expect(pairingName('r', '  1:N:0:ACGT  ')).toBe('r 1:N:0:ACGT');
+  });
 });
 
 describe('findReadPairs: Illumina file names (#416)', () => {
@@ -411,7 +415,7 @@ describe('findReadPairs: Illumina file names (#416)', () => {
       { first: 0, second: 1, stem: 'sample_001' },
     ]);
     expect(named('s_R2_001.fq', 's_R1_001.fq')).toEqual([{ first: 1, second: 0, stem: 's_001' }]);
-    expect(named('a_R1.fastq', 'a_R2.fastq')).toHaveLength(1);
+    expect(named('a_R1.fastq', 'a_R2.fastq')).toEqual([{ first: 0, second: 1, stem: 'a' }]);
   });
 
   it('pairs .R1 with .R2', () => {
