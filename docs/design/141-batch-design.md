@@ -189,6 +189,8 @@ per 96 rows), so a pool of workers is now a justified follow-up; it is not
 built here. The pool check is nowhere near needing one. In the browser each
 row is one worker request, the main thread stays free and the table fills as
 rows finish, so 20 s is a wait, not a freeze; the browser has not been timed.
+The test does not assert the design time (CI took 83 s for the 96 rows and a
+60 s budget failed main): it runs 12 rows, and `PLASMIDPOP_PERF=1` runs the plate.
 
 **Guide:** no page changes: nothing a user can see differs yet (the Design
 page gives the same pairs; the Batch page is packet 3).

@@ -1738,6 +1738,8 @@ average 2-4 on 16 threads, five runs:
 **Against #359's trigger** (a pool of workers if 96 rows take more than 15 s):
 the design time is over it, by about a third, so a pool is justified as a
 follow-up and has not been built. The pool check is 0.1 s and needs nothing.
-The test's budgets (60 s each, not asserted under mutation) are loose on
-purpose so a slow CI runner does not fail it; the numbers above are what to
-compare a pool against.
+The numbers above are what to compare a pool against. The timing test does not
+assert the design time (the CI runner took 83 s for the 96 rows, 4 times the
+workstation, and a 60 s budget failed main on 2026-11-08): it runs 12 rows and
+asserts what they make, plus a loose budget on the pool check. `PLASMIDPOP_PERF=1
+npx vitest run src/app/batch.timing.test.ts` runs all 96 and prints the time.
