@@ -29,13 +29,14 @@ there for DNA.
 
 Which to open:
 
-| You want to                                              | Go to                                   |
-| -------------------------------------------------------- | --------------------------------------- |
-| Cut this document and keep fragments                     | Cloning tab, **Digest**                 |
-| Amplify a stretch of it, or change a base                | Cloning tab, **PCR** or **Mutate**      |
-| Put an insert from another tab into this plasmid         | **Clone an insert into this plasmid ›** |
-| Join parts: ligation, Golden Gate, Gibson, Gateway, etc. | The **Bench**                           |
-| Design Gibson, In-Fusion, yeast or overlap-PCR tails     | The **Bench**, beside the reaction      |
+| You want to                                               | Go to                                                             |
+| --------------------------------------------------------- | ----------------------------------------------------------------- |
+| Cut this document and keep fragments                      | Cloning tab, **Digest**                                           |
+| Amplify a stretch of it, or change a base                 | Cloning tab, **PCR** or **Mutate**                                |
+| Put an insert from another tab into this plasmid          | **Clone an insert into this plasmid ›**                           |
+| Join parts: ligation, Golden Gate, Gibson, Gateway, etc.  | The **Bench**                                                     |
+| Design Gibson, In-Fusion, yeast or overlap-PCR tails      | The **Bench**, beside the reaction                                |
+| Design In-Fusion, NEBuilder or yeast tails for one insert | **Clone an insert into this plasmid ›**, **Ends ▸ Homology ends** |
 
 Step-by-step exercises for ligation and Golden Gate, with sample files to
 download, are in the [cloning tutorials](../tutorials/README.md#cloning), a section of the site of its own.
@@ -741,6 +742,12 @@ offered for reuse.
 
 It warns when the vector has sticky ends, and when the primers would
 amplify something else from the template as well.
+
+The primer workspace's cloning mode makes the same primers for one insert
+(**Ends ▸ Homology ends**, see
+[Homology ends](10-primers.md#homology-ends-in-fusion-nebuilder-and-yeast-tails)),
+with the vector in front instead of chosen from a list; several inserts, and
+the homology between them, are designed here.
 
 ## Overlap PCR
 

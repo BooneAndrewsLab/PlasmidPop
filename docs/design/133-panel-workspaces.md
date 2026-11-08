@@ -1432,7 +1432,7 @@ are missed), and its 200 rows need the table's room.
 | Change bases, design the primers                                          | Cloning ▸ Mutate                                                                                                | slim panel (already slim)                                                                                                      |
 | Design the primers that clone an insert (restriction or Golden Gate ends) | Cloning ▸ **Clone an insert into this plasmid ›**, or Primers ▸ Design primers… ▸ mode switch                   | primer workspace Design (cloning mode) → Results → Simulate / Use in PCR                                                       |
 | Join parts: Ligation, Golden Gate, Modular, Gibson, Overlap PCR, Gateway  | Bench tab, Alt+0, Cloning ▸ **Open the Bench ›**                                                                | the Bench (unchanged)                                                                                                          |
-| In-Fusion/NEBuilder tails, SOE primers                                    | Bench ▸ Gibson, Bench ▸ Overlap PCR                                                                             | beside their reaction (unchanged; R4 asks whether they should join cloning mode later)                                         |
+| In-Fusion/NEBuilder tails, SOE primers                                    | Bench ▸ Gibson, Bench ▸ Overlap PCR                                                                             | beside their reaction (unchanged; In-Fusion, NEBuilder and yeast tails for one insert are also in cloning mode, R4, #403)      |
 | Check a clone by digest                                                   | Bench product column                                                                                            | Check by digest (unchanged, item 132)                                                                                          |
 | Check a clone by colony PCR                                               | **Design check primers…** on a Bench product; **Check primers…** on Simulate; Primers tab "Check a clone · … ›" | primer workspace Clone check page (`CloneCheckPage`, unchanged)                                                                |
 | Verify sequenced clones                                                   | File ▸ Verify clones…                                                                                           | dialog (item 80, unchanged)                                                                                                    |
@@ -1725,6 +1725,19 @@ CL3 can be pulled earlier if hands are free.
   inputs (vector tab, template tab, insert, kit; benchSettings.ts
   `overlap`) — a real move, with the Gibson tutorial and its test behind
   it. File as an issue; the signpost note in §2 is this plan's answer.
+  **Done (#403).** Homology ends is the third **Ends** option of cloning mode,
+  with `designMultiOverlapPrimers` (item 140) rather than the single-insert
+  function, so a reverse-strand insert and Flip work and the circle is
+  checked. The vector is the document in front and must be linear (the
+  designer's own refusal of a circular one is the Design button's reason);
+  no region is used, and padding and the junction rule are hidden, since the
+  tails are the vector's ends. Kit and, for yeast, the overlap are held in
+  `primers.cloning.homology`, a slot beside `primers.cloning.goldenGate` rather
+  than a widened `GoldenGateMemory`, so `DesignMode` and the older slots read
+  as before; at most one of the two `on` flags is set. A record gains
+  `homology` (and its key), Results gets `HomologyEndsResult`. One insert only,
+  no Check primers…; the Bench card is unchanged and still owns several
+  inserts, the Gibson tutorial and SOE tails.
 - R5 **Pinned copy.** Every string in Digest and PCR is asserted by
   `DigestPcrTutorial.test.tsx` and read in the tutorial page; issue 3's
   cost is mostly keeping those three in step (page, test, panel) in one

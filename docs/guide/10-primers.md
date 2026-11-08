@@ -136,9 +136,11 @@ that after PCR and a double digest the insert's ends match the vector cut
 with the same two enzymes, in one direction. The mode is remembered per
 document, and **Results** shows whichever design was made last. The
 Cloning tab's **Clone an insert into this plasmid ›** opens the workspace
-here; Gibson, In-Fusion and overlap-PCR tails are designed on the
-[Bench](12-cloning.md#the-bench), beside their reaction, which the mode's
-note links to.
+here. Step 3 offers three kinds of end: two restriction sites, a
+[Golden Gate part](#golden-gate-ends-primers-that-make-the-insert-a-part)
+and [homology ends](#homology-ends-in-fusion-nebuilder-and-yeast-tails) for
+In-Fusion, NEBuilder HiFi and yeast assembly. Overlap-PCR (SOE) tails are
+designed on the [Bench](12-cloning.md#the-bench), beside their reaction.
 
 1. **Where on the vector.** The selection, live, as in the plain mode —
    the polylinker, say — with the same **Selection** / **Feature** chooser.
@@ -288,6 +290,38 @@ rules the [assembly](12-cloning.md#golden-gate) is judged by; coding bases
 that do not reach the right overhang in frame; an ambiguity code in the
 annealing part; and the padding, annealing, specificity and dimer warnings
 of the restriction ends above.
+
+### Homology ends: In-Fusion, NEBuilder and yeast tails
+
+**Ends ▸ Homology ends** designs the two primers that give an insert the
+ends of a linear vector, so that the insert joins it by homology rather than
+by a digest and ligation — the same design the Bench's
+[**Design insert primers**](12-cloning.md#in-fusion-and-nebuilder-designing-the-insert-primers)
+card makes, here beside the cloning mode's other two kinds of end. Each
+primer is
+
+```
+5′ the vector's end · annealing part 3′
+```
+
+The vector is the document in front and must be **linear**: digest it, or
+amplify it by inverse PCR, and open that in a tab first. A circular one has
+no ends to copy and Design says so. No region is chosen, since the tails
+come from the vector's two ends, and the pair table and the padding and
+junction settings do not apply. Step 2 picks the insert as before.
+
+- **Kit.** **In-Fusion** (15 bases of homology), **NEBuilder HiFi** (20) or
+  **Yeast assembly** (40 by default; **Homology (bp)** sets 20 to 80).
+- **Join the insert reverse-complemented** reads the insert on the other
+  strand (a reverse-strand feature starts reverse-complemented already).
+
+**Results** shows the two oligos with the vector's end in upper case and
+the part that anneals in lower case, any warnings, and the circle the PCR
+and the assembly would make; **Simulate** opens it. **Save both** puts the
+primers in [My primers](#my-primers) as `<insert>-IF-F` and `-R` (`-NEB-`,
+`-YA-` for the other kits), **Copy** copies both and **Use in PCR** sends
+them to Cloning ▸ PCR with the insert's tab as the template. A single
+insert only: an assembly of several inserts is designed on the Bench.
 
 ## Checking a clone by colony PCR
 
