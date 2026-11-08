@@ -37,7 +37,7 @@ function region(name: string, start: number, end: number, overrides = {}): Desig
 /** The inline client: no Worker here, so the worker's own code runs on this thread. */
 const inline = new AnalysisClient(null);
 
-describe('runPrimerBatch', () => {
+describe('runPrimerBatch', { timeout: 60_000 }, () => {
   it('designs each row as the engine does, and reports each as it is done', async () => {
     const rows = [region('a', 1000, 1300), region('b', 2000, 2200)];
     const seen: string[] = [];

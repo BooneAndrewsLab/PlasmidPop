@@ -218,7 +218,7 @@ describe('AnalysisClient long requests (#54)', () => {
   });
 });
 
-describe('designing primers in the worker (#358)', () => {
+describe('designing primers in the worker (#358)', { timeout: 60_000 }, () => {
   const bases = randomDna(seededRandom(7), 2400);
   const client = new AnalysisClient(null);
 

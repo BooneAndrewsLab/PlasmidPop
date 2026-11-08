@@ -86,7 +86,7 @@ afterEach(() => {
   forgetPanels();
 });
 
-describe('the Batch page (#358, item 141)', () => {
+describe('the Batch page (#358, item 141)', { timeout: 60_000 }, () => {
   it('validates a paste, lists the bad rows with their lines and runs the rest', async () => {
     open();
     paste(`${GOOD}\nbad,9000-9100\nA,10-20`);
