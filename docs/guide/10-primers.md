@@ -144,6 +144,12 @@ cloning recipes, **Restriction sites**, **Golden Gate part** and **Homology
 ends**, which put each row's insert into one vector
 ([below](#cloning-many-inserts-into-one-vector)).
 
+A line over the results says what they were run with (for example _Restriction
+sites into pLig-Vector (EcoRI/BamHI)_, or _Primer pairs on_ a template). Change
+the method, vector, enzymes, kit or template afterwards and the results stay,
+with a note on that line that the settings have changed; **Design** again to
+use them.
+
 **The rows.** Paste them from a spreadsheet into the **Rows** box (tab-,
 comma- or semicolon-separated), or **Upload a table…** (CSV, TSV or an Excel
 `.xlsx`; a workbook's first sheet with a header row is read). The first row

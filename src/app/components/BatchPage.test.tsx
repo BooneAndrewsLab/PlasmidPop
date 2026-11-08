@@ -5,6 +5,7 @@ import type * as SaveFile from '../saveFile';
 
 import { createFeature, rangeSegment, SeqDocument } from '@/core';
 
+import { U49845, pUC19 } from '@/test/cloningFixtures';
 import { AnalysisCancelledError, analysisClient } from '@/workers/analysisClient';
 
 import { batchSession } from '../batchSession';
@@ -291,5 +292,49 @@ describe('the Batch page (#358, item 141)', { timeout: 60_000 }, () => {
     open();
     paste('just one line of nothing useful');
     expect(screen.getByText(/column/i, { selector: '.panel__error' })).toBeInTheDocument();
+  });
+
+  it('labels the results with what the run used, and says when the settings have moved on', async () => {
+    act(() => {
+      editorStore.openDocument(U49845);
+      const id = editorStore.openDocument(pUC19);
+      rememberWorkspacePage(id, 'batch');
+      editorStore.setWorkspace('primers');
+    });
+    render(<PrimerWorkspace doc={pUC19} />);
+    const select = (label: string, value: string): void => {
+      act(() => {
+        fireEvent.change(screen.getByRole('combobox', { name: label }), { target: { value } });
+      });
+    };
+    const caption = (): HTMLElement => screen.getByTestId('batch-run-caption');
+    select('Method', 'restriction');
+    paste(`name,template,region\nAXL2,${U49845.name},687-836`);
+    await until(screen.getByRole('button', { name: 'Design 1 row' }), () => {
+      expect(screen.getByText(/1 row designed/)).toBeInTheDocument();
+    });
+    expect(caption()).toHaveTextContent(`Restriction sites into ${pUC19.name} (EcoRI/BamHI)`);
+    expect(caption()).not.toHaveTextContent('Settings have changed');
+
+    select('Method', 'homology');
+    expect(caption()).toHaveTextContent(`Restriction sites into ${pUC19.name} (EcoRI/BamHI)`);
+    expect(caption()).toHaveTextContent(
+      'Settings have changed since this run; Design again to use them.',
+    );
+    expect(rows()).toHaveLength(1);
+
+    select('Method', 'restriction');
+    expect(caption()).not.toHaveTextContent('Settings have changed');
+
+    act(() => {
+      fireEvent.change(screen.getByRole('textbox', { name: '5′ enzyme' }), {
+        target: { value: 'XbaI' },
+      });
+    });
+    expect(caption()).toHaveTextContent('Settings have changed');
+    await until(screen.getByRole('button', { name: 'Design 1 row' }), () => {
+      expect(caption()).toHaveTextContent(`Restriction sites into ${pUC19.name} (XbaI/BamHI)`);
+    });
+    expect(caption()).not.toHaveTextContent('Settings have changed');
   });
 });

@@ -55,6 +55,8 @@ export interface CloningRun {
   readonly rows: readonly CloningBatchRow[];
   readonly source: readonly DesignRow[];
   readonly recipe: CloningBatchRecipe['recipe'];
+  /** The whole recipe it ran with (enzymes or kit), for the caption over the results (#427). */
+  readonly ran: CloningBatchRecipe;
   /** The vector's name and the document the rows were designed on. */
   readonly vectorName: string;
   readonly vector: SeqDocument;
@@ -97,6 +99,31 @@ export interface BatchSession {
   readonly sort: SortState<BatchSortKey>;
   /** What the last save or open said. */
   readonly said: string | null;
+}
+
+/** The recipe the page's settings ask for now; null for primer pairs. */
+export function sessionRecipe(
+  s: Pick<
+    BatchSession,
+    'method' | 'forwardEnzyme' | 'reverseEnzyme' | 'goldenGateEnzyme' | 'kit' | 'overlap'
+  >,
+): CloningBatchRecipe | null {
+  if (s.method === 'restriction') {
+    return {
+      recipe: 'restriction',
+      forward: s.forwardEnzyme.trim(),
+      reverse: s.reverseEnzyme.trim(),
+    };
+  }
+  if (s.method === 'golden-gate') return { recipe: 'golden-gate', enzyme: s.goldenGateEnzyme };
+  if (s.method === 'homology') {
+    return {
+      recipe: 'homology',
+      kit: s.kit,
+      ...(s.kit === 'yeast' ? { overlap: s.overlap } : {}),
+    };
+  }
+  return null;
 }
 
 export const EMPTY_BATCH_SESSION: BatchSession = {
@@ -260,6 +287,7 @@ export async function startCloningBatch(
     rows: [],
     source: a.rows,
     recipe: a.recipe.recipe,
+    ran: a.recipe,
     vectorName: a.vector.name,
     vector: a.vector,
     running: true,

@@ -34,8 +34,10 @@ import {
 import {
   type BatchMethod,
   batchSession,
+  type CloningRun,
   batchTemplates,
   cancelBatch,
+  sessionRecipe,
   startBatch,
   startCloningBatch,
 } from '../batchSession';
@@ -62,6 +64,48 @@ const METHODS: readonly (readonly [BatchMethod, string])[] = [
   ['golden-gate', 'Golden Gate part'],
   ['homology', 'Homology ends'],
 ];
+/** What a cloning run was run with, in the page's own words (#427). */
+function cloningCaption(run: CloningRun): string {
+  const method = METHODS.find(([m]) => m === run.ran.recipe)?.[1] ?? run.ran.recipe;
+  const r = run.ran;
+  const detail =
+    r.recipe === 'restriction'
+      ? `${r.forward}/${r.reverse}`
+      : r.recipe === 'golden-gate'
+        ? r.enzyme
+        : r.kit === 'yeast' && r.overlap !== undefined
+          ? `${KIT_NAMES[r.kit]}, ${r.overlap} bp`
+          : KIT_NAMES[r.kit];
+  return `${method} into ${run.vectorName} (${detail})`;
+}
+
+/** The line over a run's results naming what it was run with, and when the settings have moved on. */
+function RunCaption({ text, changed }: { readonly text: string; readonly changed: boolean }) {
+  return (
+    <p className="panel__note panel__note--quiet" data-testid="batch-run-caption">
+      {text}
+      {changed && ' Settings have changed since this run; Design again to use them.'}
+    </p>
+  );
+}
+
+function CloningCaption({
+  run,
+  current,
+  vectorName,
+}: {
+  readonly run: CloningRun;
+  readonly current: CloningBatchRecipe | null;
+  readonly vectorName: string | undefined;
+}) {
+  return (
+    <RunCaption
+      text={cloningCaption(run)}
+      changed={JSON.stringify(run.ran) !== JSON.stringify(current) || run.vectorName !== vectorName}
+    />
+  );
+}
+
 const CLONING_PLACEHOLDER =
   'name,template,region\nACT1,genome,1000-2500\nGFP,,sequence of the insert\n\nor paste rows from a spreadsheet: one insert per row,\na region of a template or the bases themselves';
 
@@ -209,6 +253,15 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
     () => (cloningMethod ? ignoredColumns(validation?.rows ?? [], method) : []),
     [cloningMethod, validation, method],
   );
+  const recipeNow = (): CloningBatchRecipe | null =>
+    sessionRecipe({
+      method,
+      forwardEnzyme: session.forwardEnzyme,
+      reverseEnzyme: session.reverseEnzyme,
+      goldenGateEnzyme: session.goldenGateEnzyme,
+      kit: session.kit,
+      overlap: session.overlap,
+    });
   // The run whose progress and results the page shows: the method's own.
   const active = cloningMethod ? cloning : run;
   const enzymes = useMemo(() => goldenGateEnzymes().map((e) => e.name), []);
@@ -707,20 +760,8 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
           onClick={() => {
             if (cloningMethod) {
               if (vector === undefined) return;
-              const recipe: CloningBatchRecipe =
-                method === 'restriction'
-                  ? {
-                      recipe: 'restriction',
-                      forward: session.forwardEnzyme.trim(),
-                      reverse: session.reverseEnzyme.trim(),
-                    }
-                  : method === 'golden-gate'
-                    ? { recipe: 'golden-gate', enzyme: session.goldenGateEnzyme }
-                    : {
-                        recipe: 'homology',
-                        kit: session.kit,
-                        ...(session.kit === 'yeast' ? { overlap: session.overlap } : {}),
-                      };
+              const recipe = recipeNow();
+              if (recipe === null) return;
               void startCloningBatch(documentId, {
                 rows: ready,
                 templates,
@@ -769,6 +810,7 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
 
       {cloningMethod && cloning !== null && (
         <>
+          <CloningCaption run={cloning} current={recipeNow()} vectorName={vector?.name} />
           {cloning.refused !== null && (
             <p className="panel__error" role="alert">
               {cloning.refused}
@@ -785,6 +827,10 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
       )}
       {!cloningMethod && run !== null && (
         <>
+          <RunCaption
+            text={`Primer pairs on ${run.templateName}`}
+            changed={run.templateName !== templateName}
+          />
           <p className="panel__note" role="status">
             {run.cancelled
               ? `Cancelled: ${run.rows.length} of ${run.source.length} rows were done and are kept.`

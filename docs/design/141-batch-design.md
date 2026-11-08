@@ -534,3 +534,14 @@ to the vector's cloning site). Enzyme pair text fields rather than pickers.
 Multi-part rows and combinatorial assembly (#360's later list) stay out.
 
 **Batch design is complete** for #358 and #360 with this packet.
+
+**Run caption (#427).** The results used to stay on screen unlabelled after
+Method, Vector, Enzyme or Kit changed, beside a Design button that read as if
+they belonged to the new settings. They are kept, not cleared, and labelled: the
+session records what the run used (`CloningRun.ran`, the whole recipe, plus the
+vector name; a primer run has its `templateName`), and a quiet line over the
+table names it ("Restriction sites into pLig-Vector (EcoRI/BamHI)", "Homology
+ends into GB-Vector (In-Fusion)", "Primer pairs on BP-Plasmid"). When the page's
+current settings (`sessionRecipe`, the vector, the template) differ from the
+run's, the line adds that the settings have changed. The label comes from the
+session, never from the current settings, so it survives a tab switch.
