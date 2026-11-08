@@ -1668,3 +1668,11 @@ designs of two to four inserts from the vector or another template, either stran
 three splits and two kits never failed them, and every circle was the asked-for
 order in the vector's own orientation. They are guards, so the mocked tests
 above pin them rather than list them here.
+
+### `assembly/pairing.ts` joins the set (#417)
+
+`pairing.ts` (mate-name parsing, orientation, insert tolerance, verdicts) is in
+`mutate` beside `overlapBound.ts`, `assemble.ts` and `consensus.ts`. It has no
+imports and no top-level side effects, so the dry run is unaffected, and as a new
+file in the set it is mutated whole on its first run. Its survivors are untriaged
+until the 1.24.0 pre-release `npm run mutate:changed`.

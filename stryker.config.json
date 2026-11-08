@@ -64,6 +64,7 @@
     "src/core/analysis/gcContent.ts",
     "src/core/assembly/assemble.ts",
     "src/core/assembly/consensus.ts",
+    "src/core/assembly/pairing.ts",
     "src/core/cloning/moclo.ts",
     "src/core/cloning/overlapExtension.ts",
     "src/core/cloning/protocol.ts",
