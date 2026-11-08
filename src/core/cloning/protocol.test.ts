@@ -457,6 +457,21 @@ describe('buildProtocol other steps', () => {
     expect(s.kind === 'other' ? s.parts : []).toEqual(['p1', 'p2']);
   });
 
+  it('lists the parts of a yeast assembly step by name, as a transformation and not an assembly mix', () => {
+    const doc = product({
+      op: 'gibson',
+      parents: [leaf('pVec', 3000), leaf('ins1', 800), leaf('ins2', 900)],
+      kit: 'yeast',
+      circular: true,
+      overlap: 40,
+      flipped: [false, false, false],
+    });
+    const s = must(must(buildProtocol(doc)).steps.find((x) => x.product === 'pOut'));
+    expect(s.kind).toBe('other');
+    expect(s.kind === 'other' ? s.parts : []).toEqual(['pVec', 'ins1', 'ins2']);
+    expect(s.kind === 'other' ? s.description : '').toMatch(/co-transform the linearised vector/);
+  });
+
   it('names the oligos of a mutagenesis forward then reverse', () => {
     const p = must(
       buildProtocol(

@@ -111,6 +111,22 @@ describe('designOverlapPrimers', () => {
     );
   });
 
+  it('says in the kit’s own words what happens to sticky ends', () => {
+    const sticky = vector.setEnds({
+      left: { kind: "5'", overhang: VECTOR_TEXT.slice(0, 4), enzyme: 'EcoRI' },
+      right: { kind: 'blunt', overhang: '', enzyme: 'SmaI' },
+    });
+    const wording = (kit: 'nebuilder' | 'yeast') =>
+      designOverlapPrimers(sticky, source, REGION, kit).warnings[0];
+    const tail = 'either way, but check the ends are where you meant to cut.';
+    expect(wording('nebuilder')).toBe(
+      `pBackbone has sticky ends; the tails match its top strand, and the kit's exonuclease chews them back ${tail}`,
+    );
+    expect(wording('yeast')).toBe(
+      `pBackbone has sticky ends; the tails match its top strand, and the cell's own resection trims them ${tail}`,
+    );
+  });
+
   it('does not call a vector with two blunt ends sticky (#314)', () => {
     const blunt = vector.setEnds({
       left: { kind: 'blunt', overhang: '', enzyme: 'EcoRV' },
@@ -119,6 +135,36 @@ describe('designOverlapPrimers', () => {
     const d = designOverlapPrimers(blunt, source, REGION, 'nebuilder');
     expect(d.problem).toBeNull();
     expect(d.warnings.join(' ')).not.toMatch(/sticky ends/);
+  });
+});
+
+describe('designOverlapPrimers for yeast', () => {
+  it('closes a circle of the vector and the insert, named as asked, with its two junctions marked', () => {
+    const d = designOverlapPrimers(vector, source, REGION, 'yeast', { name: 'pYeast' });
+    expect(d.problem).toBeNull();
+    const overlap = KIT_OVERLAP.yeast;
+    expect(overlap).toBe(40);
+    expect(d.forward.tail).toBe(VECTOR_TEXT.slice(-overlap).toUpperCase());
+    const product = must(d.product, 'a product');
+    expect(product.name).toBe('pYeast');
+    expect(product.isCircular).toBe(true);
+    expect(product.length).toBe(3000 + 900);
+    // The vector is the part that is cut, so its end meets the insert at 3000 and the insert's end
+    // meets its start at 0; the homology of each is the vector's own 40 bases there.
+    const homologies = product.features
+      .all()
+      .filter((f) => /^homology \d+$/.test(f.name))
+      .map((f) => {
+        const segment = f.segments[0];
+        return segment?.kind === 'range' ? [f.name, segment.start, segment.end] : [f.name];
+      });
+    expect(homologies).toEqual([
+      ['homology 1', 2960, 3000],
+      ['homology 2', 0, 40],
+    ]);
+    expect(d.warnings[0]).toBe(
+      'Yeast assembly asks for 40 bases of homology, which both tails carry.',
+    );
   });
 });
 

@@ -104,6 +104,22 @@ describe('static tutorial pages (#312)', () => {
     }
   });
 
+  it('have no search box, none of its style and no script, with the header and body closed after the plain text', () => {
+    // Generated here, not at load: work done at load cannot be told apart per test by mutation testing (#77).
+    const made = generateTutorialFiles(index, pages, samples).filter((f) =>
+      f.path.endsWith('.html'),
+    );
+    expect(made.length).toBeGreaterThan(1);
+    for (const f of made) {
+      const style = /<style>(.*)<\/style>/.exec(f.content)?.[1] ?? '';
+      expect(style, f.path).not.toContain('search');
+      expect(style.endsWith('}'), f.path).toBe(true);
+      expect(f.content, f.path).not.toContain('class="search"');
+      expect(f.content, f.path).toMatch(/<a href="[^"]*">Open the app<\/a>\n<\/header>\n<main>/);
+      expect(f.content, f.path).toMatch(/<\/footer>\n<\/body>\n<\/html>\n$/);
+    }
+  });
+
   it('resolve every internal link to an emitted page, file and anchor', () => {
     for (const f of html) {
       for (const m of f.content.matchAll(/<a href="([^"]+)"/g)) {

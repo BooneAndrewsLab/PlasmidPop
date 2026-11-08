@@ -73,6 +73,19 @@ describe('the search files of the static guide', () => {
     for (const f of files)
       expect(f.content, f.path).toMatch(/<form class="search" role="search" hidden>/);
   });
+
+  it('give the guide’s pages the box’s style, and a header and body that end where they should', () => {
+    for (const f of generateGuideFiles(pages)) {
+      const style = /<style>(.*)<\/style>/.exec(f.content)?.[1] ?? '';
+      expect(style, f.path).toContain('form.search{');
+      expect(style, f.path).toContain('.search__results');
+      expect(style.endsWith('}'), f.path).toBe(true);
+      expect(f.content, f.path).toMatch(/<\/form>\n<\/header>\n<main>/);
+      expect(f.content, f.path).toMatch(
+        /<\/footer>\n<script type="module" src="[^"]+"><\/script>\n<\/body>/,
+      );
+    }
+  });
 });
 
 describe('the page’s ranking and the dialog’s', () => {

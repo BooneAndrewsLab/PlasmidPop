@@ -18,7 +18,7 @@ import {
 import { parseGenBank } from '@/io/genbank/parseGenBank';
 import { writeGenBank } from '@/io/genbank/writeGenBank';
 
-import { directRepeats, yeastAssembly, yeastWarnings } from './yeastAssembly';
+import { directRepeats, gcPercent, yeastAssembly, yeastWarnings } from './yeastAssembly';
 
 /**
  * Assembly in yeast by homologous recombination (#411): `gibson()` with the
@@ -969,5 +969,289 @@ describe('directRepeats', () => {
     expect(directRepeats(template(50, 316) + n + template(50, 317) + n, false, 30, none)).toEqual(
       [],
     );
+  });
+});
+
+describe('yeastAssembly, pinned (#411)', () => {
+  const textsOf = (a: ReturnType<typeof run>['assembly'], kind: string): string[] =>
+    a.warnings.filter((w) => w.kind === kind).map((w) => w.text);
+
+  describe('which part is the vector', () => {
+    it('is the vector when parts before it were turned over too, even one with its name', () => {
+      // The order is insert1, insert2, vector; the last two are given turned over.
+      const { parts } = ring(THREE, { names: ['vector', 'insert1', 'vector'] });
+      const [vector, a, b] = parts as [SeqDocument, SeqDocument, SeqDocument];
+      const turnedVector = vector.reverseComplement();
+      const { assembly } = run([a, b.reverseComplement(), turnedVector], { vector: turnedVector });
+      expect(assembly.order.map((p) => p.flipped)).toEqual([false, true, true]);
+      expect(assembly.vectorIndex).toBe(2);
+    });
+
+    it('is refused by the overlap asked for, not the default one, when it is too short', () => {
+      const { parts } = ring([template(60, 141), template(60, 142), template(60, 143)]);
+      const stub = SeqDocument.create({ name: 'stub', sequence: template(50, 6) });
+      expect(yeastAssembly([stub, ...parts], { vector: stub, minOverlap: 50 }).problem).toBe(
+        'The vector stub is shorter than the 50 bp of homology a junction needs.',
+      );
+    });
+  });
+
+  describe('junction features', () => {
+    it('are labelled, and say what they are and who shares them', () => {
+      const { assembly } = run(good().parts);
+      const first = must(
+        [...assembly.product.features].find((f) => f.name === 'homology 1'),
+        'the first junction',
+      );
+      expect(first.qualifiers).toEqual([
+        { name: 'label', value: 'homology 1' },
+        {
+          name: 'note',
+          value:
+            'Added by PlasmidPop: 40 bp of homology shared by vector and insert1, in the product once; the cell joins the two by recombination here',
+        },
+      ]);
+    });
+  });
+
+  describe('warnings', () => {
+    it('lists every junction over 80 bp, and every one outside 30-70% GC, in one warning', () => {
+      const long = run(
+        ring([template(85, 47), template(90, 48), template(40, 49)], {
+          features: [vectorFeatures()],
+        }).parts,
+      ).assembly;
+      expect(textsOf(long, 'long-overlap')).toEqual([
+        'More than 80 bp of homology recombines no better and makes the oligos that carry it longer: homology 1 (vector to insert1), 85 bp; homology 2 (insert1 to insert2), 90 bp.',
+      ]);
+      const js = [withGc(40, 10, 51), withGc(40, 8, 52), template(40, 53)];
+      expect([gcCount(js[0] ?? ''), gcCount(js[1] ?? '')]).toEqual([10, 8]);
+      const poor = run(ring(js, { features: [vectorFeatures()] }).parts).assembly;
+      expect(textsOf(poor, 'gc')).toEqual([
+        'Homology under 30% or over 70% GC recombines poorly: homology 1 (vector to insert1) is 25% GC; homology 2 (insert1 to insert2) is 20% GC.',
+      ]);
+    });
+
+    it('names the part a repeat starts in, also when it starts at the first base of a part', () => {
+      // Each of the inserts begins, right after the junction, with the same 35 bases.
+      const head = template(35, 990);
+      const bodies = [template(500, 700), head + template(465, 701), head + template(465, 702)];
+      const { assembly } = run(ring(THREE, { bodies, features: [vectorFeatures()] }).parts);
+      // The vector is 40 + 500 + 40 bases and its last 40 are the first junction.
+      expect(textsOf(assembly, 'internal-repeat')).toEqual([
+        '35 bp at 581 in insert1 is repeated at 1,121 in insert2. Direct repeats recombine in yeast and can delete what lies between them.',
+      ]);
+    });
+
+    it('lists ten direct repeats without a count of the rest, and eleven with one', () => {
+      const made = (n: number) => {
+        const blocks = Array.from({ length: n }, (_, i) => template(40, 900 + i));
+        const spacer = (i: number): string => template(60, 950 + i);
+        const first = blocks.map((b, i) => spacer(i) + b).join('');
+        const second = blocks.map((b, i) => spacer(20 + i) + b).join('');
+        const bodies = [template(500, 700), first, second];
+        return textsOf(
+          run(ring(THREE, { bodies, features: [vectorFeatures()] }).parts).assembly,
+          'internal-repeat',
+        );
+      };
+      expect(made(10)).toHaveLength(10);
+      expect(made(10).some((t) => t.includes('not listed'))).toBe(false);
+      const eleven = made(11);
+      expect(eleven).toHaveLength(11);
+      expect(eleven[10]).toBe('1 more direct repeats of 30 bp or more are not listed.');
+    });
+
+    describe('in a linear product', () => {
+      const [j0, j1] = [template(40, 71), template(40, 72)];
+      const vectorPart = (sequence: string): SeqDocument =>
+        SeqDocument.create({
+          name: 'vector',
+          sequence,
+          features: [
+            feature('CDS', 'URA3', 60, 200),
+            feature('centromere', 'CEN6', 200, 250),
+            feature('rep_origin', 'pUC ori', 250, 290),
+          ],
+        });
+
+      it('finds a repeat inside a part, as it does on a circle', () => {
+        const body = template(300, 74);
+        const planted = plant(body, 150, body.slice(10, 40), body.charAt(9), body.charAt(40));
+        const parts = [
+          vectorPart(template(300, 73) + j0),
+          SeqDocument.create({ name: 'insert1', sequence: j0 + planted + j1 }),
+          SeqDocument.create({ name: 'insert2', sequence: j1 + template(300, 75) }),
+        ];
+        const { assembly } = run(parts, { circular: false });
+        expect(assembly.warnings.map((w) => w.text)).toEqual([
+          '30 bp at 351 in insert1 is repeated at 491 in insert1. Direct repeats recombine in yeast and can delete what lies between them.',
+          'The product is linear. A linear molecule with no telomere is lost from yeast; assemble it as a circle.',
+        ]);
+      });
+
+      it('names the vector end that is left free when the vector is last as well as first', () => {
+        const vector = vectorPart(j1 + template(300, 73));
+        const parts = [
+          SeqDocument.create({ name: 'insert1', sequence: template(300, 74) + j0 }),
+          SeqDocument.create({ name: 'insert2', sequence: j0 + template(300, 75) + j1 }),
+          vector,
+        ];
+        const { assembly } = run(parts, { circular: false, vector });
+        expect(assembly.vectorIndex).toBe(2);
+        expect(textsOf(assembly, 'linear-product')).toEqual([
+          'The product is linear. A linear molecule with no telomere is lost from yeast; assemble it as a circle. An end of the vector is not joined to anything, so gap repair cannot close it.',
+        ]);
+      });
+    });
+
+    describe('annotated or not', () => {
+      /** The no-marker warning of a vector carrying only these features. */
+      function noMarker(...fs: Feature[]): string {
+        const { assembly } = run(ring(THREE, { features: [fs] }).parts);
+        return must(textsOf(assembly, 'no-marker')[0], 'the no-marker warning');
+      }
+      const HINT = ' Detect features on the product first.';
+
+      it('takes a feature of any other kind or name to be an annotation, and the junction marks not', () => {
+        expect(noMarker().endsWith(HINT)).toBe(true);
+        expect(noMarker(feature('misc_feature', 'homology 12', 10, 100)).endsWith(HINT)).toBe(true);
+        for (const f of [
+          feature('misc_feature', 'zzz', 10, 100),
+          feature('CDS', 'homology 3', 10, 100),
+          feature('misc_feature', 'a homology 1', 10, 100),
+          feature('misc_feature', 'homology 1 b', 10, 100),
+        ]) {
+          expect(noMarker(f).endsWith(HINT), f.name).toBe(false);
+        }
+      });
+    });
+
+    describe('the bacterial origin and resistance', () => {
+      const base = [feature('CDS', 'URA3', 10, 260), feature('centromere', 'CEN6', 270, 360)];
+      const kindsFor = (...extra: Feature[]): string[] =>
+        kinds(run(ring(THREE, { features: [[...base, ...extra]] }).parts).assembly.warnings);
+
+      it('asks for one when there is a marker and an origin and neither', () => {
+        expect(kindsFor()).toEqual(['no-bacterial']);
+        // A primer site named for an origin is not an origin.
+        expect(kindsFor(feature('primer_bind', 'pUC', 365, 390))).toEqual(['no-bacterial']);
+      });
+
+      it('takes an origin annotated as a rep_origin or a misc_feature', () => {
+        expect(kindsFor(feature('rep_origin', 'pUC ori', 365, 435))).toEqual([]);
+        expect(kindsFor(feature('misc_feature', 'pUC ori', 365, 435))).toEqual([]);
+      });
+
+      it('does not ask for either of them when the marker is what is missing', () => {
+        const { assembly } = run(
+          ring(THREE, { features: [[feature('centromere', 'CEN6', 270, 360)]] }).parts,
+        );
+        expect(kinds(assembly.warnings)).toEqual(['no-marker']);
+      });
+    });
+  });
+});
+
+describe('gcPercent', () => {
+  it('is 0 for no homology at all, and the share of G and C otherwise', () => {
+    expect(gcPercent('')).toBe(0);
+    expect(gcPercent('ATGC')).toBe(50);
+    expect(gcPercent('ggcc')).toBe(100);
+    expect(gcPercent('AATT')).toBe(0);
+  });
+});
+
+describe('directRepeats, pinned (#411)', () => {
+  const unit = template(60, 301);
+  const none: readonly { start: number; end: number }[] = [];
+
+  it('pairs three copies in a row, the first with the second and the second with the third', () => {
+    const u = unit.slice(0, 50);
+    const text =
+      template(100, 320) +
+      'C' +
+      u +
+      'G' +
+      template(100, 321) +
+      'A' +
+      u +
+      'T' +
+      template(100, 322) +
+      'G' +
+      u +
+      'A' +
+      template(30, 323);
+    expect(directRepeats(text, false, 30, none)).toEqual([
+      { a: 101, b: 253, length: 50 },
+      { a: 253, b: 405, length: 50 },
+    ]);
+  });
+
+  it('lists repeats by where their first copy is, not by how far apart the copies are', () => {
+    const u1 = unit.slice(0, 40);
+    const u2 = template(40, 324);
+    const pieces = [
+      template(100, 325),
+      u1,
+      template(100, 326),
+      u2,
+      template(100, 327),
+      u2,
+      template(100, 328),
+      u1,
+      template(50, 329),
+    ];
+    const at = (n: number): number => pieces.slice(0, n).join('').length;
+    // u1 is 600+ bases apart and u2 is about 140, so by distance u2 would come first.
+    expect(directRepeats(pieces.join(''), false, 30, none)).toEqual([
+      { a: at(1), b: at(7), length: 40 },
+      { a: at(3), b: at(5), length: 40 },
+    ]);
+  });
+
+  it('keeps two repeats apart where one ends and the next starts on the next base', () => {
+    // u at its first copy runs straight into w; a second u is followed by something else, and
+    // a second copy of the last 29 bases of u and all of w stands alone.
+    const u = template(35, 330);
+    const w = template(35, 331);
+    const text =
+      template(100, 332) +
+      u +
+      w +
+      template(100, 333) +
+      u +
+      'C' +
+      template(100, 334) +
+      u.slice(6) +
+      w +
+      'G';
+    const first = 100;
+    const second = first + 35 + 35 + 100;
+    const third = second + 35 + 1 + 100;
+    expect(directRepeats(text, false, 30, none)).toEqual([
+      { a: first, b: second, length: 35 },
+      { a: first + 6, b: third, length: 64 },
+    ]);
+  });
+
+  it('does not take two copies on a circle that overlap each other going round', () => {
+    // 30 bases that end with their own first 5, so the last 25 of the text and its first 5
+    // read as a second copy, 75 on from the first, yet 25 short of it going round.
+    const head = template(5, 335);
+    const copy = head + template(20, 336) + head;
+    const text = copy + template(45, 337) + copy.slice(0, 25);
+    expect(text).toHaveLength(100);
+    expect(directRepeats(text, true, 30, none)).toEqual([]);
+  });
+
+  it('takes a window that ends where a blocked stretch begins across the origin', () => {
+    const copy = unit.slice(0, 30);
+    const text =
+      copy.slice(20) + template(200, 338) + copy + template(100, 339) + copy.slice(0, 20);
+    expect(text).toHaveLength(360);
+    expect(directRepeats(text, true, 30, [{ start: 10, end: 20 }])).toEqual([
+      { a: 210, b: 340, length: 30 },
+    ]);
   });
 });

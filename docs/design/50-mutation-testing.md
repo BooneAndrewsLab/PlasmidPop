@@ -1534,3 +1534,133 @@ comment.
 No survivor is left unclassified. The classes were also tried on 40,000 random
 alignments, bands and options each (`pairwise.ts` copied and mutated outside the
 repository): none changes a result or an error message.
+
+### Triaged at the 1.23 pre-release (#411, #412, #413)
+
+The pre-release run (`npm run mutate:changed`, floor 90) left 182 survivors and
+uncovered mutants on lines changed since v1.22.0: `cloning/yeastAssembly.ts` 88
+and `cloning/overlapAssembly.ts` 73 (both new in 1.23.0 and mutated whole),
+`help/staticGuide.ts` 9, `cloning/gibson.ts` 6, `cloning/overlapPrimers.ts` 4 and
+`cloning/protocol.ts` 2. The one timeout is a loop, a sound kill. Every survivor
+was applied by hand (the report's replacement put at the report's location, the
+covering tests run, the file restored) first against the tests as they stood and
+again, at the end, against the tests below. The mutants of `gibson.ts` and
+`overlapPrimers.ts` were also run against `overlapPrimers.property.test.ts`, the
+skipped suite that names them: it kills none that the plain tests do not. Only
+tests were added; production files are untouched, so the equivalents are
+recorded here and carry no `Stryker disable` comment.
+
+**126 killed, 56 equivalent, none unclassified.**
+
+**Killed (126).**
+
+- _`overlapAssembly.ts`, 67 of 73_, in `overlapAssembly.test.ts` and the new
+  `overlapAssembly.guard.test.ts`. The first pins the refusals with their exact
+  text and numbering (no inserts, a vector shorter than the kit's homology and
+  one exactly as long, an insert one base under two primers' worth and one base
+  over, a single insert shorter than the homology against a second one of 38 and
+  40), the cap of half the insert on an annealing part (a 40-base A/T insert
+  anneals 20 bases, not 30), the primer labels on the product, the product's
+  name and circle for each kit, junction marks and yeast wording for the yeast kit
+  only, the "not specific to it" refusal with the insert's number and the primers
+  kept (singular and plural), the ambiguous-ends refusal, and every sticky-end
+  and split sentence. The second mocks `yeastAssembly` to answer wrongly, since
+  the real assembler's answers never reach the checks after it (400 random
+  designs, three or four inserts, either strand, three splits, two kits, a
+  third of the inserts from the vector itself: none failed and every circle was
+  the asked-for order, in the vector's own orientation). It pins the fallback
+  text when the assembler gives no reason, its own reason when it has one, a
+  circle of the pieces in another order, a circle of the right bases and the
+  wrong length (a stretch of the asked-for one), and that a rotated circle and a
+  reverse-complemented one are accepted.
+- _`yeastAssembly.ts`, 46 of 88_, in `yeastAssembly.test.ts`. The vector found
+  among parts turned over when an earlier turned part carries its name; the
+  overlap asked for in the refusal of a short vector; the junction features'
+  `label` and `note`; two long junctions and two poor-GC junctions in one
+  warning (the `'; '` join); a repeat that starts at the first base of a part,
+  to name its part (`partAt`'s two edges and the part ends `layout` computes);
+  exactly ten repeats listed and eleven with a count; a repeat inside a linear
+  product (the closing overlap that is read off its ends); the free-vector-end
+  sentence with the vector last; what counts as an annotation (`homology 12`,
+  `a homology 1`, `homology 1 b`, a CDS named `homology 3`, an unrelated
+  misc_feature); the bacterial origin and resistance warning (a primer site
+  named for an origin is not one, a misc_feature origin is); and `gcPercent('')`.
+  For `directRepeats`: three copies in a row (pairs first-second and
+  second-third, not first-third), two repeats whose order by distance differs
+  from their order by first copy, two repeats on neighbouring diagonals that a
+  run must not join (a 35-base unit and a 64-base one that starts 6 bases on),
+  two copies that overlap each other going round a circle, and a window that
+  ends where a blocked stretch begins across the origin. Hand-derived
+  positions throughout.
+- _`staticGuide.ts`, 9 of 9._ The pages have the search box's style, box and
+  script and the tutorials none of the three, and both end their header and
+  body where they should. The tests generate the pages inside the test: work at
+  load cannot be told apart per test (#77), which is why one of the nine
+  (`section.search === true` to `true` at the script line, killed by an old
+  assertion that ran at load) survived the run and dies when run plainly.
+- _`overlapPrimers.ts`, 3 of 4_ (the yeast and Gibson sticky-end wording, exact;
+  a yeast design closes a circle, named as asked, with its two junctions marked
+  at 2960-3000 and 0-40) and _`protocol.ts`, 1 of 2_ (a yeast step lists its
+  parts by name).
+
+**Killed without a new test (2 of the 126).** `staticGuide.ts` L321 (`section.search
+=== true` to `true` on the script line) and `directRepeats` L406 (`circular && p <
+s.end + n` to `circular || ...`) die to existing tests when run plainly and were
+reported as survivors by the run. The first is the load-time generation of
+`staticTutorials.test.ts` (#77); the second was not looked into.
+
+**Equivalent or unreachable, by kind (56).**
+
+- **A fallback that an index in range never takes (13).** `?? 'one part'`, `?? 'the
+next'`, `?? 'a part'` and `?? ''`, none of them covered: `gibson.ts` L564-566
+  (three), `yeastAssembly.ts` L188, L189, L249 (two), L273, L277 (two), L284 and
+  `overlapAssembly.ts` L113 and L134. The index is the loop's own or a hit's.
+- **`?.` taken off an index in range (12).** `gibson.ts` L564-566 (three),
+  `yeastAssembly.ts` L188, L189, L249 (two), L273, L277 (two), L284 and
+  `overlapAssembly.ts` L113: the type needs the `?.` for `noUncheckedIndexedAccess`,
+  and the element is always there.
+- **A narrowing the type needs (3).** `overlapAssembly.ts` L186, `.filter((a) =>
+a !== null)` taken off or its test made `true`: every amplicon in `made` is
+  one, since a failure returns before it is pushed. `protocol.ts` L395 `step.op
+=== 'gibson'` to `true`: `kit` exists on a gibson step only, which the other half
+  of the test already says.
+- **An option left to the callee's default (2).** `options.name === undefined` to
+  `false` (`overlapPrimers.ts` L179, `overlapAssembly.ts` L188): `{ name:
+undefined }` is what `gibson` reads with `options.name ?? default`.
+- **A check another one implies (6, `yeastAssembly.ts`).** L283 `pos >= s.start` to
+  `true`: the parts are in order and `findIndex` takes the first whose end is
+  past `pos`. L144 `p.flipped` and the name test (two mutants): the sequence test
+  after them is what identifies the vector, and they differ only for a second part
+  with the vector's reverse-complemented bases, which `gibson` refuses as
+  ambiguous. L146 `flipped >= 0` to `> 0`: the first part is never flipped
+  (`gibson` fixes its orientation). L328 `vectorIndex !== null` to `true`: `null ===
+0` and `null === last` are false. L294 `closing === 0` to `false`: it adds a
+  blocked stretch of no length at the end, and on a circle a window across the
+  origin already touches the closing junction.
+- **A part's end that nothing reads (8, `yeastAssembly.ts`).** `layout` L160
+  (`?.`, `?? 0` to `&& 0`, `length - 1` to `+ 1`), L165 (`i === 0`, the `?.`) and
+  L166 (the sign, `i === last`, `last` to `+ 1`): they move the end of the last
+  part, or `from` where it is 0 anyway, and `partAt` is asked only about positions
+  inside the product.
+- **Loop bounds past the text (7, `directRepeats`).** L409 (`p < n` to `true` or
+  `<=`, `||`, `p + k <= reach.length` to `true`, `p - k`): a window past the end
+  is shorter than `k`, so it is the text of no other window and pairs with
+  nothing. L403 (`slice(0, k - 1)` to the whole text, or `k + 1`): only windows
+  with `p < n` are read, and they need at most `k - 1` more bases.
+- **Redundant wrap tests (3, `directRepeats`).** L406 `circular && p < s.end + n`
+  to `true`, and `p < s.end + n` to `true` or `<=`: on a line `p + k > s.start + n`
+  is never true, and `p < n <= s.end + n` always on a circle.
+- **A list that already excludes the cell (1).** L419 `list.slice(i + 1)` to
+  `list`: `q - a >= k` skips the cell itself and every earlier one.
+- **A tie-break never reached (1).** L436 `x.b - y.b`: no two repeats start on the
+  same base, since each base pairs with one later copy.
+
+By file: `yeastAssembly.ts` 42, `overlapAssembly.ts` 6 (L113 two, L134, L186
+two, L188), `gibson.ts` 6, `overlapPrimers.ts` 1, `protocol.ts` 1.
+
+**Not reachable by the real assembler, tested with a mock.** The checks of
+`overlapAssembly.ts` after the assembly (L193-213) look unreachable: 400 random
+designs of two to four inserts from the vector or another template, either strand,
+three splits and two kits never failed them, and every circle was the asked-for
+order in the vector's own orientation. They are guards, so the mocked tests
+above pin them rather than list them here.
