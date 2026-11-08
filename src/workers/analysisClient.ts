@@ -8,6 +8,7 @@ import {
   type CodonSlot,
   type CrisprGuide,
   type CrisprOptions,
+  type DesignOptions,
   type CutSite,
   type CutSiteSet,
   type EnzymeDigest,
@@ -15,11 +16,16 @@ import {
   type MoleculeDescription,
   type MsaOptions,
   type MultipleAlignment,
+  type MutagenesisDesign,
+  type MutagenesisMethod,
+  type MutagenesisOptions,
   type Nuclease,
   type Orf,
   type OrfOptions,
   type LibraryPart,
+  type PrimerPair,
   type PrimerSearch,
+  type Range,
   type RecodeOptions,
   type RecodeResult,
   type Seguid,
@@ -29,6 +35,7 @@ import {
 } from '@/core';
 
 import { handleAnalysisRequestAsync } from './analysis.worker';
+import { type DocumentSnapshot, documentOf } from './saveProtocol';
 import {
   type AnalysisRequest,
   type AnalysisResponse,
@@ -361,6 +368,43 @@ export class AnalysisClient {
     if (res.kind === 'error') throw new Error(res.message);
     if (res.kind !== 'checkPrimers') throw new Error('Unexpected analysis response');
     return res.design;
+  }
+
+  /** Primer pairs flanking `target`, in the worker: `designPrimers`, stoppable (#358). */
+  async designPrimers(
+    sequence: string,
+    topology: Topology,
+    target: Range,
+    options: DesignOptions = {},
+    long: LongRequestOptions = {},
+  ): Promise<PrimerPair[]> {
+    const res = await this.send(
+      { kind: 'designPrimers', sequence, topology, target, options },
+      long,
+    );
+    if (res.kind === 'error')
+      throw res.uncaught === true ? new AnalysisWorkerError(res.message) : new Error(res.message);
+    if (res.kind !== 'designPrimers') throw new Error('Unexpected analysis response');
+    return res.pairs;
+  }
+
+  /** Mutagenesis primers for replacing `range` of `template` with `replacement` (#358). */
+  async designMutagenesis(
+    template: DocumentSnapshot,
+    range: Range,
+    replacement: string,
+    method: MutagenesisMethod,
+    options: MutagenesisOptions = {},
+    long: LongRequestOptions = {},
+  ): Promise<MutagenesisDesign> {
+    const res = await this.send(
+      { kind: 'designMutagenesis', template, range, replacement, method, options },
+      long,
+    );
+    if (res.kind === 'error')
+      throw res.uncaught === true ? new AnalysisWorkerError(res.message) : new Error(res.message);
+    if (res.kind !== 'designMutagenesis') throw new Error('Unexpected analysis response');
+    return { ...res.design, mutant: documentOf(res.design.mutant) };
   }
 
   async checksum(molecule: MoleculeDescription): Promise<Seguid | null> {

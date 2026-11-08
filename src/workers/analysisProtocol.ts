@@ -10,6 +10,7 @@ import {
   type CrisprOptions,
   type CutSite,
   type CutSiteSet,
+  type DesignOptions,
   type EnzymeDigest,
   type EnzymeSet,
   type FeatureHit,
@@ -17,17 +18,24 @@ import {
   type MoleculeDescription,
   type MsaOptions,
   type MultipleAlignment,
+  type MutagenesisDesign,
+  type MutagenesisMethod,
+  type MutagenesisOptions,
   type Nuclease,
   PackedCutSiteSet,
   type Orf,
   type OrfOptions,
+  type PrimerPair,
   type PrimerSearch,
+  type Range,
   type RecodeOptions,
   type RecodeResult,
   type Seguid,
   type StrandedAlignment,
   type Topology,
 } from '@/core';
+
+import { type DocumentSnapshot } from './saveProtocol';
 
 /** Requests the main thread sends to the analysis worker. */
 export type AnalysisRequest =
@@ -142,7 +150,34 @@ export type AnalysisRequest =
       readonly empty: CheckMolecule | null;
       readonly geometry: CloneGeometry;
       readonly options: Omit<CheckOptions, 'empty'>;
+    }
+  | {
+      /** Primer pairs flanking `target`, as the Design page and the batch ask (#358). */
+      readonly id: number;
+      readonly kind: 'designPrimers';
+      readonly sequence: string;
+      readonly topology: Topology;
+      readonly target: Range;
+      readonly options: DesignOptions;
+    }
+  | {
+      /** Mutagenesis primers for replacing `range` of the template (#358). */
+      readonly id: number;
+      readonly kind: 'designMutagenesis';
+      readonly template: DocumentSnapshot;
+      readonly range: Range;
+      readonly replacement: string;
+      readonly method: MutagenesisMethod;
+      readonly options: MutagenesisOptions;
     };
+
+/**
+ * A mutagenesis design as it crosses from the worker: the mutant, a class
+ * with state, goes as a snapshot and is made a document again on arrival.
+ */
+export type MutagenesisAnswer = Omit<MutagenesisDesign, 'mutant'> & {
+  readonly mutant: DocumentSnapshot;
+};
 
 /** A molecule as the clone-check designer needs it: its bases and shape, no features. */
 export interface CheckMolecule {
@@ -196,6 +231,12 @@ export type AnalysisResponse =
   | { readonly id: number; readonly kind: 'msa'; readonly alignment: MultipleAlignment }
   | { readonly id: number; readonly kind: 'checksum'; readonly checksum: Seguid | null }
   | { readonly id: number; readonly kind: 'checkPrimers'; readonly design: CheckDesign }
+  | { readonly id: number; readonly kind: 'designPrimers'; readonly pairs: PrimerPair[] }
+  | {
+      readonly id: number;
+      readonly kind: 'designMutagenesis';
+      readonly design: MutagenesisAnswer;
+    }
   | {
       /** Sent ahead of the answer to a long request; not an answer itself. */
       readonly id: number;

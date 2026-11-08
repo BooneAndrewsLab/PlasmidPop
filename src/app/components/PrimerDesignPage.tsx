@@ -227,8 +227,9 @@ export function PrimerDesignPage({
           data-tip="Design up to ten pairs for the target"
           onClick={() => {
             if (!hasTarget) return;
-            design.design(selection);
-            onDesigned();
+            void design.design(selection).then((pairs) => {
+              if (pairs !== null) onDesigned();
+            });
           }}
         >
           Design primers

@@ -2,6 +2,9 @@ import pBR322 from '@/io/fixtures/J01749.gb?raw';
 import { parseSequenceFile } from '@/io';
 import {
   type EnzymeDigest,
+  designMutagenesis,
+  designPrimers,
+  range,
   type EnzymeSites,
   NUCLEASES,
   SeqDocument,
@@ -13,8 +16,10 @@ import {
   findCutSites,
   sitesByEnzyme,
 } from '@/core';
+import { randomDna, seededRandom } from '@/test/random';
 import { handleAnalysisRequest } from './analysis.worker';
 import { AnalysisCancelledError, AnalysisClient, AnalysisWorkerError } from './analysisClient';
+import { snapshotOf } from './saveProtocol';
 import { packCutSites, packEnzymeDigest, unpackCutSites, unpackScan } from './analysisProtocol';
 
 describe('AnalysisClient (inline fallback)', () => {
@@ -210,6 +215,66 @@ describe('AnalysisClient long requests (#54)', () => {
     await expect(
       client.alignEitherStrand('A', 'A', {}, { signal: controller.signal }),
     ).rejects.toBeInstanceOf(AnalysisCancelledError);
+  });
+});
+
+describe('designing primers in the worker (#358)', () => {
+  const bases = randomDna(seededRandom(7), 2400);
+  const client = new AnalysisClient(null);
+
+  it('gives the pairs the engine gives, for the Design page and the batch alike', async () => {
+    const target = range(1000, 1250);
+    const options = { maxPairs: 4, minTm: 57 };
+    expect(await client.designPrimers(bases, 'circular', target, options)).toEqual(
+      designPrimers(bases, 'circular', target, options),
+    );
+    // a target across the origin of the circle, and a linear template
+    const across = range(2300, 2500);
+    expect(await client.designPrimers(bases, 'circular', across)).toEqual(
+      designPrimers(bases, 'circular', across),
+    );
+    expect(await client.designPrimers(bases, 'linear', target)).toEqual(
+      designPrimers(bases, 'linear', target),
+    );
+  });
+
+  it('gives the mutagenesis design the engine gives, its mutant a document again', async () => {
+    const doc = SeqDocument.create({ name: 'p', sequence: bases, topology: 'circular' });
+    const at = range(500, 503);
+    const answer = await client.designMutagenesis(snapshotOf(doc), at, 'GCT', 'overlapping');
+    const direct = designMutagenesis(doc, at, 'GCT', 'overlapping');
+    const { mutant, ...rest } = answer;
+    const { mutant: directMutant, ...directRest } = direct;
+    expect(rest).toEqual(directRest);
+    expect(mutant).toBeInstanceOf(SeqDocument);
+    expect(mutant.sequence.toString()).toBe(directMutant.sequence.toString());
+    expect(mutant.topology).toBe('circular');
+  });
+
+  it('reports a worker error as an error, and cancels like any long request', async () => {
+    await expect(
+      client.designMutagenesis(
+        snapshotOf(SeqDocument.create({ name: 'p', sequence: 'ACGT' })),
+        range(0, 99),
+        'A',
+        'back-to-back',
+      ),
+    ).rejects.toThrow();
+    const w = heldWorker();
+    const held = new AnalysisClient(() => w as unknown as Worker);
+    const controller = new AbortController();
+    const answer = held.designPrimers(
+      bases,
+      'linear',
+      range(1000, 1200),
+      {},
+      {
+        signal: controller.signal,
+      },
+    );
+    expect(w.posted[0]?.kind).toBe('designPrimers');
+    controller.abort();
+    await expect(answer).rejects.toBeInstanceOf(AnalysisCancelledError);
   });
 });
 

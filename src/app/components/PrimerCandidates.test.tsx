@@ -21,7 +21,7 @@ function template(): string {
 const doc = SeqDocument.create({ sequence: template() });
 
 /** Opens the workspace on Design, designs for 251–350 and lands on Results. */
-function setup(layout: 'split' | 'phone' = 'split') {
+async function setup(layout: 'split' | 'phone' = 'split') {
   act(() => {
     const id = editorStore.openDocument(doc);
     rememberWorkspacePage(id, 'design');
@@ -31,9 +31,9 @@ function setup(layout: 'split' | 'phone' = 'split') {
   act(() => {
     editorStore.setSelection({ start: 250, end: 350 });
   });
-  act(() => {
-    fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
-  });
+  await act(() =>
+    Promise.resolve(fireEvent.click(screen.getByRole('button', { name: 'Design primers' }))),
+  );
   return view;
 }
 
@@ -61,8 +61,8 @@ describe('the Results page (item 107, stage two)', () => {
     });
   });
 
-  it('sorts by a column, says so, and turns the order round on a second click', () => {
-    setup();
+  it('sorts by a column, says so, and turns the order round on a second click', async () => {
+    await setup();
     const n = ranks().length;
     expect(n).toBeGreaterThan(1);
     expect(ranks()).toEqual(Array.from({ length: n }, (_, i) => i + 1));
@@ -87,8 +87,8 @@ describe('the Results page (item 107, stage two)', () => {
     ).toEqual([...products].sort((a, b) => b - a));
   });
 
-  it('narrows the rows by the box and the chips, and counts them', () => {
-    setup();
+  it('narrows the rows by the box and the chips, and counts them', async () => {
+    await setup();
     const n = ranks().length;
     expect(screen.getByRole('status', { name: '' }).textContent).toBe(`${n} of ${n}`);
     act(() => {
@@ -112,8 +112,8 @@ describe('the Results page (item 107, stage two)', () => {
     }
   });
 
-  it('walks the rows with the arrow keys, one stop in the tab order, and selects as it goes', () => {
-    setup();
+  it('walks the rows with the arrow keys, one stop in the tab order, and selects as it goes', async () => {
+    await setup();
     const [first, second] = bodyRows();
     if (first === undefined || second === undefined) throw new Error('needs two pairs');
     expect(first).toHaveAttribute('tabindex', '0');
@@ -138,8 +138,8 @@ describe('the Results page (item 107, stage two)', () => {
     expect(screen.getByRole('row', { selected: true })).toBe(first);
   });
 
-  it('offers Check specificity… as a link to NCBI with the two primers in the address (#298)', () => {
-    setup();
+  it('offers Check specificity… as a link to NCBI with the two primers in the address (#298)', async () => {
+    await setup();
     const [first] = bodyRows();
     if (first === undefined) throw new Error('needs a pair');
     act(() => {
@@ -166,8 +166,8 @@ describe('the Results page (item 107, stage two)', () => {
     expect(within(first).getByText('not checked')).toBeInTheDocument();
   });
 
-  it('is a list of rows on a phone, the selected one opened out', () => {
-    setup('phone');
+  it('is a list of rows on a phone, the selected one opened out', async () => {
+    await setup('phone');
     expect(screen.queryByRole('grid')).toBeNull();
     const list = screen.getByRole('list', { name: 'Candidate pairs' });
     const heads = within(list).getAllByRole('button', { expanded: false });

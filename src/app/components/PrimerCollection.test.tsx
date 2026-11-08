@@ -369,9 +369,9 @@ describe('My primers', () => {
     act(() => {
       editorStore.setSelection({ start: 400, end: 700 });
     });
-    act(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
-    });
+    await act(() =>
+      Promise.resolve(fireEvent.click(screen.getByRole('button', { name: 'Design primers' }))),
+    );
     // The pair's actions are in the detail pane, once a row is selected (item 107).
     act(() => {
       fireEvent.click(

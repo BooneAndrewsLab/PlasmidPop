@@ -115,7 +115,7 @@ describe('the slim Primers tab (item 107)', () => {
     expect(editorStore.getState().selection).toEqual({ start: 470, end: 487 });
   });
 
-  it('offers the last design, which reopens the workspace on Results, and My primers on its page', () => {
+  it('offers the last design, which reopens the workspace on Results, and My primers on its page', async () => {
     // A design made in the workspace, which then shuts.
     act(() => {
       const id = editorStore.openDocument(doc);
@@ -125,9 +125,9 @@ describe('the slim Primers tab (item 107)', () => {
       editorStore.setSelection({ start: 250, end: 350 });
     });
     const workspace = render(<PrimerWorkspace doc={doc} />);
-    act(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
-    });
+    await act(() =>
+      Promise.resolve(fireEvent.click(screen.getByRole('button', { name: 'Design primers' }))),
+    );
     act(() => {
       closePrimerWorkspace(true);
     });

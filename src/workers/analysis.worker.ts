@@ -6,6 +6,8 @@ import {
   alignEitherStrand,
   alignMultiple,
   alignPairwise,
+  designMutagenesis,
+  designPrimers,
   findCollectionPrimers,
   findCrisprGuides,
   designCheckPrimers,
@@ -21,6 +23,7 @@ import {
   setActiveEnzymeSet,
 } from '@/core';
 
+import { documentOf, snapshotOf } from './saveProtocol';
 import {
   type AnalysisRequest,
   type AnalysisResponse,
@@ -134,6 +137,26 @@ export function handleAnalysisRequest(
             empty: req.empty === null ? null : SeqDocument.create(req.empty),
           }),
         };
+      case 'designPrimers':
+        return {
+          id: req.id,
+          kind: 'designPrimers',
+          pairs: designPrimers(req.sequence, req.topology, req.target, req.options),
+        };
+      case 'designMutagenesis': {
+        const { mutant, ...rest } = designMutagenesis(
+          documentOf(req.template),
+          req.range,
+          req.replacement,
+          req.method,
+          req.options,
+        );
+        return {
+          id: req.id,
+          kind: 'designMutagenesis',
+          design: { ...rest, mutant: snapshotOf(mutant) },
+        };
+      }
       case 'align':
         return { id: req.id, kind: 'align', alignment: alignPairwise(req.a, req.b, req.options) };
       case 'alignEitherStrand':

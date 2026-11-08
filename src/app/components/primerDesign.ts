@@ -10,7 +10,6 @@ import {
   type SeqDocument,
   analyzePrimer,
   createFeature,
-  designPrimers,
   findPrimerBindingSites,
   formatSpan,
   mismatchPositions,
@@ -18,6 +17,8 @@ import {
   unrollRange,
 } from '@/core';
 import { type OverlaySpan } from '@/view/overlay';
+
+import { AnalysisCancelledError, analysisClient } from '@/workers/analysisClient';
 
 import { analytics } from '../analytics';
 import { editorStore } from '../state/editorStore';
@@ -206,8 +207,12 @@ export interface PrimerDesign {
   readonly setHovered: (next: number | null | ((h: number | null) => number | null)) => void;
   /** The pair to draw, held over hovered, as overlay spans; empty when none. */
   readonly preview: readonly OverlaySpan[];
-  /** Designs for `target`, dropping whatever was shown. */
-  readonly design: (target: Range) => readonly PrimerPair[];
+  /**
+   * Designs for `target` in the analysis worker, dropping whatever was shown
+   * once it answers. Resolves to the pairs, or null when a newer design (or
+   * leaving the document) took its place first.
+   */
+  readonly design: (target: Range) => Promise<readonly PrimerPair[] | null>;
   /** Holds a pair's preview on screen and selects what it would amplify; again hides it. */
   readonly showPair: (index: number, pair: PrimerPair) => void;
   /**
@@ -283,9 +288,34 @@ export function usePrimerDesign(doc: SeqDocument): PrimerDesign {
     return pair === undefined ? [] : pairPreview(pair, index + 1, doc.length);
   }, [shown, hovered, pairs, doc]);
 
-  const design = (target: Range): readonly PrimerPair[] => {
+  // The design under way, so a second click stops the first rather than racing it.
+  const running = useRef<AbortController | null>(null);
+  useEffect(
+    () => () => {
+      running.current?.abort();
+    },
+    [],
+  );
+
+  const design = async (target: Range): Promise<readonly PrimerPair[] | null> => {
     analytics.track('primers', 'design');
-    const result = designPrimers(doc.sequence.toString(), doc.topology, target, primerCriteria);
+    running.current?.abort();
+    const controller = new AbortController();
+    running.current = controller;
+    let result: PrimerPair[];
+    try {
+      result = await analysisClient.designPrimers(
+        doc.sequence.toString(),
+        doc.topology,
+        target,
+        primerCriteria,
+        { signal: controller.signal },
+      );
+    } catch (e: unknown) {
+      if (e instanceof AnalysisCancelledError) return null;
+      throw e;
+    }
+    if (running.current === controller) running.current = null;
     setPairs(result);
     setDesignedOn(template);
     setShown(null);

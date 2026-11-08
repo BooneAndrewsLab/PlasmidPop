@@ -33,14 +33,14 @@ function open(d: SeqDocument = doc, page: 'design' | 'results' | 'check' | 'mine
 }
 
 /** Opens the document with a target selected and the first pair designed. */
-function setup() {
+async function setup() {
   const view = open();
   act(() => {
     editorStore.setSelection({ start: 250, end: 350 });
   });
-  act(() => {
-    fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
-  });
+  await act(() =>
+    Promise.resolve(fireEvent.click(screen.getByRole('button', { name: 'Design primers' }))),
+  );
   return view;
 }
 
@@ -79,8 +79,8 @@ describe('PrimerWorkspace', () => {
     });
   });
 
-  it('gives the selection back when a shown pair is hidden', () => {
-    setup();
+  it('gives the selection back when a shown pair is hidden', async () => {
+    await setup();
     const target = editorStore.getState().selection;
     selectFirst();
     const product = editorStore.getState().selection;
@@ -100,8 +100,8 @@ describe('PrimerWorkspace', () => {
     expect(screen.getByRole('row', { selected: true })).toBeInTheDocument();
   });
 
-  it('leaves a selection the user made since alone', () => {
-    setup();
+  it('leaves a selection the user made since alone', async () => {
+    await setup();
     selectFirst();
     const mine = { start: 10, end: 20 };
     act(() => {
@@ -113,8 +113,8 @@ describe('PrimerWorkspace', () => {
     expect(editorStore.getState().selection).toEqual(mine);
   });
 
-  it('takes its selection away with it when the tab is left', () => {
-    const view = setup();
+  it('takes its selection away with it when the tab is left', async () => {
+    const view = await setup();
     selectFirst();
     expect(editorStore.getState().selection).not.toBeNull();
     act(() => {
@@ -123,15 +123,15 @@ describe('PrimerWorkspace', () => {
     expect(editorStore.getState().selection).toBeNull();
   });
 
-  it('keeps the target when the same selection is designed for again', () => {
-    setup();
+  it('keeps the target when the same selection is designed for again', async () => {
+    await setup();
     selectFirst();
     // Designing for the product is a new target, not a preview this panel
     // is holding: hiding nothing must not clear it.
     page('Design');
-    act(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
-    });
+    await act(() =>
+      Promise.resolve(fireEvent.click(screen.getByRole('button', { name: 'Design primers' }))),
+    );
     expect(editorStore.getState().selection).not.toBeNull();
   });
 });
@@ -143,8 +143,8 @@ describe('a design made before the sequence changed (#132)', () => {
     });
   });
 
-  it('drops the pairs when the bases are edited, so nothing stale can be added', () => {
-    const view = setup();
+  it('drops the pairs when the bases are edited, so nothing stale can be added', async () => {
+    const view = await setup();
     selectFirst();
     expect(screen.getByRole('button', { name: 'Add both as features' })).toBeInTheDocument();
     act(() => {
@@ -161,17 +161,17 @@ describe('a design made before the sequence changed (#132)', () => {
     act(() => {
       editorStore.setSelection({ start: 260, end: 360 });
     });
-    act(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
-    });
+    await act(() =>
+      Promise.resolve(fireEvent.click(screen.getByRole('button', { name: 'Design primers' }))),
+    );
     expect(pairRows().length).toBeGreaterThan(0);
   });
 
   it.each([
     ['reverse complement', { type: 'reverseComplement' }],
     ['topology change', { type: 'setTopology', topology: 'circular' }],
-  ] as const)('drops the pairs after a %s too', (_, op) => {
-    const view = setup();
+  ] as const)('drops the pairs after a %s too', async (_, op) => {
+    const view = await setup();
     act(() => {
       editorStore.apply(op);
     });
@@ -179,8 +179,8 @@ describe('a design made before the sequence changed (#132)', () => {
     expect(pairRows()).toHaveLength(0);
   });
 
-  it('keeps the pairs when only the annotations change', () => {
-    const view = setup();
+  it('keeps the pairs when only the annotations change', async () => {
+    const view = await setup();
     act(() => {
       editorStore.apply({
         type: 'addFeature',
@@ -199,8 +199,8 @@ describe('primer settings', () => {
     });
   });
 
-  it('commits a typed number on leaving the box, and designs to it', () => {
-    setup();
+  it('commits a typed number on leaving the box, and designs to it', async () => {
+    await setup();
     page('Design');
     const box = screen.getByLabelText('Shortest primer');
     act(() => {
@@ -215,15 +215,15 @@ describe('primer settings', () => {
     const c = editorStore.getState().primerCriteria;
     expect(c.minLength).toBe(22);
     expect(c.maxLength).toBe(27);
-    act(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
-    });
+    await act(() =>
+      Promise.resolve(fireEvent.click(screen.getByRole('button', { name: 'Design primers' }))),
+    );
     expect(screen.getAllByText(/^[ACGT]{22,27}$/).length).toBeGreaterThan(0);
     expect(screen.queryAllByText(/^[ACGT]{18,21}$/)).toHaveLength(0);
   });
 
-  it('moves the other end of a range rather than leaving it backwards', () => {
-    setup();
+  it('moves the other end of a range rather than leaving it backwards', async () => {
+    await setup();
     page('Design');
     const box = screen.getByLabelText('Lowest Tm');
     act(() => {
@@ -237,8 +237,8 @@ describe('primer settings', () => {
     expect(editorStore.getState().primerCriteria).toEqual(DEFAULT_PRIMER_CRITERIA);
   });
 
-  it('says nothing in the Settings row at the defaults, and sums a change up with a flag (#226, item 107)', () => {
-    setup();
+  it('says nothing in the Settings row at the defaults, and sums a change up with a flag (#226, item 107)', async () => {
+    await setup();
     page('Design');
     const summary = screen.getByText('Settings').closest('summary');
     expect(summary?.textContent).toBe('Settings');
@@ -255,8 +255,8 @@ describe('primer settings', () => {
     });
   });
 
-  it('lists each pair as a row of rank, product, ΔTm, the two primers and Spec., and the selected one in full (item 107)', () => {
-    setup();
+  it('lists each pair as a row of rank, product, ΔTm, the two primers and Spec., and the selected one in full (item 107)', async () => {
+    await setup();
     const [row] = pairRows();
     if (row === undefined) throw new Error('no pair was designed');
     const cells = within(row)
@@ -343,15 +343,15 @@ describe('a target through the origin (#143)', () => {
     expect(screen.getByText('591–20').closest('p')?.textContent).toBe('591–20 · 30 bp');
   });
 
-  it('says which target found no pairs the same way', () => {
+  it('says which target found no pairs the same way', async () => {
     const poly = SeqDocument.create({ sequence: 'A'.repeat(600), topology: 'circular' });
     open(poly);
     act(() => {
       editorStore.setSelection({ start: 590, end: 620 });
     });
-    act(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
-    });
+    await act(() =>
+      Promise.resolve(fireEvent.click(screen.getByRole('button', { name: 'Design primers' }))),
+    );
     expect(screen.getByText(/No suitable pairs for 591–20\./)).toBeInTheDocument();
   });
 });
@@ -364,15 +364,15 @@ describe('the workspace shell (item 107)', () => {
     });
   });
 
-  it('puts the keyboard on the page heading when it opens, and on the next page heading after a design', () => {
+  it('puts the keyboard on the page heading when it opens, and on the next page heading after a design', async () => {
     open();
     expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Design primers' }));
     act(() => {
       editorStore.setSelection({ start: 250, end: 350 });
     });
-    act(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
-    });
+    await act(() =>
+      Promise.resolve(fireEvent.click(screen.getByRole('button', { name: 'Design primers' }))),
+    );
     expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Results' }));
   });
 
@@ -458,8 +458,8 @@ describe('the workspace shell (item 107)', () => {
     expect(editorStore.getState().workspace).toBe(null);
   });
 
-  it('says the target changed on Results and hides the preview, keeping the rows (point 3)', () => {
-    setup();
+  it('says the target changed on Results and hides the preview, keeping the rows (point 3)', async () => {
+    await setup();
     expect(screen.queryByText(/Target changed/)).toBeNull();
     selectFirst();
     // The shown pair's product is the design's own selection, not a new target.
