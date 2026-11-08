@@ -109,7 +109,11 @@ work, and planned work and ideas are in the
 
 ## Development
 
-Requires Node 24 (see `.nvmrc`):
+Requires Node 22.22.2 or newer on 22, 24.15.0 or newer on 24, or Node 26 and
+up (the `engines.node` range in `package.json`, set by the locked jsdom 30,
+which Vitest uses). Older releases, such as 24.4, run with an `EBADENGINE`
+warning at best. `.nvmrc` says `24`, which CI and the deploy resolve to the
+latest 24.x:
 
 ```sh
 npm install
