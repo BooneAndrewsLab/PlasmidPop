@@ -43,9 +43,11 @@ count where there is one; `↑` and `↓` on the rail move between them.
 The workspace is a region of the window, not a dialog: nothing is greyed
 out behind it, the map and the toolbar keep working, and `Escape` closes it
 only while the keyboard is inside it (an open **Settings** folds first). Its
-**✕** closes it too, as does choosing another sidebar tab; the Primers tab
-then offers the last design to come back to, with everything as it was
-left. On a window narrower than about 1000 px the workspace takes the whole
+**✕** closes it too, as does choosing another sidebar tab. `Escape` and **✕**
+take you back to the tab whose link opened the workspace (the Cloning tab's
+**Clone an insert into this plasmid ›**, for one), or stay on the Primers tab
+when it was opened from there. The Primers tab offers the last design to come
+back to, with everything as it was left. On a window narrower than about 1000 px the workspace takes the whole
 area under the toolbar; on a phone it fills the screen, with the pages as
 tabs across the top, and **Primers** is one of the tabs under **Details**. In
 both of those the map cannot be beside the workspace, so a **Map** strip
