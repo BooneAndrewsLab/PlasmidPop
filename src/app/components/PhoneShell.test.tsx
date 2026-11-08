@@ -127,6 +127,25 @@ describe('PhoneShell', () => {
     expect(editorStore.getState().workspace).toBe('crispr');
   });
 
+  it('scrolls the active Details subtab into view when the strip overflows (#405)', () => {
+    const seen: string[] = [];
+    // jsdom has no scrollIntoView; define it for this test and remove it after.
+    Object.defineProperty(Element.prototype, 'scrollIntoView', {
+      configurable: true,
+      value(this: Element) {
+        seen.push(this.textContent);
+      },
+    });
+    try {
+      setup();
+      fireEvent.click(pane('Details'));
+      fireEvent.click(screen.getByRole('tab', { name: 'Enzymes' }));
+      expect(seen.at(-1)).toBe('Enzymes');
+    } finally {
+      Reflect.deleteProperty(Element.prototype, 'scrollIntoView');
+    }
+  });
+
   it('goes back to the view last looked at when a list reveals a position', () => {
     setup();
     fireEvent.click(pane('Sequence'));

@@ -4592,12 +4592,23 @@ button {
 
 .phone__subtabs {
   display: flex;
+  /* Six subtabs do not fit at 360 px: the strip scrolls sideways, without a
+     scrollbar, and the active subtab is scrolled into view (#405). */
+  overflow-x: auto;
+  scrollbar-width: none;
   border-bottom: 1px solid var(--line);
   background: var(--surface-2);
 }
 
+.phone__subtabs::-webkit-scrollbar {
+  display: none;
+}
+
 .phone__subtab {
-  flex: 1;
+  /* Grow to share the strip when it fits; never shrink below the label. */
+  flex: 1 0 auto;
+  padding: 0 12px;
+  white-space: nowrap;
   min-height: 40px;
   border: 0;
   border-bottom: 2px solid transparent;

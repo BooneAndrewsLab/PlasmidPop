@@ -81,6 +81,16 @@ export function PhoneShell({ doc }: Props) {
     ? sidebarTab
     : (detailTabs[0]?.[0] ?? 'features');
 
+  // Keep the active subtab in view when the strip scrolls (#405). Guarded
+  // because jsdom, where the app's tests run, has no scrollIntoView.
+  const stripRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const active = stripRef.current?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (typeof active?.scrollIntoView === 'function') {
+      active.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  }, [detailTab, pane]);
+
   return (
     <div className="phone">
       <PhoneNotice />
@@ -89,7 +99,7 @@ export function PhoneShell({ doc }: Props) {
         {pane === 'sequence' && <LinearSequenceView doc={doc} reader />}
         {pane === 'details' && (
           <div className="phone__details">
-            <div className="phone__subtabs" role="tablist" aria-label="Details">
+            <div ref={stripRef} className="phone__subtabs" role="tablist" aria-label="Details">
               {detailTabs.map(([tab, label]) => {
                 const active = detailTab === tab;
                 return (
