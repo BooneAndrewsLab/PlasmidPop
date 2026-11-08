@@ -240,11 +240,17 @@ export function OverlapPrimerDesign({ fixedKit }: { readonly fixedKit?: OverlapK
   };
 
   return (
-    <details className="gg__left-out">
-      <summary>
-        {fixedKit === undefined
-          ? 'Design insert primers (In-Fusion, NEBuilder)'
-          : `Design insert primers (${KIT_NAMES[fixedKit]})`}
+    <details className="panel__details">
+      <summary className="panel__details-summary">
+        <span className="panel__details-title">
+          {fixedKit === undefined
+            ? 'Design insert primers (In-Fusion, NEBuilder)'
+            : `Design insert primers (${KIT_NAMES[fixedKit]})`}
+        </span>
+        <span className="panel__details-note">
+          puts {fixedKit === 'yeast' ? `${YEAST_OVERLAP.default} bases of the` : 'the'}{' '}
+          vector&rsquo;s ends on an insert that has no homology yet
+        </span>
       </summary>
       {fixedKit === undefined && (
         <div className="panel__controls">
