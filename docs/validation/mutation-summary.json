@@ -1,16 +1,16 @@
 {
-  "score": 92.25,
+  "score": 92.11,
   "floor": 90,
-  "date": "2026-11-07",
-  "appVersion": "1.23.0",
-  "run": "the pre-release run on the changes since v1.22.0",
+  "date": "2026-11-08",
+  "appVersion": "1.24.0",
+  "run": "the pre-release run on the changes since v1.23.0",
   "stryker": "10.0.0",
   "counts": {
-    "Ignored": 2433,
-    "Killed": 23191,
-    "NoCoverage": 161,
+    "Ignored": 2495,
+    "Killed": 23558,
+    "NoCoverage": 168,
     "RuntimeError": 11,
-    "Survived": 1825,
+    "Survived": 1889,
     "Timeout": 458
   },
   "files": [
@@ -248,10 +248,10 @@
     },
     {
       "file": "src/core/assembly/assemble.ts",
-      "score": 91.73,
-      "killed": 965,
+      "score": 91.3,
+      "killed": 986,
       "timeout": 22,
-      "survived": 83,
+      "survived": 90,
       "noCoverage": 6
     },
     {
@@ -269,6 +269,14 @@
       "timeout": 2,
       "survived": 8,
       "noCoverage": 0
+    },
+    {
+      "file": "src/core/assembly/pairing.ts",
+      "score": 80.45,
+      "killed": 251,
+      "timeout": 0,
+      "survived": 54,
+      "noCoverage": 7
     },
     {
       "file": "src/core/checksum/seguid.ts",
@@ -352,8 +360,8 @@
     },
     {
       "file": "src/core/cloning/overlapAssembly.ts",
-      "score": 97.04,
-      "killed": 197,
+      "score": 96.92,
+      "killed": 189,
       "timeout": 0,
       "survived": 4,
       "noCoverage": 2
@@ -368,8 +376,8 @@
     },
     {
       "file": "src/core/cloning/overlapPrimers.ts",
-      "score": 98.55,
-      "killed": 136,
+      "score": 98.59,
+      "killed": 140,
       "timeout": 0,
       "survived": 1,
       "noCoverage": 1
@@ -384,18 +392,18 @@
     },
     {
       "file": "src/core/cloning/protocol.ts",
-      "score": 96.04,
-      "killed": 291,
+      "score": 96.19,
+      "killed": 303,
       "timeout": 0,
       "survived": 12,
       "noCoverage": 0
     },
     {
       "file": "src/core/cloning/protocolText.ts",
-      "score": 96.93,
-      "killed": 347,
+      "score": 96.87,
+      "killed": 433,
       "timeout": 0,
-      "survived": 11,
+      "survived": 14,
       "noCoverage": 0
     },
     {
@@ -480,8 +488,8 @@
     },
     {
       "file": "src/core/lineage/record.ts",
-      "score": 86.59,
-      "killed": 155,
+      "score": 86.74,
+      "killed": 157,
       "timeout": 0,
       "survived": 24,
       "noCoverage": 0
@@ -497,7 +505,7 @@
     {
       "file": "src/core/primers/collection.ts",
       "score": 96.94,
-      "killed": 564,
+      "killed": 563,
       "timeout": 7,
       "survived": 15,
       "noCoverage": 3
@@ -727,10 +735,5 @@
       "noCoverage": 0
     }
   ],
-  "unmeasured": [
-    "src/core/assembly/pairing.ts",
-    "src/core/alignment/pairwise.ts",
-    "src/core/alignment/quality.ts"
-  ],
-  "note": "The report is incremental: it keeps the last verdict of every file, so a file the run did not touch carries its result from an earlier release's run."
+  "unmeasured": ["src/core/alignment/pairwise.ts", "src/core/alignment/quality.ts"]
 }
