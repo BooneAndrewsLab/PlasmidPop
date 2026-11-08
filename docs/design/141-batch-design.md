@@ -16,13 +16,15 @@ Each is one reviewable piece with its own tests, in this order:
 2. **Worker requests and the runner** (built): `designPrimers` and
    `designMutagenesis` requests, `src/app/primerBatch.ts`, `pool.ts`, the
    timing test, `designPrimers` moved into the worker.
-3. The Batch page (a sixth rail page of the primer workspace), primer cases.
+3. The Batch page (a sixth rail page of the primer workspace), primer cases
+   (built).
 4. Order sheet. Closes #358.
 5. Cloning rows in the worker (Golden Gate part, homology), `extra5`/`extra3`.
 6. Cloning batch UI, constructs zip, batch protocol. Closes #360.
 
-No guide page yet: packet 1 changes nothing a user can see. The guide
-(`10-primers.md`, then `12-cloning.md`) arrives with the packets that show it.
+Packets 1 and 2 changed nothing a user can see. The guide gets the Batch
+design section of `10-primers.md` with packet 3, and `12-cloning.md` with
+packet 6.
 
 ## Decisions from the plan (agreed with the maintainer)
 
@@ -190,3 +192,81 @@ rows finish, so 20 s is a wait, not a freeze; the browser has not been timed.
 
 **Guide:** no page changes: nothing a user can see differs yet (the Design
 page gives the same pairs; the Batch page is packet 3).
+
+## Packet 3: the Batch page, primer cases
+
+**The page.** `'batch'` is a sixth `WorkspacePage`, between Results and Check
+(`BatchPage.tsx`; rail label **Batch**, heading **Batch design**, a badge of
+the rows done once a run has some). It is not a new Workspace kind and the
+phone is untouched: the workspace is not offered there. The 1000 px
+breakpoint, the other five pages and their order of tab stops are as they were.
+
+**Session** (`batchSession.ts`, `createDocumentSession`, in process only):
+the table as text, whether the scan helper wrote it, the template picked,
+records loaded from files, the run (rows as they land, the rows asked for, the
+templates it saw, progress, cancelled), the selected row, the sort and the
+last message. A store outside React for the reason Align's is: the run is a
+chain of worker requests that goes on while the page is away, so its rows land
+in the session, not in a component's state. `startBatch`/`cancelBatch` hold the
+`AbortController` per document; a second start while one runs is ignored.
+Nothing is written to disk.
+
+**The table is a text box.** "Editable rows" is the paste area itself: the
+text is the table, edited in place, validated on every change
+(`parseBatchText`, then `validateBatch` with the picked template as the
+default). An uploaded CSV/TSV is put in the box as it is; a workbook's table is
+put in as CSV (`writeBatchCsv`), which loses the sheet's row numbers (lines
+then count from the CSV's header), said in the note under the box. The scan
+helper replaces the box's text with `scanRows`' rows and says how many codons
+it left out. Bad rows are listed with line, name and message; rows past
+`BATCH_ROW_LIMIT` are counted as `validateBatch` counts them, and the limit is
+stated in the page.
+
+**Templates.** The picker offers the document in front, the other open tabs of
+the same alphabet, and records loaded with **Load templates…**
+(`readSequenceData`; held in the session, not stored). A name is offered once,
+the first taking it (front document first), without regard to case as a
+row's cell is read; names left out are shown under the picker. A row's
+`template` cell can name any of them.
+
+**Results** (`batchResults.ts`, pure): a line per runner row: status chip
+(`designed`, `warnings`, `failed`), name, both oligos, Tms, product, first
+warning. A primer row shows its best pair only (`pairs[0]`); the other pairs
+are not kept in the table. The product of a mutagenesis row is the plasmid's
+size. Sortable by row, status, name, Tm (the forward's) and product with
+`SortTh`; arrow keys move the selection. The detail pane lists both oligos and
+every warning. The map preview (`rowPreview`, given to
+`usePrimersPreview` by `PrimerWorkspace`) is the pair's sites and product, or
+the changed stretch for a mutagenesis row, and only when the row's template
+is the document in front and that document is the object it was at the start
+of the run; otherwise the pane says it is not drawn.
+
+**Actions.** _Save all to My primers_: `savePrimers(drafts, 'design')`, names
+`name fwd`/`name rev`, bases upper-cased (a mutagenesis primer has lower-case
+template bases), the store dedupes name plus bases. _Open product_: mutagenesis
+rows only (`design.mutant`), `openDocument(doc, null, [], {scratch: true})`;
+a primer row has no product document. The _pool check_ is `checkPool` over the
+designed rows' oligos, run on the main thread once the run has ended (68-93 ms
+for 192 oligos), with the explanation that a cross-dimer only matters for
+oligos in one tube.
+
+**Criteria.** The Settings' `primerCriteria` go to the runner as its
+`criteria`, so a batch designs with what the Design page does; a mutagenesis row
+uses the runner's defaults.
+
+**Analytics.** `primers:batch`, one event per run, named `scan` (the rows came
+from the scan helper and the text was not replaced since), `recipe` (a table
+with a `change` column) or `region`. Never rows, names, sizes or sequences.
+Added to the primers catalogue in `analytics.ts` and pinned in a test.
+
+**Checked** (jsdom only; the page has not been looked at in a browser).
+Component tests through the in-thread worker path: paste, validate, bad-row
+listing, run, results; the limit; a failed row continuing; Save all and the
+pool check; selection, detail and the map preview; sorting; cancel (the first
+row designed, the second held until the signal, `analysisClient` spied) keeping
+the rows done; the scan helper on a CDS; a page switch keeping table, run and
+badge; Open product; an uploaded file; a table with no header.
+
+**Not built here.** The order sheet (packet 4); cloning rows, constructs zip
+and protocol (5, 6); drag-and-drop of a file onto the box; per-row choice among
+the other pairs; the batch's own Settings (it uses the Design page's).

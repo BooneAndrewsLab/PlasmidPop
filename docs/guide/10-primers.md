@@ -36,7 +36,7 @@ it: a design is judged by where it lands, so the map stays in view and
 follows every click. The sequence view yields to it in the Both view and
 comes back when it closes; the boundary between the map and the workspace
 can be dragged like the other pane boundaries, and is remembered. A rail
-down its left edge names its five pages — **Design**, **Results**, **Check**,
+down its left edge names its six pages — **Design**, **Results**, **Batch**, **Check**,
 **Clone check** and **My primers** — each with a heading of its own and a
 count where there is one; `↑` and `↓` on the rail move between them.
 
@@ -127,6 +127,87 @@ again. Adding or editing annotations leaves it alone. Selecting something
 else while on Results keeps the list but takes its preview off the map, and
 **Target changed — Design again** at the top goes back to Design for the new
 selection; the Design page's **Last design** line goes the other way.
+
+## Batch design
+
+**Batch**, the rail's third page, designs many primer pairs from a table
+instead of one at a time: a row for each region or each point mutation, run
+one after another, with the results in a table and the oligos saved together.
+It is on the workspace's rail, so on a phone, where the workspace is not
+offered, it is not there.
+
+**The rows.** Paste them from a spreadsheet into the **Rows** box (tab-,
+comma- or semicolon-separated), or **Upload a table…** (CSV, TSV or an Excel
+`.xlsx`; a workbook's first sheet with a header row is read). The first row
+names the columns, in any order, spelled loosely as a primer list's are:
+
+- `name` (required, used once; a repeat, without regard to case, is a bad row);
+- `template` — an open tab or a loaded record, by name; blank means the one
+  picked under **Template**, which starts as the document in front;
+- `region` — where to design, as `100-250`, as a GenBank location
+  (`complement(100..250)`, `join(...)`, a range across the origin of a plasmid)
+  or as a feature's name;
+- `change` — the bases that replace the region, which makes the row a
+  point-mutation design (back-to-back primers, as the Cloning tab's mutagenesis
+  makes them); `-` or `del` in it deletes the region;
+- `tm` and `size` — a Tm to aim at (a window of 5 °C either side for a pair, the
+  target Tm for a mutation) and the longest product, for this row only.
+
+Other columns are kept as notes and ignored; columns that only the cloning
+designs use (`left`, `right`, `enzyme`, `kit`, `include_start`, `include_stop`)
+are read and the row says it left them alone. A row with only bases and no
+region cannot be designed here, since a pair needs a target to flank.
+
+The page checks the table as you type: **2 rows ready, 1 row with a problem and
+not run**, and the rows with a problem are listed under it with their line
+and what is wrong (a template that is not open, a region past the ends, bases
+that are not IUPAC letters). The rest run. At most **96 rows** are designed at
+once; rows past that are counted, not looked at, so split a longer table.
+
+**Load templates…** reads GenBank or FASTA files whose records can then be
+named in a `template` cell, beside the open tabs, for a batch across several
+plasmids without opening each one.
+
+**Generate scan rows…** fills the table for a scan: pick a gene (a coding
+feature of the template), the residue every codon becomes (alanine by
+default) and, for a long gene, a window of the protein with **From** and
+**Through**. It writes one ordinary row per codon (`gene_K12A`, the codon's
+region and the new codon, the nearest one, so the fewest bases change),
+replacing the table, so you can edit or delete rows before running. Codons that
+cannot be a row are left out and counted: already that residue, a stop, or
+split by an intron.
+
+**Design N rows** runs the table. Each row is its own request to the analysis
+worker, so the page stays usable and the results table fills as rows finish,
+with a progress bar and **Cancel**, which keeps the rows already done. A row
+that cannot be designed (no pair meets the criteria, no such template) is
+listed as **failed** with the reason, and the others go on. The criteria are
+the Settings'. The batch and its results stay with the document while you
+visit other pages and come back; they are kept only in this page's memory, never
+saved, and a reload starts clean.
+
+**The results.** One row each: a status chip (**designed**, **warnings** or
+**failed**), the name, both oligos, their Tms, the product's size (for a
+mutation, the new plasmid's) and the first warning. Click a column to sort;
+`↑` and `↓` move the selection. A pair row shows its **best** pair, as Results
+lists it first; design the region on the Design page to see the others.
+Selecting a row shows both oligos in full under the table and, when it was
+designed on the document in front and that has not changed, draws the pair on
+the map as Results does.
+
+- **Open product** on a mutation row opens the template with the change made as
+  a new tab (a scratch one, kept when you edit or save it).
+- **Save all to My primers** keeps every designed oligo, named `name fwd` and
+  `name rev`, with a note of the template; oligos already there under the same
+  name and bases are skipped.
+
+**Pool check.** Under the results, once a run is over, a summary reads all the
+oligos together: names used twice, identical bases under two names, cross-dimers
+stronger than ΔG −6 kcal/mol (most stable first) and the spread of the Tms.
+Two primers only form a cross-dimer if they are in the same tube, so for pairs
+that go into separate reactions the dimer line is a hint, not a fault; it
+matters for oligos you pool. Primers designed for neighbouring regions of one
+template often pair with one another, since they overlap in sequence.
 
 ## Cloning ends: primers that put two restriction sites on an insert
 
