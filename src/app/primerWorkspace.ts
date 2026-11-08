@@ -50,15 +50,17 @@ export function recallWorkspace(documentId: string | null): WorkspaceMemory {
 /**
  * Opens the workspace, on `page` and, when given, the Design page's `mode`
  * (the Cloning tab's "Clone an insert into this plasmid ›" lands on Design
- * in cloning mode).
+ * in cloning mode). Escape goes back to the tab that opened it (#404)
+ * unless `fromTab` is false.
  */
 export function openPrimerWorkspace(
   documentId: string | null,
   page?: WorkspacePage,
   mode?: DesignMode,
+  fromTab = true,
 ): void {
   if (mode !== undefined) rememberPanel(MODE_SLOT, documentId, mode);
-  primerWorkspace.open(documentId, page);
+  primerWorkspace.open(documentId, page, fromTab);
 }
 
 export const rememberWorkspacePage = primerWorkspace.rememberPage;

@@ -427,5 +427,6 @@ export function openCloneCheck(
   if (context !== null) registerCloneCheck(product, context);
   analytics.track('primers', 'check-open', method);
   const id = editorStore.openDocument(product, null, [], storage);
-  openPrimerWorkspace(id, 'clone');
+  // A document made for it has no tab to go back to.
+  openPrimerWorkspace(id, 'clone', undefined, false);
 }

@@ -1580,6 +1580,82 @@ describe('EditorStore multiple alignment window (#369)', () => {
   });
 });
 
+describe('EditorStore workspace opener (#404)', () => {
+  it('goes back to the tab that opened the workspace', () => {
+    const store = new EditorStore();
+    store.openDocument(doc, 'x.gb');
+    store.setSidebarTab('cloning');
+    store.setWorkspace('primers');
+    expect(store.getState()).toMatchObject({ workspaceOpener: 'cloning', sidebarTab: 'primers' });
+    expect(store.closeWorkspace(true)).toBe(true);
+    expect(store.getState()).toMatchObject({
+      workspace: null,
+      workspaceOpener: null,
+      sidebarTab: 'cloning',
+    });
+  });
+
+  it('stays on the workspace tab when closed without going back, or opened from its own tab', () => {
+    const store = new EditorStore();
+    store.openDocument(doc, 'x.gb');
+    store.setSidebarTab('cloning');
+    store.setWorkspace('primers');
+    expect(store.closeWorkspace(false)).toBe(false);
+    expect(store.getState().sidebarTab).toBe('primers');
+    // Opened from Primers itself: nothing to go back to.
+    store.setWorkspace('primers');
+    expect(store.getState().workspaceOpener).toBeNull();
+    expect(store.closeWorkspace(true)).toBe(false);
+    expect(store.getState().sidebarTab).toBe('primers');
+    // Opened with no tab to go back to.
+    store.setSidebarTab('cloning');
+    store.setWorkspace('primers', false);
+    expect(store.closeWorkspace(true)).toBe(false);
+    expect(store.getState().sidebarTab).toBe('primers');
+  });
+
+  it('keeps the first opener when another workspace replaces the open one', () => {
+    const store = new EditorStore();
+    store.openDocument(doc, 'x.gb');
+    store.setSidebarTab('cloning');
+    store.setWorkspace('primers');
+    store.setWorkspace('align');
+    expect(store.getState().workspaceOpener).toBe('cloning');
+    store.closeWorkspace(true);
+    expect(store.getState().sidebarTab).toBe('cloning');
+  });
+
+  it('forgets the opener when another tab or the sidebar shuts the workspace', () => {
+    const store = new EditorStore();
+    store.openDocument(doc, 'x.gb');
+    store.setSidebarTab('cloning');
+    store.setWorkspace('primers');
+    store.setSidebarTab('enzymes');
+    expect(store.getState().workspaceOpener).toBeNull();
+    store.setSidebarTab('cloning');
+    store.setWorkspace('primers');
+    store.setSidebarOpen(false);
+    expect(store.getState().workspaceOpener).toBeNull();
+    store.setSidebarOpen(true);
+    store.setWorkspace('primers');
+    store.setWorkspace(null);
+    expect(store.getState().workspaceOpener).toBeNull();
+  });
+
+  it('keeps each document its own opener, and its tab when the other document closes', () => {
+    const store = new EditorStore();
+    const a = store.openDocument(doc, 'a.gb');
+    store.setSidebarTab('cloning');
+    store.setWorkspace('primers');
+    store.openDocument(SeqDocument.create({ name: 'b', sequence: 'ACGTACGT' }), 'b.gb');
+    expect(store.getState().workspaceOpener).toBeNull();
+    store.closeDocument();
+    expect(store.getState().documentId).toBe(a);
+    expect(store.closeWorkspace(true)).toBe(true);
+    expect(store.getState().sidebarTab).toBe('cloning');
+  });
+});
+
 describe('EditorStore primer workspace (item 107)', () => {
   it('opens on Primers with the sidebar out, and shuts with another tab or the sidebar put away', () => {
     const store = new EditorStore();

@@ -32,10 +32,15 @@ export interface WorkspaceController<P extends string> {
    * Opens the workspace on the document in front, on `page` (or the page it
    * was last on). The store puts the sidebar on the workspace's tab; the
    * page is the panels' own memory, so a slim panel's links can land on a
-   * page without the store knowing the pages.
+   * page without the store knowing the pages. `fromTab` false opens it with
+   * no tab to go back to (a document opened just for it).
    */
-  readonly open: (documentId: string | null, page?: P) => void;
-  /** Shuts the workspace; with `returnFocus`, the slim panel takes the keyboard. */
+  readonly open: (documentId: string | null, page?: P, fromTab?: boolean) => void;
+  /**
+   * Shuts the workspace. With `returnFocus` (Escape, the close button), the
+   * sidebar goes back to the tab that opened it, when it was not the
+   * workspace's own (#404), and otherwise the slim panel takes the keyboard.
+   */
   readonly close: (returnFocus?: boolean) => void;
   /**
    * Whether the slim panel should take the keyboard now; asking clears it.
@@ -63,14 +68,16 @@ export function createWorkspaceController<P extends string>(
   return {
     kind,
     pages,
-    open(documentId, page) {
+    open(documentId, page, fromTab = true) {
       if (page !== undefined) rememberPage(documentId, page);
       analytics.trackOnce('panel', 'open', EVENT[kind]);
-      editorStore.setWorkspace(kind);
+      editorStore.setWorkspace(kind, fromTab);
     },
     close(returnFocus = false) {
       focusWanted = returnFocus;
-      if (editorStore.getState().workspace === kind) editorStore.setWorkspace(null);
+      if (editorStore.getState().workspace !== kind) return;
+      // Back on another tab, its panel keeps the keyboard where it was.
+      if (editorStore.closeWorkspace(returnFocus)) focusWanted = false;
     },
     takeFocusRequest() {
       const wanted = focusWanted;

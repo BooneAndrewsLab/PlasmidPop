@@ -3,7 +3,7 @@ import { act } from '@testing-library/react';
 
 import { SeqDocument } from '@/core';
 
-import { openPrimerWorkspace, recallWorkspace } from './primerWorkspace';
+import { closePrimerWorkspace, openPrimerWorkspace, recallWorkspace } from './primerWorkspace';
 import { editorStore } from './state/editorStore';
 import { forgetPanels } from './state/panelMemory';
 
@@ -46,5 +46,39 @@ describe('openPrimerWorkspace', () => {
       page: 'design',
       mode: 'plain',
     });
+  });
+
+  it('goes back, on Escape, to whichever tab opened it, the latest opening winning (#404)', () => {
+    const id = editorStore.getState().documentId;
+    act(() => {
+      editorStore.setSidebarTab('cloning');
+      openPrimerWorkspace(id, 'design', 'cloning');
+      closePrimerWorkspace(true);
+    });
+    expect(editorStore.getState().sidebarTab).toBe('cloning');
+    // From the Primers tab's own door it stays there.
+    act(() => {
+      editorStore.setSidebarTab('primers');
+      openPrimerWorkspace(id, 'design');
+      closePrimerWorkspace(true);
+    });
+    expect(editorStore.getState().sidebarTab).toBe('primers');
+    // From a tab that opened it through another door (Check's PCR link).
+    act(() => {
+      editorStore.setSidebarTab('features');
+      openPrimerWorkspace(id, 'check');
+      closePrimerWorkspace(true);
+    });
+    expect(editorStore.getState().sidebarTab).toBe('features');
+  });
+
+  it('has no tab to go back to for a document made for it', () => {
+    const id = editorStore.getState().documentId;
+    act(() => {
+      editorStore.setSidebarTab('cloning');
+      openPrimerWorkspace(id, 'clone', undefined, false);
+      closePrimerWorkspace(true);
+    });
+    expect(editorStore.getState().sidebarTab).toBe('primers');
   });
 });

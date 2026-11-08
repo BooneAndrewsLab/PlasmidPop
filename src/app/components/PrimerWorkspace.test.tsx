@@ -425,6 +425,31 @@ describe('the workspace shell (item 107)', () => {
     expect(editorStore.getState().workspace).toBe(null);
   });
 
+  it('goes back to the tab that opened it on Escape, but not past an inner Escape (#404)', () => {
+    act(() => {
+      editorStore.openDocument(doc);
+      editorStore.setSidebarTab('cloning');
+      editorStore.setWorkspace('primers');
+    });
+    render(<PrimerWorkspace doc={doc} />);
+    // An input that takes the key (a dialog's, a box's own) keeps the workspace.
+    const input = document.createElement('input');
+    input.addEventListener('keydown', (e) => {
+      e.preventDefault();
+    });
+    screen.getByRole('region', { name: 'Primer workspace' }).appendChild(input);
+    act(() => {
+      fireEvent.keyDown(input, { key: 'Escape' });
+    });
+    expect(editorStore.getState()).toMatchObject({ workspace: 'primers', sidebarTab: 'primers' });
+    act(() => {
+      fireEvent.keyDown(screen.getByRole('heading', { name: 'Design primers' }), {
+        key: 'Escape',
+      });
+    });
+    expect(editorStore.getState()).toMatchObject({ workspace: null, sidebarTab: 'cloning' });
+  });
+
   it('closes from its own button too', () => {
     open();
     act(() => {

@@ -579,6 +579,13 @@ export interface DocumentState {
    * and what each holds is the panels' own memory.
    */
   readonly workspace: Workspace | null;
+  /**
+   * The sidebar tab the open workspace was opened from, when that was not
+   * its own tab (#404): Escape goes back to it. Null with no workspace open,
+   * when it was opened from its own tab, and for a workspace opened with no
+   * tab to return to (a new document's).
+   */
+  readonly workspaceOpener: SidebarTab | null;
 }
 
 /** State of the app as a whole, the same whichever document is in front. */
@@ -1019,6 +1026,7 @@ type ActiveDocumentFields = {
     | 'sidebarTab'
     | 'phonePane'
     | 'workspace'
+    | 'workspaceOpener'
     ? DocumentState[K]
     : DocumentState[K] | null;
 };
@@ -1176,6 +1184,7 @@ const NO_DOCUMENT: ActiveDocumentFields = {
   sidebarTab: 'features',
   phonePane: 'map',
   workspace: null,
+  workspaceOpener: null,
 };
 
 /**
@@ -1440,6 +1449,7 @@ export class EditorStore {
       sidebarTab: inheritedSidebarTab(doc, this.documentState()?.sidebarTab ?? 'features'),
       phonePane: this.takeRememberedPane(storage.id),
       workspace: null,
+      workspaceOpener: null,
     };
     if (storage.shownEnzymes !== undefined) {
       const seed = resolveSeed([...storage.shownEnzymes], activeEnzymes());
@@ -2190,7 +2200,7 @@ export class EditorStore {
     // A protein has no Enzymes tab, and DNA no Protein one (#66).
     if (tab !== this.state.sidebarTab && hasSidebarTab(this.document, tab)) {
       // Choosing another tab shuts the workspace (item 107, point 4).
-      this.setActive({ sidebarTab: tab, workspace: null });
+      this.setActive({ sidebarTab: tab, workspace: null, workspaceOpener: null });
     }
   }
 
@@ -2198,13 +2208,45 @@ export class EditorStore {
    * Opens a workspace (item 107, item 129) on the document in front, or
    * shuts whichever is open. Opening one puts the sidebar on the tab of the
    * same name and brings it out, since the workspace stands in the
-   * sidebar's column; the slim panel comes back when it shuts.
+   * sidebar's column; the slim panel comes back when it shuts. The tab it
+   * was opened from is kept for `closeWorkspace` (#404) unless `fromTab` is
+   * false, and unless another workspace was already open: that one's opener
+   * stands.
    */
-  setWorkspace(kind: Workspace | null): void {
+  setWorkspace(kind: Workspace | null, fromTab = true): void {
     if (kind === this.state.workspace) return;
     if (kind !== null && !hasSidebarTab(this.document, kind)) return;
-    this.setActive(kind === null ? { workspace: null } : { workspace: kind, sidebarTab: kind });
-    if (kind !== null) this.setSidebarOpen(true);
+    if (kind === null) {
+      this.setActive({ workspace: null, workspaceOpener: null });
+      return;
+    }
+    const was = this.state.workspace === null ? this.state.sidebarTab : this.state.workspaceOpener;
+    this.setActive({
+      workspace: kind,
+      sidebarTab: kind,
+      workspaceOpener: fromTab && was !== kind ? was : null,
+    });
+    this.setSidebarOpen(true);
+  }
+
+  /**
+   * Shuts the open workspace. With `toOpener`, the sidebar goes back to the
+   * tab it was opened from (#404), if that is still a tab of this document;
+   * otherwise it stays on the workspace's own. True when it went back.
+   */
+  closeWorkspace(toOpener: boolean): boolean {
+    const { workspace, workspaceOpener } = this.state;
+    if (workspace === null) return false;
+    const back =
+      toOpener && workspaceOpener !== null && hasSidebarTab(this.document, workspaceOpener)
+        ? workspaceOpener
+        : null;
+    this.setActive(
+      back === null
+        ? { workspace: null, workspaceOpener: null }
+        : { workspace: null, workspaceOpener: null, sidebarTab: back },
+    );
+    return back !== null;
   }
 
   setPhonePane(pane: PhonePane): void {
@@ -2409,7 +2451,7 @@ export class EditorStore {
 
   setSidebarOpen(open: boolean): void {
     // The workspace stands where the panel does: putting the sidebar away shuts it.
-    if (!open && this.state.workspace !== null) this.setActive({ workspace: null });
+    if (!open && this.state.workspace !== null) this.setActive({ workspace: null, workspaceOpener: null });
     if (open !== this.state.sidebarOpen) this.setShared({ sidebarOpen: open });
   }
 
