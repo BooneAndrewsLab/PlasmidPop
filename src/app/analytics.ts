@@ -250,7 +250,9 @@ export const EVENTS = {
    * clone check opened from a reaction, named by the method (`ligation`,
    * `golden-gate`…), and `design-check` a set of colony-PCR pairs designed
    * (#311), named `reuse` when one primer was reused, never the primers,
-   * the product or the vector.
+   * the product or the vector; `batch` is a Batch design run (#358), named
+   * by the kind of table (`region`, `recipe` for one with a change column,
+   * `scan` for rows the scan helper made), never the rows, names or sizes.
    */
   primers: [
     'design',
@@ -267,6 +269,7 @@ export const EVENTS = {
     'simulate-homology',
     'check-open',
     'design-check',
+    'batch',
   ],
   /**
    * `run` names the mode (`global`/`local`); `quality` is a change to the
