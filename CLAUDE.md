@@ -76,7 +76,9 @@ Few, large, themed releases, one GitHub milestone each; current is 1.23.0
 `CITATION.cff` stands for all of them. Before a release run
 `npm run mutate:changed` (Stryker on the changed lines, incremental, on an idle
 machine, never in CI, score floor 90) and triage its survivors and timeouts;
-item 50 has the steps. Bump `package.json` and `CITATION.cff` together. **The site
+item 50 has the steps. Bump `package.json` and `CITATION.cff` together. The git
+tag is `vX.Y.Z` and the GitHub Release title is the bare `X.Y.Z`, nothing else.
+**The site
 deploys only when a GitHub Release is published** (`deploy.yml`); a push to
 main reaches no user until a release carries it. The guide's header shows
 `__APP_VERSION__`, defined from `package.json` in `vite.config.ts`.
