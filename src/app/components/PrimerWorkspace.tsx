@@ -3,12 +3,15 @@ import { useMemo } from 'react';
 import { type SeqDocument, isEmptyRange } from '@/core';
 import { type OverlaySpan } from '@/view/overlay';
 
+import { batchSession } from '../batchSession';
+import { rowPreview } from '../batchResults';
 import { type DesignMode, type WorkspacePage, primerWorkspace } from '../primerWorkspace';
 import { type WorkspaceLayout } from '../workspaceController';
 import { useRemembered } from '../state/panelMemory';
 import { usePrimerCollection } from '../state/primerCollection';
 import { useEditorState } from '../state/useEditorStore';
 import { useCloneCheck } from './cloneCheck';
+import { BatchPage } from './BatchPage';
 import { CloneCheckPage } from './CloneCheckPage';
 import { CloningCandidates } from './CloningCandidates';
 import { designRows, useCloningDesign } from './cloningDesign';
@@ -22,6 +25,7 @@ import { WorkspaceShell } from './WorkspaceShell';
 const LABELS: Readonly<Record<WorkspacePage, string>> = {
   design: 'Design',
   results: 'Results',
+  batch: 'Batch',
   check: 'Check',
   clone: 'Clone check',
   mine: 'My primers',
@@ -30,15 +34,17 @@ const LABELS: Readonly<Record<WorkspacePage, string>> = {
 const HEADINGS: Readonly<Record<WorkspacePage, string>> = {
   design: 'Design primers',
   results: 'Results',
+  batch: 'Batch design',
   check: 'Check a primer',
   clone: 'Check a clone',
   mine: 'My primers',
 };
 
-/** The rail's icons, the mockup's: two primers, an arrow, a list, a primer over a junction, a longer list. */
+/** The rail's icons, the mockup's: two primers, an arrow, a ruled grid, a list, a primer over a junction, a longer list. */
 const ICONS: Readonly<Record<WorkspacePage, string>> = {
   design: 'M2 5h8l-2-2m2 2-2 2M13 10H5l2-2m-2 2 2 2',
   results: 'M2 8h11m-3-3 3 3-3 3',
+  batch: 'M2 3h11M2 7.5h11M2 12h11M5.5 2v11',
   check: 'M2 4h11M2 7h7M2 10h11',
   clone: 'M2 11h11M7.5 3v8M3 6h6l-1.5-1.5M9 6 7.5 7.5',
   mine: 'M2 4h11M2 8h7M2 12h9',
@@ -54,7 +60,7 @@ interface Props {
 
 /**
  * The primer workspace (item 107, #300): the shared shell
- * (`WorkspaceShell`: region, rail, Escape, map strip) around five pages
+ * (`WorkspaceShell`: region, rail, Escape, map strip) around six pages
  * that each have a heading of their own. The slim Primers panel takes the
  * keyboard back on "Design primers…" when it shuts.
  */
@@ -75,6 +81,7 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
   const cloneCheck = useCloneCheck(doc);
   const { primerCriteria } = useEditorState();
   const collection = usePrimerCollection();
+  const batch = batchSession.use(documentId);
 
   // What the views draw for the page in front: the search windows around
   // the target while designing, the pair looked at on Results, the binding
@@ -90,6 +97,14 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
         // A target changed since the design takes the preview off, keeping the row (point 3).
         if (cloningResults) return cloning.designUnchanged ? cloning.preview : [];
         return design.targetUnchanged ? design.preview : [];
+      case 'batch':
+        return rowPreview(
+          batch.run?.rows.find((r) => r.index === batch.selected),
+          batch.selected === null ? undefined : batch.run?.source[batch.selected],
+          doc,
+          batch.run?.ranOn ?? null,
+          batch.run?.templates ?? [],
+        );
       case 'check':
         return probe.preview;
       case 'clone':
@@ -108,6 +123,8 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
     cloning.preview,
     cloning.designUnchanged,
     cloningResults,
+    batch.run,
+    batch.selected,
     probe.preview,
     cloneCheck.preview,
   ]);
@@ -124,6 +141,8 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
       }
       return design.pairs?.length ?? null;
     }
+    if (p === 'batch')
+      return batch.run === null || batch.run.rows.length === 0 ? null : batch.run.rows.length;
     if (p === 'mine') return collection.primers.length;
     if (p === 'clone') return cloneCheck.record?.design.pairs.length ?? null;
     return null;
@@ -235,6 +254,7 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
         ) : (
           <PrimerCandidates doc={doc} design={design} layout={layout} />
         ))}
+      {page === 'batch' && <BatchPage doc={doc} />}
       {page === 'check' && <PrimerCheck doc={doc} probe={probe} />}
       {page === 'clone' && <CloneCheckPage doc={doc} state={cloneCheck} layout={layout} />}
       {page === 'mine' && <PrimerCollection doc={doc} />}
