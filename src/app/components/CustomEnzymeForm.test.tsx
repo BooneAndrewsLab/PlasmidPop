@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import 'fake-indexeddb/auto';
 
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { activeEnzymes, getEnzyme } from '@/core';
@@ -56,27 +56,21 @@ describe('CustomEnzymeForm (#217)', () => {
     render(<CustomEnzymeForm onClose={() => undefined} />);
     type('Enzyme name', 'MyEco');
     type('Recognition site in REBASE notation', 'G^AATT_C');
-    await act(async () => {
-      fireEvent.click(screen.getByText('Save enzyme'));
-      await new Promise((r) => setTimeout(r, 20));
-    });
-    expect(screen.getByText(/Saved MyEco/)).toBeTruthy();
+    fireEvent.click(screen.getByText('Save enzyme'));
+    // The save is an IndexedDB write: wait for what it ends in, not a fixed pause.
+    expect(await screen.findByText(/Saved MyEco/)).toBeTruthy();
     expect(getEnzyme('myeco')?.cutBottom).toBe(5);
     expect(activeEnzymes().some((e) => e.name === 'MyEco' && e.custom === true)).toBe(true);
 
     type('Enzyme name', 'EcoRI');
     type('Recognition site in REBASE notation', 'G^AATTC');
-    await act(async () => {
-      fireEvent.click(screen.getByText('Save enzyme'));
-      await new Promise((r) => setTimeout(r, 20));
-    });
-    expect(screen.getByText(/already an enzyme of the table in use/)).toBeTruthy();
+    fireEvent.click(screen.getByText('Save enzyme'));
+    expect(await screen.findByText(/already an enzyme of the table in use/)).toBeTruthy();
 
-    await act(async () => {
-      fireEvent.click(screen.getByText('Remove'));
-      await new Promise((r) => setTimeout(r, 20));
+    fireEvent.click(screen.getByText('Remove'));
+    await waitFor(() => {
+      expect(activeEnzymes().some((e) => e.name === 'MyEco')).toBe(false);
     });
-    expect(activeEnzymes().some((e) => e.name === 'MyEco')).toBe(false);
   });
 
   it('survives a restart', async () => {
