@@ -256,6 +256,14 @@ function EnzymeGrid({ doc, list, layout, onPartner }: TableProps) {
     row.focus();
   });
 
+  // The highlight is the pointer's: it must not outlive the table.
+  useEffect(
+    () => () => {
+      editorStore.setHighlightedEnzymes([]);
+    },
+    [],
+  );
+
   const sort: SortState<EnzymeSort> = { key: enzymeSort, dir: reversed ? 'desc' : 'asc' };
   const onSort = (column: EnzymeSort): void => {
     const next = toggleSort(sort, column);
@@ -440,6 +448,16 @@ function EnzymeTr({
       data-row={rowKey(row)}
       tabIndex={tab}
       aria-selected={on}
+      // The row's sites light up on the map and the sequence (#401). A
+      // finger has no hover, and a tap would leave them lit.
+      onPointerEnter={(e) => {
+        if (e.pointerType === 'mouse') {
+          editorStore.setHighlightedEnzymes(members.map((m) => m.name));
+        }
+      }}
+      onPointerLeave={() => {
+        editorStore.setHighlightedEnzymes([]);
+      }}
       onClick={(e) => {
         // A tick or a position is its own click, not a choice of row.
         if (e.target instanceof Element && e.target.closest('input, button') !== null) return;

@@ -151,6 +151,42 @@ describe('the enzyme table (item 133, E4)', () => {
     expect(screen.queryByRole('complementary')).toBeNull();
   });
 
+  describe('highlighting a row on the map (#401)', () => {
+    const highlighted = (): string[] => [...editorStore.getState().highlightedEnzymes];
+
+    it('stresses the row’s enzyme while the mouse is on it, ticked or not', () => {
+      setup(singleCutters(3));
+      const [a] = names();
+      if (a == null) throw new Error('table');
+      act(() => {
+        editorStore.setShownEnzymes([]);
+      });
+      fireEvent.pointerEnter(row(a), { pointerType: 'mouse' });
+      expect(highlighted()).toEqual([a]);
+      expect(editorStore.getState().shownEnzymes.size).toBe(0);
+      fireEvent.pointerLeave(row(a), { pointerType: 'mouse' });
+      expect(highlighted()).toEqual([]);
+    });
+
+    it('ignores a touch, which has no hover to end', () => {
+      setup(singleCutters(3));
+      const [a] = names();
+      if (a == null) throw new Error('table');
+      fireEvent.pointerEnter(row(a), { pointerType: 'touch' });
+      expect(highlighted()).toEqual([]);
+    });
+
+    it('is cleared when the table goes away', () => {
+      const view = setup(singleCutters(2));
+      const [a] = names();
+      if (a == null) throw new Error('table');
+      fireEvent.pointerEnter(row(a), { pointerType: 'mouse' });
+      expect(highlighted()).toEqual([a]);
+      view.unmount();
+      expect(highlighted()).toEqual([]);
+    });
+  });
+
   describe('sorting', () => {
     const heading = (name: string): HTMLElement => screen.getByRole('button', { name });
     const aria = (name: string): string | null =>

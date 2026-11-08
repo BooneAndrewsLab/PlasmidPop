@@ -100,6 +100,14 @@ heading again to turn the order round, Z to A or the lanes hardest to read
 first; click the other heading to start again from its top. The order is
 remembered between sessions.
 
+Move the mouse over a row and that enzyme's sites are stressed in the views
+beside the table: a heavier mark and its name in the sequence view, a heavier
+tick and a boxed label on the map, kept even where the ring is too crowded to
+name every site. This works for an enzyme that is not ticked, so you can see
+where it would cut before choosing it; the sites go as the mouse leaves the
+row, and nothing is ticked or changed. A touch screen has no hover, so it
+does not highlight. Highlighted sites are never part of an exported figure.
+
 The table scrolls inside the page, so the line under it — how many enzymes
 cut, and how many do not cut at all — stays where you left it however many
 cut. Only the rows on screen are drawn, which is what keeps an imported
