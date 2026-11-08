@@ -345,3 +345,5 @@ the Bench, item 49). The rest stand.
 139. [Yeast assembly: in vivo homologous recombination](139-yeast-assembly.md)
 
 140. [Tail primers for several inserts in one assembly](140-multi-insert-tails.md)
+
+141. [Batch design: primers and cloning](141-batch-design.md)
