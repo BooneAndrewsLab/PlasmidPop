@@ -209,6 +209,8 @@ describe('CrisprPanel', () => {
 
     fireEvent.change(screen.getByLabelText('Nuclease'), { target: { value: 'custom' } });
     const pam = screen.getByLabelText('PAM in IUPAC codes');
+    // Choosing the custom nuclease starts a scan: let its answer land before the next edit.
+    await settled();
     fireEvent.change(pam, { target: { value: 'NXG' } });
     expect(await screen.findByText(/not an IUPAC base/)).toBeInTheDocument();
     expect(screen.queryByLabelText('Spacer contains')).not.toBeInTheDocument();
@@ -216,6 +218,8 @@ describe('CrisprPanel', () => {
     // The all-A guide it finds is flagged: the page is the filters over a list of none shown.
     fireEvent.change(pam, { target: { value: 'NGA' } });
     expect(await screen.findByLabelText('Spacer contains')).toBeInTheDocument();
+    // The scan this edit asked for is still out until its answer lands; end the test after it.
+    await settled();
   });
 
   it('writes the pX330 oligos for the guide chosen', async () => {
