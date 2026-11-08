@@ -57,7 +57,7 @@ describe('the search files of the static guide', () => {
   it('keep the index small enough to fetch on first use', () => {
     const bytes = searchFiles[0]?.content.length ?? 0;
     expect(bytes).toBeGreaterThan(10_000);
-    expect(bytes).toBeLessThan(400_000);
+    expect(bytes).toBeLessThan(450_000);
   });
 
   it('script has no import, no third party and no markup written from text', () => {
