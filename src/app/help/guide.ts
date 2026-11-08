@@ -14,6 +14,7 @@ import proteins from '../../../docs/guide/16-proteins.md?raw';
 import reads from '../../../docs/guide/15-reads.md?raw';
 import shortcuts from '../../../docs/guide/14-shortcuts.md?raw';
 import translate from '../../../docs/guide/09-translate.md?raw';
+import validation from '../../../docs/guide/18-validation.md?raw';
 import viewing from '../../../docs/guide/03-viewing.md?raw';
 
 import { markdownTitle } from './markdown';
@@ -51,6 +52,8 @@ export const GUIDE: readonly GuidePage[] = [
   page('15-reads', reads),
   page('16-proteins', proteins),
   page('17-crispr', crispr),
+  // Its tables are generated from the committed oracle data at build time.
+  page('18-validation', validation.replace('<!-- validation-tables -->', __VALIDATION_TABLES__)),
 ];
 
 export function guidePage(id: string): GuidePage | undefined {

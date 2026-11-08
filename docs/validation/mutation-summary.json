@@ -1,0 +1,736 @@
+{
+  "score": 92.25,
+  "floor": 90,
+  "date": "2026-11-07",
+  "appVersion": "1.23.0",
+  "run": "the pre-release run on the changes since v1.22.0",
+  "stryker": "10.0.0",
+  "counts": {
+    "Ignored": 2433,
+    "Killed": 23191,
+    "NoCoverage": 161,
+    "RuntimeError": 11,
+    "Survived": 1825,
+    "Timeout": 458
+  },
+  "files": [
+    {
+      "file": "src/app/alignmentChanges.ts",
+      "score": 100,
+      "killed": 109,
+      "timeout": 0,
+      "survived": 0,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/app/alignmentStack.ts",
+      "score": 96.69,
+      "killed": 223,
+      "timeout": 11,
+      "survived": 8,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/app/alignmentTrack.ts",
+      "score": 92.63,
+      "killed": 200,
+      "timeout": 1,
+      "survived": 14,
+      "noCoverage": 2
+    },
+    {
+      "file": "src/app/exportFigure.ts",
+      "score": 100,
+      "killed": 182,
+      "timeout": 0,
+      "survived": 0,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/app/exportJob.ts",
+      "score": 100,
+      "killed": 36,
+      "timeout": 0,
+      "survived": 0,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/app/help/staticGuide.ts",
+      "score": 99.72,
+      "killed": 352,
+      "timeout": 1,
+      "survived": 1,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/app/keyBindings.ts",
+      "score": 91.5,
+      "killed": 140,
+      "timeout": 0,
+      "survived": 10,
+      "noCoverage": 3
+    },
+    {
+      "file": "src/app/mapPng.ts",
+      "score": 100,
+      "killed": 94,
+      "timeout": 0,
+      "survived": 0,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/app/pdfWriter.ts",
+      "score": 100,
+      "killed": 65,
+      "timeout": 0,
+      "survived": 0,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/app/sequenceExport.ts",
+      "score": 100,
+      "killed": 94,
+      "timeout": 0,
+      "survived": 0,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/app/state/inputQuiet.ts",
+      "score": 100,
+      "killed": 57,
+      "timeout": 4,
+      "survived": 0,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/alignment/banded.ts",
+      "score": 44.16,
+      "killed": 237,
+      "timeout": 20,
+      "survived": 302,
+      "noCoverage": 23
+    },
+    {
+      "file": "src/core/alignment/msa.ts",
+      "score": 61.27,
+      "killed": 607,
+      "timeout": 48,
+      "survived": 403,
+      "noCoverage": 11
+    },
+    {
+      "file": "src/core/alignment/scoring.ts",
+      "score": 80.95,
+      "killed": 113,
+      "timeout": 6,
+      "survived": 27,
+      "noCoverage": 1
+    },
+    {
+      "file": "src/core/analysis/codonUsage.ts",
+      "score": 93.72,
+      "killed": 223,
+      "timeout": 1,
+      "survived": 9,
+      "noCoverage": 6
+    },
+    {
+      "file": "src/core/analysis/crispr.ts",
+      "score": 90.97,
+      "killed": 434,
+      "timeout": 9,
+      "survived": 41,
+      "noCoverage": 3
+    },
+    {
+      "file": "src/core/analysis/cutSiteSet.ts",
+      "score": 89.67,
+      "killed": 185,
+      "timeout": 6,
+      "survived": 21,
+      "noCoverage": 1
+    },
+    {
+      "file": "src/core/analysis/enzymeDigest.ts",
+      "score": 97.52,
+      "killed": 117,
+      "timeout": 1,
+      "survived": 3,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/analysis/gcContent.ts",
+      "score": 91.47,
+      "killed": 115,
+      "timeout": 3,
+      "survived": 11,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/analysis/gel.ts",
+      "score": 79.71,
+      "killed": 431,
+      "timeout": 13,
+      "survived": 98,
+      "noCoverage": 15
+    },
+    {
+      "file": "src/core/analysis/methylation.ts",
+      "score": 96.97,
+      "killed": 158,
+      "timeout": 2,
+      "survived": 5,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/analysis/openAsProtein.ts",
+      "score": 90,
+      "killed": 134,
+      "timeout": 1,
+      "survived": 15,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/analysis/proteinProperties.ts",
+      "score": 97.78,
+      "killed": 84,
+      "timeout": 4,
+      "survived": 2,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/analysis/restriction.ts",
+      "score": 95.81,
+      "killed": 342,
+      "timeout": 1,
+      "survived": 15,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/analysis/search.ts",
+      "score": 94.92,
+      "killed": 333,
+      "timeout": 22,
+      "survived": 17,
+      "noCoverage": 2
+    },
+    {
+      "file": "src/core/annotate/detect.ts",
+      "score": 97.02,
+      "killed": 698,
+      "timeout": 19,
+      "survived": 16,
+      "noCoverage": 6
+    },
+    {
+      "file": "src/core/annotate/hits.ts",
+      "score": 99.53,
+      "killed": 214,
+      "timeout": 0,
+      "survived": 1,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/annotate/library.ts",
+      "score": 98.65,
+      "killed": 365,
+      "timeout": 1,
+      "survived": 4,
+      "noCoverage": 1
+    },
+    {
+      "file": "src/core/annotate/protein.ts",
+      "score": 95.44,
+      "killed": 263,
+      "timeout": 9,
+      "survived": 13,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/assembly/assemble.ts",
+      "score": 91.73,
+      "killed": 965,
+      "timeout": 22,
+      "survived": 83,
+      "noCoverage": 6
+    },
+    {
+      "file": "src/core/assembly/consensus.ts",
+      "score": 94.62,
+      "killed": 87,
+      "timeout": 1,
+      "survived": 4,
+      "noCoverage": 1
+    },
+    {
+      "file": "src/core/assembly/overlapBound.ts",
+      "score": 89.87,
+      "killed": 69,
+      "timeout": 2,
+      "survived": 8,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/checksum/seguid.ts",
+      "score": 95.42,
+      "killed": 139,
+      "timeout": 7,
+      "survived": 7,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/checksum/sha1.ts",
+      "score": 98.34,
+      "killed": 164,
+      "timeout": 14,
+      "survived": 3,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/cloning/digest.ts",
+      "score": 90.83,
+      "killed": 197,
+      "timeout": 1,
+      "survived": 20,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/cloning/fidelity.ts",
+      "score": 95.2,
+      "killed": 255,
+      "timeout": 3,
+      "survived": 11,
+      "noCoverage": 2
+    },
+    {
+      "file": "src/core/cloning/gateway.ts",
+      "score": 94.87,
+      "killed": 442,
+      "timeout": 2,
+      "survived": 22,
+      "noCoverage": 2
+    },
+    {
+      "file": "src/core/cloning/gibson.ts",
+      "score": 93.09,
+      "killed": 418,
+      "timeout": 13,
+      "survived": 24,
+      "noCoverage": 8
+    },
+    {
+      "file": "src/core/cloning/goldenGate.ts",
+      "score": 92.83,
+      "killed": 267,
+      "timeout": 5,
+      "survived": 18,
+      "noCoverage": 3
+    },
+    {
+      "file": "src/core/cloning/ligate.ts",
+      "score": 95.34,
+      "killed": 182,
+      "timeout": 2,
+      "survived": 9,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/cloning/moclo.ts",
+      "score": 81.58,
+      "killed": 217,
+      "timeout": 0,
+      "survived": 42,
+      "noCoverage": 7
+    },
+    {
+      "file": "src/core/cloning/mutagenesis.ts",
+      "score": 93.98,
+      "killed": 393,
+      "timeout": 13,
+      "survived": 24,
+      "noCoverage": 2
+    },
+    {
+      "file": "src/core/cloning/overlapAssembly.ts",
+      "score": 97.04,
+      "killed": 197,
+      "timeout": 0,
+      "survived": 4,
+      "noCoverage": 2
+    },
+    {
+      "file": "src/core/cloning/overlapExtension.ts",
+      "score": 94.94,
+      "killed": 327,
+      "timeout": 11,
+      "survived": 13,
+      "noCoverage": 5
+    },
+    {
+      "file": "src/core/cloning/overlapPrimers.ts",
+      "score": 98.55,
+      "killed": 136,
+      "timeout": 0,
+      "survived": 1,
+      "noCoverage": 1
+    },
+    {
+      "file": "src/core/cloning/pcr.ts",
+      "score": 96.73,
+      "killed": 295,
+      "timeout": 1,
+      "survived": 10,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/cloning/protocol.ts",
+      "score": 96.04,
+      "killed": 291,
+      "timeout": 0,
+      "survived": 12,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/cloning/protocolText.ts",
+      "score": 96.93,
+      "killed": 347,
+      "timeout": 0,
+      "survived": 11,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/cloning/yeastAssembly.ts",
+      "score": 91.06,
+      "killed": 447,
+      "timeout": 1,
+      "survived": 35,
+      "noCoverage": 9
+    },
+    {
+      "file": "src/core/diff/documentDiff.ts",
+      "score": 94.97,
+      "killed": 531,
+      "timeout": 16,
+      "survived": 28,
+      "noCoverage": 1
+    },
+    {
+      "file": "src/core/diff/removed.ts",
+      "score": 100,
+      "killed": 30,
+      "timeout": 0,
+      "survived": 0,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/document/baseStyles.ts",
+      "score": 95.04,
+      "killed": 399,
+      "timeout": 3,
+      "survived": 21,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/document/extract.ts",
+      "score": 99.12,
+      "killed": 339,
+      "timeout": 0,
+      "survived": 3,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/document/rna.ts",
+      "score": 100,
+      "killed": 14,
+      "timeout": 0,
+      "survived": 0,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/document/tools.ts",
+      "score": 100,
+      "killed": 14,
+      "timeout": 0,
+      "survived": 0,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/history/history.ts",
+      "score": 95.13,
+      "killed": 330,
+      "timeout": 2,
+      "survived": 15,
+      "noCoverage": 2
+    },
+    {
+      "file": "src/core/lineage/describe.ts",
+      "score": 98.37,
+      "killed": 121,
+      "timeout": 0,
+      "survived": 1,
+      "noCoverage": 1
+    },
+    {
+      "file": "src/core/lineage/lineage.ts",
+      "score": 99.32,
+      "killed": 440,
+      "timeout": 1,
+      "survived": 3,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/lineage/record.ts",
+      "score": 86.59,
+      "killed": 155,
+      "timeout": 0,
+      "survived": 24,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/primers/anneal.ts",
+      "score": 98.22,
+      "killed": 322,
+      "timeout": 10,
+      "survived": 5,
+      "noCoverage": 1
+    },
+    {
+      "file": "src/core/primers/collection.ts",
+      "score": 96.94,
+      "killed": 564,
+      "timeout": 7,
+      "survived": 15,
+      "noCoverage": 3
+    },
+    {
+      "file": "src/core/primers/criteria.ts",
+      "score": 77.57,
+      "killed": 83,
+      "timeout": 0,
+      "survived": 23,
+      "noCoverage": 1
+    },
+    {
+      "file": "src/core/primers/primerDesign.ts",
+      "score": 95,
+      "killed": 690,
+      "timeout": 13,
+      "survived": 33,
+      "noCoverage": 4
+    },
+    {
+      "file": "src/core/primers/structure.ts",
+      "score": 95.13,
+      "killed": 511,
+      "timeout": 16,
+      "survived": 22,
+      "noCoverage": 5
+    },
+    {
+      "file": "src/core/primers/thermo.ts",
+      "score": 90.91,
+      "killed": 234,
+      "timeout": 6,
+      "survived": 24,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/sequence/alphabet.ts",
+      "score": 87.88,
+      "killed": 142,
+      "timeout": 3,
+      "survived": 18,
+      "noCoverage": 2
+    },
+    {
+      "file": "src/core/verify/variants.ts",
+      "score": 93.17,
+      "killed": 236,
+      "timeout": 37,
+      "survived": 20,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/verify/verify.ts",
+      "score": 96.01,
+      "killed": 335,
+      "timeout": 2,
+      "survived": 14,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/io/archive.ts",
+      "score": 100,
+      "killed": 36,
+      "timeout": 0,
+      "survived": 0,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/io/fasta/fasta.ts",
+      "score": 98.38,
+      "killed": 181,
+      "timeout": 1,
+      "survived": 3,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/io/fastq/fastq.ts",
+      "score": 95.45,
+      "killed": 221,
+      "timeout": 10,
+      "survived": 4,
+      "noCoverage": 7
+    },
+    {
+      "file": "src/io/genbank/baseStylesComment.ts",
+      "score": 94.77,
+      "killed": 163,
+      "timeout": 0,
+      "survived": 7,
+      "noCoverage": 2
+    },
+    {
+      "file": "src/io/genbank/madeFromComment.ts",
+      "score": 97.16,
+      "killed": 651,
+      "timeout": 0,
+      "survived": 19,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/io/genbank/methylationComment.ts",
+      "score": 100,
+      "killed": 48,
+      "timeout": 0,
+      "survived": 0,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/io/genbank/ownComments.ts",
+      "score": 100,
+      "killed": 20,
+      "timeout": 0,
+      "survived": 0,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/io/ncbi/accession.ts",
+      "score": 94,
+      "killed": 47,
+      "timeout": 0,
+      "survived": 2,
+      "noCoverage": 1
+    },
+    {
+      "file": "src/io/ncbi/efetch.ts",
+      "score": 94.75,
+      "killed": 272,
+      "timeout": 17,
+      "survived": 14,
+      "noCoverage": 2
+    },
+    {
+      "file": "src/io/rebase/customEnzyme.ts",
+      "score": 81.16,
+      "killed": 56,
+      "timeout": 0,
+      "survived": 9,
+      "noCoverage": 4
+    },
+    {
+      "file": "src/io/share/link.ts",
+      "score": 93.75,
+      "killed": 72,
+      "timeout": 3,
+      "survived": 5,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/io/snapgene/historyTree.ts",
+      "score": 85.44,
+      "killed": 135,
+      "timeout": 0,
+      "survived": 23,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/io/snapgene/writeSnapGene.ts",
+      "score": 100,
+      "killed": 717,
+      "timeout": 4,
+      "survived": 0,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/io/xml.ts",
+      "score": 100,
+      "killed": 244,
+      "timeout": 16,
+      "survived": 0,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/io/zip.ts",
+      "score": 100,
+      "killed": 127,
+      "timeout": 0,
+      "survived": 0,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/storage/backup.ts",
+      "score": 99.77,
+      "killed": 437,
+      "timeout": 2,
+      "survived": 1,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/storage/historyCodec.ts",
+      "score": 93,
+      "killed": 897,
+      "timeout": 7,
+      "survived": 67,
+      "noCoverage": 1
+    },
+    {
+      "file": "src/storage/historyFormat.ts",
+      "score": 99.69,
+      "killed": 633,
+      "timeout": 0,
+      "survived": 2,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/view/svg/exportLinear.ts",
+      "score": 100,
+      "killed": 225,
+      "timeout": 0,
+      "survived": 0,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/workers/analysisProtocol.ts",
+      "score": 93.75,
+      "killed": 74,
+      "timeout": 1,
+      "survived": 3,
+      "noCoverage": 2
+    },
+    {
+      "file": "src/workers/saveProtocol.ts",
+      "score": 100,
+      "killed": 5,
+      "timeout": 0,
+      "survived": 0,
+      "noCoverage": 0
+    }
+  ],
+  "unmeasured": [
+    "src/core/assembly/pairing.ts",
+    "src/core/alignment/pairwise.ts",
+    "src/core/alignment/quality.ts"
+  ],
+  "note": "The report is incremental: it keeps the last verdict of every file, so a file the run did not touch carries its result from an earlier release's run."
+}

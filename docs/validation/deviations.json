@@ -1,0 +1,117 @@
+{
+  "$comment": "Known differences from an oracle (item 142). Each entry points at the test or note that holds it to that exact shape. `issue` is a GitHub issue number only where one tracks the difference; null means it is by design or a convention, with no issue open. Hand-written from src/test/oracle/*.test.ts and docs/audit.md.",
+  "deviations": [
+    {
+      "area": "restriction",
+      "text": "On a linear molecule a cut exactly at an end (for example MboI ^GATC at base 0) is listed by the enzyme panel and counts toward its Cuts filter. It is no double-strand break, so Biopython leaves it out and digest() drops it.",
+      "kind": "by design",
+      "issue": null,
+      "where": "src/test/oracle/restriction.test.ts; docs/audit.md"
+    },
+    {
+      "area": "restriction",
+      "text": "An ambiguity code in the sequence matches a recognition site only when every expansion of it does; Biopython differs in a few places.",
+      "kind": "convention",
+      "issue": null,
+      "where": "docs/audit.md"
+    },
+    {
+      "area": "digest",
+      "text": "A linear ligation product leaves a trailing bottom-strand 5' overhang out of its length (it is carried in `ends`); pydna counts it.",
+      "kind": "convention",
+      "issue": null,
+      "where": "docs/audit.md"
+    },
+    {
+      "area": "pcr",
+      "text": "pydna refuses a PCR with more than one binding site and a digest with overlapping adjacent cuts. Those cases are compared to the textbook product instead, not to pydna.",
+      "kind": "limit of the oracle",
+      "issue": null,
+      "where": "docs/audit.md; src/test/oracle/pcr.test.ts"
+    },
+    {
+      "area": "translation",
+      "text": "Where an ambiguous codon can only be one of two amino acids, Biopython writes B (D or N), Z (E or Q) or J (I or L) and we write X. Accepted only if every reading of the codon is one of that pair.",
+      "kind": "convention",
+      "issue": null,
+      "where": "src/test/oracle/translation.test.ts"
+    },
+    {
+      "area": "translation",
+      "text": "In genetic codes 27, 28 and 31 some codons are a stop or an amino acid depending on context. Biopython lists them as stops; we translate them. Accepted for exactly those codons.",
+      "kind": "convention",
+      "issue": null,
+      "where": "src/test/oracle/translation.test.ts"
+    },
+    {
+      "area": "genbank",
+      "text": "A location written order(...) is read as join(...), with a warning on opening, and written back as join(...).",
+      "kind": "by design",
+      "issue": null,
+      "where": "src/test/oracle/genbank.test.ts"
+    },
+    {
+      "area": "abif",
+      "text": "Peaks above 32,767 are read as unsigned; Biopython reads them as signed. The unsigned reading is the correct one for the format.",
+      "kind": "oracle is wrong here",
+      "issue": null,
+      "where": "docs/audit.md; docs/design/46-sequencing-reads.md"
+    },
+    {
+      "area": "snapgene",
+      "text": "Biopython takes the record name and description from the file's Comments block; ours does not. Biopython also keeps both strands of a sticky end in the sequence and does not read the ends, so the top strand is rebuilt and its locations clipped before comparing.",
+      "kind": "convention",
+      "issue": null,
+      "where": "docs/audit.md; src/test/oracle/snapgene.test.ts"
+    },
+    {
+      "area": "alignment",
+      "text": "Local alignment runs on through junk flanks with EDNAFULL -10/-0.5, so a read past the end of the reference shows its overhang as differences. Biopython does the same.",
+      "kind": "agrees with the oracle",
+      "issue": null,
+      "where": "docs/audit.md"
+    },
+    {
+      "area": "hairpin-dimer",
+      "text": "Wobble (G.T) pairs, some mismatch and dangling-end terms, tri- and tetraloop bonuses and multi-branch structures are left out of the free-energy model, and its parameters were fitted to Primer3's output. Agreement on the fitting set is not claimed as independent evidence; held-out sets are reported in item 124.",
+      "kind": "model limit",
+      "issue": null,
+      "where": "docs/design/124-thermodynamic-hairpin-dimer.md; docs/audit.md"
+    },
+    {
+      "area": "primer-pairs",
+      "text": "Our top pair often differs from Primer3's, because ranking adds PlasmidPop's own specificity, GC-clamp and structure criteria. The top-five overlap is the comparison kept.",
+      "kind": "by design",
+      "issue": null,
+      "where": "docs/audit.md; docs/design/122-primer-pairs-oracle.md"
+    },
+    {
+      "area": "msa",
+      "text": "The progressive aligner is held to 90 percent of MAFFT's mean pair accuracy over simulated sets, not to MAFFT's alignments. The raw sum of pairs is checked only against the true alignment, since it rewards packing unrelated insertions into shared columns.",
+      "kind": "gate, not equality",
+      "issue": null,
+      "where": "src/test/oracle/msa.test.ts; docs/audit.md"
+    },
+    {
+      "area": "detect-features",
+      "text": "Two calls name a part differently from pLannotate: pBR322's tet gene (ours TcR, pLannotate's TetA (Tn10)) and the short SV40 origin in AF239250 (ours SV40 ori, pLannotate's SV40 promoter). Held to exactly those two.",
+      "kind": "convention",
+      "issue": null,
+      "where": "src/test/oracle/plannotate.test.ts"
+    },
+    {
+      "area": "detect-features",
+      "text": "The Tn7 end parts in MK161519.1 have no direction to work in: ours read as in AY599231, SnapGene draws them the other way. Held to exactly those two.",
+      "kind": "convention",
+      "issue": null,
+      "where": "src/test/oracle/plannotate.test.ts"
+    },
+    {
+      "area": "sanger-assembly",
+      "text": "There is no external assembler to compare with and the reads are simulated, so qualities are calibrated by construction and peak overlap, compression and context-dependent errors are absent. A pass is a floor, not proof on real chromatograms.",
+      "kind": "limit of the oracle",
+      "issue": null,
+      "where": "docs/design/123-sanger-assembly-oracle.md; docs/audit.md"
+    }
+  ]
+}

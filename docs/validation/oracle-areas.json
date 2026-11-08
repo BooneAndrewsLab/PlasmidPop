@@ -1,0 +1,451 @@
+{
+  "$comment": "The validation page's list of oracle areas (item 142). Hand-written: what each area compares and which oracle it uses. Everything numeric on the page is NOT here: case counts are counted from the committed JSON named in `counts`, and a version is read from scripts/oracle/requirements.txt or from the stamp the generator wrote into the JSON. src/test/scripts/validationTools.test.ts fails when a file or test under src/test/oracle has no entry here.",
+  "dataDir": "src/test/oracle",
+  "areas": [
+    {
+      "id": "restriction",
+      "title": "Restriction enzymes and cut sites",
+      "oracles": [
+        {
+          "name": "Biopython Bio.Restriction (REBASE data as Biopython ships it)",
+          "package": "biopython",
+          "stampKey": "biopython"
+        }
+      ],
+      "compares": "Where each enzyme cuts, top and bottom strand, on real plasmids, on sites straddling the origin or touching the ends of a linear molecule, and on random sequences; and that the bundled enzyme table says what REBASE says for each of its enzymes.",
+      "files": ["restriction.json"],
+      "tests": ["restriction.test.ts"],
+      "counts": [
+        {
+          "file": "restriction.json",
+          "path": "cases",
+          "unit": "sequences cut with a panel of enzymes"
+        },
+        { "file": "restriction.json", "path": "enzymes", "unit": "enzymes in the panel" },
+        {
+          "file": "restriction.json",
+          "path": "bundled",
+          "unit": "bundled enzymes checked against REBASE"
+        }
+      ]
+    },
+    {
+      "id": "digest",
+      "title": "Digests, ligation and cuts at the origin",
+      "oracles": [
+        {
+          "name": "pydna Dseq.cut, Dseq + and looped()",
+          "package": "pydna"
+        },
+        {
+          "name": "Biopython Bio.Restriction search(linear=False), for the cut labels at the origin",
+          "package": "biopython",
+          "stampKey": "biopython"
+        }
+      ],
+      "compares": "The top strand of every fragment and how each end looks (kind of overhang and its bases), what ligation makes of the ends (hybrid sites, blunt ends, 3' overhangs, Type IIS ends, a vector whose origin was moved), and the cut labels and fragments where a cut falls within two bases of the origin of a circle.",
+      "files": ["digest.json"],
+      "tests": ["digest.test.ts"],
+      "counts": [
+        { "file": "digest.json", "path": "digests", "unit": "digests of real plasmids" },
+        { "file": "digest.json", "path": "ligations", "unit": "ligations" },
+        {
+          "file": "digest.json",
+          "path": "originDigests",
+          "unit": "digests of random circles with a cut at the origin"
+        },
+        { "file": "digest.json", "path": "originLabels", "unit": "cut-label checks at the origin" }
+      ]
+    },
+    {
+      "id": "blunt",
+      "title": "Blunted cut ends",
+      "oracles": [{ "name": "pydna T4(), mung() and looped()", "package": "pydna" }],
+      "compares": "A circular vector is cut, the largest fragment has its ends made blunt (T4 fill-in or mung bean trimming) and is closed on itself; the circle must equal pydna's. Sequence only: no features are carried.",
+      "files": ["blunt.json"],
+      "tests": ["blunt.test.ts"],
+      "counts": [{ "file": "blunt.json", "path": "cases", "unit": "blunted and closed vectors" }]
+    },
+    {
+      "id": "cloning-ends",
+      "title": "Restriction-cloning ends",
+      "oracles": [
+        { "name": "Biopython Bio.Restriction", "package": "biopython", "stampKey": "biopython" },
+        { "name": "pydna (the vector joined to the digested amplicon)", "package": "pydna" }
+      ],
+      "compares": "Where each candidate enzyme cuts the insert stretch and pUC19, and the product of cloning the insert into pUC19 with an enzyme pair, both ways round.",
+      "files": ["cloningEnds.json"],
+      "tests": ["cloningEnds.test.ts"],
+      "counts": [{ "file": "cloningEnds.json", "path": "inserts", "unit": "insert stretches" }]
+    },
+    {
+      "id": "pcr",
+      "title": "PCR products",
+      "oracles": [
+        {
+          "name": "The textbook product (forward primer, template between, reverse complement of the reverse primer), which pydna amplify.pcr also builds",
+          "package": "pydna"
+        }
+      ],
+      "compares": "The product of a primer pair on linear and circular templates, across the origin, with 5' tails, inverse PCR and mismatches in the annealing part. Where pydna refuses a case (more than one binding site), only the textbook product is compared.",
+      "files": ["pcr.json"],
+      "tests": ["pcr.test.ts"],
+      "counts": [{ "file": "pcr.json", "path": "cases", "unit": "PCRs" }]
+    },
+    {
+      "id": "assembly",
+      "title": "Gibson, Golden Gate, overlap primers and yeast assembly",
+      "oracles": [{ "name": "pydna Assembly", "package": "pydna" }],
+      "compares": "Each case is built backwards from a known construct and pydna must rebuild it from the same parts before it is recorded; PlasmidPop must give the same circle (up to rotation and strand). Covers Gibson, Golden Gate (BsaI, BsmBI, BbsI, SapI), In-Fusion and NEBuilder overlap primers, and yeast assembly by recombination, whose repeat warning is held to the number of circles pydna can close.",
+      "files": ["assembly.json"],
+      "tests": ["assembly.test.ts"],
+      "counts": [
+        { "file": "assembly.json", "path": "gibson", "unit": "Gibson assemblies" },
+        { "file": "assembly.json", "path": "goldenGate", "unit": "Golden Gate assemblies" },
+        { "file": "assembly.json", "path": "overlapPrimers", "unit": "overlap-primer designs" },
+        { "file": "assembly.json", "path": "yeast.assemblies", "unit": "yeast assemblies" },
+        { "file": "assembly.json", "path": "yeast.repeats", "unit": "yeast repeat-warning cases" }
+      ]
+    },
+    {
+      "id": "gateway",
+      "title": "Gateway BP and LR reactions",
+      "oracles": [{ "name": "pydna gateway_assembly", "package": "pydna" }],
+      "compares": "From authentic att sequences, every circle pydna makes must be one of ours (product or byproduct), up to rotation and strand, and we make no other; which of the two is the clone is checked by its bases.",
+      "files": ["gateway.json"],
+      "tests": ["gateway.test.ts"],
+      "counts": [{ "file": "gateway.json", "path": "cases", "unit": "reactions" }]
+    },
+    {
+      "id": "editing",
+      "title": "Editing, copying regions and features through a cut",
+      "oracles": [
+        {
+          "name": "Biopython SeqRecord slicing and reverse_complement(features=True), pydna shifted(), and a base-identity model in Python",
+          "package": "biopython",
+          "stampKey": "biopython"
+        }
+      ],
+      "compares": "One delete, insert, replace, set-origin or reverse-complement on seeded linear and circular documents with joins, both strands and features across the origin: the resulting sequence, each feature's bases and its codon_start. Also copying a region, deleting a range, and the features that survive a digest followed by a ligation.",
+      "files": ["editing.json"],
+      "tests": ["editing.test.ts"],
+      "counts": [
+        { "file": "editing.json", "path": "cases", "unit": "single edits" },
+        { "file": "editing.json", "path": "copies", "unit": "region copies" },
+        { "file": "editing.json", "path": "deletes", "unit": "range deletions" },
+        { "file": "editing.json", "path": "ligation", "unit": "digest-and-ligate cases" }
+      ]
+    },
+    {
+      "id": "translation",
+      "title": "Genetic codes and translation",
+      "oracles": [
+        {
+          "name": "Biopython Bio.Data.CodonTable (the NCBI genetic codes) and Seq.translate",
+          "package": "biopython",
+          "stampKey": "biopython"
+        }
+      ],
+      "compares": "Every codon over the full IUPAC alphabet under every NCBI genetic code, start and stop codons, and whole-sequence translations.",
+      "files": ["translation.json"],
+      "tests": ["translation.test.ts"],
+      "counts": [
+        {
+          "file": "translation.json",
+          "path": "tables",
+          "unit": "genetic codes, each on every codon"
+        },
+        { "file": "translation.json", "path": "samples", "unit": "whole-sequence translations" }
+      ]
+    },
+    {
+      "id": "cds",
+      "title": "CDS translation against NCBI",
+      "oracles": [
+        { "name": "NCBI's own /translation qualifiers on GenBank records", "package": null },
+        {
+          "name": "Biopython, translating the same features",
+          "package": "biopython",
+          "stampKey": "biopython"
+        }
+      ],
+      "compares": "The conceptual translation of every CDS that has a protein_id in the NCBI fixtures and in ncbi-cds.gbk (small real records chosen for codon_start 2 and 3, other genetic codes, complement, join and partial ends).",
+      "files": ["cds.json"],
+      "tests": ["cds.test.ts"],
+      "counts": [{ "file": "cds.json", "path": "cases", "unit": "CDS features" }]
+    },
+    {
+      "id": "genbank",
+      "title": "GenBank reading and location writing",
+      "oracles": [
+        {
+          "name": "Biopython SeqIO GenBank parser",
+          "package": "biopython",
+          "stampKey": "biopython"
+        }
+      ],
+      "compares": "For hand-written edge cases, records Biopython wrote, and the real NCBI fixtures: the same bases, topology and, for every feature, type, strand, qualifiers and extracted sequence; and each location written the way Biopython writes it.",
+      "files": ["genbank.json"],
+      "tests": ["genbank.test.ts"],
+      "counts": [
+        { "file": "genbank.json", "path": "static", "unit": "hand-written records" },
+        { "file": "genbank.json", "path": "fixtures", "unit": "NCBI fixture records" },
+        { "file": "genbank.json", "path": "random", "unit": "random records" }
+      ]
+    },
+    {
+      "id": "writers",
+      "title": "Files PlasmidPop writes, read back by other tools",
+      "oracles": [
+        {
+          "name": "Biopython GenBank and SnapGene readers",
+          "package": "biopython",
+          "stampKey": "biopython"
+        }
+      ],
+      "compares": "Every GenBank and SnapGene file the writers produce for the oracle records and for randomly edited documents is read back by Biopython and compared to what was meant. Run by hand (npm run oracle:writer, oracle:snapgene-writer), because it needs Python; the result is not committed.",
+      "files": [],
+      "tests": ["exportGenBank.test.ts", "exportSnapGene.test.ts"],
+      "counts": []
+    },
+    {
+      "id": "fastq",
+      "title": "FASTQ reading",
+      "oracles": [
+        {
+          "name": "Biopython SeqIO FASTQ parser, on Biopython's own Tests/Quality files",
+          "package": "biopython",
+          "stampKey": "biopython"
+        }
+      ],
+      "compares": "Valid files give the same record count, ids, bases and Phred qualities; truncated or ragged files are refused, as Biopython refuses them.",
+      "files": ["fastq.json"],
+      "tests": ["fastq.test.ts"],
+      "counts": [
+        { "file": "fastq.json", "path": "valid", "unit": "valid files" },
+        { "file": "fastq.json", "path": "refused", "unit": "files that must be refused" }
+      ]
+    },
+    {
+      "id": "abif",
+      "title": "AB1 chromatogram reading",
+      "oracles": [
+        { "name": "Biopython SeqIO ABI parser", "package": "biopython", "stampKey": "biopython" }
+      ],
+      "compares": "The same base calls and qualities, and the trace channels and peaks from the tags Biopython read; a file without base calls is refused with a reason.",
+      "files": ["abif.json"],
+      "tests": ["abif.test.ts"],
+      "counts": [
+        { "file": "abif.json", "path": "files", "unit": "chromatogram files" },
+        { "file": "abif.json", "path": "copies", "unit": "variants of one file" }
+      ]
+    },
+    {
+      "id": "snapgene",
+      "title": "SnapGene .dna reading",
+      "oracles": [
+        {
+          "name": "Biopython SeqIO SnapGene parser",
+          "package": "biopython",
+          "stampKey": "biopython"
+        }
+      ],
+      "compares": "The same bases and topology, and every feature and primer at the same place on the same strand, on synthetic .dna fixtures. The sample files of a SnapGene installation can be compared locally but are not redistributed, so that run is not committed.",
+      "files": ["snapgene.json"],
+      "tests": ["snapgene.test.ts"],
+      "counts": [
+        { "file": "snapgene.json", "path": "files", "unit": "fixture files" },
+        { "file": "snapgene.json", "path": "frames", "unit": "CDS reading-frame checks" }
+      ]
+    },
+    {
+      "id": "ncbi-region",
+      "title": "Opening a region from NCBI",
+      "oracles": [
+        {
+          "name": "NCBI efetch, through Biopython Entrez.efetch with the same range",
+          "package": "biopython",
+          "stampKey": "biopython"
+        }
+      ],
+      "compares": "One real region (yeast HBT1 with 200 bp of flank each side, on the minus strand): the request built from esummary's placement, the same bases, and every feature's location and partial marks. The only oracle that uses the network, and only when regenerated.",
+      "files": ["ncbi-region.json"],
+      "tests": ["ncbi-region.test.ts"],
+      "counts": [
+        { "file": "ncbi-region.json", "path": "features", "unit": "features of the region" }
+      ]
+    },
+    {
+      "id": "seguid",
+      "title": "SEGUID checksums",
+      "oracles": [
+        { "name": "The seguid package", "package": null, "stampKey": "seguid" },
+        { "name": "pydna Dseq.seguid()", "package": "pydna" }
+      ],
+      "compares": "SEGUID v2 (ls, cs, ld, cd) for single-stranded linear and circular sequences, double-stranded linear molecules with every mix of overhang kinds, circles on every rotation and strand, and sticky-ended fragments cut from pUC19 and pBR322.",
+      "files": ["seguid.json"],
+      "tests": ["seguid.test.ts"],
+      "counts": [
+        { "file": "seguid.json", "path": "singleStranded", "unit": "single-stranded sequences" },
+        { "file": "seguid.json", "path": "duplexes", "unit": "duplexes" },
+        { "file": "seguid.json", "path": "circles", "unit": "circles" },
+        { "file": "seguid.json", "path": "fragments", "unit": "sticky-ended fragments" },
+        { "file": "seguid.json", "path": "wholeCircles", "unit": "whole plasmids" }
+      ]
+    },
+    {
+      "id": "tm",
+      "title": "Melting temperature",
+      "oracles": [
+        {
+          "name": "primer3-py calc_tm (SantaLucia 1998, formamide and DMSO zeroed)",
+          "package": "primer3-py",
+          "stampKey": "primer3"
+        },
+        {
+          "name": "Biopython Tm_NN (Q5 model, Owczarzy 2004 salt correction)",
+          "package": "biopython",
+          "stampKey": "biopython"
+        }
+      ],
+      "compares": "meltingTemperature against primer3's calc_tm under five salt and primer concentrations, and q5MeltingTemperature against Biopython's Tm_NN, self-complementary primers included.",
+      "files": ["thermo.json"],
+      "tests": ["thermo.test.ts"],
+      "counts": [
+        { "file": "thermo.json", "path": "rows", "unit": "primers" },
+        { "file": "thermo.json", "path": "conditions", "unit": "salt and primer conditions" }
+      ]
+    },
+    {
+      "id": "hairpin-dimer",
+      "title": "Primer hairpins and dimers",
+      "oracles": [
+        {
+          "name": "primer3-py calc_hairpin, calc_homodimer, calc_heterodimer",
+          "package": "primer3-py",
+          "stampKey": "primer3"
+        }
+      ],
+      "compares": "The free energy of the best hairpin, self-dimer and pair dimer, and whether a primer or pair is flagged at the designer's cutoffs, against Primer3's. The gate is the share flagged the same way. The model's loop terms were fitted to data of this kind, so this set is not independent of them; item 124 reports two held-out sets as well. Also the melting temperature of each primer's best hairpin, against Primer3's, which is what Primer3 refuses a primer on.",
+      "files": ["hairpinDimer.json", "hairpinTm.json"],
+      "tests": ["hairpinDimer.test.ts", "src/core/primers/structure.test.ts"],
+      "counts": [
+        { "file": "hairpinDimer.json", "path": "rows", "unit": "primers (hairpin and self-dimer)" },
+        { "file": "hairpinDimer.json", "path": "pairs", "unit": "primer pairs" },
+        {
+          "file": "hairpinTm.json",
+          "path": "rows",
+          "unit": "primers (hairpin melting temperature)"
+        }
+      ]
+    },
+    {
+      "id": "primer-pairs",
+      "title": "Primer pair selection",
+      "oracles": [
+        {
+          "name": "Primer3 design_primers, through primer3-py",
+          "package": "primer3-py",
+          "stampKey": "primer3"
+        }
+      ],
+      "compares": "Seeded synthetic templates with a target: our designer's top five pairs for each were handed to Primer3, which says whether it would accept them and at what penalty; Primer3's own top five are recorded beside them. The gate is loose and nothing here says which of the two is right.",
+      "files": ["primerPairs.json", "primerPairsOurs.json"],
+      "tests": ["primerPairs.test.ts"],
+      "counts": [
+        { "file": "primerPairs.json", "path": "templates", "unit": "templates" },
+        {
+          "file": "primerPairs.json",
+          "path": "templates.*.ours",
+          "unit": "of our pairs judged by Primer3"
+        }
+      ]
+    },
+    {
+      "id": "alignment",
+      "title": "Pairwise alignment and read mapping",
+      "oracles": [
+        {
+          "name": "Biopython Bio.Align.PairwiseAligner (EDNAFULL -10/-0.5; BLOSUM62 -11/-1)",
+          "package": "biopython",
+          "stampKey": "biopython"
+        }
+      ],
+      "compares": "The optimal global and local score of seeded DNA and protein pairs and, where Biopython's best alignment is unique, the span each sequence covers; the banded path on long pairs and on pairs built to lead the band astray; read mapping across the origin of a circle against the reference written twice; and the protein effect of a variant across the origin.",
+      "files": ["alignment.json"],
+      "tests": ["alignment.test.ts"],
+      "counts": [
+        { "file": "alignment.json", "path": "cases", "unit": "pairs, global and local" },
+        { "file": "alignment.json", "path": "long", "unit": "long pairs through the banded path" },
+        { "file": "alignment.json", "path": "banded", "unit": "pairs built against the band" },
+        { "file": "alignment.json", "path": "circular", "unit": "circular read placements" },
+        { "file": "alignment.json", "path": "circularScores", "unit": "circular read scores" },
+        {
+          "file": "alignment.json",
+          "path": "circularReads.cases",
+          "unit": "reads across the origin, single and batch paths"
+        },
+        { "file": "alignment.json", "path": "effects", "unit": "protein effects across the origin" }
+      ]
+    },
+    {
+      "id": "msa",
+      "title": "Multiple alignment",
+      "oracles": [{ "name": "MAFFT", "package": null, "stampKey": "mafftVersion" }],
+      "compares": "Simulated sets of related sequences (bases and proteins) along a random tree with substitutions and indels, so the true alignment is known. The share of the true alignment's residue pairs an alignment puts in one column (SP score) must reach at least 90 percent of MAFFT's mean over the sets. MAFFT is never run in the tests; the committed alignments are read.",
+      "files": ["msa.json"],
+      "tests": ["msa.test.ts"],
+      "counts": [{ "file": "msa.json", "path": "sets", "unit": "simulated sets" }]
+    },
+    {
+      "id": "crispr",
+      "title": "CRISPR guide sites",
+      "oracles": [
+        {
+          "name": "Biopython Bio.SeqUtils.nt_search, an independent IUPAC PAM search",
+          "package": "biopython",
+          "stampKey": "biopython"
+        }
+      ],
+      "compares": "Every guide of pUC19, pBR322, phiX174 and a linear record, and of random circles where the origin falls inside a spacer or a PAM: protospacer coordinates, the PAM, both cut boundaries, and for pUC19 off-target counts by mismatch. On-target scoring is not compared, because there is none in the app.",
+      "files": ["crispr.json"],
+      "tests": ["crispr.test.ts"],
+      "counts": [
+        { "file": "crispr.json", "path": "cases", "unit": "sequences searched" },
+        { "file": "crispr.json", "path": "cases.*.guides", "unit": "guides compared" }
+      ]
+    },
+    {
+      "id": "detect-features",
+      "title": "Detect features",
+      "oracles": [{ "name": "pLannotate", "package": null, "stampKey": "plannotate" }],
+      "compares": "Real vectors from NCBI, stripped to bare sequence, annotated by pLannotate; Detect features must not fall below the recall per part class that was measured when the baseline was set, and must not name a part differently or put it on the other strand except for the listed cases. pLannotate is never run in the tests.",
+      "files": ["plannotate.json", "plannotate-aliases.json"],
+      "tests": ["plannotate.test.ts", "plannotateCompare.ts"],
+      "counts": [{ "file": "plannotate.json", "path": "vectors", "unit": "vectors" }]
+    },
+    {
+      "id": "sanger-assembly",
+      "title": "Sanger read assembly",
+      "oracles": [
+        {
+          "name": "A known construct: reads simulated from a seeded synthetic sequence, with no external tool",
+          "package": null
+        }
+      ],
+      "compares": "Reads whose errors follow their own Phred qualities, over layouts with repeats and noisy ends: the contig and consensus must equal the construct, and the consensus qualities must mean what they say. Simulated reads are less realistic than real chromatograms, so a pass is a floor, not proof on real files. No data file is committed: the cases are generated inside the tests, so no case count is recorded.",
+      "files": [],
+      "tests": [
+        "sangerAssembly1.test.ts",
+        "sangerAssembly2.test.ts",
+        "sangerAssembly3.test.ts",
+        "sangerAssembly4.test.ts"
+      ],
+      "counts": []
+    }
+  ],
+  "support": {
+    "files": ["ncbi-cds.gbk"],
+    "tests": ["sangerAssemblyHarness.ts", "sangerSim.ts"]
+  }
+}

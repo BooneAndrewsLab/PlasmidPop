@@ -23,12 +23,27 @@ import {
 } from './src/app/help/staticTutorials.ts';
 import { handleShareTarget, isShareTargetRequest } from './src/pwa/shareTarget.ts';
 import { MUTATION_SKIP } from './scripts/mutationTools.mjs';
+import { fillValidationMarker, validationMarkdown } from './scripts/validationTools.mjs';
 
 /**
  * Deployment base path, e.g. "/PlasmidPop/" for GitHub Pages under a repo.
  * Set BASE_PATH in the environment at build time; defaults to the root.
  */
 const base = process.env['BASE_PATH'] ?? '/';
+
+const root = fileURLToPath(new URL('.', import.meta.url));
+
+/**
+ * The Validation page (item 142, #362): the marker line of its Markdown is
+ * replaced by tables counted from the committed oracle data and the committed
+ * mutation summary (scripts/validationTools.mjs). The tables are read when the
+ * page is read, so the dev server shows an edited data file on the next
+ * request; the app's own copy is `__VALIDATION_TABLES__` below.
+ */
+const validationTables = (markdown: string): string =>
+  markdown.includes('<!-- validation-tables -->')
+    ? fillValidationMarker(markdown, validationMarkdown(root))
+    : markdown;
 
 /**
  * Test files that need a module registry of their own: those that replace a
@@ -88,7 +103,7 @@ function staticGuide(): Plugin {
       .sort()
       .map((f) => ({
         id: f.replace(/\.md$/, ''),
-        markdown: readFileSync(new URL(f, dir), 'utf8'),
+        markdown: validationTables(readFileSync(new URL(f, dir), 'utf8')),
       }));
   const tdir = new URL('./docs/tutorials/', import.meta.url);
   const readTutorial = (id: string): SourcePage => ({
@@ -175,6 +190,10 @@ export default defineConfig({
     // Shown in the guide's header, so a user or a bug report can say which
     // release they are on. package.json is the one place it is written.
     __APP_VERSION__: JSON.stringify(pkg.version),
+    // The generated tables of the guide's Validation page (item 142), counted
+    // from the committed oracle data when the build starts. guide.ts puts them
+    // where the page's marker line is.
+    __VALIDATION_TABLES__: JSON.stringify(validationMarkdown(root)),
   },
   plugins: [
     react(),
