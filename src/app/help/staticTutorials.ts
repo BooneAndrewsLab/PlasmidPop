@@ -41,6 +41,7 @@ export const TUTORIAL_SECTIONS: readonly { title: string; ids: readonly string[]
       'gateway',
       'yeast-assembly',
       'mutagenesis',
+      'batch-primers',
     ],
   },
   { title: 'Analysis', ids: ['enzymes', 'align', 'crispr'] },

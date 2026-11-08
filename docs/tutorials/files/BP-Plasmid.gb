@@ -1,0 +1,37 @@
+LOCUS       BP-Plasmid           923 bp    DNA     circular SYN 08-NOV-2026
+DEFINITION  BP-Plasmid, circular plasmid for the Batch primers tutorial: an
+            81 residue ORF, synthORF (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     promoter        1..120
+                     /label="synthetic promoter"
+     CDS             141..383
+                     /label="synthORF"
+                     /codon_start=1
+                     /note="synthetic example ORF, 81 codons, ATG to stop"
+     terminator      384..463
+                     /label="synthetic terminator"
+     rep_origin      524..923
+                     /label="ori"
+                     /note="synthetic stand-in for an origin"
+ORIGIN
+        1 tcataccact cccatctgat ttgctggttg gcgcgcagca gctgttttac agtccggttt
+       61 tctggtaatt atgcagatac tctaataaat tttagtataa gcgaatgcca atcctgtcct
+      121 aaaaaagcgt ctcgccctgg atgtgcgccg agtggaacct cagcaactac tgcgcttgcc
+      181 ttatcttcct aaatctccac tggttccccc tagcttggaa gactctgtcg ttttattatc
+      241 ttacccgttc tgaccatttt cagcgcttgg atgatctgag tccttcgcgc cggcaacggc
+      301 ccgacgtctc aaactcatat gtacccaaaa agtgcggcga cgtggctaat attaggctca
+      361 ggataggagt gacctttcct taataacccg ctgcctttga cctgccaaat ttcgaccgtc
+      421 ggacactccg tcgacctgta tgctcaaacc tagcatcaat ccccgtctca tgtgcgccga
+      481 tacgagaacc acagggttct cggcgatcta taggtctggc ccgttcgtac ccctcatcct
+      541 agggaatatc caagattaga ttcgaaaagc gagatggcga tggggtcgta gacggcgtta
+      601 agcatgtctg tgactaccat gctcactatc cgaccggctc actctctgaa agccgcttta
+      661 tcaccgattg tccagcaagt gtcaaacact aggctctact atagacgtgg ttacgtagct
+      721 ttgcgtcgca cggaaataga acccgagttc cccaagcatc tcggtctggg gcattgagcc
+      781 cgaaacggtt aacttcagta aggctccttg gaaacgagga tgcgaccaaa cggaaggctc
+      841 tcccttgcat cgtccgggga cgcatcaagg cgaccaaata ggatgttgca gctggatgag
+      901 cgttctttac gctttcgtgg tcg
+//

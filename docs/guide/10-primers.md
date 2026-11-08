@@ -134,7 +134,9 @@ selection; the Design page's **Last design** line goes the other way.
 instead of one at a time: a row for each region or each point mutation, run
 one after another, with the results in a table and the oligos saved together.
 It is on the workspace's rail, so on a phone, where the workspace is not
-offered, it is not there.
+offered, it is not there. The tutorial
+[Batch: many primer pairs and many inserts at once](../tutorials/batch-primers.md)
+walks through it with a sample plasmid.
 
 The **Method** select at the top says what a row is designed as: **Primer
 pairs**, which is what the rest of this section describes, or one of the three

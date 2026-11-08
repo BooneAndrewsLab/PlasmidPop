@@ -64,7 +64,7 @@ describe('static tutorial pages (#312)', () => {
     }
     expect(TUTORIAL_ORDER[0]).toBe('before-you-start');
     expect(TUTORIAL_ORDER.at(-1)).toBe('sample-files');
-    expect(TUTORIAL_ORDER).toHaveLength(16);
+    expect(TUTORIAL_ORDER).toHaveLength(17);
   });
 
   it('emit an index, one page per tutorial and every sample file', () => {
@@ -156,6 +156,7 @@ describe('static tutorial pages (#312)', () => {
       'overlap-pcr',
       'gateway',
       'mutagenesis',
+      'batch-primers',
     ]) {
       const page = byPath.get(`tutorials/${id}/index.html`) ?? '';
       expect(page, id).toMatch(/href="\.\.\/files\/[\w.-]+\.gb" download/);
@@ -168,7 +169,7 @@ describe('static tutorial pages (#312)', () => {
       for (const m of p.markdown.matchAll(/\]\(files\/([^)#]+)\)/g))
         expect(names.has(m[1] ?? ''), `${p.id}: ${m[1]}`).toBe(true);
       for (const m of p.markdown.matchAll(
-        /`((?:p?GG|pLig|Insert|GB|pIF|IF|OE|GW|SDM)[\w-]*\.gb)`/g,
+        /`((?:p?GG|pLig|Insert|GB|pIF|IF|OE|GW|SDM|BP)[\w-]*\.gb)`/g,
       ))
         expect(names.has(m[1] ?? ''), `${p.id} names ${m[1]}`).toBe(true);
     }
