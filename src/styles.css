@@ -5683,6 +5683,36 @@ button {
   border-radius: 6px;
 }
 
+/* The batch form is a column: Method, Template and Rows each take the width,
+   where in a plain group the inline-flex labels sat side by side and the
+   Rows box shrank to its placeholder. */
+.batch__form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+.batch__form > .panel__note,
+.batch__form > .panel__textarea {
+  margin: 0;
+}
+
+/* The scan fields, one to a line with the labels in a column. */
+.batch__scan .panel__field--row {
+  display: flex;
+}
+
+.batch__scan .panel__field--row > span {
+  flex: 0 0 8em;
+}
+
+.batch__scan .panel__field--row .panel__input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .panel__group legend {
   padding: 0 4px;
   color: var(--ink-2);

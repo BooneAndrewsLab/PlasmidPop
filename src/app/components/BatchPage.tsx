@@ -356,7 +356,7 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
 
   return (
     <div className="results">
-      <div className="panel__group">
+      <div className="panel__group batch__form">
         <label className="panel__field panel__field--row">
           <span>Method</span>
           <select
@@ -584,7 +584,7 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
           />
         </div>
         {!cloningMethod && (
-          <details className="panel__details panel__options">
+          <details className="panel__details panel__options batch__scan">
             <summary className="panel__details-summary">
               <span className="panel__details-title">Generate scan rows…</span>
               <span className="panel__details-note">every codon of a gene to one residue</span>
