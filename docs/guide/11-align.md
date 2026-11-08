@@ -265,9 +265,13 @@ listed as not paired. The page says how many pairs it found.
 - **A read that fits two places.** When a read lies in a sequence the contig
   has twice and its mate is already in the contig, the copy where the two face
   each other, the right distance apart, is the one it goes to, and there is
-  no warning. With no insert size only the facing is used, which decides it only
-  when the other copy would put the mates on one strand or facing away. A read
-  whose mate is in another contig, or not yet placed, still waits as before.
+  no warning. With three or more copies every copy is tried, not only the
+  first two. If exactly one copy fits the mate the read goes there; if more
+  than one fits, or none does, the read goes to its best place with the repeat
+  warning, as it would without the pair. With no insert size only the facing
+  is used, which decides it only when the other copies would put the mates on
+  one strand or facing away. A read whose mate is in another contig, or not yet
+  placed, still waits as before.
 - **Pairs that do not fit.** After assembly each pair in one contig is
   judged, and a contig that holds a pair that does not fit says so as a
   read-pair warning (in the **Contig** picker, in amber above the layout and

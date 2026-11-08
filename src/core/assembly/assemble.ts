@@ -673,25 +673,45 @@ async function findPlacements(
 }
 
 /**
- * Where the read, placed at `chosen`, fits the consensus as well somewhere
- * else (#347), or null: the whole read aligned to what is left of the
- * consensus either side of the chosen place, valid there too. A read inside
- * a sequence the consensus has twice has one.
+ * The most places looked for besides the chosen one (#419), and the most
+ * stretches aligned doing it. A repeat of more copies than this in one
+ * contig is past what a Sanger read can tell apart anyway.
  */
-async function fitsElsewhere(
+const MAX_ALTERNATIVES = 8;
+const MAX_STRETCHES = 2 * MAX_ALTERNATIVES;
+
+/**
+ * Where the read, placed at `chosen`, fits the consensus as well somewhere
+ * else (#347, #419), best found first, or none: the whole read aligned to what
+ * is left of the consensus either side of the chosen place, valid there too.
+ * A read inside a sequence the consensus has twice has one. Each place found
+ * is cut out of its stretch and what is left either side tried again, so a
+ * third and fourth copy in the same stretch are found as well as the first
+ * (a stretch that holds a place is aligned once more, shorter, for each side
+ * of it; one that holds none, once). At most `limit` places are returned.
+ */
+async function alternativePlacements(
   cons: Consensus,
   read: Prepared,
   chosen: Candidate,
   align: AssemblyAlign,
   minOverlap: number,
   minIdentity: number,
-): Promise<Candidate | null> {
-  const { startA, endA } = chosen.alignment;
-  for (const span of [
-    [0, startA],
-    [endA, cons.text.length],
-  ] as const) {
+  limit: number,
+): Promise<Candidate[]> {
+  const out: Candidate[] = [];
+  const todo: [number, number][] = [
+    [0, chosen.alignment.startA],
+    [chosen.alignment.endA, cons.text.length],
+  ];
+  let aligned = 0;
+  for (
+    let span = todo.shift();
+    span !== undefined && out.length < limit && aligned < MAX_STRETCHES;
+    span = todo.shift()
+  ) {
     if (span[1] - span[0] < minOverlap) continue;
+    aligned++;
     const other = await placeStretch(
       cons,
       span,
@@ -701,9 +721,13 @@ async function fitsElsewhere(
       minOverlap,
       minIdentity,
     );
-    if (other?.valid === true) return other;
+    if (other === null) continue;
+    if (other.valid) out.push(other);
+    // The best alignment in the stretch, valid or not, is taken out: another
+    // copy is in what is left of it.
+    todo.push([span[0], other.alignment.startA], [other.alignment.endA, span[1]]);
   }
-  return null;
+  return out;
 }
 
 /** Where a candidate puts the read along the consensus, ends it hangs over the consensus with included. */
@@ -963,15 +987,24 @@ async function assembleWith(
       let chosen = picks[0];
       let ambiguous = true;
       for (const p of picks) {
-        const elsewhere = await fitsElsewhere(cons, p.read, p.pick, align, minOverlap, minIdentity);
-        if (elsewhere === null) {
+        // Where its mate is may settle which place it goes to (item 130).
+        const mate = mates.get(p.read.index);
+        const at = mate === undefined ? null : layout.extentOf(mate, cons);
+        // Without a mate to judge by only whether there is a second place matters.
+        const elsewhere = await alternativePlacements(
+          cons,
+          p.read,
+          p.pick,
+          align,
+          minOverlap,
+          minIdentity,
+          at === null ? 1 : MAX_ALTERNATIVES,
+        );
+        if (elsewhere.length === 0) {
           chosen = p;
           ambiguous = false;
           break;
         }
-        // Two places fit; where its mate is may settle which (item 130).
-        const mate = mates.get(p.read.index);
-        const at = mate === undefined ? null : layout.extentOf(mate, cons);
         if (at !== null) {
           const length = cons.text.length;
           const fits = (c: Candidate): boolean => {
@@ -981,10 +1014,12 @@ async function assembleWith(
               'consistent'
             );
           };
-          const first = fits(p.pick);
-          const second = fits(elsewhere);
-          if (first !== second) {
-            chosen = first ? p : { ...p, pick: elsewhere };
+          // Exactly one place the mates fit settles it; several, or none,
+          // leave the best with the warning (#419).
+          const fitting = [p.pick, ...elsewhere].filter(fits);
+          const only = fitting.length === 1 ? fitting[0] : undefined;
+          if (only !== undefined) {
+            chosen = only === p.pick ? p : { ...p, pick: only };
             ambiguous = false;
             break;
           }

@@ -224,6 +224,119 @@ describe('a mate says which copy of a repeat a read is in (#347)', () => {
   );
 });
 
+/**
+ * A construct of `copies` copies of one repeat of `repeat` bases, each followed by
+ * `gap` bases of its own unique sequence, behind 300 unique bases (#419). Copy
+ * `k` (0-based) starts at `300 + k * (repeat + gap)`.
+ */
+function repeated(copies: number, repeat: number, gap: number, seed: number) {
+  const r = bases(repeat, seed);
+  const parts = [bases(300, seed + 1)];
+  for (let k = 0; k < copies; k++) parts.push(r, bases(gap, seed + 2 + k));
+  const text = parts.join('');
+  const start = (k: number): number => 300 + k * (repeat + gap);
+  const cut = (name: string, from: number, to: number, reverse = false): AssemblyRead => {
+    const part = text.slice(from, to);
+    return {
+      name,
+      sequence: reverse ? reverseComplement(part) : part,
+      qualities: q(to - from),
+    };
+  };
+  return { text, start, cut };
+}
+
+describe('every other copy of a repeat is weighed against the mate (#419)', () => {
+  /** Copy k of the repeat holds the forward read; the reverse mate is `after` bases past its start. */
+  const scene = (copies: number, repeat: number, gap: number, seed: number) => {
+    const t = repeated(copies, repeat, gap, seed);
+    return { ...t, whole: t.cut('whole', 0, t.text.length) };
+  };
+
+  it(
+    'finds the third of three copies when only that one is where the mate says',
+    async () => {
+      // Copies at 300, 700, 1100 (repeat 200, gap 200). The read is 100 bases inside the
+      // third (1150-1250), its mate 1400-1500: a template of 350.
+      const t = scene(3, 200, 200, 500);
+      const reads = [t.whole, t.cut('t_F', 1150, 1250), t.cut('t_R', 1400, 1500, true)];
+      const plain = await assembleReads(reads, { align });
+      expect(plain.contigs[0]?.warnings.map((w) => w.kind)).toEqual(['ambiguous-join']);
+      const out = await assembleReads(reads, withPairs(reads, 350));
+      expect(place(out, 't_F')).toBe('1150-1250+');
+      expect(out.contigs[0]?.warnings).toEqual([]);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'finds the third of four copies, and the second, when only that one fits',
+    async () => {
+      // Four copies at 300, 700, 1100, 1500; the mate lies after the third.
+      const t = scene(4, 200, 200, 510);
+      const reads = [t.whole, t.cut('t_F', 1150, 1250), t.cut('t_R', 1400, 1500, true)];
+      const out = await assembleReads(reads, withPairs(reads, 350));
+      expect(place(out, 't_F')).toBe('1150-1250+');
+      expect(out.contigs[0]?.warnings).toEqual([]);
+      // The same four copies, the mate after the second.
+      const second = [t.whole, t.cut('s_F', 750, 850), t.cut('s_R', 1000, 1100, true)];
+      const out2 = await assembleReads(second, withPairs(second, 350));
+      expect(place(out2, 's_F')).toBe('750-850+');
+      expect(out2.contigs[0]?.warnings).toEqual([]);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'finds the third of three copies for a reverse read whose mate lies before it',
+    async () => {
+      const t = scene(3, 200, 200, 520);
+      // The forward mate in the unique stretch before the third copy (900-1000), the
+      // reverse read 1150-1250 in it: a template of 350.
+      const reads = [t.whole, t.cut('t_F', 900, 1000), t.cut('t_R', 1150, 1250, true)];
+      const out = await assembleReads(reads, withPairs(reads, 350));
+      expect(place(out, 't_R')).toBe('1150-1250-');
+      expect(out.contigs[0]?.warnings).toEqual([]);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'keeps the ambiguity when two copies both fit the mate',
+    async () => {
+      // Copies 180 bases apart (repeat 120, gap 60) at 300, 480, 660. A read 10 bases into
+      // the second copy (490-590) and the mate in the unique 780-840: templates of 530, 350
+      // and 170 from the three copies, against an insert of 260 (160 to 360 allowed), so the
+      // second and the third fit and the first does not.
+      const t = scene(3, 120, 60, 530);
+      const reads = [t.whole, t.cut('t_F', 490, 590), t.cut('t_R', 780, 840, true)];
+      const plain = await assembleReads(reads, { align });
+      const out = await assembleReads(reads, withPairs(reads, 260));
+      // Not settled by the mate: where it goes, and the warning, are what they were without
+      // one (the pair may then say it does not fit where the read was put).
+      expect(place(out, 't_F')).toBe(place(plain, 't_F'));
+      expect(out.contigs[0]?.warnings.map((w) => w.kind)).toContain('ambiguous-join');
+      expect(out.contigs[0]?.warnings[0]).toEqual(plain.contigs[0]?.warnings[0]);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'keeps the ambiguity when none of the copies fits the mate',
+    async () => {
+      const t = scene(4, 200, 200, 540);
+      // Templates of 1450, 1050, 650 and 250 from the four copies, against an insert of 800
+      // (700 to 900 allowed): none.
+      const reads = [t.whole, t.cut('t_F', 350, 450), t.cut('t_R', 1700, 1800, true)];
+      const plain = await assembleReads(reads, { align });
+      const out = await assembleReads(reads, withPairs(reads, 800));
+      expect(out.contigs[0]?.warnings.map((w) => w.kind)).toContain('ambiguous-join');
+      expect(place(out, 't_F')).toBe(place(plain, 't_F'));
+    },
+    TIMEOUT,
+  );
+});
+
 describe('pairs that do not fit the layout (item 130)', () => {
   it(
     'warns when mates are nearer than the insert, as when two copies of a repeat are laid on one',

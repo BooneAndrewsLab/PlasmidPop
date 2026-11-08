@@ -51,8 +51,8 @@ forward FP 1`, reverse `R rev reverse rvs RP 2`, after `_ . - / space`, or
   they do not refuse a join, and they do not alter the thresholds. They are
   used in two places:
   1. _Where a read goes when it fits the contig at two places._ The
-     assembler already found the second place (`fitsElsewhere`, item 123, to
-     warn); it now returns it. If the read's mate is in the layout, each
+     assembler already found a second place (`fitsElsewhere`, item 123, to
+     warn; renamed `alternativePlacements` by #419, below); it now returns it. If the read's mate is in the layout, each
      place is judged against the mate by the same function that judges a
      finished contig (`judgePair`); exactly one of them fitting settles it,
      and that read goes in as one that fits one place, with no warning. Both or
@@ -160,6 +160,39 @@ the oracle's, `sangerSim.ts`).
 - **A name field to pair by hand.** The rule is documented; a pair that does
   not pair is renamed. If it turns out to be needed it is a separate issue.
 - **Using a record's file name** when its own name carries no token.
+
+## Every alternative placement, not the first (#419)
+
+`fitsElsewhere` tried the stretch left of the chosen place, then the stretch
+right of it, and returned the first valid alignment. With three or more copies
+of a repeat in one stretch the others were never compared, so the mate could
+judge the chosen place against the wrong alternative (copy 1 against copy 2
+when the mate says copy 3), and when the chosen place and that alternative both
+failed or both fit, the right copy was not seen at all.
+
+`alternativePlacements` replaces it. It aligns the whole read to each stretch
+as before; every alignment found is cut out of its stretch and what is left
+either side is aligned again (stretches shorter than `minOverlap` are skipped,
+as before), so each further copy is found by one more alignment of a shorter
+piece. The thresholds and the validity test are unchanged (`placeStretch`).
+The search is bounded: at most 8 alternatives and 16 stretches aligned per
+read per round.
+
+- **Decision.** The chosen place and its alternatives are each judged by
+  `judgePair` against the mate (orientation, and insert size by the same
+  tolerance rule). Exactly one fitting place settles it, whichever it is, with
+  no warning. More than one fitting, or none, keeps the best place with the
+  repeat warning; the mate does not pick between places it cannot tell apart.
+  Before, only the chosen place and the first alternative found were
+  compared, so a mate that fitted the first alternative but also a later copy
+  settled the read silently on the first.
+- **Cost.** A read with no mate in the layout still stops at the first
+  alternative, as before, since it only needs to know a second place exists.
+  Only a read whose mate is already placed and that has an alternative pays
+  for the enumeration, one alignment per further copy and side.
+- **Tests:** `pairing.assemble.test.ts`, "every other copy of a repeat is
+  weighed against the mate": three and four copies with only the third (or
+  second) compatible, a reverse read, two copies that both fit, none that fit.
 
 ## Tests
 

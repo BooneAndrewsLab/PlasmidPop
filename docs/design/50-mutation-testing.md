@@ -668,7 +668,7 @@ searching over a copy of the function, and an identity of exactly 0.8); the
 ends of the consensus and of the read that `findPlacements` aligns (the
 aligner's arguments are recorded, forwards and reverse), the shift of a
 stretch of the read into the whole read, a read lying inside the consensus
-trying no corners, `fitsElsewhere` looking at a stretch of exactly `minOverlap`
+trying no corners, `fitsElsewhere` (now `alternativePlacements`, #419) looking at a stretch of exactly `minOverlap`
 and at none shorter, and which reads wait to be tried again (`unrelated`).
 
 Equivalent, by kind:
