@@ -89,6 +89,11 @@ export interface CircularRenderParams {
   /** Top-strand cut position under the pointer, if any; its label is kept. */
   readonly hoveredCut: number | null;
   /**
+   * Enzymes under the pointer in the Enzymes table (#401): their cut labels
+   * keep their place however crowded the ring, in a bubble, on a heavier tick.
+   */
+  readonly highlightedEnzymes?: ReadonlySet<string>;
+  /**
    * The change under the pointer, or the one a review's list is pointing at
    * (#27): it says what it is in a floating label, and a ghost is drawn in a
    * heavier line. Features, labels and cut sites under the pointer win.
@@ -891,6 +896,12 @@ const ELLIPSIS = '…';
  */
 const RANK_FEATURE = 2e9;
 const RANK_CUT = 1e9;
+/**
+ * Added to the rank of a cut label the Enzymes table is pointing at (#401).
+ * Unlike the pointer on the map, which would shuffle neighbours as it moves,
+ * a row is a deliberate ask for that enzyme's sites, so they outrank features.
+ */
+const RANK_HIGHLIGHT = 1e10;
 
 /** The text, shortened with an ellipsis, or null if even that will not fit. */
 function fitText(
@@ -1131,10 +1142,14 @@ function drawLabels(
     cutsByPosition.set(s.cut, list);
     cutsPerEnzyme.set(s.enzyme, (cutsPerEnzyme.get(s.enzyme) ?? 0) + 1);
   }
+  const stressed = p.highlightedEnzymes;
+  const loudCuts = new Set<number>();
+  for (const s of p.cutSites) if (stressed?.has(s.enzyme) === true) loudCuts.add(s.cut);
   for (const [cut, names] of cutsByPosition) {
     const text = `${names.join(', ')} (${cutLabel(cut, doc.length, doc.topology).toLocaleString()})`;
     const rarity = Math.min(...names.map((n) => cutsPerEnzyme.get(n) ?? 1));
-    const rank = RANK_CUT + 1e6 - Math.min(rarity, 1e3) * 1e3;
+    const rank =
+      RANK_CUT + 1e6 - Math.min(rarity, 1e3) * 1e3 + (loudCuts.has(cut) ? RANK_HIGHLIGHT : 0);
     add(`${CUT_PREFIX}${cut}`, text, layout.angleOf(cut), rank, names.join(', '));
   }
 
@@ -1223,7 +1238,7 @@ function drawLabels(
       const inner = layout.pointAt(cut, layout.radius - 6);
       start = layout.pointAt(cut, layout.radius + 8);
       ctx.strokeStyle = theme.cutSite;
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = loudCuts.has(cut) ? 3 : 1.5;
       ctx.beginPath();
       ctx.moveTo(inner.x, inner.y);
       ctx.lineTo(start.x, start.y);
@@ -1271,6 +1286,8 @@ function drawLabels(
       continue;
     }
     drawPlate(ctx, p, label.box);
+    if (label.id.startsWith(CUT_PREFIX) && loudCuts.has(Number(label.id.slice(CUT_PREFIX.length))))
+      drawBubble(ctx, p, label.box, theme.cutSite);
     ctx.fillStyle = label.id.startsWith(CUT_PREFIX) ? theme.cutSite : theme.inkMuted;
     ctx.textAlign = label.align;
     ctx.fillText(label.text, label.x, label.y);

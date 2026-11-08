@@ -76,6 +76,7 @@ import { useEditDiff } from '../state/editDiff';
 import { readLinearTheme } from './linearTheme';
 import { SelectionBar } from './SelectionBar';
 import { editorStore } from '../state/editorStore';
+import { withHighlighted } from '../state/enzymeHighlight';
 import { gcTip as describeGc } from '../gcTip';
 import { followTooltip, hideFollowTooltip } from './tooltip';
 import { useClipboardEvents } from './useClipboardEvents';
@@ -162,6 +163,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     reveal,
     analysis,
     shownEnzymes,
+    highlightedEnzymes,
     preview,
     documentId,
   } = useEditorState();
@@ -179,6 +181,10 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
         : null,
     [gcOn, gcValues, gcWindowBases, doc.length],
   );
+  const wantedEnzymes = useMemo(
+    () => withHighlighted(shownEnzymes, highlightedEnzymes),
+    [shownEnzymes, highlightedEnzymes],
+  );
   const cutSites = useMemo(
     () =>
       // Nothing ticked is the usual state of a large document (too many
@@ -187,10 +193,10 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
       hasTool(doc, 'enzymes') &&
       analysis !== null &&
       analysis.doc === doc &&
-      shownEnzymes.size > 0
-        ? (analysis.cutSites?.pick(shownEnzymes) ?? [])
+      wantedEnzymes.size > 0
+        ? (analysis.cutSites?.pick(wantedEnzymes) ?? [])
         : [],
-    [analysis, doc, shownEnzymes, showCutSites],
+    [analysis, doc, wantedEnzymes, showCutSites],
   );
   const overlay = preview?.items ?? NO_OVERLAY;
   const previewLanes = useMemo(() => overlayLanes(overlay, doc.length), [overlay, doc.length]);
@@ -267,7 +273,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
       gc: gcOn,
       // Tall enough for enzyme labels whenever any enzyme is shown, so rows keep
       // their height while sites are recomputed after an edit.
-      cutSiteLabels: showCutSites && hasTool(doc, 'enzymes') && shownEnzymes.size > 0,
+      cutSiteLabels: showCutSites && hasTool(doc, 'enzymes') && wantedEnzymes.size > 0,
       // A read's chromatogram, above its bases (#52), as tall as Format says (#55).
       trace: doc.read?.trace == null || traceSize === 'off' ? (false as const) : traceSize,
       // Room above each amino-acid line for its residue numbers (#97).
@@ -289,7 +295,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     showComplement,
     gcOn,
     showCutSites,
-    shownEnzymes.size,
+    wantedEnzymes.size,
     traceSize,
     showTranslations,
     residueNumbering,
@@ -508,6 +514,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
         translationLanes,
         selection,
         cutSites,
+        highlightedEnzymes,
         overlay,
         overlayLanes: previewLanes,
         edits,
@@ -538,6 +545,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     translationLanes,
     selection,
     cutSites,
+    highlightedEnzymes,
     overlay,
     previewLanes,
     edits,

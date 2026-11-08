@@ -1138,3 +1138,54 @@ describe('the label of a cut at the origin (#168)', () => {
     expect(svgWith('circular', 99)).toContain('EcoRI (99)');
   });
 });
+
+describe('cut labels the Enzymes table is pointing at (#401)', () => {
+  const doc = SeqDocument.create({ sequence: 'ACGT'.repeat(250), topology: 'circular' });
+  // Thirty enzymes cutting a few bases apart: far more than the ring can name.
+  const sites = Array.from({ length: 30 }, (_, i) => ({
+    enzyme: `Enz${i}`,
+    cut: 100 + i * 3,
+    cutBottom: 100 + i * 3,
+    siteStart: 95 + i * 3,
+    strand: 'forward' as const,
+  }));
+  const draw = (highlightedEnzymes?: ReadonlySet<string>): string => {
+    const lanes = assignLanes([], doc.length);
+    const layout = new CircularLayout(doc.length, doc.topology, { ...opts, laneCount: 0 });
+    const ctx = new SvgContext(600, 600);
+    renderCircularMap(ctx, {
+      doc,
+      layout,
+      lanes,
+      selection: null,
+      cutSites: sites,
+      overlay: NO_OVERLAY,
+      overlayLanes: NO_LANES,
+      edits: null,
+      hoveredFeatureId: null,
+      hoveredCut: null,
+      ...(highlightedEnzymes === undefined ? {} : { highlightedEnzymes }),
+      width: 600,
+      height: 600,
+      devicePixelRatio: 1,
+      theme: PRINT_THEME,
+      sansFont: '12px Helvetica, Arial, sans-serif',
+      titleFont: '600 15px Helvetica, Arial, sans-serif',
+    });
+    return ctx.toSvg();
+  };
+
+  it('keeps the highlighted enzyme’s label, which the crowd would otherwise drop', () => {
+    // The least-ranked label: the last of equal-rarity cuts.
+    const target = 'Enz29';
+    // The label may be shortened to the bare name where the ring is tight.
+    const named = new RegExp(`>${target}[ <]`);
+    expect(draw()).not.toMatch(named);
+    expect(draw(new Set([target]))).toMatch(named);
+  });
+
+  it('draws its tick heavier', () => {
+    const heavy = (svg: string): number => (svg.match(/stroke-width="3"/g) ?? []).length;
+    expect(heavy(draw(new Set(['Enz29'])))).toBeGreaterThan(heavy(draw()));
+  });
+});

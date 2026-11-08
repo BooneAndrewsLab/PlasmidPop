@@ -103,6 +103,8 @@ export interface RenderParams {
   readonly selection: Range | null;
   /** Cut sites to mark above the strands (already filtered to the enzymes the user wants). */
   readonly cutSites: readonly CutSite[];
+  /** Enzymes under the pointer in the Enzymes table (#401): drawn heavier, and always named. */
+  readonly highlightedEnzymes?: ReadonlySet<string>;
   /**
    * Transient spans drawn in a band outside the feature lanes: a primer pair
    * under consideration, every match of a find. Nothing here is part of the
@@ -1203,10 +1205,12 @@ function drawCutSites(ctx: DrawingContext, p: RenderParams, row: RowLayout): voi
   ctx.font = p.sansFont;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-  ctx.lineWidth = 1;
   let lastLabelEnd = -Infinity;
   const ordered = [...sites].sort((a, b) => a.cut - b.cut);
+  const stressed = p.highlightedEnzymes;
   for (const site of ordered) {
+    const loud = stressed?.has(site.enzyme) === true;
+    ctx.lineWidth = loud ? 2.5 : 1;
     const xTop =
       Math.round(layout.xOf(row, Math.min(Math.max(site.cut, row.start), row.end))) + 0.5;
     const xBottom =
@@ -1221,7 +1225,7 @@ function drawCutSites(ctx: DrawingContext, p: RenderParams, row: RowLayout): voi
     }
     ctx.stroke();
     const width = ctx.measureText(site.enzyme).width;
-    if (xTop - width / 2 > lastLabelEnd + 4) {
+    if (loud || xTop - width / 2 > lastLabelEnd + 4) {
       ctx.fillStyle = theme.cutSite;
       ctx.fillText(site.enzyme, xTop, labelBaseline);
       lastLabelEnd = xTop + width / 2;

@@ -726,6 +726,12 @@ export interface SharedState {
   /** The list order read backwards: Z–A, or the worst-separated lanes first. */
   readonly enzymeSortReversed: boolean;
   /**
+   * Enzymes whose sites the views stress while the pointer is on their row of
+   * the Enzymes table (#401), drawn even when the enzyme is not ticked. Not
+   * stored, not in the undo history; empty when the pointer is elsewhere.
+   */
+  readonly highlightedEnzymes: ReadonlySet<string>;
+  /**
    * The gel every drawn lane is calculated for, and the ladder beside it
    * (item 41). A lab runs the same gel week in, week out, so these are
    * remembered like the list options rather than asked per digest.
@@ -1097,6 +1103,7 @@ const SHARED_INITIAL: SharedState = {
   enzymeSort: 'name',
   enzymeGroupIsoschizomers: true,
   enzymeSortReversed: false,
+  highlightedEnzymes: new Set(),
   gelAgarose: 1,
   gelLadder: 'auto',
   sidebarReaction: 'digest',
@@ -2348,6 +2355,13 @@ export class EditorStore {
     if (reversed !== this.state.enzymeSortReversed) {
       this.setShared({ enzymeSortReversed: reversed });
     }
+  }
+
+  /** The enzymes whose sites the views stress; empty clears it. */
+  setHighlightedEnzymes(names: readonly string[]): void {
+    const now = this.state.highlightedEnzymes;
+    if (names.length === now.size && names.every((n) => now.has(n))) return;
+    this.setShared({ highlightedEnzymes: new Set(names) });
   }
 
   setGelAgarose(percent: AgarosePercent): void {

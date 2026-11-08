@@ -968,3 +968,26 @@ describe('renderLinearView join gaps (#319)', () => {
     expect(svg).toMatch(/A[^"]*" fill="#12181e" stroke="none"/);
   });
 });
+
+describe('cut sites the Enzymes table is pointing at (#401)', () => {
+  const doc = SeqDocument.create({ sequence: 'ACGT'.repeat(20) });
+  const sites = [
+    { enzyme: 'EcoRI', cut: 10, cutBottom: 10, siteStart: 5, strand: 'forward' as const },
+    { enzyme: 'BamHI', cut: 12, cutBottom: 12, siteStart: 7, strand: 'forward' as const },
+  ];
+  const widths = (svg: string): string[] =>
+    [...svg.matchAll(/stroke="#ff0000"[^>]*stroke-width="([\d.]+)"/g)].map((m) => m[1] ?? '');
+
+  it('draws a highlighted enzyme heavier, and names it even where labels collide', () => {
+    const plain = render(doc, false, null, { cutSites: sites });
+    expect(plain).toContain('>EcoRI<');
+    expect(plain).not.toContain('>BamHI<');
+    const lit = render(doc, false, null, {
+      cutSites: sites,
+      highlightedEnzymes: new Set(['BamHI']),
+    });
+    expect(lit).toContain('>BamHI<');
+    expect(widths(lit)).toContain('2.5');
+    expect(widths(plain)).not.toContain('2.5');
+  });
+});

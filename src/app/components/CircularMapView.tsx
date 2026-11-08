@@ -51,6 +51,7 @@ import { selectionBetween } from '../editing';
 import { readCircularTheme } from './circularTheme';
 import { selectChange, useEditDiff } from '../state/editDiff';
 import { editorStore } from '../state/editorStore';
+import { withHighlighted } from '../state/enzymeHighlight';
 import { gcTip as describeGc } from '../gcTip';
 import { followTooltip, hideFollowTooltip } from './tooltip';
 import { useEditorState } from '../state/useEditorStore';
@@ -135,6 +136,7 @@ export function CircularMapView({ doc }: Props) {
     selectedFeatureId,
     analysis,
     shownEnzymes,
+    highlightedEnzymes,
     showCutSites,
     documentId,
     reveal,
@@ -159,13 +161,17 @@ export function CircularMapView({ doc }: Props) {
   const overlay = preview?.items ?? NO_OVERLAY;
   const edits = useEditDiff();
   const previewLanes = useMemo(() => overlayLanes(overlay, doc.length), [overlay, doc.length]);
+  const wantedEnzymes = useMemo(
+    () => withHighlighted(shownEnzymes, highlightedEnzymes),
+    [shownEnzymes, highlightedEnzymes],
+  );
   const cutSites = useMemo(
     () =>
       // Nothing ticked is the usual state of a large document (#271).
-      showCutSites && analysis !== null && analysis.doc === doc && shownEnzymes.size > 0
-        ? (analysis.cutSites?.pick(shownEnzymes) ?? [])
+      showCutSites && analysis !== null && analysis.doc === doc && wantedEnzymes.size > 0
+        ? (analysis.cutSites?.pick(wantedEnzymes) ?? [])
         : [],
-    [analysis, doc, shownEnzymes, showCutSites],
+    [analysis, doc, wantedEnzymes, showCutSites],
   );
   const cuts = useMemo(() => cutSites.map((site) => site.cut), [cutSites]);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -385,6 +391,7 @@ export function CircularMapView({ doc }: Props) {
         gc: gcTrack,
         hoveredFeatureId: hover.featureId,
         hoveredCut: hover.cut,
+        highlightedEnzymes,
         hoveredChange: hover.change,
         width: size.width,
         height: size.height,
@@ -407,6 +414,7 @@ export function CircularMapView({ doc }: Props) {
     liveFeatures,
     selection,
     cutSites,
+    highlightedEnzymes,
     overlay,
     previewLanes,
     edits,
