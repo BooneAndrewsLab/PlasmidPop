@@ -7,7 +7,7 @@ import { type CloningPrimer } from '@/core';
  * own; the site has a label for a reader that sees no colour.
  */
 export function Oligo({ primer }: { readonly primer: CloningPrimer }) {
-  const { padding, site, spacer, annealing } = primer.segments;
+  const { padding, site, spacer, extra, annealing } = primer.segments;
   return (
     <span className="oligo panel__mono">
       {padding !== '' && <span className="oligo__pad">{padding.toLowerCase()}</span>}
@@ -15,6 +15,9 @@ export function Oligo({ primer }: { readonly primer: CloningPrimer }) {
         {site.toLowerCase()}
       </span>
       {spacer !== '' && <span className="oligo__pad">{spacer.toLowerCase()}</span>}
+      {extra !== undefined && extra !== '' && (
+        <span className="oligo__pad">{extra.toLowerCase()}</span>
+      )}
       <span className="oligo__ann">{annealing.toUpperCase()}</span>
     </span>
   );

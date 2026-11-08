@@ -1,14 +1,21 @@
 import {
   type BatchTemplate,
+  type CloningBatchRecipe,
+  type CloningBatchSettings,
+  type CloningVectorCheck,
   type DesignOptions,
   type DesignRow,
+  type FidelityTable,
+  type OverlapKit,
   type SeqDocument,
   BATCH_ROW_LIMIT,
+  YEAST_OVERLAP,
 } from '@/core';
 
 import { analytics } from './analytics';
 import { type BatchSortKey, DEFAULT_BATCH_SORT } from './batchResults';
 import { type SortState } from './components/tableKeys';
+import { type CloningBatchRow, runCloningBatch } from './cloningBatch';
 import { type PrimerBatchRow, runPrimerBatch } from './primerBatch';
 import { createDocumentSession } from './state/documentSession';
 
@@ -40,7 +47,40 @@ export interface BatchRun {
   readonly templateName: string;
 }
 
+/** What the page designs: primer pairs and mutagenesis, or one of the cloning recipes (#360). */
+export type BatchMethod = 'primers' | CloningBatchRecipe['recipe'];
+
+/** A cloning run: the rows as they come in, and the vector and recipe they were designed with. */
+export interface CloningRun {
+  readonly rows: readonly CloningBatchRow[];
+  readonly source: readonly DesignRow[];
+  readonly recipe: CloningBatchRecipe['recipe'];
+  /** The vector's name and the document the rows were designed on. */
+  readonly vectorName: string;
+  readonly vector: SeqDocument;
+  readonly running: boolean;
+  readonly progress: number;
+  readonly cancelled: boolean;
+  /** Why the vector cannot take the recipe: no row was designed, and it is said once. */
+  readonly refused: string | null;
+  /** The once-per-batch check of the vector: the overhang pair and what it warns of. */
+  readonly vectorCheck: CloningVectorCheck | null;
+}
+
 export interface BatchSession {
+  /** What the page designs; the Cloning tab's door sets a cloning recipe. */
+  readonly method: BatchMethod;
+  /** The vector of a cloning batch, by template name; null is the document in front. */
+  readonly vector: string | null;
+  /** Restriction: the 5′ and 3′ enzymes, as typed. */
+  readonly forwardEnzyme: string;
+  readonly reverseEnzyme: string;
+  /** Golden Gate: the enzyme, as typed. */
+  readonly goldenGateEnzyme: string;
+  /** Homology: the kit, and the yeast kit's bases of overlap. */
+  readonly kit: OverlapKit;
+  readonly overlap: number;
+  readonly cloning: CloningRun | null;
   /** The rows as text, which the paste, a file and the scan helper fill and the user edits. */
   readonly text: string;
   /** True when the scan helper wrote the text and nothing replaced it since. */
@@ -60,6 +100,14 @@ export interface BatchSession {
 }
 
 export const EMPTY_BATCH_SESSION: BatchSession = {
+  method: 'primers',
+  vector: null,
+  forwardEnzyme: 'EcoRI',
+  reverseEnzyme: 'BamHI',
+  goldenGateEnzyme: 'BsaI',
+  kit: 'in-fusion',
+  overlap: YEAST_OVERLAP.default,
+  cloning: null,
   text: '',
   generated: false,
   note: null,
@@ -105,9 +153,15 @@ export function batchTemplates(
 /**
  * What the usage statistics call the run: `scan` for rows the scan helper
  * made, `recipe` for a table with a change column (mutagenesis), else
- * `region`. Never the rows, names or sizes.
+ * `region`; a cloning batch is named by its recipe (`restriction`,
+ * `golden-gate`, `homology`). Never the rows, names or sizes.
  */
-export function batchCase(rows: readonly DesignRow[], generated: boolean): string {
+export function batchCase(
+  rows: readonly DesignRow[],
+  generated: boolean,
+  method: BatchMethod = 'primers',
+): string {
+  if (method !== 'primers') return method;
   if (generated) return 'scan';
   return rows.some((r) => r.overrides.change !== undefined) ? 'recipe' : 'region';
 }
@@ -180,4 +234,78 @@ export async function startBatch(documentId: string | null, a: StartBatch): Prom
 /** Stops the run of this document, keeping the rows done. */
 export function cancelBatch(documentId: string | null): void {
   running.get(key(documentId))?.abort();
+}
+
+export interface StartCloningBatch {
+  readonly rows: readonly DesignRow[];
+  readonly templates: readonly BatchTemplate[];
+  readonly vector: SeqDocument;
+  readonly recipe: CloningBatchRecipe;
+  /** The Settings' criteria, as the Cloning page designs with. */
+  readonly settings?: CloningBatchSettings;
+  readonly fidelity?: FidelityTable | null;
+}
+
+/** Runs a cloning batch, writing each row to the document's session as it lands. */
+export async function startCloningBatch(
+  documentId: string | null,
+  a: StartCloningBatch,
+): Promise<void> {
+  if (running.has(key(documentId)) || a.rows.length === 0) return;
+  if (a.rows.length > BATCH_ROW_LIMIT) return;
+  const controller = new AbortController();
+  running.set(key(documentId), controller);
+  analytics.track('primers', 'batch', batchCase(a.rows, false, a.recipe.recipe));
+  const base = {
+    rows: [],
+    source: a.rows,
+    recipe: a.recipe.recipe,
+    vectorName: a.vector.name,
+    vector: a.vector,
+    running: true,
+    progress: 0,
+    cancelled: false,
+    refused: null,
+    vectorCheck: null,
+  } satisfies CloningRun;
+  batchSession.update(documentId, { cloning: base, selected: null, said: null });
+  const patch = (p: Partial<CloningRun>): void => {
+    batchSession.update(documentId, (s) =>
+      s.cloning === null ? {} : { cloning: { ...s.cloning, ...p } },
+    );
+  };
+  try {
+    const outcome = await runCloningBatch(
+      a.rows,
+      a.vector,
+      {
+        recipe: a.recipe,
+        templates: a.templates,
+        ...(a.settings === undefined ? {} : { settings: a.settings }),
+        ...(a.fidelity === undefined ? {} : { fidelity: a.fidelity }),
+      },
+      {
+        signal: controller.signal,
+        onRow: (row) => {
+          batchSession.update(documentId, (s) =>
+            s.cloning === null ? {} : { cloning: { ...s.cloning, rows: [...s.cloning.rows, row] } },
+          );
+        },
+        onProgress: (progress) => {
+          patch({ progress });
+        },
+      },
+    );
+    patch({
+      running: false,
+      cancelled: outcome.cancelled,
+      refused: outcome.refused,
+      vectorCheck: outcome.vector,
+    });
+  } catch (e: unknown) {
+    patch({ running: false });
+    batchSession.update(documentId, { error: e instanceof Error ? e.message : String(e) });
+  } finally {
+    running.delete(key(documentId));
+  }
 }

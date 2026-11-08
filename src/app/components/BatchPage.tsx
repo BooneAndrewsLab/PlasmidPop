@@ -2,11 +2,16 @@ import { type KeyboardEvent, useMemo, useRef, useState } from 'react';
 
 import {
   type BatchTable,
+  type CloningBatchRecipe,
+  type OverlapKit,
   type SeqDocument,
   BATCH_ROW_LIMIT,
   BatchTableError,
+  KIT_NAMES,
+  KIT_OVERLAP,
   checkPool,
   formatDg,
+  goldenGateEnzymes,
   isCodingFeature,
   parseBatchText,
   parseBatchWorkbook,
@@ -26,11 +31,20 @@ import {
   sortLines,
   statusOf,
 } from '../batchResults';
-import { batchSession, batchTemplates, cancelBatch, startBatch } from '../batchSession';
+import {
+  type BatchMethod,
+  batchSession,
+  batchTemplates,
+  cancelBatch,
+  startBatch,
+  startCloningBatch,
+} from '../batchSession';
+import { RECIPE_COLUMNS, ignoredColumns } from '../cloningResults';
 import { editorStore } from '../state/editorStore';
 import { savePrimers } from '../state/primerCollection';
 import { useEditorState } from '../state/useEditorStore';
 import { pickerAccept } from '../pickerAccept';
+import { CloningBatchResults } from './CloningBatchResults';
 import { OrderSheetDialog } from './OrderSheetDialog';
 import { SortTh } from './SortTh';
 import { nextRowIndex, toggleSort } from './tableKeys';
@@ -40,6 +54,27 @@ const SEQUENCE_FILE_ACCEPT = '.gb,.gbk,.gbff,.genbank,.fasta,.fa,.fas,.fna,.dna,
 
 const PLACEHOLDER =
   'name,region,change\nK12A,1000..1002,GCT\n\nor paste rows from a spreadsheet; columns are\nname, template, region, sequence, tm, size, change';
+
+/** The method select's words, and the placeholder a cloning method gives the rows box. */
+const METHODS: readonly (readonly [BatchMethod, string])[] = [
+  ['primers', 'Primer pairs'],
+  ['restriction', 'Restriction sites'],
+  ['golden-gate', 'Golden Gate part'],
+  ['homology', 'Homology ends'],
+];
+const CLONING_PLACEHOLDER =
+  'name,template,region\nACT1,genome,1000-2500\nGFP,,sequence of the insert\n\nor paste rows from a spreadsheet: one insert per row,\na region of a template or the bases themselves';
+
+const RECIPE_HINT = {
+  restriction:
+    'Each insert gets the two enzymes’ sites on its primers: the enzyme column is a pair (EcoRI/BamHI), and left and right are extra bases between the sites and the insert.',
+  'golden-gate':
+    'Each insert becomes a part with the destination’s overhangs: the enzyme column is one enzyme (or two that share the tube), and left and right are the overhangs.',
+  homology:
+    'Each insert’s primers carry the vector’s ends as tails; the kit column gives one row another kit.',
+} as const;
+
+const KITS: readonly OverlapKit[] = ['in-fusion', 'nebuilder', 'yeast'];
 
 /** How the table's text reads: its rows, or why it does not. */
 function readTable(text: string): { table: BatchTable | null; problem: string | null } {
@@ -140,9 +175,11 @@ function RowDetail({
  * goes on while the page is away.
  */
 export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
-  const { documentId, documents, primerCriteria } = useEditorState();
+  const { documentId, documents, primerCriteria, fidelityTable } = useEditorState();
   const session = batchSession.use(documentId);
-  const { text, run, selected, sort } = session;
+  const { text, run, selected, sort, method } = session;
+  const cloningMethod = method !== 'primers';
+  const cloning = session.cloning;
   const update = (patch: Parameters<typeof batchSession.update>[1]): void => {
     batchSession.update(documentId, patch);
   };
@@ -166,7 +203,15 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
   );
   const bad = validation?.results.flatMap((r) => (r.ok ? [] : [r])) ?? [];
   const ready = validation?.rows ?? [];
-  const running = run?.running === true;
+  const running = run?.running === true || cloning?.running === true;
+  const vector = templates.find((t) => t.name === session.vector) ?? templates[0];
+  const ignored = useMemo(
+    () => (cloningMethod ? ignoredColumns(validation?.rows ?? [], method) : []),
+    [cloningMethod, validation, method],
+  );
+  // The run whose progress and results the page shows: the method's own.
+  const active = cloningMethod ? cloning : run;
+  const enzymes = useMemo(() => goldenGateEnzymes().map((e) => e.name), []);
 
   // The scan helper's boxes: transient, so not in the session.
   const cdsFeatures = useMemo(
@@ -313,7 +358,140 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
     <div className="results">
       <div className="panel__group">
         <label className="panel__field panel__field--row">
-          <span>Template</span>
+          <span>Method</span>
+          <select
+            className="panel__select"
+            aria-label="Method"
+            value={method}
+            onChange={(e) => {
+              const next = METHODS.find(([m]) => m === e.target.value)?.[0] ?? 'primers';
+              update({ method: next, selected: null, said: null });
+            }}
+          >
+            {METHODS.map(([m, label]) => (
+              <option key={m} value={m}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        {cloningMethod && (
+          <>
+            <label className="panel__field panel__field--row">
+              <span>Vector</span>
+              <select
+                className="panel__select"
+                aria-label="Vector"
+                value={vector?.name ?? ''}
+                onChange={(e) => {
+                  update({ vector: e.target.value });
+                }}
+              >
+                {templates.map((t) => (
+                  <option key={t.name} value={t.name}>
+                    {t.name}
+                    {t.document === doc ? ' (this document)' : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {method === 'restriction' && (
+              <>
+                <label className="panel__field panel__field--row">
+                  <span>5′ enzyme</span>
+                  <input
+                    className="panel__input"
+                    aria-label="5′ enzyme"
+                    value={session.forwardEnzyme}
+                    onChange={(e) => {
+                      update({ forwardEnzyme: e.target.value });
+                    }}
+                  />
+                </label>
+                <label className="panel__field panel__field--row">
+                  <span>3′ enzyme</span>
+                  <input
+                    className="panel__input"
+                    aria-label="3′ enzyme"
+                    value={session.reverseEnzyme}
+                    onChange={(e) => {
+                      update({ reverseEnzyme: e.target.value });
+                    }}
+                  />
+                </label>
+              </>
+            )}
+            {method === 'golden-gate' && (
+              <label className="panel__field panel__field--row">
+                <span>Enzyme</span>
+                <select
+                  className="panel__select"
+                  aria-label="Enzyme"
+                  value={session.goldenGateEnzyme}
+                  onChange={(e) => {
+                    update({ goldenGateEnzyme: e.target.value });
+                  }}
+                >
+                  {enzymes.map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {method === 'homology' && (
+              <>
+                <label className="panel__field panel__field--row">
+                  <span>Kit</span>
+                  <select
+                    className="panel__select"
+                    aria-label="Kit"
+                    value={session.kit}
+                    onChange={(e) => {
+                      update({ kit: KITS.find((k) => k === e.target.value) ?? 'in-fusion' });
+                    }}
+                  >
+                    {KITS.map((k) => (
+                      <option key={k} value={k}>
+                        {KIT_NAMES[k]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {session.kit === 'yeast' && (
+                  <label className="panel__field panel__field--row">
+                    <span>Homology (bp)</span>
+                    <input
+                      className="panel__input"
+                      aria-label="Homology in bp"
+                      inputMode="numeric"
+                      value={session.overlap}
+                      onChange={(e) => {
+                        update({ overlap: Number(e.target.value) });
+                      }}
+                    />
+                  </label>
+                )}
+                <p className="panel__note panel__note--quiet">
+                  The vector must be linear: {KIT_NAMES[session.kit]} takes{' '}
+                  {session.kit === 'yeast' ? session.overlap : KIT_OVERLAP[session.kit]} bases of
+                  its ends onto each primer.
+                </p>
+              </>
+            )}
+            <p className="panel__note panel__note--quiet">
+              {RECIPE_HINT[method]} Columns read: name, {RECIPE_COLUMNS[method].join(', ')}.
+            </p>
+            {ignored.length > 0 && (
+              <p className="panel__note dt__warn">
+                Not read by this method, and ignored: {ignored.join(', ')}.
+              </p>
+            )}
+          </>
+        )}
+        <label className="panel__field panel__field--row">
+          <span>{cloningMethod ? 'Insert template' : 'Template'}</span>
           <select
             className="panel__select"
             aria-label="Template"
@@ -331,8 +509,10 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
           </select>
         </label>
         <p className="panel__note panel__note--quiet">
-          A row with no template cell uses this one. A template cell may name any open tab or loaded
-          record.
+          {cloningMethod
+            ? 'A row with a region and no template cell takes its insert from this one. '
+            : 'A row with no template cell uses this one. '}
+          A template cell may name any open tab or loaded record.
           {dropped.length > 0 &&
             ` Not offered, as another already has the name: ${dropped.join(', ')}.`}
         </p>
@@ -343,7 +523,7 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
             rows={8}
             spellCheck={false}
             aria-label="Rows"
-            placeholder={PLACEHOLDER}
+            placeholder={cloningMethod ? CLONING_PLACEHOLDER : PLACEHOLDER}
             value={text}
             onChange={(e) => {
               update({ text: e.target.value, generated: false, note: null, error: null });
@@ -403,85 +583,87 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
             }}
           />
         </div>
-        <details className="panel__details panel__options">
-          <summary className="panel__details-summary">
-            <span className="panel__details-title">Generate scan rows…</span>
-            <span className="panel__details-note">every codon of a gene to one residue</span>
-          </summary>
-          {cdsFeatures.length === 0 ? (
-            <p className="panel__note panel__note--quiet">
-              {templateName} has no coding feature (CDS) to scan.
-            </p>
-          ) : (
-            <>
-              <label className="panel__field panel__field--row">
-                <span>Gene</span>
-                <select
-                  className="panel__select"
-                  aria-label="Gene to scan"
-                  value={scanned?.id ?? ''}
-                  onChange={(e) => {
-                    setScanFeature(e.target.value);
-                  }}
-                >
-                  {cdsFeatures.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.name === '' ? f.type : f.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="panel__field panel__field--row">
-                <span>To residue</span>
-                <input
-                  className="panel__input"
-                  aria-label="Residue"
-                  maxLength={1}
-                  value={scanTo}
-                  onChange={(e) => {
-                    setScanTo(e.target.value);
-                  }}
-                />
-              </label>
-              <label className="panel__field panel__field--row">
-                <span>From residue</span>
-                <input
-                  className="panel__input"
-                  aria-label="From residue"
-                  inputMode="numeric"
-                  placeholder="1"
-                  value={scanFrom}
-                  onChange={(e) => {
-                    setScanFrom(e.target.value);
-                  }}
-                />
-              </label>
-              <label className="panel__field panel__field--row">
-                <span>Through</span>
-                <input
-                  className="panel__input"
-                  aria-label="Through residue"
-                  inputMode="numeric"
-                  placeholder="end"
-                  value={scanThrough}
-                  onChange={(e) => {
-                    setScanThrough(e.target.value);
-                  }}
-                />
-              </label>
-              <div className="actions">
-                <button type="button" className="button button--small" onClick={generate}>
-                  Generate
-                </button>
-              </div>
+        {!cloningMethod && (
+          <details className="panel__details panel__options">
+            <summary className="panel__details-summary">
+              <span className="panel__details-title">Generate scan rows…</span>
+              <span className="panel__details-note">every codon of a gene to one residue</span>
+            </summary>
+            {cdsFeatures.length === 0 ? (
               <p className="panel__note panel__note--quiet">
-                Replaces the table with one row per codon, which you can edit or trim before
-                running. At most {BATCH_ROW_LIMIT} rows run at once: scan a window of the protein
-                for a long gene.
+                {templateName} has no coding feature (CDS) to scan.
               </p>
-            </>
-          )}
-        </details>
+            ) : (
+              <>
+                <label className="panel__field panel__field--row">
+                  <span>Gene</span>
+                  <select
+                    className="panel__select"
+                    aria-label="Gene to scan"
+                    value={scanned?.id ?? ''}
+                    onChange={(e) => {
+                      setScanFeature(e.target.value);
+                    }}
+                  >
+                    {cdsFeatures.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.name === '' ? f.type : f.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="panel__field panel__field--row">
+                  <span>To residue</span>
+                  <input
+                    className="panel__input"
+                    aria-label="Residue"
+                    maxLength={1}
+                    value={scanTo}
+                    onChange={(e) => {
+                      setScanTo(e.target.value);
+                    }}
+                  />
+                </label>
+                <label className="panel__field panel__field--row">
+                  <span>From residue</span>
+                  <input
+                    className="panel__input"
+                    aria-label="From residue"
+                    inputMode="numeric"
+                    placeholder="1"
+                    value={scanFrom}
+                    onChange={(e) => {
+                      setScanFrom(e.target.value);
+                    }}
+                  />
+                </label>
+                <label className="panel__field panel__field--row">
+                  <span>Through</span>
+                  <input
+                    className="panel__input"
+                    aria-label="Through residue"
+                    inputMode="numeric"
+                    placeholder="end"
+                    value={scanThrough}
+                    onChange={(e) => {
+                      setScanThrough(e.target.value);
+                    }}
+                  />
+                </label>
+                <div className="actions">
+                  <button type="button" className="button button--small" onClick={generate}>
+                    Generate
+                  </button>
+                </div>
+                <p className="panel__note panel__note--quiet">
+                  Replaces the table with one row per codon, which you can edit or trim before
+                  running. At most {BATCH_ROW_LIMIT} rows run at once: scan a window of the protein
+                  for a long gene.
+                </p>
+              </>
+            )}
+          </details>
+        )}
         {session.note !== null && (
           <p className="panel__note" role="status">
             {session.note}
@@ -523,6 +705,32 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
           className="button button--primary"
           disabled={running || ready.length === 0 || validation === null}
           onClick={() => {
+            if (cloningMethod) {
+              if (vector === undefined) return;
+              const recipe: CloningBatchRecipe =
+                method === 'restriction'
+                  ? {
+                      recipe: 'restriction',
+                      forward: session.forwardEnzyme.trim(),
+                      reverse: session.reverseEnzyme.trim(),
+                    }
+                  : method === 'golden-gate'
+                    ? { recipe: 'golden-gate', enzyme: session.goldenGateEnzyme }
+                    : {
+                        recipe: 'homology',
+                        kit: session.kit,
+                        ...(session.kit === 'yeast' ? { overlap: session.overlap } : {}),
+                      };
+              void startCloningBatch(documentId, {
+                rows: ready,
+                templates,
+                vector: vector.document,
+                recipe,
+                settings: { criteria: primerCriteria },
+                fidelity: fidelityTable,
+              });
+              return;
+            }
             void startBatch(documentId, {
               rows: ready,
               templates,
@@ -535,16 +743,16 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
         >
           Design {ready.length > 0 ? bool(ready.length, 'row', 'rows') : 'rows'}
         </button>
-        {run !== null && run.running && (
+        {active !== null && active.running && (
           <div className="align-progress">
             <progress
               className="align-progress__bar"
-              value={run.progress}
+              value={active.progress}
               max={1}
               aria-label="Batch progress"
             />
             <span className="align-progress__label" aria-live="polite">
-              {run.rows.length} of {run.source.length}
+              {active.rows.length} of {active.source.length}
             </span>
             <button
               type="button"
@@ -559,7 +767,23 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
         )}
       </div>
 
-      {run !== null && (
+      {cloningMethod && cloning !== null && (
+        <>
+          {cloning.refused !== null && (
+            <p className="panel__error" role="alert">
+              {cloning.refused}
+            </p>
+          )}
+          <CloningBatchResults
+            documentId={documentId}
+            run={cloning}
+            selected={selected}
+            sort={sort}
+            said={session.said}
+          />
+        </>
+      )}
+      {!cloningMethod && run !== null && (
         <>
           <p className="panel__note" role="status">
             {run.cancelled

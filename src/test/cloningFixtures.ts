@@ -11,7 +11,8 @@ import {
   getEnzyme,
 } from '@/core';
 import { parseGenBank } from '@/io';
-import { readFixture } from '@/test/fixtures';
+import L09137 from '@/io/fixtures/L09137.gb?raw';
+import U49845_GB from '@/io/fixtures/U49845.gb?raw';
 
 /**
  * Inputs for the cloning batch's tests: the vectors and inserts the
@@ -27,8 +28,8 @@ function parse(text: string, name: string): SeqDocument {
 const tutorial = (name: string): SeqDocument =>
   parse(readFileSync(join(__dirname, '../../docs/tutorials/files', `${name}.gb`), 'utf8'), name);
 
-export const pUC19 = parse(readFixture('L09137.gb'), 'pUC19');
-export const U49845 = parse(readFixture('U49845.gb'), 'U49845');
+export const pUC19 = parse(L09137, 'pUC19');
+export const U49845 = parse(U49845_GB, 'U49845');
 /** pUC19's polylinker, 0-based: EcoRI SacI KpnI SmaI BamHI XbaI SalI PstI SphI HindIII. */
 export const MCS = { start: 395, end: 452 };
 

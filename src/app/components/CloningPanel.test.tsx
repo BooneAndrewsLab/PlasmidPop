@@ -12,10 +12,12 @@ import {
 
 import { DEFAULT_BENCH } from '../state/benchSettings';
 import { recallEnzymePage } from '../enzymeWorkspace';
+import { batchSession } from '../batchSession';
 import { recallWorkspace } from '../primerWorkspace';
 import { editorStore } from '../state/editorStore';
 import { Bench } from './Bench';
 import { CloningPanel } from './CloningPanel';
+import { PrimerWorkspace } from './PrimerWorkspace';
 
 // 4,000 bp circular, cut at 400 and 1,400 by the first enzyme in the table:
 // two fragments of 1,000 and 3,000 bp.
@@ -88,6 +90,42 @@ describe('CloningPanel', () => {
     });
   });
 
+  it('has a door to many inserts at once: the Batch page on a cloning method, and Escape goes back (#360, #404)', () => {
+    setup();
+    batchSession.forget();
+    act(() => {
+      editorStore.setSidebarTab('cloning');
+    });
+    const id = editorStore.getState().documentId;
+    fireEvent.click(screen.getByRole('button', { name: 'Design many inserts ›' }));
+    expect(editorStore.getState().workspace).toBe('primers');
+    expect(recallWorkspace(id).page).toBe('batch');
+    expect(batchSession.read(id).method).toBe('restriction');
+
+    // A cloning method already chosen there stays chosen.
+    batchSession.update(id, { method: 'golden-gate' });
+    act(() => {
+      editorStore.setWorkspace(null);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Design many inserts ›' }));
+    expect(batchSession.read(id).method).toBe('golden-gate');
+
+    // In the workspace the page is Batch design, and Escape returns to the Cloning tab it came from.
+    act(() => {
+      editorStore.setWorkspace(null);
+      editorStore.setSidebarTab('cloning');
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Design many inserts ›' }));
+    render(<PrimerWorkspace doc={doc} />);
+    expect(screen.getByRole('combobox', { name: 'Method' })).toHaveValue('golden-gate');
+    act(() => {
+      fireEvent.keyDown(screen.getByRole('heading', { name: 'Batch design' }), {
+        key: 'Escape',
+      });
+    });
+    expect(editorStore.getState()).toMatchObject({ workspace: null, sidebarTab: 'cloning' });
+  });
+
   it('offers no primer door where there is no Primers tab (#381)', () => {
     const protein = SeqDocument.create({ sequence: 'MKLV', alphabet: 'protein' });
     act(() => {
@@ -96,6 +134,7 @@ describe('CloningPanel', () => {
     render(<CloningPanel doc={protein} />);
     expect(screen.getByRole('button', { name: 'Open the Bench ›' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Clone an insert/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Design many inserts/ })).toBeNull();
   });
 
   it('shows one of the digest, PCR and Mutate at a time', () => {

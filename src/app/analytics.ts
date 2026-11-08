@@ -252,9 +252,13 @@ export const EVENTS = {
    * (#311), named `reuse` when one primer was reused, never the primers,
    * the product or the vector; `batch` is a Batch design run (#358), named
    * by the kind of table (`region`, `recipe` for one with a change column,
-   * `scan` for rows the scan helper made), never the rows, names or sizes;
-   * `order-sheet` is the Batch page's order sheet downloaded (#358), with no
-   * label: not the names, sequences, scale or how many.
+   * `scan` for rows the scan helper made) or, for a cloning batch (#360), by
+   * the recipe (`restriction`, `golden-gate`, `homology`), never the rows,
+   * names or sizes; `order-sheet` is the Batch page's order sheet downloaded
+   * (#358), with no label: not the names, sequences, scale or how many;
+   * `batch-constructs` is the constructs ZIP downloaded (#360), with no
+   * label, and `batch-protocol` the batch protocol downloaded, named by
+   * format (`html` or `md`), never a name, a sequence or how many.
    */
   primers: [
     'design',
@@ -273,6 +277,8 @@ export const EVENTS = {
     'design-check',
     'batch',
     'order-sheet',
+    'batch-constructs',
+    'batch-protocol',
   ],
   /**
    * `run` names the mode (`global`/`local`); `quality` is a change to the

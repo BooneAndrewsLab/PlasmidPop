@@ -225,6 +225,8 @@ describe('EVENTS', () => {
   it('lists the Batch page events, which carry no names or counts (#358)', () => {
     expect(EVENTS.primers).toContain('batch');
     expect(EVENTS.primers).toContain('order-sheet');
+    expect(EVENTS.primers).toContain('batch-constructs');
+    expect(EVENTS.primers).toContain('batch-protocol');
   });
 });
 

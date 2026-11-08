@@ -12,6 +12,7 @@ import {
   fragmentWithLineage,
 } from '@/core';
 
+import { batchSession } from '../batchSession';
 import { openEnzymeWorkspace } from '../enzymeWorkspace';
 import { openPrimerWorkspace } from '../primerWorkspace';
 import { copiesOnShelf } from '../shelfPieces';
@@ -353,6 +354,24 @@ export function CloningPanel({ doc }: Props) {
             }}
           >
             Clone an insert into this plasmid ›
+          </button>
+        )}
+        {hasSidebarTab(doc, 'primers') && (
+          <button
+            type="button"
+            className="link panel__door"
+            data-tip="Design primers for many inserts at once into this plasmid, with restriction, Golden Gate or homology ends, from a table"
+            onClick={() => {
+              // The Batch page on a cloning method (the one it was last on, else restriction sites).
+              batchSession.update(documentId, (b) => ({
+                method: b.method === 'primers' ? 'restriction' : b.method,
+                vector: null,
+                selected: null,
+              }));
+              openPrimerWorkspace(documentId, 'batch');
+            }}
+          >
+            Design many inserts ›
           </button>
         )}
       </div>

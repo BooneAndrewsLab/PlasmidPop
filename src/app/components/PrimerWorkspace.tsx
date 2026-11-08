@@ -98,6 +98,8 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
         if (cloningResults) return cloning.designUnchanged ? cloning.preview : [];
         return design.targetUnchanged ? design.preview : [];
       case 'batch':
+        // A cloning row has no plain primer preview: its detail is all there is.
+        if (batch.method !== 'primers') return [];
         return rowPreview(
           batch.run?.rows.find((r) => r.index === batch.selected),
           batch.selected === null ? undefined : batch.run?.source[batch.selected],
@@ -124,6 +126,7 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
     cloning.designUnchanged,
     cloningResults,
     batch.run,
+    batch.method,
     batch.selected,
     probe.preview,
     cloneCheck.preview,
@@ -141,8 +144,10 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
       }
       return design.pairs?.length ?? null;
     }
-    if (p === 'batch')
-      return batch.run === null || batch.run.rows.length === 0 ? null : batch.run.rows.length;
+    if (p === 'batch') {
+      const shown = batch.method === 'primers' ? batch.run : batch.cloning;
+      return shown === null || shown.rows.length === 0 ? null : shown.rows.length;
+    }
     if (p === 'mine') return collection.primers.length;
     if (p === 'clone') return cloneCheck.record?.design.pairs.length ?? null;
     return null;
