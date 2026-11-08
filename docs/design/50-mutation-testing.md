@@ -1550,9 +1550,10 @@ skipped suite that names them: it kills none that the plain tests do not. Only
 tests were added; production files are untouched, so the equivalents are
 recorded here and carry no `Stryker disable` comment.
 
-**126 killed, 56 equivalent, none unclassified.**
+**124 killed, 58 equivalent, none unclassified.** (The confirming `mutate:changed`
+run after the tests below scored 92.25 and left exactly these 58 equivalents.)
 
-**Killed (126).**
+**Killed (124).**
 
 - _`overlapAssembly.ts`, 67 of 73_, in `overlapAssembly.test.ts` and the new
   `overlapAssembly.guard.test.ts`. The first pins the refusals with their exact
@@ -1603,13 +1604,15 @@ recorded here and carry no `Stryker disable` comment.
   at 2960-3000 and 0-40) and _`protocol.ts`, 1 of 2_ (a yeast step lists its
   parts by name).
 
-**Killed without a new test (2 of the 126).** `staticGuide.ts` L321 (`section.search
-=== true` to `true` on the script line) and `directRepeats` L406 (`circular && p <
-s.end + n` to `circular || ...`) die to existing tests when run plainly and were
-reported as survivors by the run. The first is the load-time generation of
-`staticTutorials.test.ts` (#77); the second was not looked into.
+**Killed without a new test (1 of the 124).** `staticGuide.ts` L321 (`section.search
+=== true` to `true` on the script line) dies to an existing test when run plainly
+and was reported as a survivor by the run: it is the load-time generation of
+`staticTutorials.test.ts` (#77). An earlier pass also listed `directRepeats` L406
+(`circular && ...` to `circular || ...`) here; the confirming run and a by-hand
+application of it (the five covering test files, 161 tests, all pass) show it
+survives, and it is equivalent (below).
 
-**Equivalent or unreachable, by kind (56).**
+**Equivalent or unreachable, by kind (58).**
 
 - **A fallback that an index in range never takes (13).** `?? 'one part'`, `?? 'the
 next'`, `?? 'a part'` and `?? ''`, none of them covered: `gibson.ts` L564-566
@@ -1627,9 +1630,10 @@ a !== null)` taken off or its test made `true`: every amplicon in `made` is
 - **An option left to the callee's default (2).** `options.name === undefined` to
   `false` (`overlapPrimers.ts` L179, `overlapAssembly.ts` L188): `{ name:
 undefined }` is what `gibson` reads with `options.name ?? default`.
-- **A check another one implies (6, `yeastAssembly.ts`).** L283 `pos >= s.start` to
+- **A check another one implies (7, `yeastAssembly.ts`).** L283 `pos >= s.start` to
   `true`: the parts are in order and `findIndex` takes the first whose end is
-  past `pos`. L144 `p.flipped` and the name test (two mutants): the sequence test
+  past `pos`. L144 `p.flipped` and the name test (three mutants: each taken to `true`, and
+  `p.flipped && name` to `p.flipped || name`): the sequence test
   after them is what identifies the vector, and they differ only for a second part
   with the vector's reverse-complemented bases, which `gibson` refuses as
   ambiguous. L146 `flipped >= 0` to `> 0`: the first part is never flipped
@@ -1647,15 +1651,15 @@ undefined }` is what `gibson` reads with `options.name ?? default`.
   is shorter than `k`, so it is the text of no other window and pairs with
   nothing. L403 (`slice(0, k - 1)` to the whole text, or `k + 1`): only windows
   with `p < n` are read, and they need at most `k - 1` more bases.
-- **Redundant wrap tests (3, `directRepeats`).** L406 `circular && p < s.end + n`
-  to `true`, and `p < s.end + n` to `true` or `<=`: on a line `p + k > s.start + n`
+- **Redundant wrap tests (4, `directRepeats`).** L406 `circular && p < s.end + n`
+  to `true` or to `circular || p < s.end + n`, and `p < s.end + n` to `true` or `<=`: on a line `p + k > s.start + n`
   is never true, and `p < n <= s.end + n` always on a circle.
 - **A list that already excludes the cell (1).** L419 `list.slice(i + 1)` to
   `list`: `q - a >= k` skips the cell itself and every earlier one.
 - **A tie-break never reached (1).** L436 `x.b - y.b`: no two repeats start on the
   same base, since each base pairs with one later copy.
 
-By file: `yeastAssembly.ts` 42, `overlapAssembly.ts` 6 (L113 two, L134, L186
+By file: `yeastAssembly.ts` 44, `overlapAssembly.ts` 6 (L113 two, L134, L186
 two, L188), `gibson.ts` 6, `overlapPrimers.ts` 1, `protocol.ts` 1.
 
 **Not reachable by the real assembler, tested with a mock.** The checks of
