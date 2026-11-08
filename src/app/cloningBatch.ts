@@ -14,6 +14,7 @@ import {
   SeqDocument,
   checkCloningVector,
   insertNameClashes,
+  recordOverlapDesign,
   rowRecipe,
 } from '@/core';
 import {
@@ -204,6 +205,7 @@ export async function runCloningBatch(
               long,
               checkFor,
               vector: vectorSnapshot,
+              vectorDocument: vector,
               snapshots,
             });
     } catch (e: unknown) {
@@ -218,6 +220,8 @@ export async function runCloningBatch(
 }
 
 interface Run {
+  /** The vector as a document, for the lineage of a homology product. */
+  readonly vectorDocument: SeqDocument;
   readonly client: CloningBatchClient;
   readonly long: LongRequestOptions;
   readonly checkFor: (r: CloningBatchRecipe, s: CloningBatchSettings) => CloningVectorCheck;
@@ -230,15 +234,18 @@ function insertOf(
   row: DesignRow,
   templates: readonly BatchTemplate[],
   run: Run,
-): CloningInsertRequest | string {
+): { readonly request: CloningInsertRequest; readonly document: SeqDocument } | string {
   const source = row.source;
   if (source.kind === 'sequence') {
     const doc = SeqDocument.create({ name: row.name, sequence: source.bases });
     return {
-      name: row.name,
-      template: snapshotOf(doc),
-      range: { start: 0, end: source.bases.length },
-      strand: 'forward',
+      document: doc,
+      request: {
+        name: row.name,
+        template: snapshotOf(doc),
+        range: { start: 0, end: source.bases.length },
+        strand: 'forward',
+      },
     };
   }
   const doc = row.template === null ? undefined : findTemplate(templates, row.template);
@@ -249,10 +256,13 @@ function insertOf(
     run.snapshots.set(doc, snapshot);
   }
   return {
-    name: row.name,
-    template: snapshot,
-    range: source.range,
-    strand: source.kind === 'region' ? source.strand : 'forward',
+    document: doc,
+    request: {
+      name: row.name,
+      template: snapshot,
+      range: source.range,
+      strand: source.kind === 'region' ? source.strand : 'forward',
+    },
   };
 }
 
@@ -282,8 +292,9 @@ async function designRow(
   if (!chosen.ok) return failed(chosen.message);
   const check = run.checkFor(chosen.recipe, chosen.settings);
   if (check.problem !== null) return failed(check.problem);
-  const insert = insertOf(row, options.templates, run);
-  if (typeof insert === 'string') return failed(insert);
+  const made = insertOf(row, options.templates, run);
+  if (typeof made === 'string') return failed(made);
+  const insert = made.request;
 
   const given = designSettings(chosen.settings, row.overrides.tm);
   const recipe = chosen.recipe;
@@ -376,9 +387,37 @@ async function designRow(
         recipe: 'homology',
         kit: design.kit,
         design,
-        product: design.product,
+        product: withOverlapLineage(design, run.vectorDocument, made.document),
         warnings: [...own, ...design.warnings],
       };
     }
   }
+}
+
+/**
+ * The homology circle with how it was made, by `recordOverlapDesign` (what
+ * the Bench's insert-primer designer opens): the engine's product has no
+ * lineage, and the batch protocol is built from it. Null when there is no
+ * circle.
+ */
+function withOverlapLineage(
+  design: Extract<CloningResult, { recipe: 'homology' }>['design'],
+  vector: SeqDocument,
+  template: SeqDocument,
+): SeqDocument | null {
+  if (design.primers === null) return design.product;
+  return recordOverlapDesign(
+    {
+      kit: design.kit,
+      forward: design.primers.forward,
+      reverse: design.primers.reverse,
+      amplicon: design.amplicon,
+      product: design.product,
+      warnings: design.warnings,
+      problem: design.problem,
+    },
+    vector,
+    template,
+    design.kit,
+  );
 }

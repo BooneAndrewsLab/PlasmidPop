@@ -14,6 +14,7 @@ import {
   destinationOverhangs,
   getEnzyme,
   range,
+  recordOverlapDesign,
   resolveVectorRegion,
   scanForCloningNow,
 } from '@/core';
@@ -355,7 +356,17 @@ describe('runCloningBatch: homology', { timeout: 60_000 }, () => {
         reverse: direct.inserts[0]?.reverse,
       });
       expect(row.product).not.toBeNull();
-      expect(gen(row.product)).toBe(gen(direct.product));
+      // With its lineage, as `recordOverlapDesign` writes it wherever a design is opened.
+      const first = direct.inserts[0];
+      if (first === undefined) throw new Error('no insert');
+      const recorded = recordOverlapDesign(
+        { ...first, kit, product: direct.product, warnings: direct.warnings, problem: null },
+        vector,
+        ifGene,
+        kit,
+      );
+      expect(gen(row.product)).toBe(gen(recorded));
+      expect(gen(row.product)).toContain('PlasmidPop-made-from');
       expect(row.warnings).toEqual(direct.warnings);
     },
   );

@@ -10,7 +10,7 @@ import {
   overhangKind,
 } from '../analysis/restriction';
 import { type SeqDocument } from '../document';
-import { recordGoldenGate } from '../lineage/record';
+import { recordAmplicon, recordGoldenGate } from '../lineage/record';
 import {
   DEFAULT_PRIMER_CRITERIA,
   type PrimerCriteria,
@@ -696,8 +696,8 @@ function simulate(
   const made = productHolding(reaction.products, body);
   const turned =
     made === undefined ? productHolding(reaction.products, reverseComplement(body)) : undefined;
-  const amplicon = made?.document ?? turned?.document.reverseComplement();
-  if (amplicon === undefined) {
+  const bare = made?.document ?? turned?.document.reverseComplement();
+  if (bare === undefined) {
     return {
       amplicon: null,
       product: null,
@@ -709,6 +709,13 @@ function simulate(
     };
   }
 
+  // With the PCR that made it, so the assembly's record reaches back to the oligos.
+  const amplicon = recordAmplicon(
+    bare,
+    ctx.insert.document,
+    { name: forward.name, sequence: forward.sequence },
+    { name: reverse.name, sequence: reverse.sequence },
+  );
   const destination = ctx.destination;
   if (destination === null) {
     return {

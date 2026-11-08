@@ -5,12 +5,15 @@ import { join } from 'node:path';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 
 import { SeqDocument, createFeature, rangeSegment } from '@/core';
-import { GENE_QUERY_DEBOUNCE_MS, type GeneHit } from '@/io';
+import { GENE_QUERY_DEBOUNCE_MS, type GeneHit, writeGenBank } from '@/io';
 import type * as Io from '@/io';
 import { parseGenBank } from '@/io';
 import L09137 from '@/io/fixtures/L09137.gb?raw';
 import U49845_GB from '@/io/fixtures/U49845.gb?raw';
 
+import { AnalysisClient } from '@/workers/analysisClient';
+
+import { runCloningBatch } from '../cloningBatch';
 import type * as FromNcbi from '../openFromNcbi';
 import { recallWorkspace, rememberWorkspacePage } from '../primerWorkspace';
 import { editorStore } from '../state/editorStore';
@@ -603,6 +606,51 @@ describe('the Homology ends option of cloning mode (#403)', () => {
     const product = state.documents.find((d) => d.documentId === state.documentId)?.history.present;
     expect(product?.topology).toBe('circular');
     expect(state.scratch).toBe(true);
+  });
+
+  it('opens the same construct, as GenBank text, as a Batch row for the same insert (#360)', async () => {
+    homologySetup();
+    chooseLongFeature();
+    act(() => {
+      fireEvent.click(designButton());
+    });
+    const detail = within(screen.getByRole('complementary', { name: 'Homology ends' }));
+    act(() => {
+      fireEvent.click(detail.getByRole('button', { name: 'Simulate' }));
+    });
+    const state = editorStore.getState();
+    const opened = state.documents.find((d) => d.documentId === state.documentId)?.history.present;
+    const { rows } = await runCloningBatch(
+      [
+        {
+          line: 2,
+          name: 'whole',
+          template: pUC19.name,
+          source: {
+            kind: 'region',
+            range: { start: 0, end: pUC19.length },
+            strand: 'forward',
+            text: '',
+          },
+          overrides: {},
+          notes: '',
+          warnings: [],
+        },
+      ],
+      U49845,
+      {
+        recipe: { recipe: 'homology', kit: 'in-fusion' },
+        templates: [{ name: pUC19.name, document: pUC19 }],
+      },
+      { client: new AnalysisClient(null) },
+    );
+    const row = rows[0];
+    expect(row?.status === 'designed' ? row.product : null).not.toBeNull();
+    expect(opened).toBeDefined();
+    expect(
+      writeGenBank(row?.status === 'designed' && row.product !== null ? row.product : U49845),
+    ).toBe(writeGenBank(opened ?? pUC19));
+    expect(writeGenBank(opened ?? pUC19)).toContain('PlasmidPop-made-from');
   });
 
   it('takes the overlap for yeast assembly only, and carries it onto the tails', () => {

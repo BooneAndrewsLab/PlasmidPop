@@ -235,6 +235,27 @@ export function recordMutagenesis(
 }
 
 /**
+ * An amplicon made by designed primers off `template`: the PCR step with the
+ * oligos' bases, 5′ to 3′, upper case. For a design's simulated product,
+ * whose amplicon `pcr` hands back with no history of its own.
+ */
+export function recordAmplicon(
+  amplicon: SeqDocument,
+  template: SeqDocument,
+  forward: LineagePrimer,
+  reverse: LineagePrimer,
+  polymerase: Polymerase = 'proofreading',
+): SeqDocument {
+  return withLineage(amplicon, {
+    op: 'pcr',
+    parents: [lineageOf(template)],
+    forward: { name: forward.name, sequence: forward.sequence.toUpperCase() },
+    reverse: { name: reverse.name, sequence: reverse.sequence.toUpperCase() },
+    polymerase,
+  });
+}
+
+/**
  * The circle an In-Fusion or NEBuilder design makes: the vector and the
  * insert amplified from `template` with the designed primers, joined by
  * their homology. The amplicon is a molecule of the tree of its own, so the
@@ -248,13 +269,12 @@ export function recordOverlapDesign(
 ): SeqDocument | null {
   const { product, amplicon } = design;
   if (product === null || amplicon === null) return null;
-  const pcr = withLineage(amplicon, {
-    op: 'pcr',
-    parents: [lineageOf(template)],
-    forward: { name: 'Forward', sequence: design.forward.sequence.toUpperCase() },
-    reverse: { name: 'Reverse', sequence: design.reverse.sequence.toUpperCase() },
-    polymerase: 'proofreading',
-  });
+  const pcr = recordAmplicon(
+    amplicon,
+    template,
+    { name: 'Forward', sequence: design.forward.sequence },
+    { name: 'Reverse', sequence: design.reverse.sequence },
+  );
   return withLineage(product, {
     op: 'gibson',
     parents: [lineageOf(vector), lineageOf(pcr)],

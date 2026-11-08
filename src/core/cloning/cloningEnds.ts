@@ -18,6 +18,7 @@ import {
 } from '../analysis/restriction';
 import { type SeqDocument, describeEnd, flipEnd } from '../document';
 import { type Feature, type Strand, featureExtent } from '../features';
+import { fragmentWithLineage, recordAmplicon, recordLigation } from '../lineage/record';
 import {
   DEFAULT_PRIMER_CRITERIA,
   type PrimerCriteria,
@@ -1235,13 +1236,20 @@ function simulate(
   const made = productHolding(reaction.products, insert);
   const turned =
     made === undefined ? productHolding(reaction.products, reverseComplement(insert)) : undefined;
-  const amplicon = made?.document ?? turned?.document.reverseComplement();
-  if (amplicon === undefined) {
+  const bare = made?.document ?? turned?.document.reverseComplement();
+  if (bare === undefined) {
     return fail(
       reaction.problem ??
         `The primers amplify ${reaction.products.length} other ${reaction.products.length === 1 ? 'product' : 'products'} of ${ctx.insert.document.name} but not the insert.`,
     );
   }
+  // With the PCR that made it, so the product's record reaches back to the oligos.
+  const amplicon = recordAmplicon(
+    bare,
+    ctx.insert.document,
+    { name: forward.name, sequence: forward.sequence },
+    { name: reverse.name, sequence: reverse.sequence },
+  );
 
   // The amplicon is unmethylated (`pcr`): every site cuts.
   const ampliconSites = findCutSites(amplicon.sequence.toString(), 'linear', enzymes);
@@ -1336,6 +1344,15 @@ function simulate(
     const origin = wrapMod(L - highCut, L);
     if (origin !== 0 && origin < product.length) product = product.setOrigin(origin);
   }
+  // How it was made: the insert's digested amplicon joined to the vector's pieces.
+  const from = (f: DigestFragment): { fragment: DigestFragment; flipped: boolean } =>
+    f === placed
+      ? {
+          fragment: fragmentWithLineage(insertPiece, amplicon),
+          flipped: report.orientation === 'reverse',
+        }
+      : { fragment: fragmentWithLineage(f, vector), flipped: false };
+  product = recordLigation(product, parts.map(from), circular);
   return { amplicon, product, problem: null, warnings };
 }
 

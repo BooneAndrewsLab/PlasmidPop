@@ -1,4 +1,4 @@
-import { KIT_NAMES } from '@/core';
+import { KIT_NAMES, recordOverlapDesign } from '@/core';
 
 import { analytics } from '../analytics';
 import { copyText } from '../clipboard';
@@ -129,7 +129,23 @@ export function HomologyEndsResult({ record, layout, onSaid }: Props) {
             onClick={() => {
               if (product === null) return;
               analytics.track('primers', 'simulate-homology');
-              editorStore.openDocument(product, null, [], { scratch: true });
+              // With how it was made (the vector, and the amplicon off the insert's tab), as
+              // the Batch page's constructs and the Bench's insert-primer designer have it.
+              const made = recordOverlapDesign(
+                {
+                  kit,
+                  forward,
+                  reverse,
+                  amplicon: primers.amplicon,
+                  product,
+                  warnings: design.warnings,
+                  problem: design.problem,
+                },
+                record.vector,
+                record.insert.document,
+                kit,
+              );
+              editorStore.openDocument(made ?? product, null, [], { scratch: true });
               editorStore.setSidebarTab('features');
             }}
           >
