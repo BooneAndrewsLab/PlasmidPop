@@ -1,5 +1,7 @@
 import type { Feature, SeqDocument, SequencingRead } from '@/core';
 
+import { pairNameOf } from './sequenceRecords';
+
 /** An open tab taken as a sample to align (#262): its sequence as it stands, with its read and features. */
 export interface TabRecord {
   readonly name: string;
@@ -7,6 +9,7 @@ export interface TabRecord {
   readonly circular: boolean;
   readonly read?: SequencingRead;
   readonly features?: readonly Feature[];
+  readonly pairName?: string;
 }
 
 /**
@@ -21,6 +24,7 @@ export function tabRecord(d: SeqDocument): TabRecord {
     circular: d.isCircular,
     ...(d.read === null ? {} : { read: d.read }),
     ...(features.length === 0 ? {} : { features }),
+    ...pairNameOf(d),
   };
 }
 

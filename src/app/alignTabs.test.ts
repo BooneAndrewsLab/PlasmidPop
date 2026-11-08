@@ -19,6 +19,15 @@ describe('tabRecord', () => {
     expect(record.features?.map((f) => f.name)).toEqual(['gfp']);
   });
 
+  it('keeps an Illumina read number for pairing (#415)', () => {
+    const d = SeqDocument.create({
+      name: 'q',
+      sequence: 'ACGT',
+      metadata: { description: '2:N:0:ACGT' },
+    });
+    expect(tabRecord(d).pairName).toBe('q 2:N:0:ACGT');
+  });
+
   it('leaves them out when it has none', () => {
     const record = tabRecord(SeqDocument.create({ name: 'p', sequence: 'ACGT' }));
     expect('read' in record).toBe(false);

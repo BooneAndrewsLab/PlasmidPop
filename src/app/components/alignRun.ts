@@ -6,7 +6,6 @@ import {
   type SequencingRead,
   type PairNames,
   assembleReads,
-  findReadPairs,
   isEmptyRange,
 } from '@/core';
 import { writeFastaRecords } from '@/io';
@@ -35,7 +34,7 @@ import {
   suggestAlignMode,
 } from '../readAlignment';
 import { BATCH_LIMIT, type BatchRow, runReadBatch } from '../readBatch';
-import { type SequenceRecord, featuresOf } from '../sequenceRecords';
+import { type SequenceRecord, featuresOf, findRecordPairs } from '../sequenceRecords';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { type RecordBox, useRecordBox } from './useRecordBox';
@@ -186,7 +185,7 @@ export function useAlignRun(doc: SeqDocument): AlignRun {
   const record = records[all ? 0 : Math.min(Math.max(picked, 0), records.length - 1)];
   const hasSelection = selection !== null && !isEmptyRange(selection);
   // Mates by name (#347); the insert size is bases between the outer ends of two mates.
-  const readPairs = useMemo(() => findReadPairs(records.map((r) => r.name)), [records]);
+  const readPairs = useMemo(() => findRecordPairs(records), [records]);
   const insertBases = parseInsertSize(insertSize);
 
   const otherTabs = useMemo(

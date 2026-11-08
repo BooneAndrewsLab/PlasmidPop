@@ -8,6 +8,7 @@ import {
   findReadPairs,
   insertTolerance,
   judgePair,
+  pairingName,
 } from './pairing';
 
 const named = (...names: string[]): ReadPair[] => [...findReadPairs(names).pairs];
@@ -391,5 +392,15 @@ describe('checkPairs: the pairs against a set of contigs', () => {
       ),
       { numRuns: 200 },
     );
+  });
+});
+
+describe('pairingName (#415)', () => {
+  it('joins an Illumina read number to the name, and nothing else', () => {
+    expect(pairingName('r', '1:N:0:ACGT')).toBe('r 1:N:0:ACGT');
+    expect(pairingName('r', '2:Y:18:')).toBe('r 2:Y:18:');
+    expect(pairingName('r', 'runid=abc')).toBe('r');
+    expect(pairingName('r', 'sample 1')).toBe('r');
+    expect(pairingName('r', undefined)).toBe('r');
   });
 });

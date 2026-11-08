@@ -41,6 +41,19 @@ const JOINED = /^(.*\d)(f|r|fwd|rev|for|rvs|fp|rp)$/i;
 /** An Illumina header's read number: `NAME 1:N:0:ACGT`. */
 const CASAVA = /^(.*\S)\s+([12]):[YN]:\d+:\S*$/;
 
+const CASAVA_READ = /^[12]:[YN]:\d+:\S*$/;
+
+/**
+ * The name to give `findReadPairs` for a record: its name, followed by its
+ * description when that is an Illumina header's read number (`1:N:0:ACGT`),
+ * which a FASTQ reader keeps apart from the name (#415). Any other
+ * description is left out, so free text cannot make two records mates.
+ */
+export function pairingName(name: string, description: string | undefined): string {
+  const d = (description ?? '').trim();
+  return CASAVA_READ.test(d) ? `${name} ${d}` : name;
+}
+
 interface Parsed {
   readonly stem: string;
   readonly mate: 'first' | 'second' | 'other';

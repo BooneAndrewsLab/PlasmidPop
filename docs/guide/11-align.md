@@ -245,7 +245,8 @@ mates when their names are the same but for a trailing token, one forward
 `reverse`, `RP`, `2`), after `_`, `.`, `-`, `/` or a space, or joined to a
 digit as in `M13F` and `M13R`; a file extension and case do not matter, so
 `clone7_F.ab1` and `clone7_R.ab1` are a pair, as are the `/1` and `/2` of a
-FASTQ and an Illumina header's `1:N:0` and `2:N:0`. Names that share a stem
+FASTQ and an Illumina header's `1:N:0` and `2:N:0` (a FASTQ keeps that
+read number apart from the read's name, and the page counts it as part of the name). Names that share a stem
 but are not exactly one forward and one reverse (two `F`s, a `_F` beside a
 `_2`, a series `clone_1`, `clone_2`, `clone_3`) are not guessed at: they are
 listed as not paired. The page says how many pairs it found.

@@ -4,6 +4,9 @@ import {
   type SeqDocument,
   type SequencingRead,
   normalizeSequenceInput,
+  type PairNames,
+  findReadPairs,
+  pairingName,
 } from '@/core';
 import { parseSequenceFile, readSequenceData, writeFastaRecords } from '@/io';
 
@@ -23,6 +26,21 @@ export interface SequenceRecord {
   readonly file?: string;
   /** Its own features, for a GenBank or SnapGene record or an open tab (#128). */
   readonly features?: readonly Feature[];
+  /** Name and Illumina read number, for pairing, when the header had one (#415). */
+  readonly pairName?: string;
+}
+
+/** The mates among records (#347), by name and, for an Illumina header, its read number (#415). */
+export function findRecordPairs(
+  records: readonly { name: string; pairName?: string }[],
+): PairNames {
+  return findReadPairs(records.map((r) => r.pairName ?? r.name));
+}
+
+/** `pairName` for a document, kept only when it differs from the name (#415). */
+export function pairNameOf(d: SeqDocument): { readonly pairName?: string } {
+  const n = pairingName(d.name, d.metadata.description);
+  return n === d.name ? {} : { pairName: n };
 }
 
 /** A record's own features, kept only when it has some (#128). */
@@ -104,6 +122,7 @@ export async function readFile(file: File): Promise<LoadedFile> {
     circular: d.isCircular,
     ...(d.read === null ? {} : { read: d.read }),
     ...featuresOf(d),
+    ...pairNameOf(d),
   }));
   return { text, records, warnings: parsed.warnings.map((w) => w.message) };
 }
