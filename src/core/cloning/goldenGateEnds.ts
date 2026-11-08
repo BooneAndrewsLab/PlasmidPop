@@ -28,6 +28,7 @@ import {
   type TailPlan,
   type TailSite,
   buildTail,
+  readExtraBases,
   emptyPrimer,
   insertSequence,
 } from './cloningEnds';
@@ -250,6 +251,10 @@ export interface GoldenGatePartSettings {
   readonly criteria: Partial<PrimerCriteria>;
   /** A second Type IIS enzyme in the same tube; its site must not be in the part either. */
   readonly secondEnzyme: string;
+  /** Bases between the left overhang and the part's body (a Kozak sequence, say); empty by default. */
+  readonly extra5: string;
+  /** Bases after the body and before the right overhang, as they read on the top strand; empty by default. */
+  readonly extra3: string;
 }
 
 export const GOLDEN_GATE_PART_DEFAULTS: GoldenGatePartSettings = {
@@ -262,6 +267,8 @@ export const GOLDEN_GATE_PART_DEFAULTS: GoldenGatePartSettings = {
   avoidJunctionSites: true,
   criteria: {},
   secondEnzyme: '',
+  extra5: '',
+  extra3: '',
 };
 
 /** The part, the destination it goes into and whatever else is in the tube. */
@@ -377,6 +384,12 @@ export function designGoldenGatePart(
     table === undefined ? getEnzyme(name) : table.find((e) => e.name === name);
   const names = goldenGatePrimerNames(ctx.insert.name, s.enzyme);
   const warnings: CloningWarning[] = [];
+  const extra5 = readExtraBases(s.extra5, 'extra5');
+  const extra3 = readExtraBases(s.extra3, 'extra3');
+  const extraProblem = extra5.problem ?? extra3.problem;
+  if (extraProblem !== null) return failed(names, s.enzyme, extraProblem);
+  const before = extra5.bases;
+  const after = extra3.bases;
 
   const enzyme = find(s.enzyme);
   if (enzyme === undefined) {
@@ -453,6 +466,7 @@ export function designGoldenGatePart(
     inTube,
     s.avoidJunctionSites,
     0x310,
+    before,
   );
   const rTail = buildTail(
     plan(reverseComplement(right)),
@@ -460,6 +474,7 @@ export function designGoldenGatePart(
     inTube,
     s.avoidJunctionSites,
     0x311,
+    reverseComplement(after),
   );
   for (const tail of [fTail, rTail]) {
     if (!tail.clean) {
@@ -480,9 +495,18 @@ export function designGoldenGatePart(
     });
   }
 
-  const oligo = (name: string, tail: Tail, annealing: PrimerReport): CloningPrimer => {
-    const segments: PrimerSegments = { ...tail.segments, annealing: annealing.sequence };
-    const lower = (segments.padding + segments.site + segments.spacer).toLowerCase();
+  const oligo = (
+    name: string,
+    tail: Tail,
+    annealing: PrimerReport,
+    extra: string,
+  ): CloningPrimer => {
+    const segments: PrimerSegments = {
+      ...tail.segments,
+      ...(extra === '' ? {} : { extra }),
+      annealing: annealing.sequence,
+    };
+    const lower = (segments.padding + segments.site + segments.spacer + extra).toLowerCase();
     return {
       name,
       sequence: lower + segments.annealing.toUpperCase(),
@@ -493,21 +517,23 @@ export function designGoldenGatePart(
       paddingRaised: raised,
     };
   };
-  const forward = oligo(names.forward, fTail, anchored.forward);
-  const reverse = oligo(names.reverse, rTail, anchored.reverse);
+  const forward = oligo(names.forward, fTail, anchored.forward, before);
+  const reverse = oligo(names.reverse, rTail, anchored.reverse, reverseComplement(after));
 
   const middle = body.slice(anchored.forward.length, body.length - anchored.reverse.length);
   const amplicon =
     forward.sequence.toUpperCase() + middle + reverseComplement(reverse.sequence.toUpperCase());
-  const released = left + body + right;
+  const released = left + before + body + after + right;
 
   // The reading frame across the right overhang: the usual standards put a
   // fusion site on a codon boundary, so the part that follows reads on.
-  const codingStart = left.length - overlapLeft;
+  // Bases before the start codon are not read; ones after it (or after an overhang that spells it) are.
+  const codingStart = left.length - overlapLeft + (overlapLeft === 0 ? before.length : 0);
+  const readLength = left.length + before.length + body.length + after.length - codingStart;
   const frame: FrameCheck = {
     coding: startsWithAtg && !trimStart,
-    length: left.length + body.length - codingStart,
-    inFrame: (left.length + body.length - codingStart) % 3 === 0,
+    length: readLength,
+    inFrame: readLength % 3 === 0,
     stopped: s.includeStop && endsWithStop,
   };
   if (frame.coding && !frame.stopped && !frame.inFrame) {
@@ -538,9 +564,11 @@ export function designGoldenGatePart(
     fTail.segments.padding.length,
     amplicon.length - rTail.segments.padding.length - n,
   ]);
-  const partStart = forward.sequence.length - anchored.forward.length - left.length;
+  const partStart = forward.sequence.length - anchored.forward.length - before.length - left.length;
   const partEnd =
-    amplicon.length - (reverse.sequence.length - anchored.reverse.length) + right.length;
+    amplicon.length -
+    (reverse.sequence.length - anchored.reverse.length - after.length) +
+    right.length;
   for (const site of findCutSites(amplicon, 'linear', inTube)) {
     const length = find(site.enzyme)?.site.length ?? n;
     if (intended.has(site.siteStart)) continue;

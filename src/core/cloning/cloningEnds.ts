@@ -198,6 +198,17 @@ export interface CloningSettings {
   readonly criteria: Partial<PrimerCriteria>;
   /** Other usable pairs designed beside the picked one. */
   readonly maxAlternatives: number;
+  /**
+   * Bases between the forward primer's site and its annealing part, so they
+   * sit just before the insert (a Kozak sequence, say). Empty by default.
+   */
+  readonly extra5: string;
+  /**
+   * Bases that follow the insert, written as they read on the top strand
+   * (a stop codon, a tag): the reverse primer carries their reverse
+   * complement between its site and its annealing part. Empty by default.
+   */
+  readonly extra3: string;
 }
 
 export const CLONING_DEFAULTS: CloningSettings = {
@@ -205,6 +216,8 @@ export const CLONING_DEFAULTS: CloningSettings = {
   avoidJunctionSites: true,
   criteria: {},
   maxAlternatives: 5,
+  extra5: '',
+  extra3: '',
 };
 
 // ---------------------------------------------------------------- pairs
@@ -597,6 +610,8 @@ export interface PrimerSegments {
    * the vector's own overhang, copied so the ends match. Empty otherwise.
    */
   readonly spacer: string;
+  /** Extra bases between the tail and the annealing part (`extra5`, `extra3`); absent when there are none. */
+  readonly extra?: string;
   /** The 3′ part that anneals to the insert. */
   readonly annealing: string;
 }
@@ -772,6 +787,7 @@ export function buildTail(
   check: readonly Enzyme[],
   avoid: boolean,
   seed: number,
+  extra = '',
 ): Tail {
   const n = plan.site.bases.length;
   const spacerLength = isTypeIIS(plan.enzyme)
@@ -784,7 +800,7 @@ export function buildTail(
     const spacer = freeBases(rand, spacerLength) + plan.overhang.toUpperCase();
     const segments = { padding, site: plan.site.bases, spacer };
     const tail = padding + plan.site.bases + spacer;
-    const window = tail + annealing;
+    const window = tail + extra + annealing;
     const free = [
       { start: 0, end: padding.length },
       { start: padding.length + n, end: padding.length + n + spacerLength },
@@ -873,6 +889,26 @@ export function emptyPrimer(name: string, enzyme: string): CloningPrimer {
   };
 }
 
+/**
+ * `text` as extra bases (`extra5`, `extra3`): upper case, spaces dropped.
+ * Returns what is wrong with it, or null; only A, C, G and T are accepted,
+ * because the bases are written onto an oligo.
+ */
+export function readExtraBases(
+  text: string,
+  which: 'extra5' | 'extra3',
+): { readonly bases: string; readonly problem: string | null } {
+  const bases = text.replace(/\s+/g, '').toUpperCase();
+  const odd = [...new Set(bases.replace(/[ACGT]/g, ''))];
+  return {
+    bases,
+    problem:
+      odd.length === 0
+        ? null
+        : `The ${which} bases may only be A, C, G or T; ${odd.map((c) => `“${c}”`).join(', ')} ${odd.length === 1 ? 'is' : 'are'} not.`,
+  };
+}
+
 function failedDesign(
   pair: EnzymePairReport,
   names: { readonly forward: string; readonly reverse: string },
@@ -909,6 +945,11 @@ export function designCloningEnds(
   const report = evaluateEnzymePair(ctx, pair.forward, pair.reverse);
   const names = cloningPrimerNames(ctx.insert.name, pair.forward, pair.reverse);
   const warnings: CloningWarning[] = report.issues.map(issueWarning);
+
+  const extra5 = readExtraBases(s.extra5, 'extra5');
+  const extra3 = readExtraBases(s.extra3, 'extra3');
+  const extraProblem = extra5.problem ?? extra3.problem;
+  if (extraProblem !== null) return failedDesign(report, names, extraProblem, warnings);
 
   const fEnzyme = lookup.get(pair.forward);
   const rEnzyme = lookup.get(pair.reverse);
@@ -988,8 +1029,24 @@ export function designCloningEnds(
   const check = [...checkNames]
     .map((name) => lookup.get(name))
     .filter((e): e is Enzyme => e !== undefined);
-  const fTail = buildTail(fPlan, anchored.forward.sequence, check, s.avoidJunctionSites, 0x303);
-  const rTail = buildTail(rPlan, anchored.reverse.sequence, check, s.avoidJunctionSites, 0x303 + 1);
+  const fExtra = extra5.bases;
+  const rExtra = reverseComplement(extra3.bases);
+  const fTail = buildTail(
+    fPlan,
+    anchored.forward.sequence,
+    check,
+    s.avoidJunctionSites,
+    0x303,
+    fExtra,
+  );
+  const rTail = buildTail(
+    rPlan,
+    anchored.reverse.sequence,
+    check,
+    s.avoidJunctionSites,
+    0x303 + 1,
+    rExtra,
+  );
   for (const [tail, enzyme] of [
     [fTail, pair.forward],
     [rTail, pair.reverse],
@@ -1023,9 +1080,14 @@ export function designCloningEnds(
     tail: Tail,
     annealing: PrimerReport,
     raised: number | null,
+    extra: string,
   ): CloningPrimer => {
-    const segments: PrimerSegments = { ...tail.segments, annealing: annealing.sequence };
-    const lower = (segments.padding + segments.site + segments.spacer).toLowerCase();
+    const segments: PrimerSegments = {
+      ...tail.segments,
+      ...(extra === '' ? {} : { extra }),
+      annealing: annealing.sequence,
+    };
+    const lower = (segments.padding + segments.site + segments.spacer + extra).toLowerCase();
     return {
       name,
       sequence: lower + segments.annealing.toUpperCase(),
@@ -1036,8 +1098,22 @@ export function designCloningEnds(
       paddingRaised: raised,
     };
   };
-  const forward = primer(names.forward, pair.forward, fTail, anchored.forward, fPadding.raised);
-  const reverse = primer(names.reverse, pair.reverse, rTail, anchored.reverse, rPadding.raised);
+  const forward = primer(
+    names.forward,
+    pair.forward,
+    fTail,
+    anchored.forward,
+    fPadding.raised,
+    fExtra,
+  );
+  const reverse = primer(
+    names.reverse,
+    pair.reverse,
+    rTail,
+    anchored.reverse,
+    rPadding.raised,
+    rExtra,
+  );
 
   // The amplicon as designed, scanned again for both enzymes (decision 6):
   // a site beyond the two intended is a cut the digest will make.
