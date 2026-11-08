@@ -732,7 +732,7 @@ export function useCloningDesign(doc: SeqDocument): CloningDesignState {
       return true;
     };
     if (homology.on) {
-      if (homologyNow === null || homologyNow.design.problem !== null) return false;
+      if (homologyNow?.design.problem !== null) return false;
       analytics.track('primers', 'design-homology');
       return keep(null, null, homologyNow);
     }
