@@ -18,10 +18,10 @@ Each is one reviewable piece with its own tests, in this order:
    timing test, `designPrimers` moved into the worker.
 3. The Batch page (a sixth rail page of the primer workspace), primer cases
    (built).
-4. Order sheet. Closes #358.
+4. Order sheet (built). Closes #358.
 5. Cloning rows in the worker (Golden Gate part, homology, restriction ends),
    `extra5`/`extra3` (built).
-6. Cloning batch UI, constructs zip, batch protocol. Closes #360.
+6. Cloning batch UI, constructs zip, batch protocol (built). Closes #360.
 
 Packets 1 and 2 changed nothing a user can see. The guide gets the Batch
 design section of `10-primers.md` with packet 3, and `12-cloning.md` with
@@ -430,3 +430,107 @@ constructs zip and the batch protocol (the homology product's lineage, above);
 per-row choice of restriction pair from the suggestions (a row names its pair,
 and the default is the batch's); a vector region per row; multi-part rows; the
 Cloning workspace's own `extra5`/`extra3` fields.
+
+## Packet 6: the cloning methods on the page (closes #360)
+
+**The page.** The Batch page's **Method** select (`BatchSession.method`:
+`primers`, `restriction`, `golden-gate`, `homology`) says what a row is
+designed as; `primers` is packet 3's page unchanged. A cloning method adds a
+**Vector** picker (the document in front by default, any open tab or loaded
+record: the same `batchTemplates` list), the recipe's own setting (the two
+enzymes as text, a Golden Gate enzyme from `goldenGateEnzymes()`, a kit and, for
+yeast, its overlap) and a line naming the columns the recipe reads
+(`RECIPE_COLUMNS`) and, before the run, the columns set in some row that it
+does not (`ignoredColumns`, which mirrors `rowRecipe`'s own per-row warning).
+The **Insert template** picker is the old Template picker: it is the template
+of a row that has a `region` and no `template` cell. The scan helper is for
+primer pairs only. Each method keeps its own run (`run` for pairs, `cloning`
+for the cloning methods, one at a time per document); the badge and the
+results shown are the method's.
+
+**The run.** `startCloningBatch` is `startBatch`'s shape over `runCloningBatch`,
+writing rows to the session as they land; the Settings' `primerCriteria` and
+the user's fidelity table go with it. A `refused` outcome is shown once, as an
+alert above where the table would be, and no table is drawn. A cloning row has
+no map preview (`PrimerWorkspace` returns none for a cloning method): the
+detail pane and the construct opening as a tab are all of it.
+
+**Results** (`cloningResults.ts`, pure; `CloningBatchResults.tsx`). A line is
+the row's status chip, name, both primers split into parts, the Tm of each
+annealing part, the construct's size and its warnings; the sort is
+`batchResults.ts`' generalised over what both tables share (`SortableLine`). The
+detail shows each oligo as padding, site, spacer, extra bases and annealing part
+(restriction and Golden Gate, lower case tail and upper case annealing part as
+the Cloning page's `Oligo`, which now also draws `extra`) or the vector's tail
+and the annealing part (homology, as the sequence's own case has it).
+
+**Actions.** _Save all_: `name fwd`/`name rev` with the sequence as the Cloning
+page saves it (the case that marks the tail is kept, unlike the primer batch's
+upper-casing, because the Cloning page's Save both does the same and the case is
+the only record of the tail), the note naming the recipe and the vector. _Order
+sheet…_: packet 4's dialog, unchanged, over `cloningOrderOligos`. _Open
+product_ for the selected row; _Open all constructs_ for at most
+`OPEN_ALL_LIMIT` (12) constructs, disabled with a note above that (the user's
+call: never 96 tabs). _Download constructs_: `constructEntries` writes one
+GenBank per designed row (file named for the row, made safe for a path and
+numbered when two names become the same file) and `exportClient.zip` (the
+worker `pagesZip` uses) makes the archive, so the main thread does not deflate;
+`downloadBlob` saves it. _Protocol…_ (`BatchProtocolDialog`): `buildProtocol`
+per construct, with the Bench's two inputs (vector ng, ratio), then
+`renameProtocolOligos` so an oligo has the order sheet's name wherever the
+protocol mentions it (the lineage's own names are `Forward`/`Reverse` or the
+designers' and clash across constructs), and `batchProtocolToMarkdown`/`Html`
+render the constructs under one `mergeOligos` table (each sequence once, every
+product it serves listed, `already there as` if any construct's was in My
+primers). It is built when a format is chosen, with a turn given back to the
+page between constructs (an in-silico diagnostic digest each).
+
+**Lineage: what the engine now records.** A protocol is built from a product's
+`lineage`, and the Cloning workspace's products had none for restriction and
+Golden Gate (the amplicon carried no PCR step, so a Golden Gate protocol had no
+oligos) and none for homology. The simulations now record it where they make the
+product, not in the batch: `recordAmplicon` (the PCR step with the designed
+oligos, in `lineage/record.ts`) on the amplicon of the restriction and the Golden
+Gate simulations, `fragmentWithLineage` + `recordLigation` on the restriction
+product (the vector's backbone and the insert's digested amplicon), and
+`recordOverlapDesign`, the Bench's own function, on a homology circle, both in
+the batch runner and in the Cloning page's **Simulate** (`HomologyEndsResult`).
+So a batch construct and what the Cloning page opens for the same insert are the
+same GenBank text, lineage and all: a test in `CloningDesign.test.tsx` opens
+Simulate and compares it with a batch row's product, and `cloningBatch.test.ts`
+compares a homology row with `recordOverlapDesign` on the designers' output. A
+visible side effect: those products now have a **Made from** tree and a
+**Protocol…** (guide, `12-cloning.md`). `recordOverlapDesign` writes the kit's
+default overlap, so a yeast construct with another overlap says 40 in its
+record; left as it is, since it is the Bench's behaviour.
+
+**The door.** The Cloning tab's **Design many inserts ›** sets the session's
+method (the cloning method it was last on, else `restriction`) and calls
+`openPrimerWorkspace(id, 'batch')`, so #404's opener memory is the existing
+one: a test opens the workspace through it and Escape returns to the Cloning tab.
+
+**Analytics.** `primers:batch` is named by the recipe for a cloning batch
+(`restriction`, `golden-gate`, `homology`); new `primers:batch-constructs` (no
+label) and `primers:batch-protocol` (the format), fired when the file is
+downloaded; never names, sequences or counts. The catalogue and its test.
+
+**Checked** (jsdom only; **the page was not looked at in a browser**). Component
+tests with the real in-thread engine, for each recipe (and each kit): paste,
+validate, run, results, a failed row going on, Save all, Order sheet, the zip's
+entries read back and parsed, the protocol's text (one oligo table, a section
+per construct, the oligos named as the sheet names them) as Markdown and HTML,
+the refused vector shown once, Open product, Open all and the 12 cap, cancel,
+the method switch keeping each run, the columns notes, and the door with
+Escape. Pure tests for the line model, drafts, file names, the zip, the
+protocols and the ignored columns; text tests for the merged table and the
+batch Markdown/HTML. No wall-clock time is asserted, and a cloning batch has
+still not been timed.
+
+**Left out.** `extra5`/`extra3` have no
+field: a restriction row's `left`/`right` columns carry them (documented in the
+guide), and a Golden Gate row's are the overhangs. The vector's own region for a
+restriction batch has no field either (the engine takes one; the page leaves it
+to the vector's cloning site). Enzyme pair text fields rather than pickers.
+Multi-part rows and combinatorial assembly (#360's later list) stay out.
+
+**Batch design is complete** for #358 and #360 with this packet.

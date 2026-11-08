@@ -136,6 +136,12 @@ one after another, with the results in a table and the oligos saved together.
 It is on the workspace's rail, so on a phone, where the workspace is not
 offered, it is not there.
 
+The **Method** select at the top says what a row is designed as: **Primer
+pairs**, which is what the rest of this section describes, or one of the three
+cloning recipes, **Restriction sites**, **Golden Gate part** and **Homology
+ends**, which put each row's insert into one vector
+([below](#cloning-many-inserts-into-one-vector)).
+
 **The rows.** Paste them from a spreadsheet into the **Rows** box (tab-,
 comma- or semicolon-separated), or **Upload a table…** (CSV, TSV or an Excel
 `.xlsx`; a workbook's first sheet with a header row is read). The first row
@@ -233,6 +239,92 @@ again); two names with the same bases are shown as a warning, since the oligo
 would be paid for twice. **Download CSV** only saves a file in your browser;
 nothing is sent anywhere.
 
+### Cloning many inserts into one vector
+
+With **Restriction sites**, **Golden Gate part** or **Homology ends** chosen in
+the **Method** select, each row is **one insert to clone into one vector**, and
+the batch makes one construct for each row, designed exactly as the
+[Cloning workspace](#cloning-ends-primers-that-put-two-restriction-sites-on-an-insert)
+designs one insert. The Cloning tab's **Design many inserts ›** link opens the
+page on a cloning method.
+
+**The vector** is picked under **Vector**: it starts as the document in front,
+and may be any open tab or a loaded record. It is the same for every row; what
+changes from row to row is the insert. **Insert template** takes the place of
+**Template**: a row with a `region` and no `template` cell takes its insert from
+that one. An insert is either the row's own bases (`sequence`, which needs no
+template), a `region` of a template (read on the reverse strand for
+`complement(...)`), or, with neither, the whole template. The Generate-scan
+helper is for primer pairs and is not there for the cloning methods.
+
+**What each recipe needs and reads.** The page lists the columns the method
+reads under the select, and says before you run when your table has others
+that it will ignore (a row that sets one is told, too). Beyond `name`,
+`template`, `region` and `sequence`:
+
+| Method                | Setting                                                | Columns read                                                                                                                                  |
+| --------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Restriction sites** | the **5′ enzyme** and **3′ enzyme**, the enzymes' pair | `enzyme` (a pair, forward first: `EcoRI/BamHI`), `left` and `right` (extra bases between each site and the insert, as a Kozak sequence), `tm` |
+| **Golden Gate part**  | the **Enzyme**; the overhangs are the destination's    | `enzyme` (one, or two sharing the tube), `left` and `right` (the two overhangs), `include_start`, `include_stop`, `tm`                        |
+| **Homology ends**     | the **Kit**, and for yeast the **Homology** in bp      | `kit` (`In-Fusion`, `NEBuilder HiFi` or `Yeast assembly`, or `infusion`, `hifi`, `neb`, `yeast`)                                              |
+
+`size` and `change` are never read by a cloning recipe; `tm` is a window of
+5 °C either side, as for a pair, and is not read by a kit's tails. An enzyme or
+kit that does not exist fails that row, with the designers' own message.
+In the restriction recipe the sites go where the vector's cloning site is, else
+anywhere in the vector; the page has no field for a region of the vector.
+
+**What is checked once.** Anything that is the same for every row is checked
+before the first row runs, and said once, not once per row. A **homology**
+vector must be **linear** and hold the kit's homology at its ends: a circular
+vector is refused with the designers' own reason (digest it, or amplify it by
+inverse PCR, and use that fragment) and nothing is designed. A **Golden Gate**
+destination must have the enzyme's two sites around the stretch it releases,
+and its overhang pair, the same for every part, is shown above the results
+with what the design rules, or an imported
+[fidelity table](12-cloning.md#measured-fidelity), say of it. A **restriction**
+pair must be enzymes in the set.
+
+**Design N rows** runs the rows one after another in the analysis worker, with
+progress and **Cancel**, as for primer pairs; a row that cannot be designed
+(no such template, a region the designer refuses, an enzyme that does not
+cut) is **failed** with the reason and the rest go on.
+
+**The results** are a table of a status chip, the name, the two primers, the
+Tms of their annealing parts, the **Construct**'s size in bp and the first
+warning, sortable as the pair table is. Selecting a row shows its detail: both
+oligos with their parts told apart, as the Cloning page shows them (a
+restriction or Golden Gate oligo's lower-case padding, site, spacer and extra
+bases and its upper-case annealing part; a homology oligo's upper-case vector
+end and lower-case annealing part), the construct's size and every warning.
+A cloning row is **not drawn on the map**: its construct opens as a tab.
+
+- **Save all to My primers** keeps every designed oligo as `name fwd` and
+  `name rev`, written as the Cloning page saves them (the case that marks the
+  tail is kept), with a note of the recipe and the vector.
+- **Order sheet…** is the same dialog as for pairs, over these oligos.
+- **Open product** (in a row's detail) opens that row's construct as a scratch
+  tab; **Open all constructs** opens every construct, but **only up to 12**,
+  so it never opens a wall of tabs: above 12 it is switched off and the page
+  says so. The zip below is not limited.
+- **Download constructs** saves one GenBank file for each designed row in a
+  single ZIP (`<vector>_constructs.zip`, a file named for each row). It is a
+  download only; nothing leaves your machine.
+- **Protocol…** writes one protocol for the batch, as Markdown or HTML, as the
+  [protocol for a product](12-cloning.md#protocol-for-a-product) does for one:
+  the protocol of each construct (its reactions in order and its expected
+  diagnostic digest, with the **vector in ng** and **insert : vector** ratio
+  the dialog asks for) under **one** table of the **oligos to order**, each
+  sequence once, however many constructs use it, called as Save all and the
+  order sheet call them. A construct that made no product is named as having no
+  protocol. It is built when you choose a format, a construct at a time, so the
+  page stays usable.
+
+A construct, like a product from the Cloning workspace's **Simulate**, remembers
+its PCR, digests and ligation or assembly: its History tab's **Made from** tree
+shows them, and **Protocol…** works for it. A homology construct carries the
+same record whether it is made here, on the Cloning page or on the Bench.
+
 ## Cloning ends: primers that put two restriction sites on an insert
 
 The Design page has a second mode, **Clone an insert into this plasmid**
@@ -300,7 +392,9 @@ in full, and the actions: **Simulate** runs PCR on the insert's tab, the
 digest with both enzymes and the ligation into the vector's backbone, and
 opens the product as a new document named `vector-insert` (the thumbnail
 in the pane is that product drawn small, so what it shows is what opens,
-with the two enzymes ticked in its Enzymes tab); **Check primers…** does
+with the two enzymes ticked in its Enzymes tab; it remembers its PCR, digests
+and ligation, so its [History](13-history.md#made-from) tab shows them and
+**Protocol…** works for it); **Check primers…** does
 the same and lands on the
 [Clone check](#checking-a-clone-by-colony-pcr) page for the product,
 which then knows where the insert is, what the empty vector is and that

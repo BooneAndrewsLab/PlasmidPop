@@ -10,8 +10,8 @@ cuts the document with restriction enzymes and describes the fragments end
 by end, **PCR**, which amplifies a stretch of it with two primers, and
 **Mutate**, which designs the primers for a point mutation, insertion or
 deletion. The fragments and PCR products you keep go on the
-[shelf](#the-shelf). Two links end the tab: **Open the Bench ›** and
-**Clone an insert into this plasmid ›**.
+[shelf](#the-shelf). Three links end the tab: **Open the Bench ›**,
+**Clone an insert into this plasmid ›** and **Design many inserts ›**.
 
 The **[Bench](#the-bench)**, a tab of its own beside **Files** in the tab
 strip, is where the parts are joined, from any number of documents:
@@ -25,8 +25,9 @@ The **[primer workspace](10-primers.md#cloning-ends-primers-that-put-two-restric
 designs the primers for an insert from another tab, with two restriction
 sites, a Golden Gate end or the homology of a linear vector (In-Fusion,
 NEBuilder, yeast) on their tails, ready to join this plasmid.
-It is where **Clone an insert into this plasmid ›** goes, and it is only
-there for DNA. `Escape` closes it and puts you back on the Cloning tab.
+It is where **Clone an insert into this plasmid ›** goes, and **Design many
+inserts ›** opens its Batch page on a cloning method; it is only there for DNA.
+`Escape` closes it and puts you back on the Cloning tab.
 
 Which to open:
 
@@ -35,6 +36,7 @@ Which to open:
 | Cut this document and keep fragments                      | Cloning tab, **Digest**                                           |
 | Amplify a stretch of it, or change a base                 | Cloning tab, **PCR** or **Mutate**                                |
 | Put an insert from another tab into this plasmid          | **Clone an insert into this plasmid ›**                           |
+| Put many inserts, one each, into this plasmid             | **Design many inserts ›**                                         |
 | Join parts: ligation, Golden Gate, Gibson, Gateway, etc.  | The **Bench**                                                     |
 | Design Gibson, In-Fusion, yeast or overlap-PCR tails      | The **Bench**, beside the reaction                                |
 | Design In-Fusion, NEBuilder or yeast tails for one insert | **Clone an insert into this plasmid ›**, **Ends ▸ Homology ends** |
@@ -983,11 +985,37 @@ in the order asked for. **Open product** and, for yeast, **Save primers**
 (`<template>-YA<n>-F` and `-R`) work as above; **Check primers…** is for a
 single insert. At most eight inserts.
 
+## Many inserts at once
+
+**Design many inserts ›**, the Cloning tab's third link, opens the primer
+workspace's **Batch** page on a cloning method: a table with a row for each
+insert, the one vector, and one recipe for all of them, **Restriction sites**,
+**Golden Gate part** or **Homology ends** (In-Fusion, NEBuilder HiFi or Yeast
+assembly). Each row is designed as the Cloning workspace designs a single
+insert, so a batch row and the same insert done by hand give the same primers
+and the same construct, and the batch gives you the lot together: the
+primers saved to My primers, an order sheet for them, every construct as a
+GenBank file in one ZIP (or opened as tabs, up to 12), and one protocol
+with a single table of the oligos to order.
+
+What is the same for every row is checked once and said once: a homology
+vector that is circular, or has no ends the kit can use, is refused before any
+row is designed, and a Golden Gate destination's overhangs are shown above the
+results. The columns, the vector, the 12-tab limit and the downloads are
+described under
+[Cloning many inserts into one vector](10-primers.md#cloning-many-inserts-into-one-vector)
+in the Primers guide. A table of 96 rows is the most one run takes. Combining
+parts (every combination of a set of parts, an overhang set checked across
+the whole set) and rows of several inserts each are not done here; the
+[Bench](#the-bench) does a multi-part assembly.
+
 ## What a product was made from
 
 Every product remembers how it was made: a fragment you **Open**, a PCR
 product, a ligation, a Golden Gate, Gibson, In-Fusion, NEBuilder or yeast
-assembly, an overlap-extension fusion, a Gateway clone and a mutant. A part on the shelf remembers too,
+assembly, an overlap-extension fusion, a Gateway clone and a mutant, and so does the
+product of a primer-workspace design (its PCR, the digests and the ligation, or
+the assembly; a batch's constructs too). A part on the shelf remembers too,
 so a plasmid ligated from a shelved fragment of a PCR product goes all the
 way back to the template the PCR was run on. Each step keeps the reaction
 and what set it apart: the enzymes and where the fragment lay, how many
