@@ -320,12 +320,23 @@ function EnzymeGrid({ doc, list, layout, onPartner }: TableProps) {
                 <th className="wst__th" data-tip="Recognition site, 5′→3′ on the top strand">
                   Site
                 </th>
-                <th className="wst__th" data-tip="The end the cut leaves">
+                <SortTh
+                  column="overhang"
+                  sort={sort}
+                  onSort={onSort}
+                  tip="The end the cut leaves; sorted, blunt first, then 5′, then 3′, the shorter first"
+                >
                   Overhang
-                </th>
-                <th className="wst__th wst__n" data-tip="How many times it cuts this DNA">
+                </SortTh>
+                <SortTh
+                  column="cuts"
+                  sort={sort}
+                  onSort={onSort}
+                  numeric
+                  tip="How many times it cuts this DNA; sorted, fewest first"
+                >
                   Cuts
-                </th>
+                </SortTh>
                 <th
                   className="wst__th"
                   data-tip="The base each cut is after; click to select the site"

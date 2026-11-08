@@ -90,14 +90,18 @@ that cut it identically (see [Isoschizomers](#isoschizomers)). A row has:
   simply linearises the plasmid gets no mark: there is nothing to tell
   apart, which is not a fault.
 
-The **Name** and **Bands** headings sort the table, and say which way with
-an arrow: **Name** is the catalogue, A to Z. **Bands** is _band separation_,
+The **Name**, **Overhang**, **Cuts** and **Bands** headings sort the table,
+and say which way with an arrow: **Name** is the catalogue, A to Z.
+**Overhang** puts blunt cutters first, then those leaving a 5′ overhang, then
+a 3′ one, the shorter overhang first within each; **Cuts** puts the enzymes
+that cut the fewest times first, so the unique cutters head the list. Ties in
+either are in name order. **Bands** is _band separation_,
 which puts the enzymes whose bands are easiest to tell apart on a gel first
 and the ones whose bands would run together last, which is how a diagnostic
 digest is actually chosen (see
 [Choosing a diagnostic digest](#choosing-a-diagnostic-digest)). Click the
-heading again to turn the order round, Z to A or the lanes hardest to read
-first; click the other heading to start again from its top. The order is
+heading again to turn the order round, Z to A, the most cuts or longest
+overhang first, or the lanes hardest to read first; click the other heading to start again from its top. The order is
 remembered between sessions.
 
 Move the mouse over a row and that enzyme's sites are stressed in the views

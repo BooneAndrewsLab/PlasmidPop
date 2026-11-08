@@ -213,10 +213,35 @@ describe('the enzyme table (item 133, E4)', () => {
       });
     });
 
-    it('has no sort of its own on Cuts or Overhang (follow-up #402)', () => {
-      setup(singleCutters(2));
-      expect(screen.queryByRole('button', { name: /^Cuts/ })).toBeNull();
-      expect(screen.queryByRole('button', { name: /^Overhang/ })).toBeNull();
+    it('sorts by Cuts, fewest first, with the name breaking ties', () => {
+      // EcoRI once, SmaI twice, BamHI once, KpnI three times.
+      setup([
+        site('SmaI', 100),
+        site('SmaI', 900),
+        site('KpnI', 200),
+        site('KpnI', 400),
+        site('KpnI', 600),
+        site('EcoRI', 300),
+        site('BamHI', 500),
+      ]);
+      fireEvent.click(heading('Cuts'));
+      expect(editorStore.getState().enzymeSort).toBe('cuts');
+      expect(aria('Cuts')).toBe('ascending');
+      expect(names()).toEqual(['BamHI', 'EcoRI', 'SmaI', 'KpnI']);
+      fireEvent.click(heading('Cuts'));
+      expect(aria('Cuts')).toBe('descending');
+      expect(names()).toEqual(['KpnI', 'SmaI', 'EcoRI', 'BamHI']);
+    });
+
+    it('sorts by Overhang: blunt, then 5′, then 3′, the shorter first', () => {
+      // SmaI is blunt, EcoRI and BamHI leave 5′ overhangs of 4, KpnI a 3′ one.
+      setup([site('KpnI', 100), site('EcoRI', 200), site('SmaI', 300), site('BamHI', 400)]);
+      fireEvent.click(heading('Overhang'));
+      expect(editorStore.getState().enzymeSort).toBe('overhang');
+      expect(names()).toEqual(['SmaI', 'BamHI', 'EcoRI', 'KpnI']);
+      fireEvent.click(heading('Overhang'));
+      expect(aria('Overhang')).toBe('descending');
+      expect(names()).toEqual(['KpnI', 'EcoRI', 'BamHI', 'SmaI']);
     });
 
     it('takes the window back to the top', () => {

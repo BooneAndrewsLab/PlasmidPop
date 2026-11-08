@@ -18,6 +18,8 @@ import {
   gelProfile,
   hostStateBits,
   isoschizomerGroups,
+  overhangKind,
+  overhangLength,
   sitesByEnzyme,
 } from '@/core';
 
@@ -105,6 +107,19 @@ export interface PairRow {
   /** Every enzyme the row stands for, so a partner chosen by any name is found. */
   readonly members: readonly string[];
   readonly cuts: readonly number[];
+}
+
+const OVERHANG_RANK = { blunt: 0, "5'": 1, "3'": 2 } as const;
+
+/** Blunt, then 5′, then 3′ overhangs, the shorter first within a kind. */
+export function compareOverhang(
+  a: { readonly enzyme: Pick<Enzyme, 'cutTop' | 'cutBottom'> },
+  b: { readonly enzyme: Pick<Enzyme, 'cutTop' | 'cutBottom'> },
+): number {
+  return (
+    OVERHANG_RANK[overhangKind(a.enzyme)] - OVERHANG_RANK[overhangKind(b.enzyme)] ||
+    overhangLength(a.enzyme) - overhangLength(b.enzyme)
+  );
 }
 
 /**
@@ -367,20 +382,24 @@ export function useEnzymeList(doc: SeqDocument) {
       ? [...matching].sort((a, b) => a.enzyme.name.localeCompare(b.enzyme.name))
       : matching;
     const ordered =
-      enzymeSort === 'bands'
-        ? [...byName].sort((a, b) => {
-            const pa = a.profile();
-            const pb = b.profile();
-            return pa === null || pb === null
-              ? Number(pa === null) - Number(pb === null)
-              : compareDiagnostic(pa, pb, gel);
-          })
-        : byName;
+      enzymeSort === 'cuts'
+        ? [...byName].sort((a, b) => a.count - b.count)
+        : enzymeSort === 'overhang'
+          ? [...byName].sort(compareOverhang)
+          : enzymeSort === 'bands'
+            ? [...byName].sort((a, b) => {
+                const pa = a.profile();
+                const pb = b.profile();
+                return pa === null || pb === null
+                  ? Number(pa === null) - Number(pb === null)
+                  : compareDiagnostic(pa, pb, gel);
+              })
+            : byName;
     if (!reversed) return ordered;
-    // Backwards is Z–A, or the lanes that would mislead first — a search
+    // Backwards is Z–A, most cuts or longest overhang first, or the lanes that would mislead first — a search
     // for the enzyme whose pieces run together. Enzymes that do not cut have
     // no lane to judge, so they stay at the foot either way.
-    if (enzymeSort === 'name') return [...ordered].reverse();
+    if (enzymeSort !== 'bands') return [...ordered].reverse();
     const cutting = ordered.filter((r) => r.cutting).reverse();
     return [...cutting, ...ordered.filter((r) => !r.cutting)];
   }, [

@@ -179,6 +179,11 @@ describe('view preferences', () => {
       }),
     );
     expect(loadViewPrefs()).toEqual({});
+    // A sort this build does not know is dropped, one it does is kept.
+    localStorage.setItem(KEY, JSON.stringify({ enzymeSort: 'length' }));
+    expect(loadViewPrefs()).toEqual({});
+    localStorage.setItem(KEY, JSON.stringify({ enzymeSort: 'cuts' }));
+    expect(loadViewPrefs()).toEqual({ enzymeSort: 'cuts' });
     // A partial entry keeps the fields it does have.
     localStorage.setItem(KEY, JSON.stringify({ showCutSites: false, extra: 1 }));
     expect(loadViewPrefs()).toEqual({ showCutSites: false });
