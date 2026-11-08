@@ -19,7 +19,8 @@ Each is one reviewable piece with its own tests, in this order:
 3. The Batch page (a sixth rail page of the primer workspace), primer cases
    (built).
 4. Order sheet. Closes #358.
-5. Cloning rows in the worker (Golden Gate part, homology), `extra5`/`extra3`.
+5. Cloning rows in the worker (Golden Gate part, homology, restriction ends),
+   `extra5`/`extra3` (built).
 6. Cloning batch UI, constructs zip, batch protocol. Closes #360.
 
 Packets 1 and 2 changed nothing a user can see. The guide gets the Batch
@@ -313,3 +314,119 @@ same-base warnings, close. A Batch page test runs two rows and downloads.
 
 **#358 is complete** with this packet: batch design (packets 1-3), the pool
 checks and the order sheet. Cloning rows are #360 (packets 5-6).
+
+## Packet 5: cloning rows in the worker
+
+No UI and no guide page: nothing a user can see differs (the Cloning
+workspace's designs are unchanged, pinned below); the page, the constructs zip
+and the protocol are packet 6.
+
+**The request.** `designCloning` takes a `CloningRequest` of three recipes,
+the Cloning workspace's three kinds of end: `restriction` (`designCloningEnds`
+for a pair of enzymes, `scanForCloningNow` in the worker in place of the
+page's two scan requests), `golden-gate` (`designGoldenGatePart` against the
+destination) and `homology` (a kit's tails, one insert). A design holds a
+closure (`simulate`) and documents, which a structured clone drops or refuses,
+so the worker runs the simulation itself and answers with the design minus
+`simulate`, the simulation's amplicon and product as `DocumentSnapshot`s, and
+the client makes them documents again (`CloningResult`), as packet 2 does for a
+mutagenesis mutant. A snapshot carries the metadata, so a product keeps
+whatever lineage the engine gave it; a test pins that every answer survives
+`structuredClone`. It takes `LongRequestOptions`, so a signal cancels as any
+long request does. No progress is reported inside a row.
+
+**Homology uses `designMultiOverlapPrimers` with one insert, not
+`designOverlapPrimers`.** The plan named the latter, but the Cloning
+workspace's Homology ends (#403) calls the former, and only it takes yeast's
+overlap and an insert read on the reverse strand, so the byte-for-byte
+comparison with the page is against it. For one insert on the forward strand
+and a kit's default overlap the two make the same primers and circle (a test
+pins it). The products carry
+no lineage from the engine, on the page either: `recordOverlapDesign` is
+applied when a design is opened; packet 6 adds it where the protocol needs it.
+
+**The runner** (`src/app/cloningBatch.ts`, `runCloningBatch(rows, vector,
+options, hooks)`) is `primerBatch.ts`'s shape: one request per row, in order,
+a failed row goes on, a cancel keeps the rows done, progress (i+f)/n, more than
+`BATCH_ROW_LIMIT` rows throws. `options` holds the recipe, the Golden Gate /
+restriction settings (`padding`, `avoidJunctionSites`, `criteria`, `extra5`,
+`extra3`), the templates a row's `template` cell can name and the user's
+fidelity table. A row's insert is its `sequence` bases (a document of its own,
+named for the row), a region of its template (with its strand) or the whole
+template. A designed row has the product document (null when the simulation
+could not close, its reason among the warnings) and warnings in this order: the
+row's own (a `join(...)` read as a span), the columns the recipe ignored, the
+design's, the simulation's; a design with no primers (`problem`) is a failed
+row, as is a worker error. Names that differ only in case or spaces are
+`insertNameClashes` (the later row fails, with `validateBatch`'s message for the
+same name and a message of its own for names that become the same primer name).
+
+**Row columns** (`rowRecipe`, validated here against the real enzyme list and
+kit names, which packet 1 left as text; a name is read in the list's own
+spelling, a bad one fails that row with the designers' `X is not in the enzyme
+set.`):
+
+- restriction: `enzyme` is the pair, two names separated by `/`, `,`, `+` or
+  a space, forward first; `left`/`right` are `extra5`/`extra3`; `tm` is a
+  window of 5 °C either side, as the primer batch reads it;
+- Golden Gate: `enzyme` is one name, or two when a second enzyme shares the
+  tube; `left`/`right` are the two overhangs (the destination's when absent);
+  `include_start`/`include_stop`; `tm` as above;
+- homology: `kit` (`In-Fusion`, `NEBuilder HiFi`, `Yeast assembly`, and the
+  short forms `infusion`, `hifi`, `neb`, `yeast`).
+
+A column a recipe has no use for is said in the row's warnings and left alone,
+as the primer batch does. A row that names its own enzyme or kit gets its own
+vector check, made once per distinct recipe.
+
+**Checked once per batch** (`checkCloningVector`, pure; the runner calls it
+and returns `refused` with no rows when it fails, so the page can say it once):
+
+- homology: the vector is linear and holds the kit's homology, with the
+  designers' own reason (`homologyVectorProblem`, now the one place that text
+  lives, used by both homology designers);
+- Golden Gate: the enzyme is in the list and makes parts (`whyNotGoldenGate`)
+  and opens the destination (`opensNothing`, split out of Simulate's message);
+  the overhang pair is `destinationOverhangs`' and is every row's, scored with
+  `setFidelity` when the user has imported a table (an informational line, or
+  a warning for junctions that can be one another or are not in the table) and
+  by `overhangWarnings` when not;
+- restriction: the two enzymes are in the list and the extra bases are
+  A/C/G/T. Whether they cut the vector inside the region is each row's design
+  to say (`vectorCuts`, `outsideRegion`): that needs the cut sites, which the
+  worker scans per row.
+
+**`extra5` and `extra3`** are in `CloningSettings` and
+`GoldenGatePartSettings`, and the engine takes them without changing an output
+when they are empty: extra bases sit between the tail (padding, site, spacer
+and overhang) and the annealing part, in lower case as the tail is, and
+`PrimerSegments.extra` is only present when there are some. `extra5` reads
+before the insert, `extra3` after it as the top strand reads (the reverse
+primer carries the reverse complement). For a Golden Gate part they are inside
+the overhangs: the released part is `left + extra5 + body + extra3 + right`,
+the internal-site check and the site-on-the-amplicon check cover them, and the
+frame check counts bases from the start codon, so `extra5` counts only when
+the overhang spells the start codon (`AATG`) and not when the Kozak sits
+before it. `extraBases.test.ts` pins the empty case with literals taken from
+the designers before the change, for a restriction pair and a Golden Gate
+part (oligos, amplicon, part, frame, warnings, the simulated circle's size).
+The Cloning workspace does not offer them yet; the batch page is where they
+first appear.
+
+**Checked.** For each recipe the first test compares a batch row's design
+(the whole `design`, so every oligo and warning) and its product as GenBank
+text with the engine calls the Cloning workspace makes for the same inputs
+(`designCloningResults`' picked pair, `designGoldenGatePart` with
+`simulate()`, `designMultiOverlapPrimers` for In-Fusion, NEBuilder and yeast at
+30 bases); a row of literal bases equals the design of that insert as a
+document. Per recipe: warnings carried per row, a failing row in the middle
+(no template, a bad enzyme or kit, a design that cannot be made), a vector the
+batch refuses (the worker is not asked), cancel, the limit, name clashes,
+progress. Wall-clock time is not asserted, and a cloning batch has not been
+timed (a row is a PCR run, a digest or an assembly, and the simulation).
+
+**Not done / left to packet 6.** The page and its method select; the
+constructs zip and the batch protocol (the homology product's lineage, above);
+per-row choice of restriction pair from the suggestions (a row names its pair,
+and the default is the batch's); a vector region per row; multi-part rows; the
+Cloning workspace's own `extra5`/`extra3` fields.
