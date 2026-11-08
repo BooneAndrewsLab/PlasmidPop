@@ -1,11 +1,4 @@
-import {
-  SeqDocument,
-  codonSiteAt,
-  createFeature,
-  rangeSegment,
-  reverseComplement,
-  translateCds,
-} from '@/core';
+import { SeqDocument, createFeature, rangeSegment, reverseComplement, translateCds } from '@/core';
 
 import { BATCH_ROW_LIMIT, type BatchContext, scanRows, validateBatch, validateRow } from './rows';
 import { type RawRow, parseBatchText } from './table';
@@ -219,7 +212,8 @@ describe('validateRow: bad rows', () => {
 
   it('wants a template when no document is in front and no sequence is given', () => {
     const r = validateRow(row({ name: 'a', region: '1-5' }), { templates: CONTEXT.templates });
-    expect(r).toMatchObject({ ok: false, message: expect.stringMatching(/no template/) });
+    if (r.ok) throw new Error('expected a bad row');
+    expect(r.message).toMatch(/no template/);
   });
 
   it('refuses a location that does not parse', () => {
@@ -346,7 +340,7 @@ describe('scanRows', () => {
     const f = feature('geneF');
     const protein = translateCds(doc, f).protein;
     const { rows, skipped } = scanRows(doc, f, { template: 'pTest' });
-    const alanines = [...protein].filter((c) => c === 'A').length;
+    const alanines = (protein.match(/A/g) ?? []).length;
     expect(rows).toHaveLength(protein.length - 1 - alanines);
     expect(skipped.filter((s) => s.reason === 'a stop codon')).toHaveLength(1);
     expect(skipped.filter((s) => s.reason === 'already A')).toHaveLength(alanines);

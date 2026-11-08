@@ -366,7 +366,8 @@ function nearestCodon(from: string, to: string, table: TranslationTable): string
       for (const c of BASES) {
         const codon = `${a}${b}${c}`;
         if (translateCodon(codon, table) !== to) continue;
-        const distance = [...codon].filter((base, i) => base !== from.charAt(i)).length;
+        let distance = 0;
+        for (let i = 0; i < 3; i++) if (codon.charAt(i) !== from.charAt(i)) distance++;
         if (distance < bestDistance) {
           best = codon;
           bestDistance = distance;
@@ -402,18 +403,33 @@ export function scanRows(doc: SeqDocument, feature: Feature, options: ScanOption
     const skip = (reason: string): void => {
       skipped.push({ residue, aminoAcid: codon.aminoAcid, reason });
     };
-    if (isPartCodon(codon)) return skip('the two bases a partial CDS ends on are no codon');
-    if (codon.aminoAcid === '*' && to !== '*') return skip('a stop codon');
-    if (codon.aminoAcid === to) return skip(`already ${to}`);
+    if (isPartCodon(codon)) {
+      skip('the two bases a partial CDS ends on are no codon');
+      return;
+    }
+    if (codon.aminoAcid === '*' && to !== '*') {
+      skip('a stop codon');
+      return;
+    }
+    if (codon.aminoAcid === to) {
+      skip(`already ${to}`);
+      return;
+    }
     const span = codonSpan(translation, index, index, doc.length);
-    if (span === null || rangeLength(span) !== 3) return skip('split by an intron');
+    if (span === null || rangeLength(span) !== 3) {
+      skip('split by an intron');
+      return;
+    }
     const forward = codon.positions.map((p) => doc.sequence.slice(p, p + 1)).join('');
     const reading = (
       translation.strand === 'reverse' ? complement(forward) : forward
     ).toUpperCase();
     const replacement = nearestCodon(reading, to, translation.table);
     // Stryker disable next-line ConditionalExpression: `to` was checked above, so a codon is always found
-    if (replacement === null) return skip(`no codon for ${to}`);
+    if (replacement === null) {
+      skip(`no codon for ${to}`);
+      return;
+    }
     const cells: Partial<Record<BatchColumn, string>> = {
       name: `${prefix}_${codon.aminoAcid}${residue}${to}`,
       template: options.template,

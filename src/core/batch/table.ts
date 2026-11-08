@@ -171,7 +171,7 @@ function readRecords(records: readonly Line[]): BatchTable | null {
       const role = roles[i] ?? null;
       if (role === 'notes') notes.push(cell);
       else if (role !== null) cells[role] = cell;
-      else notes.push(`${names[i] ?? ''}`.trim() === '' ? cell : `${names[i]}: ${cell}`);
+      else notes.push(names[i] ? `${names[i]}: ${cell}` : cell);
     });
     if (Object.keys(cells).length > 0 || notes.length > 0) {
       rows.push({ line: record.line, cells, notes: notes.join('; ') });
