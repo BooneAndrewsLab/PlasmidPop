@@ -88,7 +88,9 @@ export function kmerLength(alphabet: 'nucleotide' | 'protein', shortest: number)
 }
 
 function sameCodes(a: Uint8Array | undefined, b: Uint8Array | undefined): boolean {
+  // Stryker disable next-line OptionalChaining: both are `codes[x]` with `x < n`, never undefined; the chain only satisfies the type checker
   if (a?.length !== b?.length) return false;
+  // Stryker disable next-line OptionalChaining: the same two arrays as above, indexed within their equal lengths
   for (let i = 0; i < (a?.length ?? 0); i++) if (a?.[i] !== b?.[i]) return false;
   return true;
 }
@@ -103,6 +105,7 @@ export function kmerDistances(codes: readonly Uint8Array[], radix: number, k: nu
   const counts = codes.map((seq) => {
     const c = new Uint32Array(size);
     let valid = 0;
+    // Stryker disable next-line ArithmeticOperator: `i - k <= length` adds windows past the end, and a code read there is `radix`, which spoils the word, so none is counted
     for (let i = 0; i + k <= seq.length; i++) {
       let h = 0;
       let ok = true;
@@ -129,12 +132,14 @@ export function kmerDistances(codes: readonly Uint8Array[], radix: number, k: nu
       const la = Math.max(1, windows[a] ?? 0);
       const lb = Math.max(1, windows[b] ?? 0);
       let shared = 0;
+      // Stryker disable next-line LogicalOperator: `counts` has an entry for every sequence, so neither is undefined
       if (ca !== undefined && cb !== undefined) {
         for (let h = 0; h < size; h++) shared += Math.min(ca[h] ?? 0, cb[h] ?? 0);
       }
       // With no valid window on either side there is no evidence either way: equal
       // sequences are 0 apart, and any other pair is 1 apart.
       const dist =
+        // Stryker disable next-line LogicalOperator: with one side empty `shared` is 0, so the general formula gives 1, as `sameCodes` does for a pair that differs
         windows[a] === 0 && windows[b] === 0
           ? sameCodes(codes[a], codes[b])
             ? 0
@@ -174,6 +179,7 @@ export function upgma(d: readonly (readonly number[])[]): TreeNode {
     let best = Infinity;
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
+        // Stryker disable next-line OptionalChaining: `dist` has a row for every index of `nodes`
         const v = dist[i]?.[j] ?? Infinity;
         if (v < best) {
           best = v;
@@ -193,9 +199,11 @@ export function upgma(d: readonly (readonly number[])[]): TreeNode {
     };
     const keep: number[] = [];
     for (let k = 0; k < nodes.length; k++) if (k !== bi && k !== bj) keep.push(k);
+    // Stryker disable next-line OptionalChaining: `keep` indexes rows of `dist`
     const next: number[][] = keep.map((r) => keep.map((c) => dist[r]?.[c] ?? 0));
     const row = keep.map(
       (k) =>
+        // Stryker disable next-line OptionalChaining: bi, bj and k all index rows of `dist`
         ((dist[bi]?.[k] ?? 0) * a.members.length + (dist[bj]?.[k] ?? 0) * b.members.length) /
         merged.members.length,
     );
@@ -210,6 +218,7 @@ export function upgma(d: readonly (readonly number[])[]): TreeNode {
 export function treeWeights(root: TreeNode, n: number): number[] {
   const w = new Array<number>(n).fill(0);
   const walk = (node: TreeNode): void => {
+    // Stryker disable next-line LogicalOperator: a node has both children or neither, so `&&` and `||` agree
     if (node.left === null || node.right === null) return;
     for (const child of [node.left, node.right]) {
       const branch = Math.max(0, node.height - child.height);
@@ -224,6 +233,7 @@ export function treeWeights(root: TreeNode, n: number): number[] {
 }
 
 function newick(node: TreeNode): string {
+  // Stryker disable next-line LogicalOperator: a node has both children or neither, so `&&` and `||` agree
   return node.left === null || node.right === null
     ? String((node.leaf ?? 0) + 1)
     : `(${newick(node.left)},${newick(node.right)})`;
@@ -255,6 +265,7 @@ function columnsOf(
   weights: readonly number[],
   k: number,
 ): { freq: Float64Array; gap: Float64Array; length: number } {
+  // Stryker disable next-line OptionalChaining: a profile has at least one row
   const length = p.rows[0]?.length ?? 0;
   const total = p.members.reduce((s, m) => s + (weights[m] ?? 0), 0) || 1;
   const freq = new Float64Array(length * k);
@@ -461,11 +472,13 @@ function fillBand(g: Grid, band: Band, gapOpen: number, gapExtend: number): Path
   let i = n;
   let j = m;
   while (i > 0 || j > 0) {
+    // Stryker disable next-line BlockStatement: the top-edge trace entries make the general branch push the same 2
     if (i === 0) {
       ops.push(2);
       j--;
       continue;
     }
+    // Stryker disable next-line BlockStatement: the left-edge trace entry (bit 2 set) keeps state 1, so the general branch pushes the same 1
     if (j === 0) {
       ops.push(1);
       i--;
@@ -592,6 +605,7 @@ function reachable(g: Grid, score: number, gapExtend: number): Band {
     }
     out.sort();
     // Prefix sums: the least `t` gap columns can cost.
+    // Stryker disable next-line ArithmeticOperator: one entry fewer is `undefined` in `lossA` or `lossB`, which `?? Infinity` turns into what `fits` already reads past the far diagonals
     const sums = new Float64Array(c.length + 1);
     for (let t = 0; t < c.length; t++) sums[t + 1] = (sums[t] ?? 0) + (out[t] ?? 0);
     return sums;
@@ -606,8 +620,10 @@ function reachable(g: Grid, score: number, gapExtend: number): Band {
     const y = (gaps - shift) / 2;
     return upper - (lossA[x] ?? Infinity) - (lossB[y] ?? Infinity) >= score - slack;
   };
+  // Stryker disable next-line MethodExpression: `fits` has one value for every diagonal between 0 and n - m and is true for the guess's own path, so the climb from either end reaches the same `high`
   let high = Math.max(0, shift);
   while (high < n && fits(high + 1)) high++;
+  // Stryker disable next-line MethodExpression: the same climb, downward
   let low = Math.min(0, shift);
   while (low > -m && fits(low - 1)) low--;
   const lo = new Int32Array(n + 1);
@@ -699,6 +715,7 @@ function joinProfiles(a: Profile, b: Profile, ctx: JoinContext, budget = Infinit
     const codes: Uint8Array[] = [];
     p.rows.forEach((row, r) => {
       const src = at(p.codes, r);
+      // Stryker disable next-line ArrayDeclaration: every index 0 to ops.length - 1 is assigned below
       const out = new Array<string>(ops.length);
       const outCodes = new Uint8Array(ops.length);
       let c = 0;
@@ -784,6 +801,7 @@ export function alignMultiple(
     let done = 0;
     const ctx = join(weights);
     const run = (node: TreeNode): Profile => {
+      // Stryker disable next-line LogicalOperator: a node has both children or neither, so `&&` and `||` agree
       if (node.left === null || node.right === null) {
         const i = node.leaf ?? 0;
         return profileOf([i], [at(clean, i)], [at(codes, i)]);
@@ -796,6 +814,7 @@ export function alignMultiple(
       return joined;
     };
     const final = run(root);
+    // Stryker disable next-line ArrayDeclaration,StringLiteral: the starting value is overwritten for every member, and every sequence is a member
     const rows = new Array<string>(n).fill('');
     final.members.forEach((m, r) => {
       rows[m] = at(final.rows, r);
@@ -823,6 +842,7 @@ export function alignMultiple(
     });
   }
   report?.(1);
+  // Stryker disable next-line OptionalChaining: `rows` has one row per sequence, at least two
   return { alphabet, rows, columns: rows[0]?.length ?? 0, tree: newick(root) };
 }
 
@@ -872,6 +892,7 @@ function refine(
   // Every branch but the root: the sequences below it against all the others.
   const groups: (readonly number[])[] = [];
   const collect = (node: TreeNode): void => {
+    // Stryker disable next-line LogicalOperator: a node has both children or neither, so `&&` and `||` agree
     if (node.left === null || node.right === null) return;
     for (const child of [node.left, node.right]) {
       groups.push(child.members);
@@ -890,9 +911,11 @@ function refine(
       const inGroup = new Set(group);
       const rest = Array.from({ length: n }, (_, i) => i).filter((i) => !inGroup.has(i));
       if (rest.length === 0) continue;
+      // Stryker disable next-line OptionalChaining: `rows` has one row per sequence
       const columns = rows[0]?.length ?? 0;
       const keep: number[] = [];
       for (let c = 0; c < columns; c++) {
+        // Stryker disable next-line StringLiteral: no column of `rows` is all gaps (a join puts a residue in every column), so keeping every column is the same
         if (rows.some((r) => r.charAt(c) !== '-')) keep.push(c);
       }
       const cut = (members: readonly number[]): Profile => {
@@ -914,6 +937,7 @@ function refine(
       if (out === null) return rows;
       spent += out.cells;
       const { joined } = out;
+      // Stryker disable next-line ArrayDeclaration,StringLiteral: the starting value is overwritten for every member, and every sequence is a member
       const candidate = new Array<string>(n).fill('');
       joined.members.forEach((m, r) => {
         candidate[m] = at(joined.rows, r);
