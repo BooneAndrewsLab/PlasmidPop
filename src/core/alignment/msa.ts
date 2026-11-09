@@ -162,6 +162,12 @@ export interface TreeNode {
   readonly members: readonly number[];
 }
 
+/** A node's two children, or null for a leaf: a node has both or neither. */
+function children(node: TreeNode): readonly [TreeNode, TreeNode] | null {
+  // Stryker disable next-line LogicalOperator: a node has both children or neither, so `&&` and `||` agree
+  return node.left === null || node.right === null ? null : [node.left, node.right];
+}
+
 /** UPGMA over a distance matrix: the closest pair joined first, ties to the lowest indices. */
 export function upgma(d: readonly (readonly number[])[]): TreeNode {
   let nodes: TreeNode[] = d.map((_, i) => ({
@@ -218,9 +224,9 @@ export function upgma(d: readonly (readonly number[])[]): TreeNode {
 export function treeWeights(root: TreeNode, n: number): number[] {
   const w = new Array<number>(n).fill(0);
   const walk = (node: TreeNode): void => {
-    // Stryker disable next-line LogicalOperator: a node has both children or neither, so `&&` and `||` agree
-    if (node.left === null || node.right === null) return;
-    for (const child of [node.left, node.right]) {
+    const kids = children(node);
+    if (kids === null) return;
+    for (const child of kids) {
       const branch = Math.max(0, node.height - child.height);
       for (const m of child.members) w[m] = (w[m] ?? 0) + branch / child.members.length;
       walk(child);
@@ -233,10 +239,8 @@ export function treeWeights(root: TreeNode, n: number): number[] {
 }
 
 function newick(node: TreeNode): string {
-  // Stryker disable next-line LogicalOperator: a node has both children or neither, so `&&` and `||` agree
-  return node.left === null || node.right === null
-    ? String((node.leaf ?? 0) + 1)
-    : `(${newick(node.left)},${newick(node.right)})`;
+  const kids = children(node);
+  return kids === null ? String((node.leaf ?? 0) + 1) : `(${newick(kids[0])},${newick(kids[1])})`;
 }
 
 /** A set of rows (input indices) in one column space, with its weights. */
@@ -801,13 +805,13 @@ export function alignMultiple(
     let done = 0;
     const ctx = join(weights);
     const run = (node: TreeNode): Profile => {
-      // Stryker disable next-line LogicalOperator: a node has both children or neither, so `&&` and `||` agree
-      if (node.left === null || node.right === null) {
+      const kids = children(node);
+      if (kids === null) {
         const i = node.leaf ?? 0;
         return profileOf([i], [at(clean, i)], [at(codes, i)]);
       }
-      const l = run(node.left);
-      const r = run(node.right);
+      const l = run(kids[0]);
+      const r = run(kids[1]);
       const { joined } = joinProfiles(l, r, ctx);
       done++;
       report?.(from + ((to - from) * done) / (n - 1));
@@ -892,9 +896,9 @@ function refine(
   // Every branch but the root: the sequences below it against all the others.
   const groups: (readonly number[])[] = [];
   const collect = (node: TreeNode): void => {
-    // Stryker disable next-line LogicalOperator: a node has both children or neither, so `&&` and `||` agree
-    if (node.left === null || node.right === null) return;
-    for (const child of [node.left, node.right]) {
+    const kids = children(node);
+    if (kids === null) return;
+    for (const child of kids) {
       groups.push(child.members);
       collect(child);
     }
