@@ -1,16 +1,16 @@
 {
-  "score": 92.11,
+  "score": 92.13,
   "floor": 90,
   "date": "2026-11-08",
   "appVersion": "1.24.0",
   "run": "the pre-release run on the changes since v1.23.0",
   "stryker": "10.0.0",
   "counts": {
-    "Ignored": 2495,
-    "Killed": 23558,
+    "Ignored": 2590,
+    "Killed": 23595,
     "NoCoverage": 168,
     "RuntimeError": 11,
-    "Survived": 1889,
+    "Survived": 1888,
     "Timeout": 458
   },
   "files": [
@@ -400,10 +400,10 @@
     },
     {
       "file": "src/core/cloning/protocolText.ts",
-      "score": 96.87,
-      "killed": 433,
+      "score": 97.09,
+      "killed": 434,
       "timeout": 0,
-      "survived": 14,
+      "survived": 13,
       "noCoverage": 0
     },
     {
@@ -512,8 +512,8 @@
     },
     {
       "file": "src/core/primers/criteria.ts",
-      "score": 77.57,
-      "killed": 83,
+      "score": 83.22,
+      "killed": 119,
       "timeout": 0,
       "survived": 23,
       "noCoverage": 1
