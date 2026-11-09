@@ -1718,3 +1718,40 @@ only}` to `false` (the same read and pick either way).
   (`not required`, `refused`). All were `NoCoverage` string literals and each
   is now read by exact text; none was equivalent. The confirming rerun left
   none of them.
+
+## At 1.25: `alignment/banded.ts` (#432's prerequisite pass)
+
+`banded.ts` had never been mutated in full on the workstation (the first run
+that included it, 2026-11-03, left it at **44.16%**: 237 killed, 20 timed out,
+302 survived, 23 uncovered of 584). Its suite compared banded scores with the
+full fill, which a band a few cells too wide or too narrow passes.
+
+- **Tests:** `bandedEdges.test.ts` (100 tests, about 1.5 s plain) names what the
+  whole-alignment suite cannot see: the anchors and the word index, the chain
+  and its strays, the turns folded back, `flankScoring`, `gapBound`, `boundBand`,
+  and the exact `lo`/`hi` rows of `bandAround` and the `filled` counts of
+  `alignBanded`. It killed about 260 of the 325 survivors and uncovered mutants
+  (each survivor applied by hand against that file).
+- **Code change, reviewed:** the guard "consecutive rows meet" in `bandAround`
+  was removed. It never fired, on any chain of up to three anchors over a grid
+  of matrix sizes and four scorings (about 100,000 bands), on 400,000 random
+  rising bands, on 300,000 chains that fall behind in the reference as a fold
+  can leave them, or in the whole suite with the guard turned into a throw.
+  `bandedEdges.test.ts` now pins what it enforced (`lo` never falls, never
+  passes `hi` of the row before by more than one, `hi >= lo`) for rising and
+  folded chains in both modes, and fails when a monotone pass is removed. This
+  took out 9 mutants (6 survivors, 3 uncovered) that no test could kill.
+  The change got a `/code-review`; its one objection of substance, that nothing
+  enforced the invariant any more, is the test above.
+- **Disables (9 lines):** `// Stryker disable next-line`, each only where every
+  mutant of that mutator on the line was applied and found equivalent: `?.` and
+  `?? -1` fallbacks on values that are there (the chain reconstruction, rows of
+  `bandAround`), `Math.abs` of a default whose sign does not matter, and the
+  `cover` guard, whose rows outside the matrix a typed array drops anyway.
+- **Equivalent survivors left (about 55), by kind:** fallbacks on always-defined
+  values; the sign of the word hash (`kmer * 4 - bits` is the exact negative on
+  both sequences); the cap on a word's occurrences (a longer list is skipped by
+  `anchors` anyway); flank windows whose rows the monotone passes fill the same;
+  a global region that is never trimmed (`regionScore`, argued from
+  `gapBound >= |n - m|`); the `wrap` guards, where `turns >= 0` adds nothing.
+- **Result:** see the summary file for the figure of the run.
