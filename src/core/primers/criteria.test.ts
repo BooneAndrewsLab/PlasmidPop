@@ -82,3 +82,36 @@ describe('restorePrimerSetting', () => {
     );
   });
 });
+
+describe('each setting reads as its panel text', () => {
+  const d = DEFAULT_PRIMER_CRITERIA;
+  const text = (id: string, c = d): string => {
+    const f = PRIMER_SETTING_FIELDS.find((x) => x.id === id);
+    if (!f) throw new Error(id);
+    return f.value(c);
+  };
+  it('words every value with its unit', () => {
+    expect(text('tmDifference')).toBe('≤ 3 °C');
+    expect(text('product')).toBe('0–20000 bp');
+    expect(text('homopolymer')).toBe('≤ 4');
+    expect(text('hairpinTm', { ...d, hairpinTm: 47.5 })).toBe('≤ 47.5 °C');
+    expect(text('threePrime')).toBe('≤ 4 bp');
+  });
+  it('words both states of the two toggles', () => {
+    expect(text('gcClamp')).toBe('not required');
+    expect(text('gcClamp', { ...d, requireGcClamp: true })).toBe('required');
+    expect(text('specific')).toBe('refused');
+    expect(text('specific', { ...d, requireSpecific: false })).toBe('allowed');
+  });
+  it('names each changed setting in a change list', () => {
+    expect(describePrimerChanges({ ...d, maxTmDifference: 2, maxHomopolymer: 5 })).toEqual([
+      'ΔTm ≤ 2 °C',
+      'Base run ≤ 5',
+    ]);
+    expect(describePrimerChanges({ ...d, maxThreePrime: 3, minProduct: 100 })).toEqual([
+      'Product 100–20000 bp',
+      '3′ dimer ≤ 3 bp',
+    ]);
+    expect(describePrimerChanges({ ...d, hairpinTm: 40 })).toEqual(['Hairpin Tm ≤ 40 °C']);
+  });
+});

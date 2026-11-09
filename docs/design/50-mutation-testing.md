@@ -1712,3 +1712,9 @@ only}` to `false` (the same read and pick either way).
   `reactionBlocks` list (`markdownOf` and `htmlOf` switch on `b.t` and drop a
   block that is not one). The blank line after an h4 heading was the one
   survivor of the rerun that a test could see, and got one.
+- **Tested, `criteria.ts` (7, #428).** The panel text of the settings no test
+  reached: the `≤ … °C` of ΔTm and Hairpin Tm, the product range in bp, the
+  base run, the 3′ dimer length, and the off-default words of the two toggles
+  (`not required`, `refused`). All were `NoCoverage` string literals and each
+  is now read by exact text; none was equivalent. The confirming rerun left
+  none of them.
