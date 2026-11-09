@@ -247,9 +247,13 @@ digit as in `M13F` and `M13R`; a file extension and case do not matter, so
 `clone7_F.ab1` and `clone7_R.ab1` are a pair, as are the `/1` and `/2` of a
 FASTQ and an Illumina header's `1:N:0` and `2:N:0` (a FASTQ keeps that
 read number apart from the read's name, and the page counts it as part of the name).
-Illumina file names pair too: `sample_R1_001.fastq.gz` with
-`sample_R2_001.fastq.gz`, lane forms such as `sample_S1_L001_R1_001` with
-`sample_S1_L001_R2_001`, and `sample.R1` with `sample.R2`. The lane and the
+Names in the Illumina file-name style pair too: `sample_R1_001` with
+`sample_R2_001`, lane forms such as `sample_S1_L001_R1_001` with
+`sample_S1_L001_R2_001`, and `sample.R1` with `sample.R2`, with or without a
+`.fastq.gz` ending. This is about the record's name, so it applies to a trace
+or a FASTA record named that way; the file a FASTQ read came from does not
+count, since its name is the read's header (two FASTQ files pair through an
+Illumina header's read number, as above). The lane and the
 chunk number must match, so `L001` reads never pair with `L002` reads. Names that share a stem
 but are not exactly one forward and one reverse (two `F`s, a `_F` beside a
 `_2`, a series `clone_1`, `clone_2`, `clone_3`) are not guessed at: they are
