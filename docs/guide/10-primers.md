@@ -145,13 +145,14 @@ ends**, which put each row's insert into one vector
 ([below](#cloning-many-inserts-into-one-vector)).
 
 A line over the results says what they were run with (for example _Restriction
-sites into pLig-Vector (EcoRI/BamHI)_, or _Primer pairs on_ a template). Change
-the method, vector, enzymes, kit or template afterwards and the results stay,
-with a note on that line that the settings have changed; **Design** again to
-use them. When the run used primer **Settings** other than the defaults, the
-line names them (_Primer pairs on BP-Plasmid; changed primer settings: Dimer ΔG
-−2.5_), and changing the Settings afterwards counts as the settings having
-changed too.
+sites into pLig-Vector (EcoRI/BamHI)_, or _Primer pairs on_ a template). The
+results always belong to what is on the page: change the rows (typing, a paste,
+a file, **Generate scan rows**), the method, template, vector, enzymes, kit or
+overlap, or the primer **Settings**, and the results, the pool check and the
+order and protocol actions are cleared, and a run in progress is cancelled with
+its finished rows discarded. **Design** again to get them for the new input.
+When the run used primer Settings other than the defaults, the line names them
+(_Primer pairs on BP-Plasmid; changed primer settings: Dimer ΔG −2.5_).
 
 **The rows.** Paste them from a spreadsheet into the **Rows** box (tab-,
 comma- or semicolon-separated), or **Upload a table…** (CSV, TSV or an Excel
@@ -196,7 +197,8 @@ split by an intron.
 
 **Design N rows** runs the table. Each row is its own request to the analysis
 worker, so the page stays usable and the results table fills as rows finish,
-with a progress bar and **Cancel**, which keeps the rows already done. A row
+with a progress bar and **Cancel**, which keeps the rows already done (a
+change to the input discards them instead, as above). A row
 that cannot be designed (no pair meets the criteria, no such template) is
 listed as **failed** with the reason, and the others go on. The criteria are
 the Settings'. The batch and its results stay with the document while you

@@ -199,6 +199,8 @@ export function batchCase(
 }
 
 const running = new Map<string, AbortController>();
+/** Runs whose input changed under them: their rows are discarded, not kept (#429). */
+const discarded = new WeakSet<AbortController>();
 
 function key(documentId: string | null): string {
   return documentId ?? '';
@@ -234,6 +236,7 @@ export async function startBatch(documentId: string | null, a: StartBatch): Prom
   } satisfies BatchRun;
   batchSession.update(documentId, { run: base, selected: null, said: null });
   const patch = (p: Partial<BatchRun>): void => {
+    if (discarded.has(controller)) return;
     batchSession.update(documentId, (s) => (s.run === null ? {} : { run: { ...s.run, ...p } }));
   };
   try {
@@ -244,6 +247,7 @@ export async function startBatch(documentId: string | null, a: StartBatch): Prom
       {
         signal: controller.signal,
         onRow: (row) => {
+          if (discarded.has(controller)) return;
           batchSession.update(documentId, (s) =>
             s.run === null ? {} : { run: { ...s.run, rows: [...s.run.rows, row] } },
           );
@@ -256,12 +260,58 @@ export async function startBatch(documentId: string | null, a: StartBatch): Prom
     patch({ running: false, cancelled: outcome.cancelled });
   } catch (e: unknown) {
     patch({ running: false });
-    batchSession.update(documentId, {
-      error: e instanceof Error ? e.message : String(e),
-    });
+    if (!discarded.has(controller)) {
+      batchSession.update(documentId, {
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
   } finally {
+    if (running.get(key(documentId)) === controller) running.delete(key(documentId));
+  }
+}
+
+/** The session fields a run is made from: when one of them changes, the results no longer belong to the page (#429). */
+const RUN_INPUTS = [
+  'text',
+  'method',
+  'template',
+  'vector',
+  'forwardEnzyme',
+  'reverseEnzyme',
+  'goldenGateEnzyme',
+  'kit',
+  'overlap',
+] as const satisfies readonly (keyof BatchSession)[];
+
+/**
+ * Drops both runs' results, and cancels the one in progress without keeping
+ * its rows. The run's slot is freed at once so Design can start again, and
+ * its late rows are ignored (`discarded`).
+ */
+export function clearBatchResults(documentId: string | null): void {
+  const controller = running.get(key(documentId));
+  if (controller !== undefined) {
+    discarded.add(controller);
+    controller.abort();
     running.delete(key(documentId));
   }
+  batchSession.update(documentId, { run: null, cloning: null, selected: null, said: null });
+}
+
+/**
+ * The page's one way to write the session: a patch that changes any of the
+ * run's inputs (the rows, method, template, vector, enzymes, kit or overlap)
+ * clears the results with it, so what is shown always is what the page holds.
+ * A patch that sets a field to the value it has changes nothing.
+ */
+export function changeBatchInputs(
+  documentId: string | null,
+  patch: Partial<BatchSession> | ((s: BatchSession) => Partial<BatchSession>),
+): void {
+  const current = batchSession.read(documentId);
+  const p = typeof patch === 'function' ? patch(current) : patch;
+  if (RUN_INPUTS.some((k) => k in p && p[k] !== current[k])) clearBatchResults(documentId);
+  batchSession.update(documentId, p);
 }
 
 /** Stops the run of this document, keeping the rows done. */
@@ -305,6 +355,7 @@ export async function startCloningBatch(
   } satisfies CloningRun;
   batchSession.update(documentId, { cloning: base, selected: null, said: null });
   const patch = (p: Partial<CloningRun>): void => {
+    if (discarded.has(controller)) return;
     batchSession.update(documentId, (s) =>
       s.cloning === null ? {} : { cloning: { ...s.cloning, ...p } },
     );
@@ -322,6 +373,7 @@ export async function startCloningBatch(
       {
         signal: controller.signal,
         onRow: (row) => {
+          if (discarded.has(controller)) return;
           batchSession.update(documentId, (s) =>
             s.cloning === null ? {} : { cloning: { ...s.cloning, rows: [...s.cloning.rows, row] } },
           );
@@ -339,8 +391,10 @@ export async function startCloningBatch(
     });
   } catch (e: unknown) {
     patch({ running: false });
-    batchSession.update(documentId, { error: e instanceof Error ? e.message : String(e) });
+    if (!discarded.has(controller)) {
+      batchSession.update(documentId, { error: e instanceof Error ? e.message : String(e) });
+    }
   } finally {
-    running.delete(key(documentId));
+    if (running.get(key(documentId)) === controller) running.delete(key(documentId));
   }
 }

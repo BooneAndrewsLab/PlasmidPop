@@ -295,7 +295,7 @@ describe('the Batch page (#358, item 141)', { timeout: 60_000 }, () => {
     expect(screen.getByText(/column/i, { selector: '.panel__error' })).toBeInTheDocument();
   });
 
-  it('labels the results with what the run used, and says when the settings have moved on', async () => {
+  it('labels the results with what the run used, and clears them when the page no longer matches (#429)', async () => {
     act(() => {
       editorStore.openDocument(U49845);
       const id = editorStore.openDocument(pUC19);
@@ -315,56 +315,97 @@ describe('the Batch page (#358, item 141)', { timeout: 60_000 }, () => {
       expect(screen.getByText(/1 row designed/)).toBeInTheDocument();
     });
     expect(caption()).toHaveTextContent(`Restriction sites into ${pUC19.name} (EcoRI/BamHI)`);
-    expect(caption()).not.toHaveTextContent('Settings have changed');
 
     select('Method', 'homology');
-    expect(caption()).toHaveTextContent(`Restriction sites into ${pUC19.name} (EcoRI/BamHI)`);
-    expect(caption()).toHaveTextContent(
-      'Settings have changed since this run; Design again to use them.',
-    );
-    expect(rows()).toHaveLength(1);
+    expect(screen.queryByTestId('batch-run-caption')).toBeNull();
+    expect(screen.queryByRole('grid', { name: 'Batch results' })).toBeNull();
 
     select('Method', 'restriction');
-    expect(caption()).not.toHaveTextContent('Settings have changed');
-
+    await until(screen.getByRole('button', { name: 'Design 1 row' }), () => {
+      expect(caption()).toHaveTextContent(`(EcoRI/BamHI)`);
+    });
     act(() => {
       fireEvent.change(screen.getByRole('textbox', { name: '5′ enzyme' }), {
         target: { value: 'XbaI' },
       });
     });
-    expect(caption()).toHaveTextContent('Settings have changed');
+    expect(screen.queryByTestId('batch-run-caption')).toBeNull();
     await until(screen.getByRole('button', { name: 'Design 1 row' }), () => {
       expect(caption()).toHaveTextContent(`Restriction sites into ${pUC19.name} (XbaI/BamHI)`);
     });
-    expect(caption()).not.toHaveTextContent('Settings have changed');
   });
 
-  it('says when the run used changed primer settings, and when they have moved since (#428)', async () => {
+  it('clears the results when the rows change, and keeps them through a re-render (#429)', async () => {
     open();
     paste(GOOD);
-    const caption = (): HTMLElement => screen.getByTestId('batch-run-caption');
     await until(screen.getByRole('button', { name: 'Design 2 rows' }), () => {
       expect(screen.getByText('2 rows designed.')).toBeInTheDocument();
     });
-    expect(caption()).toHaveTextContent('Primer pairs on tpl');
-    expect(caption()).not.toHaveTextContent('changed primer settings');
-    expect(caption()).not.toHaveTextContent('Settings have changed');
+    // The same text again, and a tab switch away and back, change nothing.
+    paste(GOOD);
+    expect(rows()).toHaveLength(2);
+    fireEvent.click(screen.getByRole('tab', { name: /^Design/ }));
+    fireEvent.click(screen.getByRole('tab', { name: /^Batch/ }));
+    expect(rows()).toHaveLength(2);
 
+    paste(`${GOOD}\nC,50-200`);
+    expect(screen.queryByRole('grid', { name: 'Batch results' })).toBeNull();
+    expect(screen.queryByTestId('batch-run-caption')).toBeNull();
+    await until(screen.getByRole('button', { name: 'Design 3 rows' }), () => {
+      expect(screen.getByText('3 rows designed.')).toBeInTheDocument();
+    });
+  });
+
+  it('clears the results when the primer settings change, and when they changed while the page was away (#429)', async () => {
+    open();
+    paste(GOOD);
+    await until(screen.getByRole('button', { name: 'Design 2 rows' }), () => {
+      expect(screen.getByText('2 rows designed.')).toBeInTheDocument();
+    });
     act(() => {
       editorStore.setPrimerCriteria({ ...DEFAULT_PRIMER_CRITERIA, dimerDg: -2.5 });
     });
-    expect(caption()).toHaveTextContent('Settings have changed since this run');
-    expect(caption()).not.toHaveTextContent('changed primer settings');
+    expect(screen.queryByRole('grid', { name: 'Batch results' })).toBeNull();
     await until(screen.getByRole('button', { name: 'Design 2 rows' }), () => {
-      expect(caption()).toHaveTextContent(
+      expect(screen.getByTestId('batch-run-caption')).toHaveTextContent(
         'Primer pairs on tpl; changed primer settings: Dimer ΔG −2.5',
       );
     });
-    expect(caption()).not.toHaveTextContent('Settings have changed');
-
+    // Back to the defaults while another tab is in front: the page clears on return.
+    fireEvent.click(screen.getByRole('tab', { name: /^Design/ }));
     act(() => {
       editorStore.setPrimerCriteria(DEFAULT_PRIMER_CRITERIA);
     });
-    expect(caption()).toHaveTextContent('Settings have changed since this run');
+    fireEvent.click(screen.getByRole('tab', { name: /^Batch/ }));
+    expect(screen.queryByRole('grid', { name: 'Batch results' })).toBeNull();
+  });
+
+  it('cancels a run in progress when the rows change, and discards what it had done (#429)', async () => {
+    const real = analysisClient.designPrimers.bind(analysisClient);
+    const spy = vi
+      .spyOn(analysisClient, 'designPrimers')
+      .mockImplementation((seq, topology, target, options, long) =>
+        target.start === 99
+          ? real(seq, topology, target, options, long)
+          : new Promise((_, reject) => {
+              long?.signal?.addEventListener('abort', () => {
+                reject(new AnalysisCancelledError());
+              });
+            }),
+      );
+    try {
+      open();
+      paste(`${GOOD}\nC,50-200`);
+      await until(screen.getByRole('button', { name: 'Design 3 rows' }), () => {
+        expect(screen.getByText('Designing: 1 of 3 rows.')).toBeInTheDocument();
+      });
+      paste(GOOD);
+      expect(screen.queryByRole('grid', { name: 'Batch results' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
+      // The slot is free: Design again starts at once, from no rows.
+      expect(screen.getByRole('button', { name: 'Design 2 rows' })).toBeEnabled();
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

@@ -209,7 +209,7 @@ A cloning method turns each row into **one insert to clone into one vector**, de
 
 ## Exercise 5 of 5: the same table, another recipe
 
-The recipe is a setting on the page, not on the table: the same inserts go in by restriction sites or by homology ends when you change **Method** and **Vector**.
+The recipe is a setting on the page, not on the table: the same inserts go in by restriction sites or by homology ends when you change **Method** and **Vector**, and **Design** again. Changing the table or any setting clears the results, so the table on screen is always the one the page holds.
 
 1. Close the tabs. Open `GG-gene.gb`, then `pLig-Vector.gb`, so the vector is in front. In **Batch**, choose **Restriction sites**; **5′ enzyme** and **3′ enzyme** read `EcoRI` and `BamHI`.
 2. Paste this table and click **Design 4 rows**. (`pLig-Vector`'s cloning site holds EcoRI, PstI and BamHI.)
@@ -225,7 +225,7 @@ The recipe is a setting on the page, not on the table: the same inserts go in by
    > [!NOTE]
    > You see **3 rows ready, 1 row with a problem and not run**, then **3 rows designed.**, with constructs of 3,348, 2,946 and 2,766 bp. `mini` carries a similar warning, about its annealing part. The forward primer of `gene_full` starts `gttctggaattc`: padding, then the EcoRI site `GAATTC`, then the start of the gene.
 
-3. Open `GG-gene.gb`, then `GB-Vector.gb` (a **linear** vector whose two ends are its homology), choose **Homology ends** with the **Kit** `In-Fusion`, and run the same table.
+3. Open `GG-gene.gb`, then `GB-Vector.gb` (a **linear** vector whose two ends are its homology), choose **Homology ends** with the **Kit** `In-Fusion`. The results of the restriction run are gone, since they belonged to the old method; the table is still in the **Rows** box, so click **Design 3 rows** to run it again.
 
    > [!NOTE]
    > You see **3 rows designed.**, with constructs of 2,208, 1,806 and 1,626 bp, each with a warning that **In-Fusion asks for 15 bases of homology at each of the 2 junctions.**
@@ -247,6 +247,6 @@ Background: [Batch design](../guide/10-primers.md#batch-design) and [Many insert
 
 This is a **synthetic example** (invented sequence). `BP-Plasmid` is 923 bp, circular: `synthetic promoter` (1 to 120), `synthORF` (141 to 383, 81 codons, ATG to stop, starting `M C A E W N`), `synthetic terminator` (384 to 463) and an `ori` stand-in (524 to 923).
 
-Each row is its own request to the analysis worker, in order, so the page stays usable and the table fills as rows finish; **Cancel** keeps the rows done. A pair row flanks its region (the region is the target, the primers lie outside it), so a region the whole plasmid cannot flank, or a product ceiling shorter than the region, fails. A row with `change` is a point mutation designed as the Cloning tab's mutagenesis designs it. The criteria are the Settings' primer criteria, and a row's `tm` is a window of 5 °C either side. The run, like the table, is kept in the page's memory only: a reload starts clean.
+Each row is its own request to the analysis worker, in order, so the page stays usable and the table fills as rows finish; **Cancel** keeps the rows done. A pair row flanks its region (the region is the target, the primers lie outside it), so a region the whole plasmid cannot flank, or a product ceiling shorter than the region, fails. Changing the rows, the method, the template, the vector, the enzymes, the kit or the Settings' primer criteria clears the results (and cancels a run in progress), so what is shown is always what the page holds. A row with `change` is a point mutation designed as the Cloning tab's mutagenesis designs it. The criteria are the Settings' primer criteria, and a row's `tm` is a window of 5 °C either side. The run, like the table, is kept in the page's memory only: a reload starts clean.
 
 A `GG-gene` insert has no cloning ends; the batch designs them. For Golden Gate the part takes the overhangs of the destination (`GGAG` and `CGCT`, the backbone's ends), and the primer tails carry the BsaI site, padding and overhang in lower case, with the annealing part in upper case.

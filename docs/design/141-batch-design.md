@@ -537,19 +537,35 @@ Multi-part rows and combinatorial assembly (#360's later list) stay out.
 
 **Run caption (#427).** The results used to stay on screen unlabelled after
 Method, Vector, Enzyme or Kit changed, beside a Design button that read as if
-they belonged to the new settings. They are kept, not cleared, and labelled: the
-session records what the run used (`CloningRun.ran`, the whole recipe, plus the
-vector name; a primer run has its `templateName`), and a quiet line over the
-table names it ("Restriction sites into pLig-Vector (EcoRI/BamHI)", "Homology
-ends into GB-Vector (In-Fusion)", "Primer pairs on BP-Plasmid"). When the page's
-current settings (`sessionRecipe`, the vector, the template) differ from the
-run's, the line adds that the settings have changed. The label comes from the
-session, never from the current settings, so it survives a tab switch.
+they belonged to the new settings. The session records what the run used
+(`CloningRun.ran`, the whole recipe, plus the vector name; a primer run has its
+`templateName`), and a quiet line over the table names it ("Restriction sites
+into pLig-Vector (EcoRI/BamHI)", "Homology ends into GB-Vector (In-Fusion)",
+"Primer pairs on BP-Plasmid"). The label comes from the session, never from the
+current settings, so it survives a tab switch. #427 first kept the results and
+added a "settings have changed" notice to the line; #429 replaced that, below.
 
 **Primer criteria in the caption (#428).** One Settings change (Dimer ΔG
 −2.5, default −6) changed the designed primers and every pool-check number
 while the caption said nothing. A run now stores the criteria it designed with
 (`BatchRun.criteria`, `CloningRun.criteria`; a run with none ran at the
 defaults), the caption ends "; changed primer settings: Dimer ΔG −2.5" when
-they differ from the defaults (`describePrimerChanges`), and the "Settings have
-changed" test also compares the run's criteria with the current ones.
+they differ from the defaults (`describePrimerChanges`).
+
+**Any change clears the results (#429).** Generate scan rows replaced the table
+and the old run's results stayed under the new rows; a notice was not enough, so
+what is shown now always belongs to what is on the page. Every write the page
+makes goes through `changeBatchInputs`, which clears both runs (`run` and
+`cloning`) and the selection when a patch changes one of the run's inputs
+(`RUN_INPUTS`: rows text, method, template, vector, the enzymes, kit, overlap);
+setting a field to the value it holds changes nothing, so a re-render, a tab
+switch or leaving the page clears nothing. A run in progress is cancelled
+through the same abort as Cancel, but marked discarded: its slot is freed so
+Design can start at once, and its late rows, progress and errors are ignored.
+The user's own Cancel is untouched and keeps the rows done. The Settings'
+primer criteria live in the editor store, not the session, and can change while
+the page is away, so the page checks them against the criteria each run stored
+(`criteriaMoved`) whenever it shows, and clears on a difference. The caption
+keeps naming what the run used; the "settings have changed" notice and its
+recipe comparison are gone. Loading a template record (`loaded`) is not an
+input: it adds names and changes no row.

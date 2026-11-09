@@ -380,7 +380,7 @@ describe('the Batch page, cloning methods (#360, item 141)', { timeout: 60_000 }
     }
   });
 
-  it('keeps each method’s run apart, and the badge counts the method in view', async () => {
+  it('clears the results when the method changes, and the badge stops counting them (#429)', async () => {
     open(linearVector(), [ifGene]);
     method('homology');
     paste(HOMOLOGY_ROWS);
@@ -390,6 +390,7 @@ describe('the Batch page, cloning methods (#360, item 141)', { timeout: 60_000 }
     expect(screen.queryByRole('grid', { name: 'Batch results' })).toBeNull();
     expect(screen.getByRole('tab', { name: /^Batch/ })).not.toHaveTextContent('2');
     method('homology');
-    expect(rows()).toHaveLength(2);
+    expect(screen.queryByRole('grid', { name: 'Batch results' })).toBeNull();
+    expect(screen.queryByTestId('batch-run-caption')).toBeNull();
   });
 });

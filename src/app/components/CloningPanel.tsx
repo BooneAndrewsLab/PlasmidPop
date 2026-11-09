@@ -12,7 +12,7 @@ import {
   fragmentWithLineage,
 } from '@/core';
 
-import { batchSession } from '../batchSession';
+import { changeBatchInputs } from '../batchSession';
 import { openEnzymeWorkspace } from '../enzymeWorkspace';
 import { openPrimerWorkspace } from '../primerWorkspace';
 import { copiesOnShelf } from '../shelfPieces';
@@ -363,7 +363,7 @@ export function CloningPanel({ doc }: Props) {
             data-tip="Design primers for many inserts at once into this plasmid, with restriction, Golden Gate or homology ends, from a table"
             onClick={() => {
               // The Batch page on a cloning method (the one it was last on, else restriction sites).
-              batchSession.update(documentId, (b) => ({
+              changeBatchInputs(documentId, (b) => ({
                 method: b.method === 'primers' ? 'restriction' : b.method,
                 vector: null,
                 selected: null,

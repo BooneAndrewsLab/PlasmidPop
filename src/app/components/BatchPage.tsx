@@ -1,8 +1,7 @@
-import { type KeyboardEvent, useMemo, useRef, useState } from 'react';
+import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   type BatchTable,
-  type CloningBatchRecipe,
   type OverlapKit,
   type SeqDocument,
   BATCH_ROW_LIMIT,
@@ -41,6 +40,8 @@ import {
   type CloningRun,
   batchTemplates,
   cancelBatch,
+  changeBatchInputs,
+  clearBatchResults,
   sessionRecipe,
   startBatch,
   startCloningBatch,
@@ -99,37 +100,17 @@ function criteriaMoved(ran: Partial<PrimerCriteria> | undefined, current: Primer
   return !samePrimerCriteria(ranCriteria(ran), normalizePrimerCriteria(current));
 }
 
-/** The line over a run's results naming what it was run with, and when the settings have moved on. */
-function RunCaption({ text, changed }: { readonly text: string; readonly changed: boolean }) {
+/** The line over a run's results naming what it was run with. */
+function RunCaption({ text }: { readonly text: string }) {
   return (
     <p className="panel__note panel__note--quiet" data-testid="batch-run-caption">
       {text}
-      {changed && ' Settings have changed since this run; Design again to use them.'}
     </p>
   );
 }
 
-function CloningCaption({
-  run,
-  current,
-  vectorName,
-  criteria,
-}: {
-  readonly run: CloningRun;
-  readonly current: CloningBatchRecipe | null;
-  readonly vectorName: string | undefined;
-  readonly criteria: PrimerCriteria;
-}) {
-  return (
-    <RunCaption
-      text={cloningCaption(run) + criteriaNote(run.criteria)}
-      changed={
-        JSON.stringify(run.ran) !== JSON.stringify(current) ||
-        run.vectorName !== vectorName ||
-        criteriaMoved(run.criteria, criteria)
-      }
-    />
-  );
+function CloningCaption({ run }: { readonly run: CloningRun }) {
+  return <RunCaption text={cloningCaption(run) + criteriaNote(run.criteria)} />;
 }
 
 const CLONING_PLACEHOLDER =
@@ -248,10 +229,13 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
   const { documentId, documents, primerCriteria, fidelityTable } = useEditorState();
   const session = batchSession.use(documentId);
   const { text, run, selected, sort, method } = session;
+  const { forwardEnzyme, reverseEnzyme, goldenGateEnzyme, kit, overlap } = session;
   const cloningMethod = method !== 'primers';
   const cloning = session.cloning;
-  const update = (patch: Parameters<typeof batchSession.update>[1]): void => {
-    batchSession.update(documentId, patch);
+  // Every write goes through `changeBatchInputs`: one that changes what a run
+  // is made from clears the results (#429).
+  const update = (patch: Parameters<typeof changeBatchInputs>[1]): void => {
+    changeBatchInputs(documentId, patch);
   };
 
   const others = useMemo(
@@ -279,17 +263,17 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
     () => (cloningMethod ? ignoredColumns(validation?.rows ?? [], method) : []),
     [cloningMethod, validation, method],
   );
-  const recipeNow = (): CloningBatchRecipe | null =>
-    sessionRecipe({
-      method,
-      forwardEnzyme: session.forwardEnzyme,
-      reverseEnzyme: session.reverseEnzyme,
-      goldenGateEnzyme: session.goldenGateEnzyme,
-      kit: session.kit,
-      overlap: session.overlap,
-    });
   // The run whose progress and results the page shows: the method's own.
   const active = cloningMethod ? cloning : run;
+  // The Settings' criteria live outside the session, and may change on another
+  // tab while this page is away, so they are checked against what the runs used
+  // whenever the page shows (#429).
+  useEffect(() => {
+    const moved =
+      (run !== null && criteriaMoved(run.criteria, primerCriteria)) ||
+      (cloning !== null && criteriaMoved(cloning.criteria, primerCriteria));
+    if (moved) clearBatchResults(documentId);
+  }, [run, cloning, primerCriteria, documentId]);
   const enzymes = useMemo(() => goldenGateEnzymes().map((e) => e.name), []);
 
   // The scan helper's boxes: transient, so not in the session.
@@ -786,7 +770,14 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
           onClick={() => {
             if (cloningMethod) {
               if (vector === undefined) return;
-              const recipe = recipeNow();
+              const recipe = sessionRecipe({
+                method,
+                forwardEnzyme,
+                reverseEnzyme,
+                goldenGateEnzyme,
+                kit,
+                overlap,
+              });
               if (recipe === null) return;
               void startCloningBatch(documentId, {
                 rows: ready,
@@ -836,12 +827,7 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
 
       {cloningMethod && cloning !== null && (
         <>
-          <CloningCaption
-            run={cloning}
-            current={recipeNow()}
-            vectorName={vector?.name}
-            criteria={primerCriteria}
-          />
+          <CloningCaption run={cloning} />
           {cloning.refused !== null && (
             <p className="panel__error" role="alert">
               {cloning.refused}
@@ -858,12 +844,7 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
       )}
       {!cloningMethod && run !== null && (
         <>
-          <RunCaption
-            text={`Primer pairs on ${run.templateName}${criteriaNote(run.criteria)}`}
-            changed={
-              run.templateName !== templateName || criteriaMoved(run.criteria, primerCriteria)
-            }
-          />
+          <RunCaption text={`Primer pairs on ${run.templateName}${criteriaNote(run.criteria)}`} />
           <p className="panel__note" role="status">
             {run.cancelled
               ? `Cancelled: ${run.rows.length} of ${run.source.length} rows were done and are kept.`
