@@ -133,6 +133,40 @@ export function splitUnbaselined(mutateList, baseline, changedFiles) {
 }
 
 /**
+ * A warning when the remote has a release tag newer than the one the pass is
+ * measured from, or null: a tag that was never fetched makes the default base
+ * (the latest local tag) one release too old, and the pass re-mutates what
+ * the last release already did. Only `vMAJOR.MINOR.PATCH` tags are compared.
+ * @param {string} base the tag in use
+ * @param {readonly string[]} remoteTags tag names on the remote
+ * @returns {string | null}
+ */
+export function staleBaseWarning(base, remoteTags) {
+  /** @param {string} tag @returns {[number, number, number] | null} */
+  const parts = (tag) => {
+    const m = /^v(\d+)\.(\d+)\.(\d+)$/.exec(tag);
+    return m === null ? null : [Number(m[1]), Number(m[2]), Number(m[3])];
+  };
+  /** @param {[number, number, number]} a @param {[number, number, number]} b */
+  const newer = (a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+  const mine = parts(base);
+  if (mine === null) return null;
+  let latest = base;
+  let top = mine;
+  for (const tag of remoteTags) {
+    const p = parts(tag);
+    if (p !== null && newer(p, top) > 0) {
+      latest = tag;
+      top = p;
+    }
+  }
+  return latest === base
+    ? null
+    : `The remote has ${latest}, newer than ${base}, which the pass is measured from: ` +
+        `\`git fetch --tags\` first, or the pass re-mutates a release it already covered.`;
+}
+
+/**
  * The `--mutate` patterns for the mutate-list files that changed: a file
  * with its line ranges (`src/a.ts:10-20`) when `ranges` is given, else the
  * whole file. With ranges, a file that has none (a rename or a mode change)

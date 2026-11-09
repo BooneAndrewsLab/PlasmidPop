@@ -65,6 +65,7 @@ import {
   matchGlobs,
   mutatePatterns,
   splitUnbaselined,
+  staleBaseWarning,
   readSources,
   relatedTests,
   workerCount,
@@ -101,6 +102,24 @@ const ref =
   first !== undefined && !first.startsWith('-')
     ? String(args.shift())
     : execFileSync('git', ['describe', '--tags', '--abbrev=0'], { encoding: 'utf8' }).trim();
+
+// The default base is the latest local tag; one never fetched makes it a release too old.
+{
+  try {
+    const remote = execFileSync('git', ['ls-remote', '--tags', '--refs', 'origin'], {
+      encoding: 'utf8',
+      timeout: 10_000,
+    });
+    const names = remote.split('\n').map((l) => l.split('refs/tags/')[1] ?? '');
+    const stale = staleBaseWarning(
+      ref,
+      names.filter((n) => n !== ''),
+    );
+    if (stale !== null) out(`WARNING: ${stale}`);
+  } catch {
+    // Offline, or no remote: the check is a courtesy.
+  }
+}
 
 const raw = /** @type {unknown} */ (JSON.parse(readFileSync('stryker.config.json', 'utf8')));
 const config = /** @type {{ mutate: string[]; incrementalFile: string; concurrency?: number }} */ (

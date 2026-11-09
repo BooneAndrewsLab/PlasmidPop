@@ -20,6 +20,7 @@ import {
   resolveSpecifier,
   specifiers,
   splitUnbaselined,
+  staleBaseWarning,
   triageText,
   workerCount,
 } from '../../../scripts/mutationTools.mjs';
@@ -373,5 +374,31 @@ describe('mutate-triage.mjs, run in a repository of its own', () => {
     expect(text).toContain('Lines changed since v0.0.1.');
     expect(text).toContain('Survivors and uncovered mutants on lines changed: 2');
     expect(text).toContain(`${file}: 2`);
+  });
+});
+
+describe('staleBaseWarning', () => {
+  it('says nothing when the base is the newest release tag on the remote', () => {
+    expect(staleBaseWarning('v1.24.0', ['v1.23.0', 'v1.24.0', 'v1.8.1'])).toBeNull();
+  });
+
+  it('names the newest remote tag when the base is older', () => {
+    const warning = staleBaseWarning('v1.23.0', ['v1.8.1', 'v1.24.0', 'v1.9.0', 'v1.23.0']);
+    expect(warning).toContain('v1.24.0');
+    expect(warning).toContain('v1.23.0');
+    expect(warning).toContain('git fetch --tags');
+  });
+
+  it('compares the parts as numbers, not as text', () => {
+    expect(staleBaseWarning('v1.9.0', ['v1.10.0'])).toContain('v1.10.0');
+    expect(staleBaseWarning('v1.10.0', ['v1.9.0'])).toBeNull();
+    expect(staleBaseWarning('v1.24.0', ['v1.24.1'])).toContain('v1.24.1');
+    expect(staleBaseWarning('v1.24.1', ['v2.0.0'])).toContain('v2.0.0');
+  });
+
+  it('ignores tags that are not releases, and a base that is not one', () => {
+    expect(staleBaseWarning('v1.24.0', ['v2.0.0-rc1', 'nightly', ''])).toBeNull();
+    expect(staleBaseWarning('main', ['v9.9.9'])).toBeNull();
+    expect(staleBaseWarning('v1.24.0', [])).toBeNull();
   });
 });
