@@ -6,6 +6,11 @@
 #                                    rewrite src/test/oracle/primerPairs.json: Primer3's design
 #                                    for fixed templates and its verdict on the pairs our designer
 #                                    selects (exported from the TypeScript designer first)
+#   scripts/oracle/run.sh batch-golden-gate
+#                                    rewrite src/test/oracle/batchGoldenGate.json: PlasmidPop's Batch
+#                                    Golden Gate constructs (exported from the TypeScript batch first)
+#                                    rebuilt by pydna and Biopython. Not part of `generate`, which
+#                                    cannot run the batch
 #   scripts/oracle/run.sh writer     have Biopython read every file our GenBank writer produces
 #   scripts/oracle/run.sh snapgene-writer
 #                                    have Biopython read every SnapGene file our writer produces
@@ -45,6 +50,14 @@ case "${1:-}" in
     (cd "$root" && ORACLE_EXPORT_PAIRS=1 npx vitest run src/test/oracle/primerPairs.test.ts -t 'exports our pairs')
     (cd "$root/scripts/oracle" && "$venv/bin/python" primerpairs.py)
     ;;
+  batch-golden-gate)
+    # The export test writes PlasmidPop's side of every case; batchgoldengate.py judges it
+    # and writes the JSON the gate tests read. Needs TMPDIR on a disk, not RAM, for big runs.
+    out="$(mktemp -d)"
+    trap 'rm -rf "$out"' EXIT
+    (cd "$root" && ORACLE_EXPORT_BATCH_GG="$out/ours.json" npx vitest run src/test/oracle/batchGoldenGate.test.ts -t 'exports our constructs')
+    (cd "$root/scripts/oracle" && ORACLE_EXPORT_BATCH_GG="$out/ours.json" "$venv/bin/python" batchgoldengate.py)
+    ;;
   writer)
     out="$(mktemp -d)"
     trap 'rm -rf "$out"' EXIT
@@ -76,7 +89,7 @@ case "${1:-}" in
     "$venv/bin/python" "$root/scripts/oracle/ncbi_region.py"
     ;;
   *)
-    echo "usage: $0 generate|primer-pairs|writer|snapgene-writer|snapgene-local [dir]|abif-local [dir...]|ncbi-region" >&2
+    echo "usage: $0 generate|primer-pairs|batch-golden-gate|writer|snapgene-writer|snapgene-local [dir]|abif-local [dir...]|ncbi-region" >&2
     exit 2
     ;;
 esac

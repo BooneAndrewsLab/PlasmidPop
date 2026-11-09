@@ -1,0 +1,2858 @@
+{
+ "batches": [
+  {
+   "destination": {
+    "name": "pGG-Destination",
+    "sequence": "CGCTCGCATCGCCCGAGTGGAAGTTAATTATGTGTTTCCAGCACGCGAGCATGGTGAGAATCGATTAAATTCGCAGCCCATGCCTACGGCCCAGTGCGTTAGTACACTTACGAGTCGCAATGCCGTATTTTCCTTGTTTCAACCCCGACGCTCCCGATACTCCCATCAAGTAGTAATCTTCATTAGAGGCCATCATACAACGAAATCGACCGAAGATGCGCCTGCTATTGTAATTGGCAACCTGAGCTGATTCGATAAGTCTCCGACTCCGACCTCGAGTCGTCACAGTCTCAATAACGCGGTGCTGGACAACAGGCTCGTGAAGAGAGTATTCCATCTCAGGAAATCGAGAACCCGCGTTCACTAGCATTCTGGAAAGGCGGATTGCGTGCAAGCAAAACTGTCCTTCTGTAGGATGTCCTAGATAGAATATAGGTGGGTGGTTAGTGCAGCATATACAGGGGAAAGTTAGTCCATTCTGCACGGGGACGAGGAATGTTGACGGATGAGCCGGAGTGGCGGTTGTCTCAGGGCTATCCAGCAACTCTTCGACCCGTATATAGACTGGTAGGGTAGAGGGCCATGCAACAATAACCGAGCGGTGCTTGACGTCACGTTTGTTACACAAGGCGCGGCGTTTTCTGGCGCCCGGCACCAACCGGGAGATGCAACTCCGTTCAGCCGATAGCTCAACTGTACGCCAGAACGCGCTATGCCATACACGGGCATTAGAAGGGCAAGCAATAGTCCGTGATGCGAGTCCAACGTGGAACAACACAGGTGAAGGTGTTTTCGCCCTTACGTTCTTCCTCACAGTGGAAATTAGCAGTGACTTGGCATTCCGCATACACCCGGACGATTTAAAAGCAGTTTCCATTATAACGAACACTTGGATAGTGAGAGAGAGCCGCAAGGAGTCAGTTCATCTCAAATTGTGGGACAGAGAGGAGGTTGACGGTCGTCGCCACCGGGCATTATTACGCAAGTGCCTCTTTGGACCACTTCGCGAGAGTATGTACTAAGTTATTTTGTTCCGGTCCTATAAGCAGCTTTAACCGGTATCCACTGGCTCTGTGAGCAGTCGTCATAGCCTCTCTATTAGGTAACGACTTTCGTGCGAAATTTCGCAACGGATGTTTGATAGGCGAGGGGCTCTACTTCGAGTACTGCTGTGGAGCCAACCGACCCAACGCAGGCCATCCTTCGAGATAAAACTACAAATCACCGTCACTCCCTTAAGTGAGTACCCTTAACCATATTCCCCGCGGATGAGTGGAGGAAGCCCTTCCAGAAGGTAGTTGTCTACTGAGACAGCCCTGTTCCTTAGTCGCAGAAACCATAGAGTGCATTTTGACGCGCCATCCCTGCGTCTACGCACCCTTCTGGAGTATTATTAGCTCAAGGCAGAGTCGGCGCCGCTGTGTTATGTTAGACTGCGGAATCTTCCCCTTTCTCTCCCTTCACGGGGCGCCACGCGCTGCGCGTAGTTGACAAATTTACGTCTAGGGAAAGACTCTCCAAGTACAAATATATAGTAAACGACGCCCTCTGGGTTGGATATGCGTGGCACAGTACGACCATTGCCATCCAACTGTAGCTAATAAATGGCGAAACAGGAACGGTATTCTATGAGGACCTTACCAAGACAATCAGATATACTTCACTTGCGTTCATGTAAGGCGTGAGCCGTTATATGTAACAAATCTACACCCTTGCCTACGAAGAAGCCCGACCACTACGGAGCGATATATAATGCTGTACCCACAGGGCTGTCGTATGTCCCATTCACCTTCTTCGGGACTCAGCGGTCGGGTCTAACCTGTAGGTGGTTGTTATAGTCGCGAGTCGTAACTCAGCCAAGGGAAAACAATGATTAATAGGCTGTGAGGAAGAGGAGATGAAACATTAAATTACTTTGAGTGGGACAGTTACTCCCAAATACTGTTCGGTCAAATGTGTCTGATTACATGCCCATATAGCAAATCTCGAGCCATATCGATAGCTGTACTGAAGAAAACCAAACCCGTTTAGACGAAATCATCCTGAATAGCTACATACGCAAGCTGCATCACGCAAGCCTAATCACAATAAGGTATTGCGAGCGAAACGCGGTTTGAACTCGCATAACACAAGGTATCTTTTGAAATCCACTTCCCACAAGGCACCTGTGGAGCGAGACTCGTAACGAGCTTTTGGAAAAGTTAATCACCCTTCACCAGAATCATCACTTCGACGCTGACGCTCCCCAAGGACGGGACCCCAGCGAAGAACTTATCGTGTACCGGGTAGGGTGATAAGCCTTTAACAATTCTACTCAACCTTTCGGGGAGAGAGACCATGCGAGAGGCAGATTTAGCCTGCCTCCGCCCGCTTAAGGGAACTACTTTACCTACCGAGACAGCGGGTCACACAGGTGCTCAACATCCGCTACGCCGCTTGTGTCCTCCCATGCCGTTATGGAGGGCTGGAGTGGTACGTCTACTGCAAAGGACTGCGGCGGAGAAGAACGCGTGGTATCGGATGAGCACCCCGGCCGTACACTTTTCCGGAGTCAAGATAACTCTGAAAAACTGGTGCTTAGGAACGCCGGGTAGAAGCGGCCTTCCAAAATATTTGTGGACAGGCATACGCACTCGATAAGGTCTCA"
+   },
+   "enzyme": "BsaI",
+   "id": "tutorial-bsai",
+   "kind": "tutorial",
+   "overhangs": {
+    "left": "GGAG",
+    "right": "CGCT"
+   },
+   "rows": [
+    {
+     "amplicon": {
+      "length": 733,
+      "sha256": "fb6c7b1b8c5de8f162266f6c60d50002db74b14da070d9f2aa0e2cd1c4633e03"
+     },
+     "construct": {
+      "head": "CGCTCGCATCGCCCGAGTGGAAGTTAATTATGTGTTTCCAGCACGCGAGCATGGTGAGAA",
+      "length": 3029,
+      "sha256": "77a0a6bb6be186e3474a6fb278d971f88c7650319737c1f3a2cb1f034cc6608a"
+     },
+     "forward": "ggagatggtctccggagATGAGCATGTATCAATTGCGGTTCC",
+     "name": "gene_full",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "GGAG",
+       "right": "CGCT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "GGAG",
+       "right": "CGCT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "GGAG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "AGCG",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctagcgCGGGTAATATCTCTTATGGCTCAGCG",
+     "warnings": []
+    },
+    {
+     "amplicon": {
+      "length": 334,
+      "sha256": "0a0f460e561092f148c3e0c597dc101efcf0c6965b1036d1a0e407ace97267f4"
+     },
+     "construct": {
+      "head": "CGCTCGCATCGCCCGAGTGGAAGTTAATTATGTGTTTCCAGCACGCGAGCATGGTGAGAA",
+      "length": 2630,
+      "sha256": "e854fa032adadcfee3c2ebe17ae7dbbb444f5b1bccb4c9ab0b3105e7d8da24fb"
+     },
+     "forward": "ggagatggtctccggagATGAGCATGTATCAATTGCGGT",
+     "name": "gene_head",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "GGAG",
+       "right": "CGCT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "GGAG",
+       "right": "CGCT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "GGAG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "AGCG",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctagcgCTTGGAAGTTCGCTCGAGG",
+     "warnings": []
+    },
+    {
+     "amplicon": {
+      "length": 151,
+      "sha256": "a5babb9938e701e0ca41103aaadcd483099b0e57b0a4b38e8dec1991685b6906"
+     },
+     "construct": {
+      "head": "CGCTCGCATCGCCCGAGTGGAAGTTAATTATGTGTTTCCAGCACGCGAGCATGGTGAGAA",
+      "length": 2447,
+      "sha256": "8beec45dbe209045f9abba4d6a7afcb8456c2550c57d28f35fbe8744e8fd858e"
+     },
+     "forward": "ggagatggtctccggagATGTGTCGTAGAAACGGACGCC",
+     "name": "mini",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "GGAG",
+       "right": "CGCT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "GGAG",
+       "right": "CGCT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "GGAG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "AGCG",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctagcgAATGCCACCGGCGACACATTG",
+     "warnings": [
+      "annealing"
+     ]
+    }
+   ],
+   "table": "name,template,region,sequence,include_start,include_stop\ngene_full,GG-gene,,,,\ngene_head,GG-gene,1-300,,,\nmini,,,ATGTGTCGTAGAAACGGACGCCGCCCCCAGAGTGACGAAAACTCTCTTAGGAGCGCCTATGTACTTACTAACAGAGACAGCAGTCCGACTAGGGTGCAATGTGTCGCCGGTGGCATTTAA,,\n",
+   "templates": [
+    {
+     "circular": false,
+     "name": "GG-gene",
+     "sequence": "atgagcatgtatcaattgcggttcctccagtcataccaagtagtcgccggcatgctcactgcacaagtaggtccgtgcttctacacttcccataggccgcaccttgagtgtagcttacttttatatattggcaaaatacctaggcgagacaggcatagatcgcccgcatggtgcattacgagtctatactacagagtcatcaggccgttgaaatgtggagaatgcttgactttctatagtcggtcccccgtcagcgtattcccaccagatgtatccatcaccctcgagcgaacttccaagtttgcagtacacacctactccgtagggaatgaccttacctcccaggctcacattccattccgccgggtagcactcaaggagtatcccgggaacgatcagcgccccggacaaaatgcggaatcttcgggttggcaaattgctgcacatttttgcgtagctagtcagtggccgaccaacagacgagattccgttctatggcggatagccaagttgtacggggagcggggaattagagatggatcacatatagtgttcctgcaaagtcacacactagtcctaggcgccagctcattaagactagctaatataaggaagcacaaactggaaaaccgattggcagagtccccgattactgggagtgtacggagatacccgctgagccataagagatattacccgtaa"
+    }
+   ]
+  },
+  {
+   "destination": {
+    "name": "dest1",
+    "sequence": "TGCTGTCTTAACCGGTCACCGAGCAAGTCGGGCTAATGGACCATTTCGGGCGTACAGACACCCGACTCTCAAGATAGTCAGTCCCCGCACTACACGTGTCGACGTGGTCATTAAGGCTGTTAAGTTTTCTGGGAGTTTAACTCTCGAGTTCCCCATGAACACCAAGTTTGACAAAGCCGTACCCATGCAAATTCCCACCAAGCATCTTACTAGAGTTACGTCCTGGCGTATTGCTGATTCTACGACGAACTGTTTAGTAGGCGGCTTACGTGAACGCGAAAGGAAAGACTGTACAAGTTAGCGGAGGCGATTTCAATTGTCCTAGCCCGCACTCCACGCTACATGCGACTCGTGGACACCGCGCGCACCACGCAGAACTTGAGACCCTGCCTGTAAAGTGGATTTCCCAGAAGCAAGCTTATAATCTTCACAGAGTTTTTGGGTTGATACTGCGCCCAGTTCATGTACTGGGAGGGCCATGTGCTCTGTACTCGCTACGCGGGGTTGCTACATTGATAATTATATGGTCTCTTCAGCTCT"
+   },
+   "enzyme": "BsaI",
+   "id": "random-bsai-linear-1",
+   "kind": "random",
+   "overhangs": {
+    "left": "AACT",
+    "right": "TCAG"
+   },
+   "rows": [
+    {
+     "amplicon": {
+      "length": 310,
+      "sha256": "27a406f423124e506a4cfccbabd15c15d44c38c44db2d4265a027b3c21885bb8"
+     },
+     "construct": {
+      "head": "TCAGCTCTTGCTGTCTTAACCGGTCACCGAGCAAGTCGGGCTAATGGACCATTTCGGGCG",
+      "length": 663,
+      "sha256": "3d711dbdfd25e11a329def7461ffa9ec68c0fde981b5984dec875b16053b182e"
+     },
+     "forward": "ggagatggtctccaactCGGGTTTATGGTGACGATGCTG",
+     "name": "r1",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "AACT",
+       "right": "TCAG"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "AACT",
+       "right": "TCAG"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "AACT",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "CTGA",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctctgaAAAGCCATCTAGGTTGTCGGT",
+     "warnings": []
+    },
+    {
+     "amplicon": {
+      "length": 265,
+      "sha256": "ea7138e7101286cf645dd7fbe0b21c1771a70a8e97209fd74f134e6a166f154d"
+     },
+     "construct": {
+      "head": "TCAGCTCTTGCTGTCTTAACCGGTCACCGAGCAAGTCGGGCTAATGGACCATTTCGGGCG",
+      "length": 618,
+      "sha256": "4babe004515e980774fcc4fbd19ce2f02113af9e1df49c8e2ec23a3f9930129d"
+     },
+     "forward": "ggagatggtctccaactTAAGGGCACTGCCTAGCAGG",
+     "name": "r2",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "AACT",
+       "right": "TCAG"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "AACT",
+       "right": "TCAG"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "AACT",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "CTGA",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctctgaTAGATTGCAAAGCCCACCGC",
+     "warnings": [
+      "annealing"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 547,
+      "sha256": "1a7f8da1b6311b64bd37574eb35f3cbf1b9e1accf13f5c255d8aae14c4a5bbe0"
+     },
+     "construct": {
+      "head": "TCAGCTCTTGCTGTCTTAACCGGTCACCGAGCAAGTCGGGCTAATGGACCATTTCGGGCG",
+      "length": 900,
+      "sha256": "f6fec05497129d3b4dd38cbbf2a75846b574d8d849ef703c07dd6375a0804a70"
+     },
+     "forward": "ggagatggtctccaactTGCTGAAGGGACCCATTTGGC",
+     "name": "r3",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "AACT",
+       "right": "TCAG"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "AACT",
+       "right": "TCAG"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "AACT",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "CTGA",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctctgaAACGATCCGCACGGATTTACCG",
+     "warnings": [
+      "annealing"
+     ]
+    }
+   ],
+   "table": "name,template,region,sequence,include_start,include_stop\nr1,T1,77-352,,,\nr2,T1,complement(161..391),,,\nr3,T1,,,,\n",
+   "templates": [
+    {
+     "circular": false,
+     "name": "T1",
+     "sequence": "TGCTGAAGGGACCCATTTGGCGCCAAGTGAAACCCTGCGACCGGGCCGAGACAGGTTATTGGAGGAGCTTCGTAGACGGGTTTATGGTGACGATGCTGTGGAGTCCCGATTGTTTACACTACACAACAAAGGCGACTCTTTTCATATAACCGGCCCTCTGTAGATTGCAAAGCCCACCGCCGATAGATGCTACCGAGATCGTACGACGATCGGTGAAGGCTAACGTCTTCCTGACCCTAGCATTTCGTATAACAGGCACATTCTCCTCACACGCGCACTGGCCTTAAAGGAGTTCGCTGTCAAGATTCCATGTGACAGCAAAAAAAGTAAAACCGACAACCTAGATGGCTTTTGATGTGCTTTGAACAGCACCTGCTAGGCAGTGCCCTTATAAAGGATCATACTATATCTGTTTTATCATATGTACAATGCTTGTGTGGAGACTGTATGGCGTCTGAAACCACGCCATCTTCAGCTTACAATCCCTGATCCGGTAAATCCGTGCGGATCGTT"
+    }
+   ]
+  },
+  {
+   "destination": {
+    "name": "dest2",
+    "sequence": "TATTATTAGTCCAGGCCGAACGGCTCCTGCGCCTAGTGTTACGTCGTATATTTGTCTGAAGCCAGTTTAAGCCGGCTTACCCAGATCCGTGCACCCCAATTGAAACTACCCCGAGCTTAATACCAGCGGACATCTCCCCCTTCATTATGTAACTATTTGTGCTTCGCCTGTTTGCTTCTGGACCCTCTGCAATGGGCCATTTTTCAGTCACGTGGGAGTCGAGAATTGATCCAATGTTTCGGTTATGATCCTCCTCTGACCCAAATTCAATTAGATAAGATTGAGGGTCCACGGGTTGGAGGGATGATGGTGATCCGTCTGGATGGAGGCGATATGTCCCGGTAACCTACGCCCCTTGGTTGATGATGACGCGAGGATGCGCGTTATGAGACCTGCTCGCTTGTGTCCGACCCCATGGTGTTGGCGATCACATTGACGACTTTCACTGTAATTCTCAGTTAACCTTAGGGATTCTGACTAAGGTCGAGCGACGAGTAGTTTATACTCAACTCCTGAGATTGCGCCCCGGGTCTCTTTAG"
+   },
+   "enzyme": "BsaI",
+   "id": "random-bsai-linear-2",
+   "kind": "random",
+   "overhangs": {
+    "left": "GTTA",
+    "right": "TTAG"
+   },
+   "rows": [
+    {
+     "amplicon": {
+      "length": 481,
+      "sha256": "e4dc0702e424d2a5d40a2a515a0d8cd684ded9a0cf303e698a60fd8664efa62b"
+     },
+     "construct": {
+      "head": "TTAGTATTATTAGTCCAGGCCGAACGGCTCCTGCGCCTAGTGTTACGTCGTATATTTGTC",
+      "length": 837,
+      "sha256": "9956370a8ccdcd2b93fd1bc97204c66a3a7be3f16f0fb38754826f3a75033fa1"
+     },
+     "forward": "ggagatggtctccgttaGGAGGAAAACAATGTGCAACGAGAG",
+     "name": "r1",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "GTTA",
+       "right": "TTAG"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "GTTA",
+       "right": "TTAG"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "GTTA",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "CTAA",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctctaaCGTACCTCAAATCAGAGGCACTCTAC",
+     "warnings": [
+      "annealing"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 246,
+      "sha256": "45b01c63b0bdc843343717d3cbc7b2896745ffe80dd145834a13ba21eadc2eef"
+     },
+     "construct": {
+      "head": "TTAGTATTATTAGTCCAGGCCGAACGGCTCCTGCGCCTAGTGTTACGTCGTATATTTGTC",
+      "length": 602,
+      "sha256": "fbe116e945d3d43ac4b72b193b620fc7949f724185316c4c1655e71c9db1e03f"
+     },
+     "forward": "ggagatggtctccgttaCAATGTCTGGTAGTCTCTGCGTTGT",
+     "name": "r2",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "GTTA",
+       "right": "TTAG"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "GTTA",
+       "right": "TTAG"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "GTTA",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "CTAA",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctctaaACTCTTCAATCAGCCCTCGCG",
+     "warnings": []
+    },
+    {
+     "amplicon": {
+      "length": 491,
+      "sha256": "79169c31c62221747b0a79c1f0269278d1a280094b9f02e5657ef9ae4587455a"
+     },
+     "construct": {
+      "head": "TTAGTATTATTAGTCCAGGCCGAACGGCTCCTGCGCCTAGTGTTACGTCGTATATTTGTC",
+      "length": 847,
+      "sha256": "6ce761a37bfd60bd4775758f5efaa2ba28ba175374a5f9ca3038628b886135cc"
+     },
+     "forward": "ggagatggtctccgttaACATAGTTTTACACAAATTGCGCGTG",
+     "name": "r3",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "GTTA",
+       "right": "TTAG"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "GTTA",
+       "right": "TTAG"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "GTTA",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "CTAA",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctctaaACATTTTAGGTCGTGGGTGCAG",
+     "warnings": []
+    }
+   ],
+   "table": "name,template,region,sequence,include_start,include_stop\nr1,T2,211-657,,,\nr2,,,CAATGTCTGGTAGTCTCTGCGTTGTCCTGACAGTAGAACTGCTACACAAGGCTATGGCCGTCGTGACGCGTTCGCTCATTTCCATATCGGAGGTCCAATCCTGTACAGAAACCATGTCCTGTGTGTTTAAATACTTACGTAAGGAGGCTATTCTGGACGGGGCCCGATTGCAATGGCACTGTATAGGAGCCCGCGAGGGCTGATTGAAGAGT,,\nr3,T2,complement(177..633),,,\n",
+   "templates": [
+    {
+     "circular": false,
+     "name": "T2",
+     "sequence": "GCCGTGAGCTCTTGCTGGGCTACAGTTCTCACATTTCAGTCCGTTTCAGACGATAAGCACGCCTCTTGAATTTCCAGCCGCGGGCGGCGTCACTCGATAAATATTGCGCTCAACGAAAAATCCACCACGTAAATTGCGGTCCTTGACCGCTTCGTTATCGGTGATGGTTACTCTATACATTTTAGGTCGTGGGTGCAGCTGTCAGACAAGGGAGGAAAACAATGTGCAACGAGAGAAAGCAACCTCCTGTGTTGGGTTACAGCGATGGTCCAGAAGCCGTGGGTAGGGAAGGGACTCTTTGCCACCAGGAAAGATCTTGAGCTTAACAAGACTCAAACACCCGATCGGCCAAAGAGTCATCCTGCTAACGTTAAGTTGCGTCGGCAGTCACTACAGGACAGGCGTAATGGGAGGGCAGACGCAAAAACTGGTCTACAAGGAACGGACAGCGAAGCGTTAGTTAACCTATTGCTGCGTCGGGTTTTGTCGAGTCAAAAACATAACCTCTAATTCAAGCATGCTCGTGCTCGGAGCAGAATTATGTGCGTTTTACGGAGGCAGGCTGCGCACGGCTAAGGAAGCCTCCGCTCAAGTCGCGTAATGCATTCACGCGCAATTTGTGTAAAACTATGTAGAGTGCCTCTGATTTGAGGTACGTGCGCATCGACACATACGCACCCTTAC"
+    }
+   ]
+  },
+  {
+   "destination": {
+    "name": "dest3",
+    "sequence": "CCGTAGAGACGAGTGTATACTCTGTATCTTGGGAGGTCAGATATCGTTTGTACGCACTTGTCTACTTCAGATGTCTGAAGTCCTGCTGACCGCTTAGCGATGACCGGGCGAGCAAATCATTCCCCACGTCTCATAACCATTATCGGCTCGACTATGCATAACTCCCCACTCTTTTAGCTTCTACTAGACTTCGTGTGACCTGACGATTTACCCGCTGATCCCTCAACCTCCCTAGGATTCTTGTATTACGAGCGTGTCCATGGTCACGCTTCCAATGGATAGGAGTGCCAAAGGTTGGGGTTGATTTAGCGCCTCCGTTATCGCAGTAAACGGGGCCACCACTTAATCTAAGAGAACAAATGGGGGGAAAAATAGGGAATTCTACGGTTCAAGTGAATAATTAAGTATTAATGGACACTGTATCATCGATCCCCCCCTCTTTAAACATGGGCGTGATGGATCTTATACAATTCGTTCGTACTT"
+   },
+   "enzyme": "BsmBI",
+   "id": "random-bsmbi-linear-3",
+   "kind": "random",
+   "overhangs": {
+    "left": "CCGT",
+    "right": "TAAC"
+   },
+   "rows": [
+    {
+     "amplicon": {
+      "length": 437,
+      "sha256": "dd92e66cfc3ace6cbb8f2a30d69fe3557f4f6002a9cc3bb63e4f61de4cd7cad7"
+     },
+     "construct": null,
+     "forward": "ggagatcgtctccccgtCTCGACACCTGGGGTGGAGA",
+     "name": "r1",
+     "oracle": {
+      "built": false,
+      "confirmed": true,
+      "pcrProducts": 1,
+      "routes": [],
+      "sitesOnAmplicon": 3,
+      "tails": [
+       {
+        "overhang": null,
+        "padding": null,
+        "sitesFound": 2
+       },
+       {
+        "overhang": "GTTA",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagcgtctctgttaTAGGGGACCGACGGACAGCAATG",
+     "warnings": [
+      "annealing",
+      "internalSite"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 243,
+      "sha256": "820d30a8384143cec12ad797a2324425294a6bd9e055352511df42bf3073caca"
+     },
+     "construct": {
+      "head": "TAACCATTATCGGCTCGACTATGCATAACTCCCCACTCTTTTAGCTTCTACTAGACTTCG",
+      "length": 563,
+      "sha256": "91501cf07251310d9602953b33f6f3382557321b09cea38727a853e3149b2e1a"
+     },
+     "forward": "ggagatcgtctccccgtTATTAATTCTAACTGCGAGTACCCACC",
+     "name": "r2",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "CCGT",
+       "right": "TAAC"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "CCGT",
+       "right": "TAAC"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "CCGT",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "GTTA",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagcgtctctgttaCACTGGACACGATGTGATAGACGG",
+     "warnings": []
+    },
+    {
+     "amplicon": {
+      "length": 399,
+      "sha256": "4d4561ab0872c59dd355f734abd662a0369b3fdb333b98ac4ebed0e028d4d6b3"
+     },
+     "construct": {
+      "head": "TAACCATTATCGGCTCGACTATGCATAACTCCCCACTCTTTTAGCTTCTACTAGACTTCG",
+      "length": 719,
+      "sha256": "e0f07e6a713e20a89dcacab3026f64de122e12fa0d56fb50ecc3267e6fc1703d"
+     },
+     "forward": "ggagatcgtctccccgtTAACTCGCACACGACAAGTAGAGAG",
+     "name": "r3",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "CCGT",
+       "right": "TAAC"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "CCGT",
+       "right": "TAAC"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "CCGT",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "GTTA",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagcgtctctgttaACACCGAACTCGACACCTGG",
+     "warnings": [
+      "annealing"
+     ]
+    }
+   ],
+   "table": "name,template,region,sequence,include_start,include_stop\nr1,T3,complement(13..415),,,\nr2,T3,complement(95..303),,,\nr3,T3,59-426,,,\n",
+   "templates": [
+    {
+     "circular": false,
+     "name": "T3",
+     "sequence": "TTCAGGTCATGATAGGGGACCGACGGACAGCAATGCCAGCTCCCTTGAGGCTCAAAATTAACTCGCACACGACAAGTAGAGAGCCCTTACGCGCCACTGGACACGATGTGATAGACGGCACTTGTCCGAGGCGAGAAAACCCCGCCTAGTTGGGGCGTCCCGGGGTTAAATTGGCCACAGTGCCAAAGTAGTACACCGCGGTAGTCAAGAACGAGTTTGTACCCTTTACTCCATAAGTGTGAGATCGTCTATTGGAGGGCGTTTGCAGCTCGTCGCGGTGGGTACTCGCAGTTAGAATTAATACGGCAATCTTCATTCGGATCTTGCCATATGGTGACACAAAGATTTCGAAAAACGAGAATCTTTCTATGCGTTAAAGCGCGGGACTGGTCCTGTCTCCACCCCAGGTGTCGAGTTCGGTGTTAGACAGGCTTCATAGACATGATAG"
+    }
+   ]
+  },
+  {
+   "destination": {
+    "name": "dest4",
+    "sequence": "CGTGAGAGACCGAATTCTCATTCCTTGGCGTGGGCGCCGCCGAGTGGGACCACACCGCTCGTTTAGACTATGGAGCTCTCTAGCACGGGTCTCATTGCAAAGAGAGAGATCGCCCTATGACATCCTTTCCCCGGTTCAGATTTAAATACCGTCGCGTCACGCTTTCCCACTCCTCTAGACGCTTTAAATCGTTACTGAGGGGTCCTGGTTCACTTGGTGACCAGCAAATCGCTCTGCGAACGCGAGCGCTATAGGGCTGTGCTTTGAAACGGCGCACGTATGCCATCGCTGCACCCGGCTACCACATCTAGATGTCACGCTCTGTTTGATCCTGTCCCGGGTTGCTCGGAGATCAACGTCTAGACATTGCGTTCCTAAAGGACGGTACCCTGTCCATGGTCATTATTATGCGAGTAGAACTTCAGCTTAGTGCGTGGTTAGATAGGGAGATTCGGACCCCTAGT"
+   },
+   "enzyme": "BsaI",
+   "id": "random-bsai-linear-4",
+   "kind": "random",
+   "overhangs": {
+    "left": "CGTG",
+    "right": "TTGC"
+   },
+   "rows": [
+    {
+     "amplicon": {
+      "length": 511,
+      "sha256": "ca24e50e8f666b9bdfa78d637b612318235230be2d2e93dada72af17ef6eec20"
+     },
+     "construct": {
+      "head": "TTGCAAAGAGAGAGATCGCCCTATGACATCCTTTCCCCGGTTCAGATTTAAATACCGTCG",
+      "length": 851,
+      "sha256": "2ea051243315a4e5951a0435b35949b21eb44525947e7115175a98904d9ca5e1"
+     },
+     "forward": "ggagatggtctcccgtgCCCCATCTAATGTCGTTGGTTTCACC",
+     "name": "r1",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "CGTG",
+       "right": "TTGC"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "CGTG",
+       "right": "TTGC"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "CGTG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "GCAA",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctgcaaCCGCGAACGCTGAACATCTGA",
+     "warnings": []
+    },
+    {
+     "amplicon": {
+      "length": 192,
+      "sha256": "9d67d7e7600d471ba82741e790a8d5abe1adea73cdfa50afa7c71530c1932f16"
+     },
+     "construct": {
+      "head": "TTGCAAAGAGAGAGATCGCCCTATGACATCCTTTCCCCGGTTCAGATTTAAATACCGTCG",
+      "length": 532,
+      "sha256": "bcae68882cb58067b48e5a9d8856fb067f6b1ebc6e4ab99682a8e1dbda20f75e"
+     },
+     "forward": "ggagatggtctcccgtgGCATAAAATCCAAGTGAG",
+     "name": "r2",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "CGTG",
+       "right": "TTGC"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "CGTG",
+       "right": "TTGC"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "CGTG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "GCAA",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctgcaaGTTTATCAGGTTGAGGGTGGGG",
+     "warnings": [
+      "annealing"
+     ]
+    }
+   ],
+   "table": "name,template,region,sequence,include_start,include_stop\nr1,T4,,,,\nr2,,,GCATAAAATCCAAGTGAGTAATGATCATGCTGTAGTCGGGCTGGGAGGGGGCTGGCTGCTCACCTCTTCAGTGAGGGTCATGATAGGACACACACCGACGCCGACTACCTCGATACCCACCAGCTGATAACCCTGCCCCCACCCTCAACCTGATAAAC,,\n",
+   "templates": [
+    {
+     "circular": false,
+     "name": "T4",
+     "sequence": "CCCCATCTAATGTCGTTGGTTTCACCGCCGAACACGTAGGCGCTCAACCGCAGCAGCGGACAAGCCTTTTATTAATCACTTGCGTCACCTAGTTGGCCTGTCCAAGTTCGACGACACCGCGGAGGGTTTGCCCCAATCTCAGTGTAATTAAGACTGTTGGTGCAACCTTTTAGTGGGAGCTGTGACGACTGGTATTTCATTCAGCTAACGGGCACACAGAAGAAACCGTTCATTAGTCTAGCGGGCTGACCCCTCGGATACTGCTATATTGGTATCCAGCCTAACATGCGGGGTGTATACTCTTTCGTTATGGACTCAGGGTCCTTCACACTTTTTATTCTTTCAATGGTTCGTGTTTCCTTTCTGGGCGTAGTGGTATTGTCGTGTCTACGCCGTCGAATACTCTTATACGGTTATGGATGGGACGACCTCTGTGTCGGCCACTCCGTAAAAGTATCAGATGTTCAGCGTTCGCGG"
+    }
+   ]
+  },
+  {
+   "destination": {
+    "name": "dest5",
+    "sequence": "AGCCACTATCGAAGTGTGTCATGAGAGGTCGTAAAACTGGTGTAGTATGGAAGCTAACACCTGCGTGCTTACGCTGGTCACGCAGACCTTCATGTTTCGGGTGAAAAAGATTCCCCTTATCACACATCTTCGATCGGCTTAAAGTACCGCACCCCAAGGTGTTGTCCGCTTCGCTTTGCCCTTTGTGAGTTTTATTAGCACTCGTATTTACAAGCCTGATTGACTATGAGGACCTCACAGTTTTCGCCCTACTTGCATGAGGTTTCTGCAGAGGAGATCTTTAGGTAGCATTATTATCTACCCCGGGTGGCTTAGTAGCCAGCTGAGACCGTGACCCGCTGAGAGGCTGCCAAGTACGGACACTGGACTCCTGATACGACTACCGATAGCATGGCTTCCGCCGCTACTCCCCTCATGAGACTGGCTTGAGTTGAGCCATTAGGGTCTCTGGATGTGGCTCTGCTGATGTGATTTCCCTTCCGTACTGGCGACCGAAGACTCAATTTTGCGATTAAGGATTTAAAGATCTATTGGAATAGCGGGGTGCACCTACCGCT"
+   },
+   "enzyme": "BsaI",
+   "id": "random-bsai-linear-5",
+   "kind": "random",
+   "overhangs": {
+    "left": "CAGC",
+    "right": "GGAT"
+   },
+   "rows": [
+    {
+     "amplicon": {
+      "length": 203,
+      "sha256": "ad0f71a8c14acad73375f8f397eacdc7b37c8c2e996f6f9d1c54ae6447883836"
+     },
+     "construct": {
+      "head": "GGATGTGGCTCTGCTGATGTGATTTCCCTTCCGTACTGGCGACCGAAGACTCAATTTTGC",
+      "length": 600,
+      "sha256": "4ba7c65b9d80ff66a4a50594345fd30b631e178a8852e373a095f04a6ef24f66"
+     },
+     "forward": "ggagatggtctcccagcACGGGGCCCAGACGAGATAAC",
+     "name": "r1",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "CAGC",
+       "right": "GGAT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "CAGC",
+       "right": "GGAT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "CAGC",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "ATCC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctatccTAACTGGCACAATATTGTACGCACACG",
+     "warnings": [
+      "annealing"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 346,
+      "sha256": "b62b5db525c54b57e95552e25168d25a0d58aa61d480f1fb95e16983d886548c"
+     },
+     "construct": {
+      "head": "GGATGTGGCTCTGCTGATGTGATTTCCCTTCCGTACTGGCGACCGAAGACTCAATTTTGC",
+      "length": 743,
+      "sha256": "966affff76f85161958f5d616c02f5f9a6be2b111784d396915e3a7c879e73b6"
+     },
+     "forward": "ggagatggtctcccagcAACTGCCCAGTTTGCCTG",
+     "name": "r2",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "CAGC",
+       "right": "GGAT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "CAGC",
+       "right": "GGAT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "CAGC",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "ATCC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctatccGGCCCAGACGAGATAACAAAGG",
+     "warnings": []
+    },
+    {
+     "amplicon": {
+      "length": 295,
+      "sha256": "668e67f09768a73c069ea51e34ed7d5d77e9866acd71d45b0bab93f7f5892d3c"
+     },
+     "construct": {
+      "head": "GGATGTGGCTCTGCTGATGTGATTTCCCTTCCGTACTGGCGACCGAAGACTCAATTTTGC",
+      "length": 692,
+      "sha256": "13990a4327f46f6cf4d6d66a1b6b7c7d958599c98488f15ed8f6527659a859af"
+     },
+     "forward": "ggagatggtctcccagcCGCGCGACCGCTTTTGTGGATAATTAG",
+     "name": "r3",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "CAGC",
+       "right": "GGAT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "CAGC",
+       "right": "GGAT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "CAGC",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "ATCC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctatccGATGAGCACCATGACTATCTCTAGAC",
+     "warnings": [
+      "annealing"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 507,
+      "sha256": "0e6625fac32c9aea834abd28c229e6c6822ea653fdb3c962ef5bfcb10cd64f76"
+     },
+     "construct": {
+      "head": "GGATGTGGCTCTGCTGATGTGATTTCCCTTCCGTACTGGCGACCGAAGACTCAATTTTGC",
+      "length": 904,
+      "sha256": "99570166059c404de352f60dd4981627255c49b06110022b2a4eb3319d563ec7"
+     },
+     "forward": "ggagatggtctcccagcAAGCTAGAACATTTTAGGTTAAGCACG",
+     "name": "r4",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "CAGC",
+       "right": "GGAT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "CAGC",
+       "right": "GGAT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "CAGC",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "ATCC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctatccCAAGGGACAACTGCCCAGTTTG",
+     "warnings": [
+      "annealing"
+     ]
+    }
+   ],
+   "table": "name,template,region,sequence,include_start,include_stop\nr1,T5,150-318,,,\nr2,T5,complement(154..465),,,\nr3,,,CGCGCGACCGCTTTTGTGGATAATTAGTGCCGAATGGCCAAGTCGATGGATGCCTCCCCATTAGAAAAAAGTTCAAGTATACTTTTTTTAAACTATCGATGATGTCCCACACTCGGCATCTCCACCCGTCCTAGCCACAGACGTGGCTCTGGCAACCGCGTATATGTTTTGCATATCTATTTATACCACCGAAGCGGTGTGAACATGGTAGGTTATTGGAGTTCTGATCTAGAGAGTCTAGAGATAGTCATGGTGCTCATC,,\nr4,T5,,,,\n",
+   "templates": [
+    {
+     "circular": false,
+     "name": "T5",
+     "sequence": "AAGCTAGAACATTTTAGGTTAAGCACGCTGCCTGCAAGGTCATGTCCGCCAAACTGCCCTTGAATGATTGCTTTATGATTGTGTGGTTGACATTTGCTAGCCCCCAGATTACTGGACGAGTGGATATAGTTGTCTTTGCAAGGCGGATGACGGGGCCCAGACGAGATAACAAAGGCACGCAACGAGCGGAGAAACATTGAAACGGGACCCCCAATGTTCGATGCTGGGACTGACGTATTACACAAGTACCGACCTAGCACAAACCAAATATAAGTTGCGGTATCACTTGCTCGTGTGCGTACAATATTGTGCCAGTTAAATTAAGCTACGTGCCAGGATTGAGGTGTTATTGATCGTTCATCTCATGCGTGCACGGTTTGCGCTGAGGACAATCGGAATGTGCATAGAAGATAACATGTGCACCGACGACGTACGTTTACGTCCATCCAGGCAAACTGGGCAGTTGTCCCTTG"
+    }
+   ]
+  },
+  {
+   "destination": {
+    "name": "dest6",
+    "sequence": "GTCGCTGTGCCCTTGAAATAGCTATGACCAGCACCACCGAGCTAAAGAGGATGGGGGGCCGAAGTATTGACGCGTGAACCGCAGCCAAACAACTTGGGACCTCGTCTCAGCGTACTAAGCAGCAGACAGGGTCCCCTAAGATGGGTTCGCGAGTAGATATCTGTACGTAGGATCCCAGGTATTGTACCATTTATGAGCGGTCAATAAACAATGGAAAGCGGAAGGTACCATCGCTGGAACTTCGTTAGAGTACAGCTGAATGTTGCCGAAACGATCCCTTTTCTTAGTGCGTAAGGTGGCCCAGGTCCAAGAGGTCAGCTCACTGGGGTGCGAGTACAAGTCGTTAGCATAATTGACCTAAGTGGCATCCCACGACGATTTTTGCCCATCTTCGCAGTGGCGTTACCAGCGTCCGCGTCACCCTGTTGTTGTGAAAAGTAGGGCCTCTTCGTTAGAGACGATCCATTTTGGGTAGCGAAC"
+   },
+   "enzyme": "BsmBI",
+   "id": "random-bsmbi-linear-6",
+   "kind": "random",
+   "overhangs": {
+    "left": "CGTT",
+    "right": "GCGT"
+   },
+   "rows": [
+    {
+     "amplicon": {
+      "length": 283,
+      "sha256": "d266ee75d445a5a499ff96944247da0256c31bc82e81e9c080a6cccfa1b270e1"
+     },
+     "construct": {
+      "head": "GCGTACTAAGCAGCAGACAGGGTCCCCTAAGATGGGTTCGCGAGTAGATATCTGTACGTA",
+      "length": 593,
+      "sha256": "4ef4e42d1008456e46a5dbc1febc19af0a6a1f12f902ba166e00f9fdf0608656"
+     },
+     "forward": "ggagatcgtctcccgttCTCTCGGCAGCAAAGACATGA",
+     "name": "r1",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "CGTT",
+       "right": "GCGT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "CGTT",
+       "right": "GCGT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "CGTT",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "ACGC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagcgtctctacgcAGATTGGCACTCGATGTCCG",
+     "warnings": []
+    },
+    {
+     "amplicon": {
+      "length": 395,
+      "sha256": "ec5effbae8a8fa628d187fd26c51e7e93cba65589418f646e2079541717c61e8"
+     },
+     "construct": {
+      "head": "GCGTACTAAGCAGCAGACAGGGTCCCCTAAGATGGGTTCGCGAGTAGATATCTGTACGTA",
+      "length": 705,
+      "sha256": "6e9ee02bb3bcef5d47aea42688757776f44ab8a7f5843c87b91bfa84ae69f53c"
+     },
+     "forward": "ggagatcgtctcccgttTCTTGAATACGGACTTGTCGAAGTAG",
+     "name": "r2",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "CGTT",
+       "right": "GCGT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "CGTT",
+       "right": "GCGT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "CGTT",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "ACGC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagcgtctctacgcGTCTGACCTGAAAATATC",
+     "warnings": [
+      "annealing"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 357,
+      "sha256": "eae90c6a6f5c3250069989564ed55736063e5d57e2e2a574bb4586dcbb6de19b"
+     },
+     "construct": {
+      "head": "GCGTACTAAGCAGCAGACAGGGTCCCCTAAGATGGGTTCGCGAGTAGATATCTGTACGTA",
+      "length": 667,
+      "sha256": "a52d6bafb748f032de3106b7b1aa7c33cab0738d871d91a87bdf964e31147723"
+     },
+     "forward": "ggagatcgtctcccgttAAGAGGGCGGACTAGTTAACTGC",
+     "name": "r3",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "CGTT",
+       "right": "GCGT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "CGTT",
+       "right": "GCGT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "CGTT",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "ACGC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagcgtctctacgcCCTCACATCGTATAAAGTCC",
+     "warnings": [
+      "annealing"
+     ]
+    }
+   ],
+   "table": "name,template,region,sequence,include_start,include_stop\nr1,T6,complement(159..407),,,\nr2,T6,83-443,,,\nr3,T6,58-380,,,\n",
+   "templates": [
+    {
+     "circular": false,
+     "name": "T6",
+     "sequence": "ATTAAGAGTTATAGCCGCGAGGCCCACAGGACCATCTTCCGGATAAGGCGATTTGGGAAGAGGGCGGACTAGTTAACTGCACTCTTGAATACGGACTTGTCGAAGTAGAGCTAATAGACATGACTCGGCTTTCATGAGTGGTGTTAGCGTGGGCACAGAGATTGGCACTCGATGTCCGAACGGTCGCCCTTAACCAATCTAAGCCCTCTTTATCGCGACCCGGGAGGCTGGCACGTGTTCTGAAGTAGGGGAGCAAGAACCAAATTTCAGTCCCTCATAGACGTTGGGGGATGGGAGATCCATACCCAATAGCGGAACCTTACTAAAGGCCGTGCCTTAGCTCTCTATCAATGATAATATGGACTTTATACGATGTGAGGCCCGGATCATGTCTTTGCTGCCGAGAGGTTCGCACTTGACATAAAGATATTTTCAGGTCAGACGGAATGCAAGCTGCATCGCAGGACCTGATATTACCCCCAGTGAGCCCGATTTAAGAAGTACTCCCGCCCC"
+    }
+   ]
+  },
+  {
+   "destination": {
+    "name": "cdest1",
+    "sequence": "TAGAAGAGACCCTGAGTGAGTCTTGATCCCTGGAGCAGTCCCGACTGAATCGGCGACCGAAACAGAGCAGCACGCCGAAGCGCACAGCATATTATATGGTCTCACCTGCCTTCCGCAAAAGTTGTGAGGCGAAAAAGTATCAGGTCTACACTACTAGGAGGGCCCCGTTGTAGACCGGAACCCCTGGGACTCGTAGAGTTCGGAAGTCTCTCGCCGTACGTTGCTAAATATCCCGGTAGTACGCACTAGCTATATCGGCCAAGCCGCTCAGTTGTAAAGGCTAAGGCCCCAACCGTAATGGGAAGCTCATCTGATCACTTCAACTATATCTTGTTACGGCCGATCTAGACGGTGCGCTTTGGTCCAACAATAATTGAATACGAGTTAGGCTAATTATTATTAACCAGAACCCCTACCATATCCCGGAACGACTGTTTAGCCTGCGCGCAGGCATCTCTTTATCAGACCCCGGGGATGGTTGTAGGCTAGAAATACCCACCGCCGCCAAATCAAATCCAAAGGGCCCCTCATGAGGAGTCTTTATTCTCTCCAGTGGGTCGCTGTCTATAGTGATTTCTCGTGAC"
+   },
+   "enzyme": "BsaI",
+   "id": "random-bsai-circular-1",
+   "kind": "random",
+   "overhangs": {
+    "left": "TAGA",
+    "right": "CCTG"
+   },
+   "rows": [
+    {
+     "amplicon": {
+      "length": 340,
+      "sha256": "77454efa876737ffc47d8860b7beb15f2620454bc5fc971abfd48a86f9fec75d"
+     },
+     "construct": {
+      "head": "CCTGCCTTCCGCAAAAGTTGTGAGGCGAAAAAGTATCAGGTCTACACTACTAGGAGGGCC",
+      "length": 790,
+      "sha256": "4360c735d6b05bea182558018a599f4f58d56703ea1e3a8ed5e4410a188a90fe"
+     },
+     "forward": "ggagatggtctcctagaACGTGCAGGCGCTTTGCC",
+     "name": "c1",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "TAGA",
+       "right": "CCTG"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "TAGA",
+       "right": "CCTG"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "TAGA",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "CAGG",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctcaggCCAGGACAATCGTAGGCTTCAAAG",
+     "warnings": [
+      "annealing"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 235,
+      "sha256": "6d4fbf252b2015baa333288dac75bf0f67883711b539ff75e122d245cb1f2d1e"
+     },
+     "construct": {
+      "head": "CCTGCCTTCCGCAAAAGTTGTGAGGCGAAAAAGTATCAGGTCTACACTACTAGGAGGGCC",
+      "length": 685,
+      "sha256": "1d03ec0d858b5511168b32977f05337ce4d70c43dc9a257cbd9a54440266c0e6"
+     },
+     "forward": "ggagatggtctcctagaATACCCCGATGATTGGGCATTCG",
+     "name": "c2",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "TAGA",
+       "right": "CCTG"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "TAGA",
+       "right": "CCTG"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "TAGA",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "CAGG",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctcaggATTTCTCGTGCTCCGAGGGG",
+     "warnings": [
+      "annealing"
+     ]
+    }
+   ],
+   "table": "name,template,region,sequence,include_start,include_stop\nc1,C1,\"join(474..623,1..156)\",,,\nc2,C1,\"complement(join(513..623,1..90))\",,,\n",
+   "templates": [
+    {
+     "circular": true,
+     "name": "C1",
+     "sequence": "GGCCCGGACATAAAGACCTAACTCTCGGCTATCGTTCGTACCCGCTATTTTGCACACCTCGTTCACGCGAATGCCCAATCATCGGGGTATAGAGGCCTTCCGGCATGTACTTTAATTTATTGGTTATACGTGCTTTGAAGCCTACGATTGTCCTGGGGACGTTTACGTTCGGGCGCCTAGTACGGCCAAGGGCCTACGTGGCAGAGGCGCGTCGTAGTCCATCTTATATTCATATGACAACCCTCCCAGAATCTAGATATGGCACTCGTTCGTCCGAGTTAAAGGAGTGACTCACCTGACAACACGATGGTGGTATTTTAGCTGCCGGAGCAAGTTCTGCCCTTTCGCCCGCCCATTCAAAAGGGATCATGGCAGTGCCACTGAGCTACTGCACTTTTGCATTATCCAGTACCCCGGTATAGACTAATTGTACGCCGCGACCCTTGCTTCACATGCCCCAATCGGCTTTTACAACGTGCAGGCGCTTTGCCGCTCACCCTATTTCCAGCGCTATTTCTCGTGCTCCGAGGGGGTTCGTTCGGAATGGGTGAGCATAAATATTAGCGAGAGGGTAATCTGCGGTATAGCGTGTAGTTCAAGATAACGATCATCCCATAGTGACC"
+    }
+   ]
+  },
+  {
+   "destination": {
+    "name": "cdest2",
+    "sequence": "GTTGCAGACGAAGAAAGATATTTTGGGATTGAGGGGCGTACCTTCCTCTTATCCTTCTTAGTAACGGCGGCATTTGGGCCCAAAGTCTAGCGCATACGGTTACCAGTTTTGCCTTTCACATGAGGTAACAATGTACGGGTCGTAATACCGGTCGTCAGTACAGACGTCCAGAGGCCGGGCACCAATTACCACCATCATCGTATAGCCGTATGCTAGTCACTACAGACAGTAGGCCTATGTCTATAGGGAAGCTCTACACGGGGCGTTCTCAGACAGAAGAGACGTACCTGAGTTAACGTATAGTGGGGCGTAGCTCTGCAAATACGTTTTAACAAATAGCACCTGATTGGATAGTGACTCTCTGAGTATACCCTCCCGGTGACACCATGCCCGAGACATTATGGTGCAAAGAGGGTAGGCTTCGTCTCAGTCAGGTAAAAGCTGCCTTCATACTTGTGGTGCCAGGCTGACACGGAGTCCCGAATGTCCACCCGACGTTGTTGAATTTCGCCTCTAAGTAAA"
+   },
+   "enzyme": "BsmBI",
+   "id": "random-bsmbi-circular-2",
+   "kind": "random",
+   "overhangs": {
+    "left": "CAGA",
+    "right": "GTCA"
+   },
+   "rows": [
+    {
+     "amplicon": {
+      "length": 353,
+      "sha256": "471bdf4640ee04aa8fc377fa16b2261264c3b1f7934821e311b237d74269dd8d"
+     },
+     "construct": {
+      "head": "GTCAGGTAAAAGCTGCCTTCATACTTGTGGTGCCAGGCTGACACGGAGTCCCGAATGTCC",
+      "length": 689,
+      "sha256": "dcf55879c2989f09b89e75c3a3f323bd81e1f7f45ca2dba360a2637eb3c6fde7"
+     },
+     "forward": "ggagatcgtctcccagaCATTGACAGAGTTAGGGCCCATGC",
+     "name": "c1",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "CAGA",
+       "right": "GTCA"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "CAGA",
+       "right": "GTCA"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "CAGA",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "TGAC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagcgtctcttgacACTAATTAACGAGGCTGTGCCCTC",
+     "warnings": [
+      "annealing"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 254,
+      "sha256": "ac1966349eb8ed9a52208caf82f402093ee6390e7e093cee40ac1b998e6fcd53"
+     },
+     "construct": {
+      "head": "GTCAGGTAAAAGCTGCCTTCATACTTGTGGTGCCAGGCTGACACGGAGTCCCGAATGTCC",
+      "length": 590,
+      "sha256": "ee3dbeb1ed347383d125ad4f99aeaa241b8b919234f3ac22f3ba025cf9478720"
+     },
+     "forward": "ggagatcgtctcccagaCCCACAGAGCTCCAGTAGCTTC",
+     "name": "c2",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "CAGA",
+       "right": "GTCA"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "CAGA",
+       "right": "GTCA"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "CAGA",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "TGAC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagcgtctcttgacTGGCTCCACATTACGATGTTGTCATTC",
+     "warnings": [
+      "annealing"
+     ]
+    }
+   ],
+   "table": "name,template,region,sequence,include_start,include_stop\nc1,C2,\"join(403..604,1..117)\",,,\nc2,C2,\"complement(join(479..604,1..94))\",,,\n",
+   "templates": [
+    {
+     "circular": true,
+     "name": "C2",
+     "sequence": "GGAACCTACGTATCTACGCGACGGCCCGGCAGCGTGCTATAATCAGACTAAACTTGTAGAAATTCAGTTCCCGAAGCTACTGGAGCTCTGTGGGAGGGCACAGCCTCGTTAATTAGTTTGGGGCATTAACTCACATCCACGCAGAATTCGCTATCTAACTAGGCGGGTCGCTCACGGCGAGGCGGTATTTAAAATACTTCATCCGTCTTTAAATAAGCTATAGGAATCTCACAGACGTGCGTGCTACTCCTACAATCCCACGGTTGACGCGCCCTCAACGCATCGGTCATGTGCGGGCTCGGTTGAGTGATGAATTAGCCGACTGAGAGCGCGGAGTATCATGAACAACTCTTTGCGTATCTGCGTGAAGGACGACGCGTTCGTCACAGGTAGAGGGTGATACATTGACAGAGTTAGGGCCCATGCGCCAATCAACGGGTGCGCCAATCTCGCACGATAGGTACCTAACTGTGGCACTTGGCTCCACATTACGATGTTGTCATTCGGACTTCATCAAAGTTCTGTAAAGGTCCCCTTGTGCCGGTAACTATTTCGAGGAACTATAAAAATGTCCGTAGGTTAAGCCGGCAATCTACAGCAGTCC"
+    }
+   ]
+  },
+  {
+   "destination": {
+    "name": "cdest3",
+    "sequence": "ATATTGACAGTTTAGAACCCACTGACGTGGAAGGCATTTTCGTATATTGACAGTCCGACTCCAAAGCTATAGTCGGAGCTTTAGTTGCAAGGCTTCAATTGCTCTGTTCAGTTCTTAAAGCAACGACCGCAAGCGTTGTTGACCGGGATAAAGTGCTAGCGCCATCCTCTCGTCAGCGTTATCTACAGGCTGGCTCTGGAATTAATTCAACTGGGTTTGGTTCCTTTAGTGTGTTGCGACTGACTCCTATGGTTATCATACTTCGAGCCCAAGGGATTGGGCTGAAACCGTCTAAATGAACGCCTGCAGGTTCATCATGCTAGGGCAGTTGGATGTCTAATAGCGGTGTGGGGCAAGACATTCTCTAGCTCGCTGACGGGATAGAGACCTTGCTACTAAGAGGCGTAGCGTGGAAGTGCGCGAAACTACATGTAGTCGGCCTTCAGGTCAGAGCCCATTGCTATTACTGAGGTCTCACTATGATACTAGCTCTTGCTCTT"
+   },
+   "enzyme": "BsaI",
+   "id": "random-bsai-circular-3",
+   "kind": "random",
+   "overhangs": {
+    "left": "GGAT",
+    "right": "CTAT"
+   },
+   "rows": [
+    {
+     "amplicon": {
+      "length": 234,
+      "sha256": "604d6ee4a9b6312f26635342a49d6f65f05e07a93667523e1ec121809c2f854d"
+     },
+     "construct": {
+      "head": "CTATGATACTAGCTCTTGCTCTTATATTGACAGTTTAGAACCCACTGACGTGGAAGGCAT",
+      "length": 605,
+      "sha256": "0095f2374216dfdc19740d7ff5ba7f1a1143e3073985222dfd56e3e4ed255c0d"
+     },
+     "forward": "ggagatggtctccggatCACATTATTCCAGGCATCACAAGGG",
+     "name": "c1",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "GGAT",
+       "right": "CTAT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "GGAT",
+       "right": "CTAT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "GGAT",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "ATAG",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctatagTATGACATCACCTGTTAACGCTAGC",
+     "warnings": []
+    },
+    {
+     "amplicon": {
+      "length": 217,
+      "sha256": "c8e21e2d7d59f0816c42275b4c8b6b16c0d4755137fc3cba11b10e500ba8f6f1"
+     },
+     "construct": {
+      "head": "CTATGATACTAGCTCTTGCTCTTATATTGACAGTTTAGAACCCACTGACGTGGAAGGCAT",
+      "length": 588,
+      "sha256": "5b3ea0f647ee9f26664134d6c1dd6ab93644d507c10e3a2d6e4c51856e17b5d8"
+     },
+     "forward": "ggagatggtctccggatCTGGAATAATGTGAAGGAACAGCGC",
+     "name": "c2",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "GGAT",
+       "right": "CTAT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "GGAT",
+       "right": "CTAT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "GGAT",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "ATAG",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctatagGCAGAATAAAAAGCCGTTGTCATGTG",
+     "warnings": [
+      "annealing"
+     ]
+    }
+   ],
+   "table": "name,template,region,sequence,include_start,include_stop\nc1,C3,\"complement(join(384..445,1..138))\",,,\nc2,C3,126-308,,,\n",
+   "templates": [
+    {
+     "circular": true,
+     "name": "C3",
+     "sequence": "TGGTCCTCAGGGTCCGGAAGCTATATTCAAATTATAGGCCTCGTCCAACGCCACGGATTTTTCCACTTTCCTACACGTTCGACAGACCCGCACATGTACAACGCTCGTTGACTCCCTTGTGATGCCTGGAATAATGTGAAGGAACAGCGCCCCGATGTCGGTTCGCCCGCTCGGGCTTATTAATCACAAAAGACTCATGCACATCAGAACTGACTGTAGCCTATTGTGGGTAGTCCATCAAACTAGCTATCCGGGATTGGGTTCACGCACTGTCGGACTTAACACATGACAACGGCTTTTTATTCTGCAGCGCCCCCATCGTTCACTAAAGCGCTCTGTGGACCTCGCGTGGCGTGCTAGCACCGGCGTGTCAATCTATAAGGTATGACATCACCTGTTAACGCTAGCGTGAGGTTGCCAACGGATTCAAATACTAAGCTAATCG"
+    }
+   ]
+  },
+  {
+   "destination": {
+    "name": "cdest4",
+    "sequence": "TCTCTGAATAGTAGATCAATTTACAATGTATTGAGAGACGCAATTGAAGTTTTGTTAGTAGGGGCACTACACCTCTCACACCGGGGGGAGCAGGGGCTGCGGGCGTCCCCCAAGGCCCCATTCGCTGAACAGGTCGTCTCATCAGGTCGATGCGTTGCTCGATGGCGGCGTACCTTTATCCAACCTGTTCAGTTGAATTGGCCCGGTCCGCAAAACGAGCCGCGGTGTTGTTCAAGTAATCTTGTGTATGTCTTCATTAAGTAGCGGATGCTAGATCAAAGTCACACGTGCTGGGCAGACGTTCCCCAGCAGAGGGTCTTACTCGTCCAGGTTTAAGAGAGGAGCGAGCCCTCCAATCCTAATCCAAAATTCAGCCAGTCCTACCACTCGGTCGGCCCTGCATCAACCAGTCCCGTGCGTTACTGACGTCAACAAGACCTACACTGGTACCCCCACTGCACCGTTATGGCGTACACGACTTAGGAATAACGCTGACGTGCCCCAGGGACGCAAACGGTATAAGACCCTTTAGCTAAATTTTA"
+   },
+   "enzyme": "BsmBI",
+   "id": "random-bsmbi-circular-4",
+   "kind": "random",
+   "overhangs": {
+    "left": "ATTG",
+    "right": "TCAG"
+   },
+   "rows": [
+    {
+     "amplicon": {
+      "length": 192,
+      "sha256": "d919c48d4b20b0f23d407a267997cb41b18acf3b832bf32526aead2f7ef7768a"
+     },
+     "construct": {
+      "head": "TCAGGTCGATGCGTTGCTCGATGGCGGCGTACCTTTATCCAACCTGTTCAGTTGAATTGG",
+      "length": 592,
+      "sha256": "27e9993868b0e747eae51d39fdb82b244d11d39199dee41e2502301b32678a1a"
+     },
+     "forward": "ggagatcgtctccattgAGGGCGCACCGATGCACG",
+     "name": "c1",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "ATTG",
+       "right": "TCAG"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "ATTG",
+       "right": "TCAG"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "ATTG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "CTGA",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagcgtctctctgaGGAAATATGGTCGTTCCTGAAGGTCG",
+     "warnings": [
+      "annealing"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 298,
+      "sha256": "483c19c06826fb00a006520f3e90bcfd7fde53ce02349437d7f6368e9c211fb3"
+     },
+     "construct": {
+      "head": "TCAGGTCGATGCGTTGCTCGATGGCGGCGTACCTTTATCCAACCTGTTCAGTTGAATTGG",
+      "length": 698,
+      "sha256": "6a763913435478cfe81e160edc07ba0bbd1f7d161e15adbd4658c2eaeae126ce"
+     },
+     "forward": "ggagatcgtctccattgGCTAGCTGGTTTCTGTAGTTCGTGC",
+     "name": "c2",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "ATTG",
+       "right": "TCAG"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "ATTG",
+       "right": "TCAG"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "ATTG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "CTGA",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagcgtctctctgaAAGCTCGGTAAGCACGGGC",
+     "warnings": [
+      "annealing"
+     ]
+    }
+   ],
+   "table": "name,template,region,sequence,include_start,include_stop\nc1,C4,\"complement(join(418..472,1..106))\",,,\nc2,C4,69-332,,,\n",
+   "templates": [
+    {
+     "circular": true,
+     "name": "C4",
+     "sequence": "CGAACGTATAAGCATCGAGTCTGGGTTGTTAGCCCTGGCACAGGGTATGATCTCATTACAACGCCACAGCTAGCTGGTTTCTGTAGTTCGTGCATCGGTGCGCCCTATGGAGGGCTACATAACTCCATAGTTTGTGAATCTGATCATCATTGTCTTAGTGGGCGTCTGTGTGTGTTGCAAAAAAACTACTTACGTCTATTGTCCTATTACATCTACGCAGACTGGTGGACCGAATAGTCGCTAGAGGACTTCTCGGTTCACTGGAAAAACGATCAACCCTACAGGGGATAATTCCGTAGATAATATATAACGTGCCCGTGCTTACCGAGCTTGGCTACTCTTGCTAACCACCCCGATCTTGTCCTGAGGGCGAGCTTATGTTAATTGAAACTCTGGGAGATTATGAAGAGAGTTACTCTAGGAAATATGGTCGTTCCTGAAGGTCGCTGGTCAAAGTAGTGCAGTCCCCCTA"
+    }
+   ]
+  },
+  {
+   "destination": {
+    "name": "mdest1",
+    "sequence": "AATGAGAGACCCGAGGGAGTAATCAACGTACGGAGCTTGACGGTTAGAACAAGTTGGGCTCGTGTTTGAGAAATGGTCTCAGCTTAGTCATTGTAGGTGGGAAGCTGCATGTGCATCCACAAATATTGAAGGAGCGCTTATGTTACACCTACCATTAGTCCCACTAGGAATGCCATGATACAAGATCGTAATCGTGTAGGCTGTGTGGCCTTAAGCCCGCTCGCGACGGTCGTCAGTGGCTCGCCAAAAATGCTGTCGCAAATCGTGGGAGATTAGTCTTTTGAGGGTGGAGTATGTTGTAGGACACGAGTGTCGGCAGTCTTCAATGTCGTTCTGATAGAATCATCAGTCCCCTCTTGAGAAACCAACGAAAGGCGACTGTCATATCACCTGTAGACCCTCTCGAATCTGACTCGACT"
+   },
+   "enzyme": "BsaI",
+   "id": "random-bsai-moclo-cds-1",
+   "kind": "random",
+   "overhangs": {
+    "left": "AATG",
+    "right": "GCTT"
+   },
+   "rows": [
+    {
+     "amplicon": {
+      "length": 238,
+      "sha256": "be31fd363e0f51f32d7a5588b64ebe4f64fcf02a4fb011018d61d64bd4b3df6f"
+     },
+     "construct": {
+      "head": "GCTTAGTCATTGTAGGTGGGAAGCTGCATGTGCATCCACAAATATTGAAGGAGCGCTTAT",
+      "length": 546,
+      "sha256": "f671f5cde18bedf13217e282641b37fc53e5020cf7812e13b4cfa60e7072ffa0"
+     },
+     "forward": "ggagatggtctccaatgTGCTCTCGAAGGCCGCTCGTCTAAG",
+     "name": "whole",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "AATG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "AAGC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctaagcGGACTGCAGAATCGAGCGACAC",
+     "warnings": [
+      "annealing"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 241,
+      "sha256": "89d96029ab4e4f4390d625e8b526834419a51ac2d725e9386cb0d320ad4b00ae"
+     },
+     "construct": {
+      "head": "GCTTAGTCATTGTAGGTGGGAAGCTGCATGTGCATCCACAAATATTGAAGGAGCGCTTAT",
+      "length": 549,
+      "sha256": "9a3fad81f9263cf32dcb1a6188eb497242765d5616e561fe9173ee1752d512ed"
+     },
+     "forward": "ggagatggtctccaatgTGCTCTCGAAGGCCGCTCGTCTAAG",
+     "name": "keep_stop",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "AATG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "AAGC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctaagcTCAGGACTGCAGAATCGAGCG",
+     "warnings": [
+      "annealing",
+      "dimer"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 238,
+      "sha256": "be31fd363e0f51f32d7a5588b64ebe4f64fcf02a4fb011018d61d64bd4b3df6f"
+     },
+     "construct": {
+      "head": "GCTTAGTCATTGTAGGTGGGAAGCTGCATGTGCATCCACAAATATTGAAGGAGCGCTTAT",
+      "length": 546,
+      "sha256": "f671f5cde18bedf13217e282641b37fc53e5020cf7812e13b4cfa60e7072ffa0"
+     },
+     "forward": "ggagatggtctccaatgTGCTCTCGAAGGCCGCTCGTCTAAG",
+     "name": "no_start",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "AATG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "AAGC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctaagcGGACTGCAGAATCGAGCGACAC",
+     "warnings": [
+      "annealing"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 238,
+      "sha256": "be31fd363e0f51f32d7a5588b64ebe4f64fcf02a4fb011018d61d64bd4b3df6f"
+     },
+     "construct": {
+      "head": "GCTTAGTCATTGTAGGTGGGAAGCTGCATGTGCATCCACAAATATTGAAGGAGCGCTTAT",
+      "length": 546,
+      "sha256": "f671f5cde18bedf13217e282641b37fc53e5020cf7812e13b4cfa60e7072ffa0"
+     },
+     "forward": "ggagatggtctccaatgTGCTCTCGAAGGCCGCTCGTCTAAG",
+     "name": "no_stop",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "AATG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "AAGC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctaagcGGACTGCAGAATCGAGCGACAC",
+     "warnings": [
+      "annealing"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 244,
+      "sha256": "87e75ff28fbbba05f044f36ccc2ff4fcf2365b34991fc00fb8a53987593aba6f"
+     },
+     "construct": {
+      "head": "GCTTAGTCATTGTAGGTGGGAAGCTGCATGTGCATCCACAAATATTGAAGGAGCGCTTAT",
+      "length": 552,
+      "sha256": "b949d6a1940c6a7f7105f3763f9d0486704efc0a2b31d49f138f75ff2784aaf1"
+     },
+     "forward": "ggagatggtctccaatgTCAGGACTGCAGAATCGAGCG",
+     "name": "reverse_cds",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "AATG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "AAGC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctaagcATGTGCTCTCGAAGGCCGC",
+     "warnings": [
+      "annealing"
+     ]
+    }
+   ],
+   "table": "name,template,region,sequence,include_start,include_stop\nwhole,G1,1-210,,,\nkeep_stop,G1,1-210,,yes,yes\nno_start,G1,1-210,,no,no\nno_stop,G1,1-210,,yes,no\nreverse_cds,G1,complement(1..210),,,\n",
+   "templates": [
+    {
+     "circular": false,
+     "name": "G1",
+     "sequence": "ATGTGCTCTCGAAGGCCGCTCGTCTAAGTACAAAGTATAGTAGGAAACTGCGTTACCATAAGTAGAGGTGGAGCGACAAGTCTCGTCACACAACTTCGCCCAATGAACAGCGGCATATCTGTCACGCTACCGCAACTCTGCGCGGCAAGAACCCCCGGCGATGTCAGCCTAGGCTAGAGCTCGTCGTGTCGCTCGATTCTGCAGTCCTGA"
+    }
+   ]
+  },
+  {
+   "destination": {
+    "name": "mdest2",
+    "sequence": "CAGGAGTCGGAACATAGAGCACGATTGTAGCGAAGGTTCTTAGGTAACGCGGCTGCCGCTTACTTGCTGACAGCGCGATACTCAGTATAATGAGAGACCACGAAAGATGAGAGATTCTCGTTGTCGCTTTAAAGACGCAATGTTTGCTGGATCGCAATGCGTCGCCGGGCGGGAAAAGCACATGTCCGCCCCCCATCGCCAAAGATAAGGCTGACGCTAAAGAAGGTCTCAGCTTCCCCACTCAGAAGAGGAAAGGGCCGGACTGCGCATAGTCCAAAGCGTAACCGTAACACCACGTCACGGTGTGTGTTTGACAATCGGTGGCGGGCTCTGCTGCTCTATCTCAGCTTAGAACGAAGAGGTCGTACTATTCGAGTATAAGTACTGCCAAGATCTATACCTAAACCGGCGGTGTAAGCAATATGACCGCACACACCGCCGGGTGGATGA"
+   },
+   "enzyme": "BsaI",
+   "id": "random-bsai-moclo-cds-2",
+   "kind": "random",
+   "overhangs": {
+    "left": "AATG",
+    "right": "GCTT"
+   },
+   "rows": [
+    {
+     "amplicon": {
+      "length": 415,
+      "sha256": "d16f9ac1aa9852b49935182ef33353b6da13dc2a2ff2ae0226b71a969e02adaf"
+     },
+     "construct": {
+      "head": "GCTTCCCCACTCAGAAGAGGAAAGGGCCGGACTGCGCATAGTCCAAAGCGTAACCGTAAC",
+      "length": 692,
+      "sha256": "b142ad414967c611a2a86619ad4af265fc720cc6e7fbaaa906f0e838968cee1d"
+     },
+     "forward": "ggagatggtctccaatgCAGGCGCGCACGCCATGACGATTTAG",
+     "name": "whole",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "AATG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "AAGC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctaagcCGATGGCCCCTACCAATTTTCGG",
+     "warnings": [
+      "annealing"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 418,
+      "sha256": "10d068f27eaec842a896bde03287411a8a2bd06471bdf012a53a82fb68f4b876"
+     },
+     "construct": {
+      "head": "GCTTCCCCACTCAGAAGAGGAAAGGGCCGGACTGCGCATAGTCCAAAGCGTAACCGTAAC",
+      "length": 695,
+      "sha256": "08c0ce9cd24bce11c118185dfdd1b37da0f90ddb29d5703a0c5e845f2e44bb94"
+     },
+     "forward": "ggagatggtctccaatgCAGGCGCGCACGCCATGACGATTTAG",
+     "name": "keep_stop",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "AATG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "AAGC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctaagcTTACGATGGCCCCTACCAATTTTCG",
+     "warnings": [
+      "annealing"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 415,
+      "sha256": "d16f9ac1aa9852b49935182ef33353b6da13dc2a2ff2ae0226b71a969e02adaf"
+     },
+     "construct": {
+      "head": "GCTTCCCCACTCAGAAGAGGAAAGGGCCGGACTGCGCATAGTCCAAAGCGTAACCGTAAC",
+      "length": 692,
+      "sha256": "b142ad414967c611a2a86619ad4af265fc720cc6e7fbaaa906f0e838968cee1d"
+     },
+     "forward": "ggagatggtctccaatgCAGGCGCGCACGCCATGACGATTTAG",
+     "name": "no_start",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "AATG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "AAGC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctaagcCGATGGCCCCTACCAATTTTCGG",
+     "warnings": [
+      "annealing"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 415,
+      "sha256": "d16f9ac1aa9852b49935182ef33353b6da13dc2a2ff2ae0226b71a969e02adaf"
+     },
+     "construct": {
+      "head": "GCTTCCCCACTCAGAAGAGGAAAGGGCCGGACTGCGCATAGTCCAAAGCGTAACCGTAAC",
+      "length": 692,
+      "sha256": "b142ad414967c611a2a86619ad4af265fc720cc6e7fbaaa906f0e838968cee1d"
+     },
+     "forward": "ggagatggtctccaatgCAGGCGCGCACGCCATGACGATTTAG",
+     "name": "no_stop",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "AATG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "AAGC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctaagcCGATGGCCCCTACCAATTTTCGG",
+     "warnings": [
+      "annealing"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 421,
+      "sha256": "3174f0ceb75b03b621dc44691ecedca9bb99008ca52df03e56b49eb268fce44b"
+     },
+     "construct": {
+      "head": "GCTTCCCCACTCAGAAGAGGAAAGGGCCGGACTGCGCATAGTCCAAAGCGTAACCGTAAC",
+      "length": 698,
+      "sha256": "9075fdc9b63d7a8d45f1b097990e0a9b251aa6aee323d71053ee0deacd2f5fcb"
+     },
+     "forward": "ggagatggtctccaatgTTACGATGGCCCCTACCAATTTTCG",
+     "name": "reverse_cds",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "AATG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "AAGC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctaagcATGCAGGCGCGCACGCCATG",
+     "warnings": [
+      "annealing"
+     ]
+    }
+   ],
+   "table": "name,template,region,sequence,include_start,include_stop\nwhole,G2,1-387,,,\nkeep_stop,G2,1-387,,yes,yes\nno_start,G2,1-387,,no,no\nno_stop,G2,1-387,,yes,no\nreverse_cds,G2,complement(1..387),,,\n",
+   "templates": [
+    {
+     "circular": false,
+     "name": "G2",
+     "sequence": "ATGCAGGCGCGCACGCCATGACGATTTAGGGTGCCGAGTGTGAGATCACTCAATGTGATTTTCGCCATGTAGCGGTGCCTAGATCGACGTGCTATTGCGTCTGAGGCCGCCGTACGGATGGTGTTACGTGGAATATGTGGGTGGAAGTGTCACGTGACTACTATATACGATGGCTTGTCATATTATCGCGCGAATGGTTCCAACACTTTTGGAAGCCAGGACTACACGTCATCTGACCGCGGCGGAAATAAGATTTCGCCGCAAAGAGATTAAGGCACTACTCAGGGCAAAGGCCACCTTCCTGGATACAGAGTCGCCCTCTTTATCAGCTGGCAAATTTCGAAAGTCATGTAGCTAAGGACCGAAAATTGGTAGGGGCCATCGTAA"
+    }
+   ]
+  },
+  {
+   "destination": {
+    "name": "mdest3",
+    "sequence": "AATGAGAGACGCACCCGCCGTTGGAATCAGGCCTCGCTTCATCCCCCAAGAGTACGCAGAGTGGGACTGTCGGCGCGAGGTGTCTTTCATTTCGTCTCAGCTTACGGGGATTACTTCGGCGAGTAGGCGAAGTACATTCCGGGCCTATTCTAGACACTACCTGATATCCGGTTACCTCAGTTAAGAAACCTTATAAAACTTGAATCTGAACGATCGCTGGCCCGTTATGGAGTGCTCCGCTGATACAGCTATAGTAAGGGTAGGAGATATCAACCTCCGCGAAAGAAGTGAGGTGACCCGAGTCCATTCTAGATTCCGGGTGGAAATTTGGCGTACGAAAACAGAACGAGCACCACAGCTTGTTTGACTAACTTGCAACACTCGTCACAATGACTTTACCCTGCGCTACGAGTCGTGTCACGCGCCGGCCGAGCCCGATACAGAGTTACGCCATGAGTCGAATT"
+   },
+   "enzyme": "BsmBI",
+   "id": "random-bsmbi-moclo-cds-3",
+   "kind": "random",
+   "overhangs": {
+    "left": "AATG",
+    "right": "GCTT"
+   },
+   "rows": [
+    {
+     "amplicon": {
+      "length": 376,
+      "sha256": "4a378a3dff622cb793e2621eae3db837c1803b17feefc916405ae0f790267a6c"
+     },
+     "construct": {
+      "head": "GCTTACGGGGATTACTTCGGCGAGTAGGCGAAGTACATTCCGGGCCTATTCTAGACACTA",
+      "length": 711,
+      "sha256": "a0c463df15ec1aa5f1a6e82854a4791e7847b33b799df964e2fe0f89194025d6"
+     },
+     "forward": "ggagatcgtctccaatgTAAGTGGGGGGTCTGATACCTCAC",
+     "name": "whole",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "AATG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "AAGC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagcgtctctaagcCCGCTCGTGCGTCCCCAC",
+     "warnings": [
+      "annealing"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 379,
+      "sha256": "535cf12c3d74fe0d91f5f53efcceb8a15a7a69c8da857fd0d14b23f8288be1f3"
+     },
+     "construct": {
+      "head": "GCTTACGGGGATTACTTCGGCGAGTAGGCGAAGTACATTCCGGGCCTATTCTAGACACTA",
+      "length": 714,
+      "sha256": "be5388bfe7850f7b65bb12e09228bd6f19cfea32df9f9d8b09d63c3cc77e9f18"
+     },
+     "forward": "ggagatcgtctccaatgTAAGTGGGGGGTCTGATACCTCAC",
+     "name": "keep_stop",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "AATG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "AAGC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagcgtctctaagcCTACCGCTCGTGCGTCCC",
+     "warnings": [
+      "annealing"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 376,
+      "sha256": "4a378a3dff622cb793e2621eae3db837c1803b17feefc916405ae0f790267a6c"
+     },
+     "construct": {
+      "head": "GCTTACGGGGATTACTTCGGCGAGTAGGCGAAGTACATTCCGGGCCTATTCTAGACACTA",
+      "length": 711,
+      "sha256": "a0c463df15ec1aa5f1a6e82854a4791e7847b33b799df964e2fe0f89194025d6"
+     },
+     "forward": "ggagatcgtctccaatgTAAGTGGGGGGTCTGATACCTCAC",
+     "name": "no_start",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "AATG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "AAGC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagcgtctctaagcCCGCTCGTGCGTCCCCAC",
+     "warnings": [
+      "annealing"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 376,
+      "sha256": "4a378a3dff622cb793e2621eae3db837c1803b17feefc916405ae0f790267a6c"
+     },
+     "construct": {
+      "head": "GCTTACGGGGATTACTTCGGCGAGTAGGCGAAGTACATTCCGGGCCTATTCTAGACACTA",
+      "length": 711,
+      "sha256": "a0c463df15ec1aa5f1a6e82854a4791e7847b33b799df964e2fe0f89194025d6"
+     },
+     "forward": "ggagatcgtctccaatgTAAGTGGGGGGTCTGATACCTCAC",
+     "name": "no_stop",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "AATG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "AAGC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagcgtctctaagcCCGCTCGTGCGTCCCCAC",
+     "warnings": [
+      "annealing"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 382,
+      "sha256": "cffe8dfbb6c156f80872771fda4574317f387b3558cb8e08b25004ca79220127"
+     },
+     "construct": {
+      "head": "GCTTACGGGGATTACTTCGGCGAGTAGGCGAAGTACATTCCGGGCCTATTCTAGACACTA",
+      "length": 717,
+      "sha256": "0cccf7ccdccc5eab48d39295ac8fdc46efb4500d55fd08b001b3bdd16790df7e"
+     },
+     "forward": "ggagatcgtctccaatgCTACCGCTCGTGCGTCCC",
+     "name": "reverse_cds",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "AATG",
+       "right": "GCTT"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "AATG",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "AAGC",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagcgtctctaagcATGTAAGTGGGGGGTCTGATAC",
+     "warnings": [
+      "annealing"
+     ]
+    }
+   ],
+   "table": "name,template,region,sequence,include_start,include_stop\nwhole,G3,1-348,,,\nkeep_stop,G3,1-348,,yes,yes\nno_start,G3,1-348,,no,no\nno_stop,G3,1-348,,yes,no\nreverse_cds,G3,complement(1..348),,,\n",
+   "templates": [
+    {
+     "circular": false,
+     "name": "G3",
+     "sequence": "ATGTAAGTGGGGGGTCTGATACCTCACAAAGGGCAATAAGTTTCACGCGAATTCGAAAAAATTACTCGAACGCTGGGGCCTTCGCCACCGTGACGTAATTTCTCCAAGGAGAGCAAGAGTTCTGACTGCTAGGTAATCGACGTGAGCCCTTCGTCGTCCTCTGGTAGGAGGTATCCCCTCTAATCCAACTGCTGGCACGAGGGGAATTACCTATTCCCCCCTACCAGACACCGACAGTGTGAGGGCATGTGGGCATTAAAATAATGACAGCCACCCCGGGGGCCTGGTATAGTACACCGTAATCCTGACATCGCGCCCATTCTTGTTGTGGGGACGCACGAGCGGTAG"
+    }
+   ]
+  },
+  {
+   "destination": {
+    "name": "fdest",
+    "sequence": "GGACAATGTTTTAAACACCCTACAGGTCACCCGCCACCGGGATCTGCGTGATCACTGTTGTACAAATTCACGAGTGATGTGCGTCCTTAGGAAAACATCATAGTAGAAACCAACGTAAGCCCACAGCGGTTCATCAGCTGCTAGGCCCGCTTGAGGGACTGCCTCGGTGTGGTTATAAAGCGTTAATAAGGTCGCAATTGTGATAATGCCGAACGCCTCGCAAATGGGGATCAGCGTGAAAATTATGGTGTGACCGCGTAATTCAGACGACCGGCTCGATGTTGGTGTCCACGCGCTTCTTACCATGTTGGCTGCCGCTGTATCGAGCTTATTCGGGAAGCTTTACCAAATCACTACCTAAGAGACCCACCTGTGGGGTTCTGTAAAACAGGACGCGGGGATCTTCGCGTGAACCGTTCTAGAATCTCGCGTGACGTCCCACCGGTCTCATGACCTGACTGTCTGATGTTGAACGGCCCAATGGTCTTAGTGGTGGACGGCCACCTGCGGATGTCGAAA"
+   },
+   "enzyme": "BsaI",
+   "id": "random-bsai-fusion-sites-in-part",
+   "kind": "random",
+   "overhangs": {
+    "left": "CCTA",
+    "right": "TGAC"
+   },
+   "rows": [
+    {
+     "amplicon": {
+      "length": 334,
+      "sha256": "3d77b45f5d449011096a775e469f4c7c7720aef3e2feb382b0902ad31c374794"
+     },
+     "construct": {
+      "head": "TGACCTGACTGTCTGATGTTGAACGGCCCAATGGTCTTAGTGGTGGACGGCCACCTGCGG",
+      "length": 729,
+      "sha256": "c597d3370cce1b39b9c7066dca81c1e634a0f7a9af926ea2280fbd8e2dd6996d"
+     },
+     "forward": "ggagatggtctcccctaTTTTTGGGAATATGGTTGAGTTGACG",
+     "name": "fused",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "CCTA",
+       "right": "TGAC"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "CCTA",
+       "right": "TGAC"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "CCTA",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "GTCA",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctgtcaGATAGGTGCTAACGGACTATATTGGG",
+     "warnings": [
+      "annealing"
+     ]
+    },
+    {
+     "amplicon": {
+      "length": 305,
+      "sha256": "7084be29c775710ef0c10a6c562ad3698816b13883e8f7df7d5ca0fb19db38e4"
+     },
+     "construct": {
+      "head": "TGACCTGACTGTCTGATGTTGAACGGCCCAATGGTCTTAGTGGTGGACGGCCACCTGCGG",
+      "length": 700,
+      "sha256": "37e90abb0ff8edb7a7c6af24706257d59ed4161e0f145935fd1df83dc609503c"
+     },
+     "forward": "ggagatggtctcccctaTTGAGTTGACGTTCCTACCACGG",
+     "name": "plain",
+     "oracle": {
+      "built": true,
+      "confirmed": true,
+      "destinationOverhangs": {
+       "left": "CCTA",
+       "right": "TGAC"
+      },
+      "orientation": "forward",
+      "overhangs": {
+       "left": "CCTA",
+       "right": "TGAC"
+      },
+      "pcrProducts": 1,
+      "routes": [
+       "pydna-cut-join",
+       "biopython-splice"
+      ],
+      "sitesAtJunctions": 0,
+      "sitesInProduct": 0,
+      "sitesOnAmplicon": 2,
+      "tails": [
+       {
+        "overhang": "CCTA",
+        "padding": 6,
+        "sitesFound": 1
+       },
+       {
+        "overhang": "GTCA",
+        "padding": 6,
+        "sitesFound": 1
+       }
+      ]
+     },
+     "paddings": [
+      6,
+      6
+     ],
+     "reverse": "tccgagggtctctgtcaGACTATATTGGGTGACTGATTGTGTTG",
+     "warnings": []
+    }
+   ],
+   "table": "name,template,region,sequence,include_start,include_stop\nfused,F1,41-348,,,\nplain,F1,60-330,,,\n",
+   "templates": [
+    {
+     "circular": false,
+     "name": "F1",
+     "sequence": "CGTATGTAGGGCGCCCATCTTCCTCTTAGGCTTTCCGACGCCTATTTTTGGGAATATGGTTGAGTTGACGTTCCTACCACGGCAGTCCGTCATGGTGCTCCATCCTCCACGGTGGGACATGCGCAGGCCGGCGAATTATTCAGCACAAGTTCAAAACCCAGGAATCTCCTACCCACACACCGTGGATCCTGCTACCCCGATGTGTAGACTTGGAAGTACTCGCTCCATTCGCAACAACTTTTGTTCATAGTTAACAACTATACAGCCCTTTTGACAAGATCGCCGTGATATCTGTTAACTAGTCAACACAATCAGTCACCCAATATAGTCCGTTAGCACCTATCTGACATTCAACCTCCAAGGGGTTCCAGTGCGTGACGATCGTTGA"
+    }
+   ]
+  }
+ ],
+ "biopython": "1.85",
+ "controls": [
+  {
+   "accepted": false,
+   "expectedAccepted": false,
+   "kind": "one base changed",
+   "reasons": [
+    "PlasmidPop's construct is not the pydna circle",
+    "PlasmidPop's construct is not the Biopython circle"
+   ],
+   "row": "tutorial-bsai gene_head"
+  },
+  {
+   "accepted": false,
+   "expectedAccepted": false,
+   "kind": "one base deleted",
+   "reasons": [
+    "PlasmidPop's construct is not the pydna circle",
+    "PlasmidPop's construct is not the Biopython circle"
+   ],
+   "row": "tutorial-bsai gene_head"
+  },
+  {
+   "accepted": false,
+   "expectedAccepted": false,
+   "kind": "one base added",
+   "reasons": [
+    "PlasmidPop's construct is not the pydna circle",
+    "PlasmidPop's construct is not the Biopython circle"
+   ],
+   "row": "tutorial-bsai gene_head"
+  },
+  {
+   "accepted": false,
+   "expectedAccepted": false,
+   "kind": "a stretch of 60 bases turned round",
+   "reasons": [
+    "PlasmidPop's construct is not the pydna circle",
+    "PlasmidPop's construct is not the Biopython circle"
+   ],
+   "row": "tutorial-bsai gene_head"
+  },
+  {
+   "accepted": false,
+   "expectedAccepted": false,
+   "kind": "a recognition site planted at the junction",
+   "reasons": [
+    "PlasmidPop's construct is not the pydna circle",
+    "PlasmidPop's construct is not the Biopython circle",
+    "1 BsaI sites remain in the construct (1 at a junction)"
+   ],
+   "row": "tutorial-bsai gene_head"
+  },
+  {
+   "accepted": true,
+   "expectedAccepted": true,
+   "kind": "the right construct, rotated and read from the other strand",
+   "reasons": [],
+   "row": "tutorial-bsai gene_head"
+  }
+ ],
+ "pydna": "5.5.7",
+ "seed": 20261108
+}

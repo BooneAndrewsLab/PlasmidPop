@@ -47,6 +47,6 @@ The oracle answers are in `src/test/oracle/` of the
 [source](https://github.com/BooneAndrewsLab/PlasmidPop), with the scripts that
 make them in `scripts/oracle/` and their pinned versions in
 `scripts/oracle/requirements.txt`. The design notes behind them are items 37,
-121 to 125 in `docs/design/`, the mutation testing is item 50, and this page
+121 to 125 and 143 in `docs/design/`, the mutation testing is item 50, and this page
 is item 142. A test fails if a file in that folder has no section here, so a
 new oracle cannot be added without appearing on this page.

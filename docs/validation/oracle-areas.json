@@ -108,6 +108,38 @@
       ]
     },
     {
+      "id": "batch-golden-gate",
+      "title": "Batch Golden Gate constructs, end to end",
+      "oracles": [
+        {
+          "name": "pydna amplify.pcr, Dseqrecord.cut and looped()",
+          "package": "pydna",
+          "stampKey": "pydna"
+        },
+        {
+          "name": "Biopython Bio.Restriction search, read for the cuts, overhangs and sites",
+          "package": "biopython",
+          "stampKey": "biopython"
+        }
+      ],
+      "compares": "The Batch page's Golden Gate rows on seeded destinations (BsaI and BsmBI, either strand, origin inside the sites), templates and regions, and on the tutorial's own rows. PlasmidPop's primers are given to pydna, which runs the tailed PCR; pydna cuts the amplicon and the destination and joins the pieces into a circle; a second circle is spliced together from Bio.Restriction's cut positions alone. PlasmidPop's construct must be that circle up to rotation and strand, with no site of the enzyme left in it or at a junction, the overhangs read off the amplicon equal to the destination's, and each primer reading padding, one site, spacer and overhang. A part that carries a site of its own, which the batch refuses to build, is confirmed when Biopython finds more than the two tail sites on its amplicon. Constructs made wrong on purpose (a base changed, deleted or added, a stretch turned round, a site planted at a junction) must be refused, and the right one turned round must be accepted.",
+      "files": ["batchGoldenGate.json"],
+      "tests": ["batchGoldenGate.test.ts"],
+      "counts": [
+        {
+          "file": "batchGoldenGate.json",
+          "path": "batches",
+          "unit": "destinations with their rows"
+        },
+        { "file": "batchGoldenGate.json", "path": "batches.*.rows", "unit": "rows judged" },
+        {
+          "file": "batchGoldenGate.json",
+          "path": "controls",
+          "unit": "controls (wrong constructs refused, right one accepted)"
+        }
+      ]
+    },
+    {
       "id": "gateway",
       "title": "Gateway BP and LR reactions",
       "oracles": [{ "name": "pydna gateway_assembly", "package": "pydna" }],
