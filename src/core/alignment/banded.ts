@@ -130,18 +130,22 @@ function chain(found: Anchor[]): Anchor[] {
   const tails: number[] = []; // index into sorted of the smallest tail of each length
   const previous = new Int32Array(sorted.length).fill(-1);
   for (let k = 0; k < sorted.length; k++) {
+    // Stryker disable next-line OptionalChaining: k < sorted.length, so the anchor is there.
     const i = sorted[k]?.i ?? 0;
     let low = 0;
     let high = tails.length;
     while (low < high) {
       const mid = (low + high) >> 1;
+      // Stryker disable next-line OptionalChaining: every tail indexes an anchor of `sorted`.
       if ((sorted[tails[mid] ?? 0]?.i ?? 0) < i) low = mid + 1;
       else high = mid;
     }
+    // Stryker disable next-line UnaryOperator: tails[low - 1] exists when low > 0; the fallback is never read.
     if (low > 0) previous[k] = tails[low - 1] ?? -1;
     tails[low] = k;
   }
   const out: Anchor[] = [];
+  // Stryker disable next-line UnaryOperator: both fallbacks are read only past the chain's end, where +1 ends it too.
   for (let k = tails[tails.length - 1] ?? -1; k >= 0; k = previous[k] ?? -1) {
     const a = sorted[k];
     if (a !== undefined) out.push(a);
@@ -227,7 +231,9 @@ export function flankScoring(options: AlignmentOptions): FlankScoring {
   return {
     // Ambiguity codes never score above 5 (EDNAFULL); BLOSUM62 tops out at 11.
     gain: Math.max(options.match ?? 0, protein ? 11 : DNA_SCORING.gain),
+    // Stryker disable next-line UnaryOperator: the sign of a default is dropped by Math.abs.
     gapOpen: Math.abs(options.gapOpen ?? (protein ? -11 : -10)),
+    // Stryker disable next-line UnaryOperator: the sign of a default is dropped by Math.abs.
     gapExtend: Math.abs(options.gapExtend ?? (protein ? -1 : -0.5)),
   };
 }
@@ -260,6 +266,7 @@ export function bandAround(
   const lo = new Int32Array(n + 1).fill(m + 1);
   const hi = new Int32Array(n + 1).fill(-1);
   const cover = (i: number, from: number, to: number): void => {
+    // Stryker disable next-line LogicalOperator: a row outside the matrix is dropped by the typed arrays either way.
     if (i < 0 || i > n) return;
     lo[i] = Math.min(lo[i] ?? m, Math.max(0, from));
     hi[i] = Math.max(hi[i] ?? 0, Math.min(m, to));
@@ -269,6 +276,7 @@ export function bandAround(
     mode === 'global' ? [{ i: 0, j: 0 }, ...links, { i: n, j: m }] : [...links];
   const first = points[0];
   const last = points[points.length - 1];
+  // Stryker disable next-line LogicalOperator: first and last are both undefined or neither is.
   if (first === undefined || last === undefined) throw new Error('No anchors to band around');
   // Each anchor's own word: its diagonal for K bases.
   for (const p of points) {
@@ -278,6 +286,7 @@ export function bandAround(
   for (let k = 1; k < points.length; k++) {
     const p = points[k - 1];
     const q = points[k];
+    // Stryker disable next-line LogicalOperator: k runs from 1 to points.length - 1, so both are there.
     if (p === undefined || q === undefined) continue;
     for (let i = p.i; i <= q.i; i++) cover(i, p.j - margin, q.j + margin);
   }
