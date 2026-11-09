@@ -247,12 +247,45 @@ describe('primer settings', () => {
       fireEvent.change(box, { target: { value: '58' } });
       fireEvent.keyDown(box, { key: 'Enter' });
     });
-    expect(summary?.textContent).toBe(
-      'Settingschanged18–27 nt, Tm 58–65 °C, GC 35–65 %, within 0–200 bp of the target',
-    );
+    // The line names what moved, not the main rules over again (#428).
+    expect(summary?.textContent).toBe('SettingschangedTm 58–65 °C');
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: 'Reset to defaults' }));
     });
+  });
+
+  it('marks each setting off its default with the default, and a click restores just that one (#428)', async () => {
+    await setup();
+    page('Design');
+    expect(screen.queryByRole('button', { name: /^Restore default/ })).toBeNull();
+    const commit = (label: string, value: string): void => {
+      const box = screen.getByLabelText(label);
+      act(() => {
+        fireEvent.change(box, { target: { value } });
+        fireEvent.keyDown(box, { key: 'Enter' });
+      });
+    };
+    commit('Weakest dimer free energy refused, kcal/mol', '-2.5');
+    commit('Highest Tm', '62');
+    const summary = screen.getByText('Settings').closest('summary');
+    expect(summary?.textContent).toBe('SettingschangedTm 55–62 °C, Dimer ΔG −2.5');
+    const dimer = screen.getByRole('button', { name: 'Restore default −6 for Dimer ΔG' });
+    expect(dimer).toHaveTextContent('default −6');
+    expect(
+      screen.getByRole('button', { name: 'Restore default 55–65 °C for Tm' }),
+    ).toBeInTheDocument();
+    act(() => {
+      fireEvent.click(dimer);
+    });
+    expect(editorStore.getState().primerCriteria).toEqual({
+      ...DEFAULT_PRIMER_CRITERIA,
+      maxTm: 62,
+    });
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Restore default 55–65 °C for Tm' }));
+    });
+    expect(editorStore.getState().primerCriteria).toEqual(DEFAULT_PRIMER_CRITERIA);
+    expect(screen.queryByRole('button', { name: /^Restore default/ })).toBeNull();
   });
 
   it('lists each pair as a row of rank, product, ΔTm, the two primers and Spec., and the selected one in full (item 107)', async () => {

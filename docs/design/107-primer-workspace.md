@@ -250,6 +250,18 @@ Also on the Design page: the disabled Design primers button now says why
 The Design page's cloning mode (#303) is note 108: its engine
 (`core/cloning/cloningEnds.ts`) and what the page calls.
 
+## Settings: marking what changed (#428)
+
+The row's summary used to restate length, Tm, GC and distance, so a changed
+filter (Dimer ΔG) left it looking like the defaults. `PRIMER_SETTING_FIELDS`
+(`core/primers/criteria.ts`) lists each setting as the panel shows it, a range
+being one entry; `describePrimerChanges` names those off their default
+(`Tm 55–62 °C, Dimer ΔG −2.5`) for the summary and the Batch caption, and each
+changed setting gets a **default …** button that restores just it
+(`restorePrimerSetting`, through `normalizePrimerCriteria`, so a range stays
+valid). The cloning padding and junction rule are not criteria and have their
+own markers.
+
 ## Primer-BLAST: the link stays (2026-10-28)
 
 #302, the Spec. cell filled in the app, is closed as not planned. Primer-BLAST

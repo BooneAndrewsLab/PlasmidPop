@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import type * as SaveFile from '../saveFile';
 
-import { createFeature, rangeSegment, SeqDocument } from '@/core';
+import { DEFAULT_PRIMER_CRITERIA, createFeature, rangeSegment, SeqDocument } from '@/core';
 
 import { U49845, pUC19 } from '@/test/cloningFixtures';
 import { AnalysisCancelledError, analysisClient } from '@/workers/analysisClient';
@@ -85,6 +85,7 @@ const GOOD = 'name,region\nA,100-250\nB,300-450';
 
 beforeEach(() => {
   batchSession.forget();
+  editorStore.setPrimerCriteria(DEFAULT_PRIMER_CRITERIA);
 });
 
 afterEach(() => {
@@ -336,5 +337,34 @@ describe('the Batch page (#358, item 141)', { timeout: 60_000 }, () => {
       expect(caption()).toHaveTextContent(`Restriction sites into ${pUC19.name} (XbaI/BamHI)`);
     });
     expect(caption()).not.toHaveTextContent('Settings have changed');
+  });
+
+  it('says when the run used changed primer settings, and when they have moved since (#428)', async () => {
+    open();
+    paste(GOOD);
+    const caption = (): HTMLElement => screen.getByTestId('batch-run-caption');
+    await until(screen.getByRole('button', { name: 'Design 2 rows' }), () => {
+      expect(screen.getByText('2 rows designed.')).toBeInTheDocument();
+    });
+    expect(caption()).toHaveTextContent('Primer pairs on tpl');
+    expect(caption()).not.toHaveTextContent('changed primer settings');
+    expect(caption()).not.toHaveTextContent('Settings have changed');
+
+    act(() => {
+      editorStore.setPrimerCriteria({ ...DEFAULT_PRIMER_CRITERIA, dimerDg: -2.5 });
+    });
+    expect(caption()).toHaveTextContent('Settings have changed since this run');
+    expect(caption()).not.toHaveTextContent('changed primer settings');
+    await until(screen.getByRole('button', { name: 'Design 2 rows' }), () => {
+      expect(caption()).toHaveTextContent(
+        'Primer pairs on tpl; changed primer settings: Dimer ΔG −2.5',
+      );
+    });
+    expect(caption()).not.toHaveTextContent('Settings have changed');
+
+    act(() => {
+      editorStore.setPrimerCriteria(DEFAULT_PRIMER_CRITERIA);
+    });
+    expect(caption()).toHaveTextContent('Settings have changed since this run');
   });
 });

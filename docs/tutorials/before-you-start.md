@@ -63,4 +63,10 @@ in these files lies in a dam or dcm context, so the numbers are the same with
 either; the ranking of the check digest's enzymes depends on the enzyme set in
 use, the band sizes of the named enzymes do not.
 
+The primer tutorials assume the primer **Settings** are at their defaults. They
+are remembered in the browser, so if you changed one earlier (a dimer or hairpin
+limit, say), the designed primers and every number after them can differ. In the
+Primers tab, open **Design ▸ Settings**: its row says **changed** and names what
+moved. Click **Reset to defaults** to put them all back.
+
 Back to the [tutorials index](README.md).

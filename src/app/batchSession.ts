@@ -7,6 +7,7 @@ import {
   type DesignRow,
   type FidelityTable,
   type OverlapKit,
+  type PrimerCriteria,
   type SeqDocument,
   BATCH_ROW_LIMIT,
   YEAST_OVERLAP,
@@ -45,6 +46,8 @@ export interface BatchRun {
   readonly ranOn: SeqDocument | null;
   /** The template the rows defaulted to, for the note on saved primers. */
   readonly templateName: string;
+  /** The Settings' criteria it designed with, for the caption over the results (#428). */
+  readonly criteria?: DesignOptions;
 }
 
 /** What the page designs: primer pairs and mutagenesis, or one of the cloning recipes (#360). */
@@ -57,6 +60,8 @@ export interface CloningRun {
   readonly recipe: CloningBatchRecipe['recipe'];
   /** The whole recipe it ran with (enzymes or kit), for the caption over the results (#427). */
   readonly ran: CloningBatchRecipe;
+  /** The primer criteria it ran with, for the same caption (#428). */
+  readonly criteria?: Partial<PrimerCriteria>;
   /** The vector's name and the document the rows were designed on. */
   readonly vectorName: string;
   readonly vector: SeqDocument;
@@ -225,6 +230,7 @@ export async function startBatch(documentId: string | null, a: StartBatch): Prom
     cancelled: false,
     ranOn: a.front,
     templateName: a.templateName,
+    ...(a.criteria === undefined ? {} : { criteria: a.criteria }),
   } satisfies BatchRun;
   batchSession.update(documentId, { run: base, selected: null, said: null });
   const patch = (p: Partial<BatchRun>): void => {
@@ -288,6 +294,7 @@ export async function startCloningBatch(
     source: a.rows,
     recipe: a.recipe.recipe,
     ran: a.recipe,
+    ...(a.settings?.criteria === undefined ? {} : { criteria: a.settings.criteria }),
     vectorName: a.vector.name,
     vector: a.vector,
     running: true,

@@ -2,9 +2,12 @@ import { type KeyboardEvent, useState } from 'react';
 
 import {
   DEFAULT_PRIMER_CRITERIA,
+  PRIMER_SETTING_FIELDS,
   type PrimerCriteria,
-  describePrimerCriteria,
+  describePrimerChanges,
   normalizePrimerCriteria,
+  primerSettingChanged,
+  restorePrimerSetting,
   samePrimerCriteria,
 } from '@/core';
 
@@ -103,6 +106,29 @@ function NumberBox({
   );
 }
 
+/** A button beside a setting that is off its default: says the default and puts it back. */
+function DefaultMarker({
+  label,
+  value,
+  onRestore,
+}: {
+  readonly label: string;
+  readonly value: string;
+  readonly onRestore: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="button button--quiet button--small primer-settings__default"
+      aria-label={`Restore default ${value} for ${label}`}
+      data-tip={`Restore the default, ${value}`}
+      onClick={onRestore}
+    >
+      default {value}
+    </button>
+  );
+}
+
 function pct(x: number): number {
   return Math.round(x * 1000) / 10;
 }
@@ -168,6 +194,23 @@ export function PrimerSettings({ criteria: c, cloning }: Props) {
       }}
     />
   );
+  // A marker for each setting off its default, when it is one of the shared criteria.
+  const mark = (id: string) => {
+    const f = PRIMER_SETTING_FIELDS.find((x) => x.id === id);
+    if (f === undefined || !primerSettingChanged(c, f)) return null;
+    return (
+      <>
+        {' '}
+        <DefaultMarker
+          label={f.label}
+          value={f.value(DEFAULT_PRIMER_CRITERIA)}
+          onRestore={() => {
+            set(restorePrimerSetting(c, f));
+          }}
+        />
+      </>
+    );
+  };
   const cloningDefault =
     cloning === undefined || (cloning.padding === 6 && cloning.avoidJunctionSites);
   const isDefault = samePrimerCriteria(c, DEFAULT_PRIMER_CRITERIA) && cloningDefault;
@@ -205,10 +248,15 @@ export function PrimerSettings({ criteria: c, cloning }: Props) {
         </span>
         {!isDefault && (
           <span className="panel__details-note">
-            {cloning !== undefined && !cloningDefault
-              ? `padding ${cloning.padding.toString()} nt${cloning.avoidJunctionSites ? '' : ', junction sites allowed'}; `
-              : ''}
-            {describePrimerCriteria(c)}
+            {[
+              ...(cloning !== undefined && cloning.padding !== 6
+                ? [`Padding ${cloning.padding.toString()} nt`]
+                : []),
+              ...(cloning !== undefined && !cloning.avoidJunctionSites
+                ? ['Junction sites allowed']
+                : []),
+              ...describePrimerChanges(c),
+            ].join(', ')}
           </span>
         )}
       </summary>
@@ -229,6 +277,21 @@ export function PrimerSettings({ criteria: c, cloning }: Props) {
                 }}
               />{' '}
               nt 5′ of each site, raised for an enzyme that cuts poorly near an end
+              {cloning.padding !== 6 && (
+                <>
+                  {' '}
+                  <DefaultMarker
+                    label="Padding"
+                    value="6"
+                    onRestore={() => {
+                      cloning.onChange({
+                        padding: 6,
+                        avoidJunctionSites: cloning.avoidJunctionSites,
+                      });
+                    }}
+                  />
+                </>
+              )}
             </span>
             <span className="panel__form-label">Junction</span>
             <span className="panel__form-range">
@@ -245,6 +308,18 @@ export function PrimerSettings({ criteria: c, cloning }: Props) {
                 />
                 pick padding that makes no new site where padding, site and insert meet
               </label>
+              {!cloning.avoidJunctionSites && (
+                <>
+                  {' '}
+                  <DefaultMarker
+                    label="Junction"
+                    value="on"
+                    onRestore={() => {
+                      cloning.onChange({ padding: cloning.padding, avoidJunctionSites: true });
+                    }}
+                  />
+                </>
+              )}
             </span>
             <span className="panel__form-hint">
               Padding and the junction rule are cloning-only; the rest below is shared with the
@@ -255,25 +330,27 @@ export function PrimerSettings({ criteria: c, cloning }: Props) {
         <span className="panel__form-label">Length</span>
         <span className="panel__form-range">
           {field('minLength', 'Shortest primer')}–{field('maxLength', 'Longest primer')} nt
+          {mark('length')}
         </span>
         <span className="panel__form-label">Tm</span>
         <span className="panel__form-range">
-          {field('minTm', 'Lowest Tm', 0.5)}–{field('maxTm', 'Highest Tm', 0.5)} °C
+          {field('minTm', 'Lowest Tm', 0.5)}–{field('maxTm', 'Highest Tm', 0.5)} °C{mark('tm')}
         </span>
         <span className="panel__form-label">GC</span>
         <span className="panel__form-range">
           {gcField('minGc', 'Lowest GC content, percent')}–
-          {gcField('maxGc', 'Highest GC content, percent')} %
+          {gcField('maxGc', 'Highest GC content, percent')} %{mark('gc')}
         </span>
         <span className="panel__form-label">ΔTm</span>
         <span className="panel__form-range">
           ≤ {field('maxTmDifference', 'Largest Tm difference in a pair', 0.5)} °C
+          {mark('tmDifference')}
         </span>
 
         <span className={`panel__form-label${dim}`}>Product</span>
         <span className={`panel__form-range${dim}`}>
           {field('minProduct', 'Shortest product', 1, true, off)}–
-          {field('maxProduct', 'Longest product', 1, true, off)} bp
+          {field('maxProduct', 'Longest product', 1, true, off)} bp{!off && mark('product')}
         </span>
 
         <span className={`panel__form-heading${dim}`}>Where to look</span>
@@ -281,13 +358,13 @@ export function PrimerSettings({ criteria: c, cloning }: Props) {
         <span className={`panel__form-range${dim}`}>
           {regionField('forwardRegion', 'near', 'Forward primer, nearest to the start')}–
           {regionField('forwardRegion', 'far', 'Forward primer, farthest from the start')} bp before
-          start
+          start{!off && mark('forward')}
         </span>
         <span className={`panel__form-label${dim}`}>Reverse</span>
         <span className={`panel__form-range${dim}`}>
           {regionField('reverseRegion', 'near', 'Reverse primer, nearest to the end')}–
           {regionField('reverseRegion', 'far', 'Reverse primer, farthest from the end')} bp after
-          end
+          end{!off && mark('reverse')}
         </span>
         {off && (
           <span className="panel__form-hint">
@@ -304,28 +381,29 @@ export function PrimerSettings({ criteria: c, cloning }: Props) {
         <span className="panel__form-heading">Filters</span>
         <span className="panel__form-label">Base run</span>
         <span className="panel__form-range">
-          ≤ {field('maxHomopolymer', 'Longest run of one base')} of one base
+          ≤ {field('maxHomopolymer', 'Longest run of one base')} of one base{mark('homopolymer')}
         </span>
         <span className="panel__form-label">Hairpin</span>
         <span className="panel__form-range">
           ΔG &gt; {field('hairpinDg', 'Weakest hairpin free energy refused, kcal/mol', 0.5)}{' '}
-          kcal/mol
+          kcal/mol{mark('hairpinDg')}
         </span>
         <span className="panel__form-label">Hairpin Tm</span>
         <span className="panel__form-range">
           ≤ {field('hairpinTm', 'Highest hairpin melting temperature allowed, °C')} °C (Primer3
-          refuses above 47)
+          refuses above 47){mark('hairpinTm')}
         </span>
         <span className="panel__form-label">Dimer</span>
         <span className="panel__form-range">
           ΔG &gt; {field('dimerDg', 'Weakest dimer free energy refused, kcal/mol', 0.5)} kcal/mol,
-          self or pair
+          self or pair{mark('dimerDg')}
         </span>
         <span className="panel__form-label">3′ dimer</span>
         <span className="panel__form-range">
           ≤ {field('maxThreePrime', 'Longest 3′-end complementarity')} bp, or ΔG &gt;{' '}
           {field('threePrimeDg', 'Weakest 3′ duplex free energy refused, kcal/mol', 0.5)} kcal/mol,
-          self or pair
+          self or pair{mark('threePrimeDg')}
+          {mark('threePrime')}
         </span>
         <span className="panel__form-label">GC clamp</span>
         <span className="panel__form-range">
@@ -339,6 +417,7 @@ export function PrimerSettings({ criteria: c, cloning }: Props) {
             />
             required
           </label>
+          {mark('gcClamp')}
         </span>
         <span className="panel__form-label">Elsewhere</span>
         <span className="panel__form-range">
@@ -352,6 +431,7 @@ export function PrimerSettings({ criteria: c, cloning }: Props) {
             />
             refuse a primer that also binds elsewhere
           </label>
+          {mark('specific')}
         </span>
       </div>
       <button

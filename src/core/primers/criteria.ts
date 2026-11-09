@@ -202,3 +202,139 @@ export function describePrimerCriteria(c: PrimerCriteria): string {
       : `forward ${region(c.forwardRegion)} bp before, reverse ${region(c.reverseRegion)} bp after`;
   return `${c.minLength}–${c.maxLength} nt, Tm ${c.minTm}–${c.maxTm} °C, GC ${Math.round(c.minGc * 100)}–${Math.round(c.maxGc * 100)} %, ${regions}`;
 }
+
+/** The `−` of the settings' own numbers, so a negative free energy reads as one. */
+function signed(x: number): string {
+  return String(Math.round(x * 1000) / 1000).replace('-', '−');
+}
+
+/**
+ * One setting of the criteria as the Settings panel shows it: a single value
+ * or the two ends of a range, which are restored together. `value` is the
+ * part after the label (`−6`, `55–65 °C`), so a default can be shown on its
+ * own and a change as `label value`.
+ */
+export interface PrimerSettingField {
+  readonly id: string;
+  readonly label: string;
+  readonly keys: readonly (keyof PrimerCriteria)[];
+  readonly value: (c: PrimerCriteria) => string;
+}
+
+function range(
+  id: string,
+  label: string,
+  keys: readonly [keyof PrimerCriteria, keyof PrimerCriteria],
+  value: (c: PrimerCriteria) => string,
+): PrimerSettingField {
+  return { id, label, keys, value };
+}
+
+const span = (a: number, b: number): string => `${signed(a)}–${signed(b)}`;
+const regionText = (r: PrimerRegion): string => `${signed(r.near)}–${signed(r.far)} bp`;
+
+/** Every setting, in the order the panel lists them. */
+export const PRIMER_SETTING_FIELDS: readonly PrimerSettingField[] = [
+  range(
+    'length',
+    'Length',
+    ['minLength', 'maxLength'],
+    (c) => `${span(c.minLength, c.maxLength)} nt`,
+  ),
+  range('tm', 'Tm', ['minTm', 'maxTm'], (c) => `${span(c.minTm, c.maxTm)} °C`),
+  range(
+    'gc',
+    'GC',
+    ['minGc', 'maxGc'],
+    (c) => `${span(Math.round(c.minGc * 1000) / 10, Math.round(c.maxGc * 1000) / 10)} %`,
+  ),
+  {
+    id: 'tmDifference',
+    label: 'ΔTm',
+    keys: ['maxTmDifference'],
+    value: (c) => `≤ ${signed(c.maxTmDifference)} °C`,
+  },
+  range(
+    'product',
+    'Product',
+    ['minProduct', 'maxProduct'],
+    (c) => `${span(c.minProduct, c.maxProduct)} bp`,
+  ),
+  {
+    id: 'forward',
+    label: 'Forward',
+    keys: ['forwardRegion'],
+    value: (c) => regionText(c.forwardRegion),
+  },
+  {
+    id: 'reverse',
+    label: 'Reverse',
+    keys: ['reverseRegion'],
+    value: (c) => regionText(c.reverseRegion),
+  },
+  {
+    id: 'homopolymer',
+    label: 'Base run',
+    keys: ['maxHomopolymer'],
+    value: (c) => `≤ ${signed(c.maxHomopolymer)}`,
+  },
+  { id: 'hairpinDg', label: 'Hairpin ΔG', keys: ['hairpinDg'], value: (c) => signed(c.hairpinDg) },
+  {
+    id: 'hairpinTm',
+    label: 'Hairpin Tm',
+    keys: ['hairpinTm'],
+    value: (c) => `≤ ${signed(c.hairpinTm)} °C`,
+  },
+  { id: 'dimerDg', label: 'Dimer ΔG', keys: ['dimerDg'], value: (c) => signed(c.dimerDg) },
+  {
+    id: 'threePrime',
+    label: '3′ dimer',
+    keys: ['maxThreePrime'],
+    value: (c) => `≤ ${signed(c.maxThreePrime)} bp`,
+  },
+  {
+    id: 'threePrimeDg',
+    label: '3′ dimer ΔG',
+    keys: ['threePrimeDg'],
+    value: (c) => signed(c.threePrimeDg),
+  },
+  {
+    id: 'gcClamp',
+    label: 'GC clamp',
+    keys: ['requireGcClamp'],
+    value: (c) => (c.requireGcClamp ? 'required' : 'not required'),
+  },
+  {
+    id: 'specific',
+    label: 'Elsewhere',
+    keys: ['requireSpecific'],
+    value: (c) => (c.requireSpecific ? 'refused' : 'allowed'),
+  },
+];
+
+/** Whether `c` has this setting off its default. */
+export function primerSettingChanged(c: PrimerCriteria, field: PrimerSettingField): boolean {
+  return field.keys.some(
+    (k) => JSON.stringify(c[k]) !== JSON.stringify(DEFAULT_PRIMER_CRITERIA[k]),
+  );
+}
+
+/** `c` with just this setting back at its default (both ends of a range). */
+export function restorePrimerSetting(c: PrimerCriteria, field: PrimerSettingField): PrimerCriteria {
+  const next: Record<string, unknown> = { ...c };
+  for (const k of field.keys) next[k] = DEFAULT_PRIMER_CRITERIA[k];
+  return normalizePrimerCriteria(next);
+}
+
+/**
+ * What differs from the defaults, one entry per setting (`Dimer ΔG −2.5`,
+ * `Tm 55–62 °C`), in the panel's order; empty when nothing does. The
+ * summary of the closed Settings and the Batch run's caption name changes
+ * with it, because `describePrimerCriteria` restates only the main rules and
+ * so reads the same whichever filter has moved.
+ */
+export function describePrimerChanges(c: PrimerCriteria): string[] {
+  return PRIMER_SETTING_FIELDS.filter((f) => primerSettingChanged(c, f)).map(
+    (f) => `${f.label} ${f.value(c)}`,
+  );
+}

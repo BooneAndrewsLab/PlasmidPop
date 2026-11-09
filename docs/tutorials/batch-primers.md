@@ -22,6 +22,9 @@ The **Batch** page designs a table of primers or inserts in one run: a row for e
    > [!TIP]
    > The same page opens from the Cloning tab's **Design many inserts ›** link, on a cloning method; Exercise 4 uses it.
 
+   > [!TIP]
+   > The primers are designed with the Primers tab's **Settings**, which the browser remembers. If you have changed any, the numbers below will not match: open **Design ▸ Settings** and click **Reset to defaults** before you paste the table.
+
 3. Click in the **Rows** box and paste this table. From a spreadsheet you would copy the cells and paste them as they are: tabs, commas and semicolons all read.
 
    ```

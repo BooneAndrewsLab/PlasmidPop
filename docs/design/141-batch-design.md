@@ -545,3 +545,11 @@ ends into GB-Vector (In-Fusion)", "Primer pairs on BP-Plasmid"). When the page's
 current settings (`sessionRecipe`, the vector, the template) differ from the
 run's, the line adds that the settings have changed. The label comes from the
 session, never from the current settings, so it survives a tab switch.
+
+**Primer criteria in the caption (#428).** One Settings change (Dimer ΔG
+−2.5, default −6) changed the designed primers and every pool-check number
+while the caption said nothing. A run now stores the criteria it designed with
+(`BatchRun.criteria`, `CloningRun.criteria`; a run with none ran at the
+defaults), the caption ends "; changed primer settings: Dimer ΔG −2.5" when
+they differ from the defaults (`describePrimerChanges`), and the "Settings have
+changed" test also compares the run's criteria with the current ones.

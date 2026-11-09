@@ -148,7 +148,10 @@ A line over the results says what they were run with (for example _Restriction
 sites into pLig-Vector (EcoRI/BamHI)_, or _Primer pairs on_ a template). Change
 the method, vector, enzymes, kit or template afterwards and the results stay,
 with a note on that line that the settings have changed; **Design** again to
-use them.
+use them. When the run used primer **Settings** other than the defaults, the
+line names them (_Primer pairs on BP-Plasmid; changed primer settings: Dimer ΔG
+−2.5_), and changing the Settings afterwards counts as the settings having
+changed too.
 
 **The rows.** Paste them from a spreadsheet into the **Rows** box (tab-,
 comma- or semicolon-separated), or **Upload a table…** (CSV, TSV or an Excel
@@ -640,9 +643,12 @@ checked** for every pair: the answer stays on NCBI's page for now.
 
 **Settings**, under the target on the Design page, sets what a designed
 primer has to be. It is folded by default; its row says **changed** once any
-setting is off its default and then sums the main rules up (`18–27 nt, Tm
-55–62 °C, GC 35–65 %, within 0–200 bp of the target`). Open it to see and
-change them all. Every candidate that breaks one of them is refused, and the
+setting is off its default and then names what differs (`Tm 55–62 °C, Dimer ΔG
+−2.5`), so a changed filter shows as well as a changed range. Open it to see
+and change them all; each setting that is off its default has a **default …**
+button beside it (for example **default −6**, or **default 55–65 °C** for a
+range) that puts back just that one, and the cloning padding and junction rule
+have the same. Every candidate that breaks one of them is refused, and the
 same numbers are what **Check a primer** warns about, so a pasted primer is
 judged by the rules the designed ones had to pass. They are remembered in
 this browser, from plasmid to plasmid; **Reset to defaults** puts them back.

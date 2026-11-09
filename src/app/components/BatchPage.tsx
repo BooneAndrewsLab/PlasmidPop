@@ -9,6 +9,10 @@ import {
   BatchTableError,
   KIT_NAMES,
   KIT_OVERLAP,
+  type PrimerCriteria,
+  describePrimerChanges,
+  normalizePrimerCriteria,
+  samePrimerCriteria,
   checkPool,
   formatDg,
   goldenGateEnzymes,
@@ -79,6 +83,22 @@ function cloningCaption(run: CloningRun): string {
   return `${method} into ${run.vectorName} (${detail})`;
 }
 
+/** The criteria a run used, filled out; a run that stored none used the defaults. */
+function ranCriteria(c: Partial<PrimerCriteria> | undefined): PrimerCriteria {
+  return normalizePrimerCriteria(c ?? {});
+}
+
+/** What the run's primer criteria changed from the defaults, as the caption's tail (#428). */
+function criteriaNote(c: Partial<PrimerCriteria> | undefined): string {
+  const changes = describePrimerChanges(ranCriteria(c));
+  return changes.length === 0 ? '' : `; changed primer settings: ${changes.join(', ')}`;
+}
+
+/** Whether the Settings' criteria are no longer what the run used. */
+function criteriaMoved(ran: Partial<PrimerCriteria> | undefined, current: PrimerCriteria): boolean {
+  return !samePrimerCriteria(ranCriteria(ran), normalizePrimerCriteria(current));
+}
+
 /** The line over a run's results naming what it was run with, and when the settings have moved on. */
 function RunCaption({ text, changed }: { readonly text: string; readonly changed: boolean }) {
   return (
@@ -93,15 +113,21 @@ function CloningCaption({
   run,
   current,
   vectorName,
+  criteria,
 }: {
   readonly run: CloningRun;
   readonly current: CloningBatchRecipe | null;
   readonly vectorName: string | undefined;
+  readonly criteria: PrimerCriteria;
 }) {
   return (
     <RunCaption
-      text={cloningCaption(run)}
-      changed={JSON.stringify(run.ran) !== JSON.stringify(current) || run.vectorName !== vectorName}
+      text={cloningCaption(run) + criteriaNote(run.criteria)}
+      changed={
+        JSON.stringify(run.ran) !== JSON.stringify(current) ||
+        run.vectorName !== vectorName ||
+        criteriaMoved(run.criteria, criteria)
+      }
     />
   );
 }
@@ -810,7 +836,12 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
 
       {cloningMethod && cloning !== null && (
         <>
-          <CloningCaption run={cloning} current={recipeNow()} vectorName={vector?.name} />
+          <CloningCaption
+            run={cloning}
+            current={recipeNow()}
+            vectorName={vector?.name}
+            criteria={primerCriteria}
+          />
           {cloning.refused !== null && (
             <p className="panel__error" role="alert">
               {cloning.refused}
@@ -828,8 +859,10 @@ export function BatchPage({ doc }: { readonly doc: SeqDocument }) {
       {!cloningMethod && run !== null && (
         <>
           <RunCaption
-            text={`Primer pairs on ${run.templateName}`}
-            changed={run.templateName !== templateName}
+            text={`Primer pairs on ${run.templateName}${criteriaNote(run.criteria)}`}
+            changed={
+              run.templateName !== templateName || criteriaMoved(run.criteria, primerCriteria)
+            }
           />
           <p className="panel__note" role="status">
             {run.cancelled
