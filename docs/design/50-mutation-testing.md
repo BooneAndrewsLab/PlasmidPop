@@ -1819,3 +1819,93 @@ src/core/assembly/pairing.ts`, incremental):** **94.08%**, 286 killed, 0
   timed out, 14 survived, 4 uncovered, 8 mutants ignored by the new disables
   (the 61 ignored before are in neither count). Counted as survivors the 8 would
   put it at **91.67%** (286 of 312). The summary file is for the release run.
+
+## At 1.25: `alignment/msa.ts`
+
+`msa.ts` stood at **61.27%** in the report of the 1.24.0 run (607 killed, 48
+timed out, 403 survived, 11 uncovered of 1,069). The report was stale for the
+file: the run was incremental, and a survivor recorded before the 1.22 tests
+(`msa.test.ts`, `msaBand.test.ts`) stayed a survivor. Each of the 414 was applied
+by hand against `msa.test.ts` and `msaBand.test.ts` as they are: 279 failed
+them, so 135 were real survivors, and the file stood at about 87% before any
+new test.
+
+- **Tests:** `msaEdges.test.ts` (25 tests, about 1 s plain) pins what those suites
+  reach only through whole alignments: `kmerLength` at 29/30, 39/40 and 199/200,
+  the whole `kmerDistances` matrix (diagonal included) and its first and last
+  windows, the tie rule, heights and the weighted means of `upgma` on four and
+  five leaves, `treeWeights` on a hand-built tree whose total is exactly 1e-12
+  (`<=` against `<`), the matrix of `identityDistances` and a pair with no
+  shared letter, the residue defaults of `gapOpen` and `gapExtend` on a set where
+  -10 and -0.5 give other rows, the ambiguity-code scores (`iupac` true), rows
+  cleaned of anything but letters, two sequences (which are not refined), the
+  progress values of each stage, a set whose refinement still gains in its third
+  pass (a fourth would run with `<=`), and a join whose first band is 25,370 of
+  50,850 cells, which is within a row of the half that sends it to the full
+  fill (`n - 1`, `m - 1`). It killed 30 of the 135 when each was applied by hand.
+- **Disables (24 lines, 30 mutants):** `// Stryker disable next-line`, each only
+  where every mutant of that mutator on the line is a survivor that was applied
+  by hand and is equivalent: `?.` on values that are there (`sameCodes`, rows of
+  `dist`, `rows[0]`), `i - k <= length` (a window past the end is spoilt by the
+  `radix` it reads), `&&` for `||` on a tree node (both children or neither),
+  the guard on `counts`, the no-window test of `kmerDistances`, the two ends
+  of the traceback, `sums` one entry short, the climb from the other end in
+  `reachable` (`Math.min`/`Math.max` of 0 and `shift`), an array whose every
+  index is then assigned (`ops.length`, the rows of a join and of a candidate)
+  and the `'-'` of `keep`, whose columns are never all gaps.
+- **Equivalent or untestable survivors left (76: 73 survived, 3 uncovered), by kind:**
+  - _A loop one past the end (22):_ `<=` on a typed array or a row, which reads
+    `undefined` and falls back with `?? 0` or `?? NEG`, or writes past the end
+    and is dropped (L94, 128, 137, 180, 181, 276, 332, 333, 343, 531, 579, 580,
+    588, 590, 595, 597, 610, 640, 853, 875, 917), and the zero `lo` of
+    `wholeMatrix` (`n - 1`, L360). Their lines also carry a killed `>=`, so
+    they are not disabled.
+  - _A guard on a value that is always there, or one covered by another (14):_
+    `ca`/`cb` defined (L136), the no-window test (L143), the leaf test of a node
+    with both children or none (L222, 237, 805, 896, `false` for one operand),
+    `rest.length === 0` (the two halves of the root's children are never empty,
+    L913).
+  - _The same value (10):_ `f !== 0` to `true` (L337, 599: a term of 0), `prevM[j - 1] && NEG`
+    and `prevM[0] && NEG` (L392, 405: 0 or `NEG`), the sign of the word hash
+    (L538), a list past the cap (L546), the best of a column against the best of
+    the other profile (L588 `&& 0`), and `rows.some(...)` to `true` and its
+    relatives (L919: no all-gap column).
+  - _The ends of the traceback (2):_ L476, 482, `i === 0` and `j === 0` to
+    `false`: the edge entries written by the fill push the same step.
+  - _Far diagonals, slack, float ties (9):_ `high <= n`, `low >= -m` and the loop tests
+    (L625, 628: `fits` is false past the end either way), the three mutants of
+    `slack` and `>=` for `>` (L615, 621: the slack only absorbs rounding where
+    the bound equals the score), and `next >= score + 1e-9` (L946).
+  - _The refinement budget (17):_ `REFINE_CELLS` is 300 million filled cells
+    and a join counts what it fills, so `firstCells > budget`, `guess.cells +
+regionCells > budget`, `cells + full > budget`, `REFINE_CELLS - spent`,
+    `out === null` and `spent += out.cells` differ only once the refinement has
+    filled most of that. Several full fills of 12 kb sequences is a minute a
+    test, and the budget is a constant of the module. The block for
+    `regionCells >= full` (L677, 678, 3 uncovered) is unreachable without it
+    (every diagonal from `-m` to `n` would be needed, see 1.22). Not disabled:
+    they are not equivalent, only out of reach of a unit test.
+  - _Hairline (1):_ `2 * firstCells >= full` (L672) needs the two to be equal;
+    nothing in 5,000 pairs of 200 to 360 bases came closer than 2 cells.
+  - _A `catch` that continues (1, uncovered):_ L934, a refinement join that is
+    more than `maxCells` when no progressive join was.
+  - Four mutants (`i - 1` at L181, `k === bi` and `true` at L201, `i--` at
+    L343) end the worker, and are counted as errors, not as survivors.
+- **Running it.** The full suites of `msa.test.ts` and `msaBand.test.ts` could not
+  be run instrumented as they stood: one of each took over its explicit 60 s
+  in the dry run (3.9 s and 0.9 s plain, about 70 times slower), which is why `msa.ts`
+  had only been mutated through changed lines. Two changes, both to tests:
+  `msaBand.test.ts` takes the `SLOW` timeout of the other slow suites (600 s
+  under `PLASMIDPOP_MUTATION`), and the eight "joins along a band" tests of
+  `msa.test.ts` are skipped in a mutation run (`describe.skipIf`), as the
+  heavy alignment suites are in `MUTATION_SKIP`: `msaBand.test.ts` pins the same
+  joins in cells and rows, and all 135 survivors were applied against them by
+  hand. The run lists the files that can reach `msa.ts` in
+  `PLASMIDPOP_MUTATION_TESTS` (the dry run is then minutes, not the hour of all
+  8,226 tests) and takes `--force`, so no stale result is reused.
+- **Result (2026-11-09, `PLASMIDPOP_MUTATION_TESTS=... npm run mutate --
+--mutate src/core/alignment/msa.ts --dryRunTimeoutMinutes 45 --force`, 161
+  minutes):** **92.82%**, 938 killed, 44 timed out, 73 survived, 3 uncovered,
+  4 runtime errors, 32 mutants ignored (2 from before, 30 from the new disables).
+  Counted as survivors the 30 would put it at **90.26%** (982 of 1,088). The
+  summary file is for the release run.
