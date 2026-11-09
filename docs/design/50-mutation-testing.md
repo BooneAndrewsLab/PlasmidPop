@@ -1909,3 +1909,17 @@ regionCells > budget`, `cells + full > budget`, `REFINE_CELLS - spent`,
   4 runtime errors, 32 mutants ignored (2 from before, 30 from the new disables).
   Counted as survivors the 30 would put it at **90.26%** (982 of 1,088). The
   summary file is for the release run.
+
+### `children()` in `msa.ts`, measured
+
+The four inline leaf tests (`node.left === null || node.right === null`, each
+with a disable on its `&&`) became one `children(node)` helper that returns the
+pair or `null`, keeping the narrowing a boolean `isLeaf` would lose. They had
+cost 12 mutants (4 disabled, 8 surviving). Measured by `npm run mutate:changed`
+against `v1.24.0` (3 files, 24 mutants on the changed lines, 9 minutes): the
+helper line has 2 survivors, the `||` operands replaced by `false`, equivalent
+for the same reason (a node has both children or neither) and not disabled,
+since the other conditional mutants on that line are killed. `msa.ts` is at
+**93.30%** (930 killed, 44 timed out, 67 survived, 3 uncovered, 29 ignored);
+counting the 27 new disables as survivors, **90.94%**. The same run puts
+`pairing.ts` at 94.08% and `banded.ts` at 91.34%, and the project at 94.66%.
