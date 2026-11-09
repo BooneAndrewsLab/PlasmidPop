@@ -39,13 +39,13 @@ never in the automatic checks, because it takes a long time and needs an idle ma
 `npm run mutate:summary` writes the result to `docs/validation/mutation-summary.json`,
 which is what the Mutation testing section below reads.
 
-**The overall score hides weak files.** It is a project-wide figure over the files
-in the run. Read the per-file scores: at 1.24.0 `alignment/banded.ts` scored 44.2%
-and `alignment/msa.ts` 61.3%, `assembly/pairing.ts` 80.5%, against 90% or more for
-restriction analysis, primer structure and the assembly simulator. A band only
-changes how much of the matrix is filled, so some of the banded survivors may be
-changes no test could see, but that has not been shown; until the survivors are
-triaged, treat those two files as less well tested than the rest.
+**Read the per-file scores, not only the overall one.** The overall score is a
+project-wide figure, and a file well below it can hide behind many strong ones. A
+file's own score is the better guide to how well its tests would notice a change.
+Two things can flatter or understate it, and both are written down in design note 50:
+a few heavy test suites are left out of a mutation run, and mutants judged
+impossible to tell from the original are ignored, not counted as survivors. A
+score is therefore a measure of the tests that ran, not a proof of correctness.
 
 <!-- validation-tables -->
 
