@@ -150,7 +150,11 @@ describe('alignMultiple', () => {
   });
 });
 
-describe('joins along a band (#372)', () => {
+// Instrumented, one of these takes minutes (3.9 s plain, 60 s was not enough for it
+// in the dry run), and every surviving mutant of the fill would run them all:
+// `msaBand.test.ts` pins the same joins in cells and rows, so a mutation run leaves
+// these out, as it does the other heavy alignment suites (item 50).
+describe.skipIf(process.env['PLASMIDPOP_MUTATION'] === '1')('joins along a band (#372)', () => {
   /** A seeded generator (mulberry32), so every set is the same on every run. */
   const random = (seed: number): (() => number) => {
     let a = seed >>> 0;
