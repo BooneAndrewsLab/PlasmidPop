@@ -39,6 +39,14 @@ never in the automatic checks, because it takes a long time and needs an idle ma
 `npm run mutate:summary` writes the result to `docs/validation/mutation-summary.json`,
 which is what the Mutation testing section below reads.
 
+**The overall score hides weak files.** It is a project-wide figure over the files
+in the run. Read the per-file scores: at 1.24.0 `alignment/banded.ts` scored 44.2%
+and `alignment/msa.ts` 61.3%, `assembly/pairing.ts` 80.5%, against 90% or more for
+restriction analysis, primer structure and the assembly simulator. A band only
+changes how much of the matrix is filled, so some of the banded survivors may be
+changes no test could see, but that has not been shown; until the survivors are
+triaged, treat those two files as less well tested than the rest.
+
 <!-- validation-tables -->
 
 ## Where the data is

@@ -270,7 +270,10 @@ listed as not paired. The page says how many pairs it found.
   has twice and its mate is already in the contig, the copy where the two face
   each other, the right distance apart, is the one it goes to, and there is
   no warning. With three or more copies every copy is tried, not only the
-  first two. If exactly one copy fits the mate the read goes there; if more
+  first two, up to a limit: the place chosen and eight others. A repeat of ten
+  or more copies in one contig can have the right copy left out; the read then
+  goes to its best place with the repeat warning and a pair-distance warning, so
+  it is flagged, not placed silently. If exactly one copy fits the mate the read goes there; if more
   than one fits, or none does, the read goes to its best place with the repeat
   warning, as it would without the pair. With no insert size only the facing
   is used, which decides it only when the other copies would put the mates on

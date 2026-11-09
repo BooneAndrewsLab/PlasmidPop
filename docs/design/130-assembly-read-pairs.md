@@ -178,6 +178,13 @@ piece. The thresholds and the validity test are unchanged (`placeStretch`).
 The search is bounded: at most 8 alternatives and 16 stretches aligned per
 read per round.
 
+**The bound, tested.** `pairing.assemble.test.ts`, "a repeat of more copies than
+the search looks at": nine copies (the chosen place and all eight alternatives)
+settle a read in the last copy, and a read in the middle of twelve settles. A read
+in the last of twelve is not found; it stays at its best place with
+`ambiguous-join` and `pair-distance` warnings, so the failure is loud. Raising the
+bound is not planned: Sanger reads cannot tell that many copies apart.
+
 - **Decision.** The chosen place and its alternatives are each judged by
   `judgePair` against the mate (orientation, and insert size by the same
   tolerance rule). Exactly one fitting place settles it, whichever it is, with

@@ -337,6 +337,57 @@ describe('every other copy of a repeat is weighed against the mate (#419)', () =
   );
 });
 
+describe('a repeat of more copies than the search looks at (#419)', () => {
+  // The search weighs the chosen place and at most 8 others (MAX_ALTERNATIVES), so nine
+  // copies are all weighed and a tenth or later may not be.
+  const probe = async (copies: number, copy: number, seed: number) => {
+    const t = repeated(copies, 200, 200, seed);
+    const from = t.start(copy) + 50;
+    const reads = [
+      t.cut('whole', 0, t.text.length),
+      t.cut('p_F', from, from + 100),
+      t.cut('p_R', from + 250, from + 350, true),
+    ];
+    const out = await assembleReads(reads, withPairs(reads, 350));
+    return {
+      where: place(out, 'p_F'),
+      truth: `${from}-${from + 100}+`,
+      warnings: out.contigs[0]?.warnings.map((w) => w.kind) ?? [],
+    };
+  };
+
+  it(
+    'settles a read in the last of nine copies, every place being weighed',
+    async () => {
+      const r = await probe(9, 8, 600);
+      expect(r.where).toBe(r.truth);
+      expect(r.warnings).toEqual([]);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'settles a read in the middle of twelve copies',
+    async () => {
+      const r = await probe(12, 5, 610);
+      expect(r.where).toBe(r.truth);
+      expect(r.warnings).toEqual([]);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'does not settle a read in the last of twelve copies silently: it is warned, not mis-placed quietly',
+    async () => {
+      const r = await probe(12, 11, 620);
+      expect(r.where).not.toBe(r.truth);
+      expect(r.warnings).toContain('ambiguous-join');
+      expect(r.warnings).toContain('pair-distance');
+    },
+    TIMEOUT,
+  );
+});
+
 describe('pairs that do not fit the layout (item 130)', () => {
   it(
     'warns when mates are nearer than the insert, as when two copies of a repeat are laid on one',
