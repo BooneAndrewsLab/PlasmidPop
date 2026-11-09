@@ -1754,4 +1754,10 @@ full fill, which a band a few cells too wide or too narrow passes.
   `anchors` anyway); flank windows whose rows the monotone passes fill the same;
   a global region that is never trimmed (`regionScore`, argued from
   `gapBound >= |n - m|`); the `wrap` guards, where `turns >= 0` adds nothing.
-- **Result:** see the summary file for the figure of the run.
+- **Result (2026-11-09, one-file run, `npm run mutate -- --mutate src/core/alignment/banded.ts`):**
+  **91.34%**, 486 killed, 20 timed out, 48 survived, none uncovered, 12 mutants
+  ignored by the disables. Counted as survivors the 12 would put it at about
+  89.4%, so about two points of the figure are the disables. Between the first
+  confirming run (89.82%, with the guard) and this one, the guard's removal
+  accounts for the rest. The summary file is for the release run; the 1.25
+  pre-release `mutate:changed` picks the file up and writes the project figure.
