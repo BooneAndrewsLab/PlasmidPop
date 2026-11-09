@@ -320,10 +320,9 @@ export function bandAround(
     if ((lo[i] ?? 0) > m) lo[i] = m;
     if ((hi[i] ?? 0) < (lo[i] ?? 0)) hi[i] = lo[i] ?? 0;
   }
-  // Consecutive rows meet, so every diagonal step has somewhere to land.
-  for (let i = 1; i <= n; i++) {
-    if ((lo[i] ?? 0) > (hi[i - 1] ?? 0) + 1) lo[i] = (hi[i - 1] ?? 0) + 1;
-  }
+  // Consecutive rows meet, so every diagonal step has somewhere to land: the
+  // monotone passes and the rectangles between anchors leave `lo[i] <= hi[i - 1] + 1`
+  // already, for chains that fold a turn back too. bandedEdges.test.ts pins it.
   if (mode === 'global') {
     lo[0] = 0;
     hi[n] = m;

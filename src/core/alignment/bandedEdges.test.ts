@@ -1055,3 +1055,46 @@ describe('alignBanded, the cells it fills', () => {
     });
   });
 });
+
+describe('a band is connected whatever the anchors', () => {
+  // `bandAround` no longer repairs rows that do not meet: the rectangles between anchors and
+  // the monotone passes leave them meeting. Chains that fold a turn back (#225) can fall
+  // behind in the reference by up to the fold's slack, so the chains here are not all rising.
+  it(
+    'has every row meeting the one before, in both modes, for rising and for folded chains',
+    () => {
+      const next = rng(2026);
+      const upTo = (k: number): number => Math.floor(next() * k);
+      const scorings = [
+        { gain: 5, gapOpen: 10, gapExtend: 0.5 },
+        { gain: 11, gapOpen: 11, gapExtend: 1 },
+      ];
+      for (let t = 0; t < 1500; t++) {
+        const n = 20 + upTo(150);
+        const m = 20 + upTo(150);
+        let i = upTo(40);
+        let j = upTo(40);
+        const links: { i: number; j: number }[] = [];
+        const count = upTo(5) + 1;
+        const folded = t % 2 === 1;
+        for (let k = 0; k < count; k++) {
+          links.push({ i: Math.min(n, Math.max(0, i)), j: Math.min(m, j) });
+          j += 1 + upTo(60);
+          i += upTo(80) - (folded && upTo(3) === 0 ? upTo(1100) : 0);
+        }
+        const mode: AlignmentMode = t % 4 < 2 ? 'global' : 'local';
+        const { lo, hi } = bandAround(links, n, m, mode, upTo(20), scorings[upTo(2)]);
+        const at = (edge: Int32Array, row: number): number => edge[row] ?? Number.NaN;
+        let broken = -1;
+        for (let row = 0; row <= n && broken < 0; row++) {
+          const meets =
+            at(hi, row) >= at(lo, row) &&
+            (row === 0 || (at(lo, row) >= at(lo, row - 1) && at(lo, row) <= at(hi, row - 1) + 1));
+          if (!meets) broken = row;
+        }
+        expect(broken).toBe(-1);
+      }
+    },
+    process.env['PLASMIDPOP_MUTATION'] === '1' ? 600_000 : 30_000,
+  );
+});
