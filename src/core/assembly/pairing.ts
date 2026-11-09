@@ -58,6 +58,7 @@ const CASAVA_READ = /^[12]:[YN]:\d+:\S*$/;
  * description is left out, so free text cannot make two records mates.
  */
 export function pairingName(name: string, description: string | undefined): string {
+  // Stryker disable next-line StringLiteral: only a record with no description gets the fallback, and any non-header text leaves the name alone.
   const d = (description ?? '').trim();
   return CASAVA_READ.test(d) ? `${name} ${d}` : name;
 }
@@ -74,6 +75,7 @@ function parseName(raw: string): Parsed | null {
   const casava = CASAVA.exec(name);
   if (casava !== null) {
     return {
+      // Stryker disable next-line StringLiteral: the group is there whenever CASAVA matched; the fallback is for noUncheckedIndexedAccess.
       stem: casava[1] ?? '',
       mate: casava[2] === '1' ? 'first' : 'second',
       family: 'numbers',
@@ -84,11 +86,13 @@ function parseName(raw: string): Parsed | null {
     return {
       stem: `${illumina[1] ?? ''}${illumina[3] === undefined ? '' : `_${illumina[3]}`}`,
       mate: illumina[2] === '1' ? 'first' : 'second',
+      // Stryker disable next-line StringLiteral: no other family is '', so the key is as distinct without the name.
       family: 'illumina',
     };
   }
   const m = SEPARATED.exec(name) ?? JOINED.exec(name);
   if (m === null) return null;
+  // Stryker disable next-line StringLiteral: both patterns have the group; the fallback is for noUncheckedIndexedAccess.
   const token = (m[2] ?? '').toLowerCase();
   const numeric = /^\d+$/.test(token);
   // A number past 2 is no mate, but it says the stem is a series (clone_1,
@@ -149,6 +153,7 @@ export function findReadPairs(names: readonly string[]): PairNames {
     } else if (g.all.length >= 2 || (byStem.get(stem) ?? 0) > 1) {
       ambiguous.push({
         stem: g.stem,
+        // Stryker disable next-line StringLiteral: g.all holds indexes of names.
         names: g.all.map((i) => names[i] ?? ''),
       });
     }
@@ -315,6 +320,7 @@ export function checkPairs(
       continue;
     }
     if (x.contig === y.contig) {
+      // Stryker disable next-line OptionalChaining: x.contig came from this array.
       const length = contigs[x.contig]?.consensus.length ?? 0;
       const j = judgePair(x.placed, y.placed, length, insert);
       if (j.verdict === 'consistent' && j.template !== null) templates.push(j.template);
@@ -324,7 +330,9 @@ export function checkPairs(
     checks.push({ pair, state: 'linked', contig: x.contig, template: null });
     // Turn contig A to read the first mate forward and contig B to read the
     // second mate backward: the template then runs from A into B.
+    // Stryker disable next-line OptionalChaining: x.contig came from this array.
     const la = contigs[x.contig]?.consensus.length ?? 0;
+    // Stryker disable next-line OptionalChaining: y.contig came from this array.
     const lb = contigs[y.contig]?.consensus.length ?? 0;
     const aReversed = x.placed.strand === 'reverse';
     const bReversed = y.placed.strand === 'forward';

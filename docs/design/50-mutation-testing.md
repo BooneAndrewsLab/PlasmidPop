@@ -1761,3 +1761,61 @@ full fill, which a band a few cells too wide or too narrow passes.
   confirming run (89.82%, with the guard) and this one, the guard's removal
   accounts for the rest. The summary file is for the release run; the 1.25
   pre-release `mutate:changed` picks the file up and writes the project figure.
+
+## At 1.25: `assembly/pairing.ts`
+
+`pairing.ts` stood at **80.45%** after the 1.24 pass (251 killed, 54 survived,
+7 uncovered of 312, from the report of the 2026-11-09 full run). Most
+survivors were things a test with one or two items cannot see.
+
+- **Tests:** `pairingEdges.test.ts` (21 tests, about 20 ms plain): the stems
+  and families of the name patterns (the Illumina header's read number is in the
+  family of numbers, so `NAME 1:N:0:ACGT` and `NAME_2` are mates and a series
+  past 2 spoils them; a two-digit number is a number; the name is trimmed), the
+  group conditions at their edges (one forward and two reverse reads; a
+  complete pair whose stem is also a series), `judgePair` on placements a
+  contig does not fit (the distance round the ends of nothing or less), a pair
+  with only its first mate missing, the median of an odd and an even number of
+  gaps from unsorted input and its rounding, the order of the links on each of
+  its three keys, the templates, which only consistent pairs enter, and their
+  order. The run below killed 35 of the 61 undetected mutants; the
+  survivors of the groups above were each applied by hand and failed the new file.
+- **Disables (8 lines):** `// Stryker disable next-line`, each only where every
+  mutant of that mutator on the line was applied and the whole pairing suite
+  passed: the `?? ''` fallbacks on a capture group, a description and a name
+  that are there (`pairingName`, the CASAVA stem, the mate token, the names of
+  an ambiguous stem); the `'illumina'` family name (no other family is `''`, so
+  the key is as distinct); `?.` on `contigs[x.contig]`, an index that came from
+  the same array (3 lines).
+- **Equivalent survivors left (18), by kind:**
+  - _Fallbacks_ (4, uncovered): `?? ''` on the Illumina stem group and the
+    mate stem, and on the stem split from a group key (twice; the key has a
+    separator by construction). Their lines also carry killable mutants of the
+    same mutator, so they are not disabled.
+  - _Dead sort of the pairs_ (4): `findReadPairs` collects groups in a Map, in
+    the order of the lowest read index of each, and a pair's two reads are the
+    whole group, so `pairs` is sorted by its lower index before `.sort` runs.
+    Turning the comparator into `+`, `undefined`, or `max` for one side gives a
+    comparator that is positive for every later-against-earlier call, which V8
+    takes as already in order, and dropping the sort changes nothing. Applied
+    by hand against the three pairing test files. Flagged for review, not
+    removed: the sort is documentation of the order the report promises.
+  - _Unreachable by the grammar_ (8): `mate === null` after the token is
+    matched (every letter token of both patterns is in the forward or reverse
+    set, every other token is a number, so it is never null); `^\d+$` without
+    one anchor (the token is a whole alternative, never digits and letters
+    mixed); `'letters'` to `''` (no other group has the family `''`);
+    `first !== undefined` and `second !== undefined` to `true` (the length
+    checks before them already say there is one); `template <= insert` (a
+    distance equal to the insert is within the tolerance, so it never reaches
+    the comparison); `j.template !== null` after `consistent` (a consistent
+    verdict always has a distance).
+  - _Equivalent by symmetry_ (2): `from.contig >= to.contig` (the two contigs
+    of a link differ, or it would be a pair judged in one contig), and
+    `toLowerCase` to `toUpperCase` in the group key (only a letter whose upper
+    and lower case do not fold alike, such as `ß`, would tell them apart).
+- **Result (2026-11-09, one-file run, `npm run mutate -- --mutate
+src/core/assembly/pairing.ts`, incremental):** **94.08%**, 286 killed, 0
+  timed out, 14 survived, 4 uncovered, 8 mutants ignored by the new disables
+  (the 61 ignored before are in neither count). Counted as survivors the 8 would
+  put it at **91.67%** (286 of 312). The summary file is for the release run.
