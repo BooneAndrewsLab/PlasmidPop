@@ -667,10 +667,13 @@ const PINS: Record<string, ReturnType<typeof shape>> = {
   },
 };
 
+/** Instrumented a fixture takes minutes (divergentCopies: 0.9 s plain, over 60 s in a mutation run's dry run). */
+const SLOW = process.env['PLASMIDPOP_MUTATION'] === '1' ? 600_000 : 60_000;
+
 describe('the cells and the paths of banded joins, exactly (#372)', () => {
   it.each(Object.keys(FIXTURES))(
     'gives the same cells, gaps and score for %s',
-    { timeout: 60_000 },
+    { timeout: SLOW },
     (name) => {
       const [seqs, options] = (FIXTURES[name] as () => Fixture)();
       expect(shape(seqs, options)).toEqual(PINS[name]);
