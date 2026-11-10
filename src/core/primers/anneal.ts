@@ -1,5 +1,5 @@
 import { type Strand } from '../features';
-import { type Range, type Topology, wrapPosition } from '../range';
+import { type Range, type Topology, foldPosition, wrapPosition } from '../range';
 import { reverseComplement } from '../sequence';
 import { codeMask } from '../analysis/search';
 import { meltingTemperature } from './thermo';
@@ -279,10 +279,9 @@ export function findAnnealingSites(
   const n = p.length;
   if (n < opts.minAnneal || L === 0) return [];
   const text = sequence.toUpperCase();
-  const circular = topology === 'circular';
-  const baseAt = (i: number): string =>
-    circular ? text.charAt(wrapPosition(i, L)) : i < 0 || i >= L ? '' : text.charAt(i);
-  const norm = (i: number): number => (circular ? wrapPosition(i, L) : i);
+  // `charAt` gives '' past either end of a line, where nothing is folded.
+  const baseAt = (i: number): string => text.charAt(foldPosition(i, L, topology));
+  const norm = (i: number): number => foldPosition(i, L, topology);
 
   /**
    * The last `len` bases of the primer as the template makes them pair: a
