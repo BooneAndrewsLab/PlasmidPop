@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { SeqDocument, createFeature, featureLength, rangeSegment } from '@/core';
 import { parseGenBank, writeGenBank } from '@/io';
 import { readFixture } from '@/test/fixtures';
+import { expectNoNaN } from '@/test/noNaN';
 import { randomDna, seededRandom } from '@/test/random';
 
 import { METHYLATED_HOST, UNMETHYLATED_HOST } from '../analysis/methylation';
@@ -628,5 +629,42 @@ describe('scanForCloning', () => {
     );
     expect(asked).toEqual([`circular:${pUC19.length}`, 'linear:738']);
     expect(scans).toEqual(scanForCloningNow(pUC19, REV));
+  });
+});
+
+describe('an empty circular vector (#434)', () => {
+  // `regionOffset` folds a cut into the region; it is asked per cut site on
+  // the vector, and an empty vector has none. So the pairs list is empty, a
+  // picked pair has no site on it, and its design fails on that before the
+  // simulation (whose own folds take the cuts of a usable pair) is reached.
+  const empty = SeqDocument.create({ name: 'blank', sequence: '' }).setTopology('circular');
+  const ctx = context(empty, AXL2, { region: null });
+
+  it('reads the whole of it as the region, and suggests no pair', () => {
+    expect(ctx.region).toEqual({ range: { start: 0, end: 0 }, source: 'whole', feature: null });
+    expect(ctx.scans.vectorSites).toEqual([]);
+    expect(suggestEnzymePairs(ctx)).toEqual({ pairs: [], usable: 0, candidates: [], picked: null });
+    expect(suggestEnzymePairs(ctx, { forward: 'EcoRI', reverse: 'HindIII' }).picked?.usable).toBe(
+      false,
+    );
+  });
+
+  it('judges a picked pair as cutting it nowhere, and designs no ends', () => {
+    const report = evaluateEnzymePair(ctx, 'EcoRI', 'HindIII');
+    expect(report.usable).toBe(false);
+    expect(report.replaced).toBeNull();
+    expect(report.forward.site).toBeNull();
+    expect(report.reverse.site).toBeNull();
+    expect(kinds(report)).toContain('vectorCuts');
+    const design = designCloningEnds(ctx, { forward: 'EcoRI', reverse: 'HindIII' });
+    expect(design.problem).toBe(
+      'EcoRI does not cut the vector inside the region, so there is no end for the insert to match.',
+    );
+    expect(design.simulate().product).toBeNull();
+    const results = designCloningResults(ctx, { forward: 'EcoRI', reverse: 'HindIII' });
+    expect(results.alternatives).toEqual([]);
+    // The reports hold the positions; a failed design's primers carry
+    // `emptyPrimer`'s own `tm: NaN`, on any vector.
+    expectNoNaN([report, design.pair, results.picked.pair]);
   });
 });

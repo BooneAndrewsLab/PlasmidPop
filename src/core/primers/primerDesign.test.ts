@@ -1,6 +1,12 @@
 import { reverseComplement } from '../sequence';
 import { DEFAULT_PRIMER_CRITERIA, normalizePrimerCriteria } from './criteria';
-import { analyzePrimer, designPrimers, findPrimerBindingSites } from './primerDesign';
+import {
+  analyzePrimer,
+  annealsElsewhere,
+  designAnchoredPrimers,
+  designPrimers,
+  findPrimerBindingSites,
+} from './primerDesign';
 import { threePrimeDimer, threePrimeDuplexEnergy } from './structure';
 import { longestHairpinStem, threePrimeComplementarity } from './thermo';
 
@@ -444,5 +450,25 @@ describe('the 3′ rule weighted by ΔG (#343)', () => {
     expect(normalizePrimerCriteria({}).threePrimeDg).toBe(-5);
     expect(normalizePrimerCriteria({ threePrimeDg: 'x' }).threePrimeDg).toBe(-5);
     expect(normalizePrimerCriteria({ threePrimeDg: 2 }).threePrimeDg).toBe(0);
+  });
+});
+
+describe('an empty circular document (#434)', () => {
+  const primer = 'ACGTTGCAAGGCTTAACC';
+
+  it('designs no primer and finds no site', () => {
+    expect(designPrimers('', 'circular', { start: 0, end: 0 })).toEqual([]);
+    expect(designPrimers('', 'circular', { start: 0, end: 10 })).toEqual([]);
+    expect(findPrimerBindingSites('', 'circular', primer)).toEqual([]);
+    expect(designAnchoredPrimers('', DEFAULT_PRIMER_CRITERIA)).toBeNull();
+  });
+
+  it('calls a primer specific to its site on one, there being nowhere else', () => {
+    // `annealsElsewhere` folds the site's own 3′ end first, a NaN on an
+    // empty sequence, and compares it with the ends of the sites found, of
+    // which there are none: the NaN reaches no range and the answer is
+    // false. It is asked per candidate, and an empty sequence yields none.
+    expect(annealsElsewhere('', 'circular', primer, 'forward', { start: 0, end: 18 })).toBe(false);
+    expect(annealsElsewhere('', 'circular', primer, 'reverse', { start: 0, end: 18 })).toBe(false);
   });
 });

@@ -456,3 +456,18 @@ describe('primerDimers', () => {
     expect(primerDimers(weak, 5, 0)).toEqual([]);
   });
 });
+
+describe('an empty circular document (#434)', () => {
+  it('amplifies nothing from one, and says so', () => {
+    // The span between a pair of sites is folded per pair;
+    // `findAnnealingSites` has no site on an empty template.
+    const empty = SeqDocument.create({ name: 'blank', sequence: '' }).setTopology('circular');
+    const result = pcr(empty, [fwd(0, 20), rev(100, 120)]);
+    expect(result.sites).toEqual([]);
+    expect(result.products).toEqual([]);
+    expect(result.tooLong).toBe(0);
+    expect(result.problem).toBe(
+      'Neither primer anneals to blank. The 3′ end is what has to match; a 5′ tail is free.',
+    );
+  });
+});

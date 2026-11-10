@@ -1,6 +1,6 @@
 import { SeqDocument } from '@/core';
 
-import { cutOffset, digest } from './digest';
+import { cutOffset, digest, partialDigest } from './digest';
 
 /**
  * Corners of `digest.ts` the rest of the suite leaves open (#77): the
@@ -30,5 +30,23 @@ describe('digest of a circle', () => {
       expect(fragments[0]?.left).toEqual({ kind: "5'", overhang: 'AATT', enzyme: 'EcoRI' });
       expect(fragments[0]?.right).toEqual({ kind: "5'", overhang: 'AATT', enzyme: 'EcoRI' });
     }
+  });
+});
+
+describe('an empty circular document (#434)', () => {
+  it('digests into nothing, whatever sites it is given', () => {
+    // `digest` returns before `distinctCuts` folds a cut (`s.cut % length`,
+    // guarded there too) for a length of 0.
+    const empty = SeqDocument.create({ name: 'p', sequence: '' }).setTopology('circular');
+    const site = {
+      enzyme: 'EcoRI',
+      cut: 0,
+      cutBottom: 4,
+      siteStart: 0,
+      strand: 'forward',
+    } as const;
+    expect(digest(empty, [])).toEqual([]);
+    expect(digest(empty, [site])).toEqual([]);
+    expect(partialDigest(empty, [site])).toEqual([]);
   });
 });

@@ -729,3 +729,20 @@ describe('designCheckPrimers: edge cases', () => {
     }
   });
 });
+
+describe('an empty circular product (#434)', () => {
+  it('has no insert to locate and no junction between parts, so no check to design', () => {
+    // Every `norm` here folds onto the product: in `locateInsert` after a
+    // shared stretch was found, in `partJunctions` per part's stretch, in
+    // `designCheckPrimers` and `Specificity` on a geometry `locateInsert`
+    // gave. `longestSharedStretch` finds nothing on a product shorter than
+    // a k-mer, so the page gets no geometry for one.
+    const empty = SeqDocument.create({ sequence: '' }).setTopology('circular');
+    const vector = SeqDocument.create({ sequence: 'ACGTTGCAAGGCTTAACCGG'.repeat(20) });
+    expect(longestSharedStretch(empty, vector)).toBeNull();
+    expect(locateInsert(empty, vector)).toBeNull();
+    expect(locateInsert(vector, empty)).toBeNull();
+    expect(partJunctions(empty, { start: 0, end: 0 }, [vector, empty])).toEqual([]);
+    expect(flipInsert(empty, { start: 0, end: 0 }).length).toBe(0);
+  });
+});

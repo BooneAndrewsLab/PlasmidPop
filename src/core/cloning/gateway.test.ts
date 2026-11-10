@@ -951,3 +951,19 @@ describe('MultiSite pairs (#147)', () => {
     expect(run.warnings.join(' ')).toMatch(/both drawn on one strand/);
   });
 });
+
+describe('an empty circular document (#434)', () => {
+  it('has no att site, so a reaction refuses it before any frame is read', () => {
+    // `frameWarnings` folds feature and site positions with `% L` on the
+    // product only (and is guarded for a length of 0 besides); `gateway`
+    // makes no product without two sites a side.
+    const empty = SeqDocument.create({ name: 'blank', sequence: '' }).setTopology('circular');
+    expect(attSites(empty)).toEqual([]);
+    for (const reaction of ['BP', 'LR'] as const) {
+      const run = gateway(empty, empty, reaction);
+      expect(run.product).toBeNull();
+      expect(run.byproduct).toBeNull();
+      expect(run.problem).toMatch(/^blank has no att[BL] site annotated/);
+    }
+  });
+});
