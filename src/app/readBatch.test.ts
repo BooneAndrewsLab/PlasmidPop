@@ -270,3 +270,26 @@ describe('sortRows', () => {
     expect(sortRows(rows, 'identity-high', 20).map((r) => r.index)).toEqual([2, 0, 3, 1]);
   });
 });
+
+describe('an empty circular document (#434)', () => {
+  it('summarises every read of a batch against one with no span', async () => {
+    // The span's `range.start % wrap` is worked out only for a range, and
+    // `alignedReferenceRange` gives none for a wrap of 0.
+    const blank = { sequence: '', offset: 0, wrap: 0 };
+    const { rows } = await runReadBatch(reads, blank, inline, {
+      options: {},
+      mode: 'local',
+      trimCutoff: null,
+    });
+    expect(rows).toHaveLength(reads.length);
+    for (const row of rows) {
+      if (row.status !== 'aligned') throw new Error(row.status);
+      expect(summarizeRow(row, 20)).toEqual({
+        identity: 0,
+        confident: null,
+        differences: 0,
+        span: null,
+      });
+    }
+  });
+});

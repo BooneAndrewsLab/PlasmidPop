@@ -169,3 +169,23 @@ describe('stepping through matches', () => {
     expect(firstMatchFrom([], 0)).toBeNull();
   });
 });
+
+describe('an empty circular document (#434)', () => {
+  // The panel of an empty circle offers a reference of no bases with a wrap
+  // of 0. `columnOfPosition` folds a position with that wrap only after it
+  // found a base in some column, and `findMotif` only for a match, which no
+  // bases give: both answer before the fold.
+  const blank = { sequence: '', offset: 0, wrap: 0 };
+
+  it('has no column to go to and no motif to find', () => {
+    const bare = stackAlignments(blank, []);
+    expect(columnOfPosition(bare, 1)).toEqual({ kind: 'invalid' });
+    expect(findMotif(bare, null, 'GATTACA')).toEqual({ kind: 'matches', matches: [] });
+    // A read aligned against it aligns to nothing, and the stack stays bare.
+    const stack = stackAlignments(blank, [sample(blank, 'r', reference.slice(0, 20))]);
+    expect(stack.columns).toBe(0);
+    expect(columnOfPosition(stack, 1)).toEqual({ kind: 'invalid' });
+    expect(findMotif(stack, null, 'GATTACA')).toEqual({ kind: 'matches', matches: [] });
+    expect(findMotif(stack, 0, 'GATTACA')).toEqual({ kind: 'matches', matches: [] });
+  });
+});

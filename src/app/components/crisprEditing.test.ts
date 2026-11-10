@@ -1,4 +1,4 @@
-import { type CrisprGuide, type NickPair } from '@/core';
+import { type CrisprGuide, type NickPair, NUCLEASES, findCrisprGuides, pairNickases } from '@/core';
 
 import { pairId, pairSpan, pegId } from './crisprEditing';
 
@@ -49,5 +49,21 @@ describe('the ids of a pair and a pegRNA', () => {
     expect(pairId(a)).toBe('forward:10|reverse:50');
     expect(pairId(a)).not.toBe(pairId(b));
     expect(pegId({ guide: guide('reverse', 7) } as Parameters<typeof pegId>[0])).toBe('reverse:7');
+  });
+});
+
+describe('an empty circular document (#434)', () => {
+  it('has no pair on the Pairs page, so no span is asked for', () => {
+    // `pairSpan` folds the distance between a pair's two guides the short
+    // way round; the page asks for it per pair, and `useNickPairs` gets
+    // its pairs from `pairNickases` over the scan of the document, which
+    // for an empty one finds no guide.
+    const cas9 = NUCLEASES[0];
+    if (cas9 === undefined) throw new Error('presets');
+    const guides = findCrisprGuides('', 'circular', cas9);
+    expect(guides).toEqual([]);
+    expect(pairNickases(guides, 0, 'circular', { nickStrand: 'target', maxOffset: 100 })).toEqual(
+      [],
+    );
   });
 });

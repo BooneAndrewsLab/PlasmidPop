@@ -221,6 +221,21 @@ describe('the Prime page', () => {
     expect(screen.getByRole('spinbutton', { name: 'Replace (bases)' })).toHaveValue(2);
   });
 
+  it('takes the selection of an empty circular document as position 1, replacing nothing (#434)', async () => {
+    // The button folds a selection's length with `% doc.length` only for a
+    // non-empty selection, and the only selection an empty document has is
+    // the caret at 0 (a new document made circular from the Edit bar, or a
+    // circle with every base deleted).
+    await openPrime(docOf('', 'circular'));
+    act(() => {
+      editorStore.setSelection({ start: 0, end: 0 });
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Use the selection' }));
+    expect(screen.getByRole('spinbutton', { name: 'Edit at' })).toHaveValue(1);
+    expect(screen.getByRole('spinbutton', { name: 'Replace (bases)' })).toHaveValue(0);
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+  });
+
   it('keeps the form when the page is left and come back to, with no new scan', async () => {
     const scans = vi.spyOn(analysisClient, 'crisprGuides');
     await openPrime(docOf(SEQUENCE), EDIT_4('T'));

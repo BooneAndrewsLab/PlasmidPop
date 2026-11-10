@@ -410,3 +410,25 @@ describe('undo runs', () => {
     );
   });
 });
+
+describe('an empty circular document (#434)', () => {
+  const empty = SeqDocument.create({ sequence: '' }).setTopology('circular');
+
+  it('types and pastes at its one position, and deletes nothing', () => {
+    // The caret after a replacement is folded with `% doc.length`, but a
+    // replacement takes a non-empty selection, and the only selection an
+    // empty document has is the caret at 0: typing and pasting insert.
+    expect(clampPosition(empty, 5)).toBe(0);
+    expect(clampPosition(empty, -1)).toBe(0);
+    const inserted = {
+      op: { type: 'insert', position: 0, text: 'ACGT' },
+      selectionAfter: { start: 4, end: 4 },
+    };
+    expect(typeText(empty, { start: 0, end: 0 }, 'ACGT')).toEqual(inserted);
+    expect(pasteFragment(empty, { start: 0, end: 0 }, { sequence: 'ACGT', features: [] })).toEqual(
+      inserted,
+    );
+    expect(deleteBackward(empty, { start: 0, end: 0 })).toBeNull();
+    expect(deleteForward(empty, { start: 0, end: 0 })).toBeNull();
+  });
+});
