@@ -45,7 +45,7 @@ const firstArgEnd = (/** @type {string} */ text, /** @type {number} */ open) => 
   /** @type {string | null} */
   let quote = null;
   for (let i = open + 1; i < text.length; i++) {
-    const c = text[i];
+    const c = text.charAt(i);
     if (quote !== null) {
       if (c === '\\') i++;
       else if (c === quote) quote = null;
@@ -65,7 +65,7 @@ const closeOf = (/** @type {string} */ text, /** @type {number} */ from) => {
   /** @type {string | null} */
   let quote = null;
   for (let i = from; i < text.length; i++) {
-    const c = text[i];
+    const c = text.charAt(i);
     if (quote !== null) {
       if (c === '\\') i++;
       else if (c === quote) quote = null;

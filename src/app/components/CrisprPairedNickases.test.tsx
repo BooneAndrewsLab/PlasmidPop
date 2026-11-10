@@ -426,8 +426,8 @@ describe('a pair across the origin of a circular document', () => {
 
   it('numbers the gap of a pair on a line by its end', async () => {
     await openPairs(ONE());
-    expect(getByTip(rowAt(0), /^The single-stranded bases are \d+–\d+$/).dataset.tip).toBe(
-      'The single-stranded bases are 18–39',
-    );
+    expect(
+      getByTip(rowAt(0), /^The single-stranded bases are \d+–\d+$/).getAttribute('data-tip'),
+    ).toBe('The single-stranded bases are 18–39');
   });
 });

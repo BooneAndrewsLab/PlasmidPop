@@ -222,8 +222,9 @@ describe('the Results page on a circle', () => {
     await act(() =>
       Promise.resolve(fireEvent.click(screen.getByRole('button', { name: 'Design primers' }))),
     );
-    const rows = within(grid()).getAllByRole('row').slice(1);
-    fireEvent.click(rows[0] as HTMLElement);
+    const [first] = within(grid()).getAllByRole('row').slice(1);
+    if (first === undefined) throw new Error('no pair');
+    fireEvent.click(first);
     const detail = screen.getByRole('complementary', { name: 'Pair 1' });
     // The forward primer runs from base 590 over the origin to base 10, the
     // product to base 266: not to 610 and 866.
@@ -234,7 +235,9 @@ describe('the Results page on a circle', () => {
 
   it('numbers the same pair by where its ends are on a line', async () => {
     await setup();
-    fireEvent.click(bodyRows()[0] as HTMLElement);
+    const [first] = bodyRows();
+    if (first === undefined) throw new Error('no pair');
+    fireEvent.click(first);
     const detail = screen.getByRole('complementary', { name: 'Pair 1' });
     expect(within(detail).getByText(/^\d[\d,]* bp · \d[\d,]*–\d[\d,]* · ΔTm/)).toBeInTheDocument();
   });
