@@ -5,6 +5,7 @@ import {
   type TranslationTable,
   DEFAULT_TABLE,
   geneticCode,
+  oneBasedEnd,
 } from '@/core';
 import { formatFastaRecord } from '@/io';
 
@@ -12,7 +13,7 @@ import { fileNameFor } from './saveFile';
 
 /** 1-based inclusive bounds of a range, the end folded back onto the sequence when it wraps. */
 export function rangeBounds(r: Range, seqLength: number): { from: number; to: number } {
-  return { from: r.start + 1, to: ((r.end - 1) % Math.max(1, seqLength)) + 1 };
+  return { from: r.start + 1, to: oneBasedEnd(r.end, seqLength) };
 }
 
 /** ASCII frame label (`+1`, `-1`) for file names and FASTA headers. */

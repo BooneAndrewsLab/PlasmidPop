@@ -97,6 +97,19 @@ describe("the selection's GC in the status bar (item 75)", () => {
     expect(container.textContent).toContain('GC 50.0 %');
   });
 
+  it('names the last base of a selection across the origin by its place on the circle', () => {
+    // [6, 10) on 8 bases is 7, 8, 1, 2; [4, 8) ends on the last base, 8, not 0.
+    open(SeqDocument.create({ sequence: 'GGCCAATT', topology: 'circular' }), 6, 10);
+    const { container, unmount } = render(
+      <StatusBar doc={editorStore.getState().history?.present ?? null} />,
+    );
+    expect(container.textContent).toContain('selected, 7 to 2');
+    unmount();
+    open(SeqDocument.create({ sequence: 'GGCCAATT', topology: 'circular' }), 4, 8);
+    const second = render(<StatusBar doc={editorStore.getState().history?.present ?? null} />);
+    expect(second.container.textContent).toContain('selected, 5 to 8');
+  });
+
   it('says nothing of GC for a caret', () => {
     open(SeqDocument.create({ sequence: 'GGCCAATT', topology: 'linear' }), 3, 3);
     const { container } = render(

@@ -3,6 +3,7 @@ import {
   type LineageOp,
   type LineageStep,
   isLineageNode,
+  oneBasedEnd,
   parentCount,
   pruneLineage,
 } from '@/core';
@@ -109,8 +110,7 @@ function rangeText(
   range: { readonly start: number; readonly end: number },
   length: number,
 ): string {
-  const to = length > 0 ? ((range.end - 1) % length) + 1 : range.end;
-  return `${String(range.start + 1)}..${String(to)}`;
+  return `${String(range.start + 1)}..${String(oneBasedEnd(range.end, length))}`;
 }
 
 // ---------------------------------------------------------------- writing

@@ -21,11 +21,6 @@ import { Gel, type GelLane } from './Gel';
 import { pct, primerFeature, tm } from './primerDesign';
 import { PrimerSettings } from './PrimerSettings';
 
-/** "45–66", a site 1-based and inclusive, the end wrapped onto a circle. */
-function span(r: Range, seqLength: number): string {
-  return `${(r.start + 1).toLocaleString()}–${(((r.end - 1) % Math.max(1, seqLength)) + 1).toLocaleString()}`;
-}
-
 /** "612" or "—" for no band, "612 + 1,430" for two. */
 function bandText(bands: readonly number[] | null): string {
   if (bands === null) return 'n/a';
@@ -58,7 +53,7 @@ function OligoRow({
         GC {pct(primer.gc)}
       </td>
       <td className="wst__n" data-tip="Where it anneals">
-        {span(site, seqLength)}
+        {formatSpan(site, seqLength)}
       </td>
       <td className={reused ? 'dt__ok' : primer.gcClamp ? 'dt__ok' : 'dt__warn'}>
         {reused ? 'reused' : primer.gcClamp ? 'clamp' : 'no clamp'}

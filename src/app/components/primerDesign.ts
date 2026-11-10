@@ -100,7 +100,7 @@ export function sitePreview(
 
 /** "374–390" as the site lists write it, the end wrapped onto a circle. */
 export function siteSpan(site: BindingSite, seqLength: number): string {
-  return `${(site.range.start + 1).toLocaleString()}–${(((site.range.end - 1) % Math.max(1, seqLength)) + 1).toLocaleString()}`;
+  return formatSpan(site.range, seqLength);
 }
 
 /** Selects what a site anneals to and brings it into view. */

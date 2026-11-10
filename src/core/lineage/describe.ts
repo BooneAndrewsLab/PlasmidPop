@@ -1,3 +1,4 @@
+import { formatSpan } from '../range';
 import { type HomologyKit, type LineageNode, type LineageStep } from './lineage';
 
 const KITS: Readonly<Record<HomologyKit, string>> = {
@@ -30,9 +31,7 @@ export function describeLineageRange(
   range: { readonly start: number; readonly end: number },
   parentLength: number,
 ): string {
-  const from = range.start + 1;
-  const to = parentLength > 0 ? ((range.end - 1) % parentLength) + 1 : range.end;
-  return `${from.toLocaleString()}–${to.toLocaleString()}`;
+  return formatSpan(range, parentLength);
 }
 
 /**

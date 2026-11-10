@@ -1,6 +1,13 @@
 import { type KeyboardEvent, useMemo, useRef, useState } from 'react';
 
-import { type PrimerPair, type PrimerReport, type Range, type SeqDocument, formatDg } from '@/core';
+import {
+  type PrimerPair,
+  type PrimerReport,
+  type Range,
+  type SeqDocument,
+  formatDg,
+  formatSpan,
+} from '@/core';
 
 import { copyText } from '../clipboard';
 import { PRIMER_BLAST_SENDS } from '../primerBlast';
@@ -25,11 +32,6 @@ import {
 import { type WorkspaceLayout } from '../workspaceController';
 import { SortTh } from './SortTh';
 import { nextRowIndex, toggleSort } from './tableKeys';
-
-/** "45–66", a site 1-based and inclusive, the end wrapped onto a circle. */
-function span(r: Range, seqLength: number): string {
-  return `${(r.start + 1).toLocaleString()}–${(((r.end - 1) % Math.max(1, seqLength)) + 1).toLocaleString()}`;
-}
 
 /** The pair's two oligos as `primer_bind` features, one undo step (#96). */
 function addBoth(pair: PrimerPair, rank: number): void {
@@ -107,7 +109,7 @@ function OligoRow({
         GC {pct(primer.gc)}
       </td>
       <td className="wst__n" data-tip="Where it anneals">
-        {span(site, seqLength)}
+        {formatSpan(site, seqLength)}
       </td>
       <td
         className={primer.gcClamp ? 'dt__ok' : 'dt__warn'}
@@ -145,7 +147,7 @@ function PairDetail({ doc, design, row, onSaid }: DetailProps) {
       <div className="detail__head">
         <strong>Pair {rank}</strong>
         <span className="dnote">
-          {pair.productLength.toLocaleString()} bp · {span(product, doc.length)} · ΔTm{' '}
+          {pair.productLength.toLocaleString()} bp · {formatSpan(product, doc.length)} · ΔTm{' '}
           {pair.tmDifference.toFixed(1)} °C
         </span>
         <label className="chk detail__show">

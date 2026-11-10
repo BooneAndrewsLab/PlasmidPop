@@ -7,6 +7,7 @@ import {
   fractionAtLeast,
   gcContentOfRange,
   hasTool,
+  oneBasedEnd,
   unitName,
 } from '@/core';
 
@@ -40,7 +41,7 @@ function describeSelection(doc: SeqDocument, selection: { start: number; end: nu
   }
   const length = selection.end - selection.start;
   const from = selection.start + 1;
-  const to = ((selection.end - 1) % doc.length) + 1;
+  const to = oneBasedEnd(selection.end, doc.length);
   return `${formatLength(length, doc.alphabet)} selected, ${from.toLocaleString()} to ${to.toLocaleString()}`;
 }
 

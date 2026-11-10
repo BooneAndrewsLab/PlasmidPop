@@ -182,3 +182,26 @@ props.
 Each extraction follows #432: tests for wraparound and indexing first, a
 code review, a before/after mutation run of the touched files, and a new
 shared module mutated in full on its first release.
+
+## Done
+
+**The 1-based end (core 2).** The seven copies now call `oneBasedEnd` or
+`formatSpan`. `describeLineageRange`, `rangeBounds` and `siteSpan` keep
+their names and signatures, since others call them; the two local `span`
+functions in `PrimerCandidates.tsx` and `CloneCheckPage.tsx` are gone.
+`madeFromComment.ts` takes `oneBasedEnd` and not `formatSpan`, because a
+GenBank comment must not carry thousands separators.
+
+The guard at each site, which is what makes the swap change nothing: a
+lineage step is refused unless `range.start < range.end` (`lineage.ts`),
+and its two tests for a zero-length parent and for a 1-base one give the
+same text from the helper; the status bar formats only a non-empty
+selection; the six-frame export is reached only past the "at least three
+bases" message; a binding site or a product is never empty and never on an
+empty document.
+
+Tests added before the swap and passing on both sides of it: `rangeBounds`,
+the six-frame file name and header, `siteSpan` and the status bar's "7 to 2",
+each across the origin and each ending on the last base (the `end % length`
+mistake gives 0 there). The lineage and GenBank-comment sites had wrap
+tests already.
