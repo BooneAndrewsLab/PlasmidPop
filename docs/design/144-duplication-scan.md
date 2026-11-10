@@ -67,8 +67,13 @@ d -= n`) is written four times: `cloning/digest.ts:86`,
    `app/sixFrameExport.ts:15`, `app/components/StatusBar.tsx:43`, and as one
    identical line in `PrimerCandidates.tsx:31`, `CloneCheckPage.tsx:26` and
    `components/primerDesign.ts:103`. They agree with `oneBasedEnd` for every
-   `end >= 0` (checked by hand: the guard differs, the value does not), so
-   this is the cheapest extraction: the helper exists and is tested.
+   non-empty range on a non-empty sequence (`end >= 1`, length >= 1; run for
+   every length to 40 and every `end` to twice the length and two more), which is all these
+   sites format. They part at the corners: on an empty sequence the
+   `Math.max(1, length)` copies give 1 and `StatusBar`'s gives `NaN` where
+   the helper gives `end`, and `end = 0` on a 1-base sequence gives 1, not 0. So this is the cheapest extraction, the helper existing and tested,
+   but each site's guard against an empty range or sequence is to be
+   confirmed first.
    `verify/variants.ts:207` prints `end` unfolded; whether a variant's range
    can wrap is to be checked. `io/snapgene/writeSnapGene.ts:122,127` take
    `% length` unguarded.
