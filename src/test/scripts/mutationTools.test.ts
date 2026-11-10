@@ -21,6 +21,7 @@ import {
   specifiers,
   splitUnbaselined,
   staleBaseWarning,
+  staleSurvivors,
   triageText,
   workerCount,
 } from '../../../scripts/mutationTools.mjs';
@@ -400,5 +401,58 @@ describe('staleBaseWarning', () => {
     expect(staleBaseWarning('v1.24.0', ['v2.0.0-rc1', 'nightly', ''])).toBeNull();
     expect(staleBaseWarning('main', ['v9.9.9'])).toBeNull();
     expect(staleBaseWarning('v1.24.0', [])).toBeNull();
+  });
+});
+
+describe('staleSurvivors', () => {
+  const report = {
+    files: {
+      'src/a.ts': {
+        mutants: [{ status: 'Survived' }, { status: 'Killed' }, { status: 'NoCoverage' }],
+      },
+      'src/b.ts': { mutants: [{ status: 'Killed' }, { status: 'Ignored' }] },
+      'src/c.ts': { mutants: [{ status: 'Survived' }] },
+    },
+    testFiles: { 'src/a.test.ts': { source: 'old' }, 'src/c.test.ts': { source: 'same' } },
+  };
+  const sources = { 'src/a.test.ts': 'new', 'src/b.test.ts': 'x', 'src/c.test.ts': 'same' };
+  const testsOf = (file: string) => [file.replace('.ts', '.test.ts')];
+
+  it('names a file with an open mutant whose reaching test changed since the report', () => {
+    expect(staleSurvivors(report, sources, testsOf)).toEqual([
+      { file: 'src/a.ts', open: 2, changed: ['src/a.test.ts'] },
+    ]);
+  });
+
+  it('counts a test the report has no record of as changed', () => {
+    const found = staleSurvivors(
+      { ...report, files: { 'src/b.ts': { mutants: [{ status: 'Survived' }] } } },
+      sources,
+      testsOf,
+    );
+    expect(found).toEqual([{ file: 'src/b.ts', open: 1, changed: ['src/b.test.ts'] }]);
+  });
+
+  it('skips a file with nothing open, and one whose tests are as recorded', () => {
+    expect(staleSurvivors(report, sources, testsOf).map((e) => e.file)).not.toContain('src/b.ts');
+    expect(staleSurvivors(report, sources, testsOf).map((e) => e.file)).not.toContain('src/c.ts');
+  });
+
+  it('lists the file with the most open mutants first', () => {
+    const many = {
+      files: {
+        'src/a.ts': { mutants: [{ status: 'Survived' }] },
+        'src/b.ts': { mutants: [{ status: 'Survived' }, { status: 'Survived' }] },
+      },
+      testFiles: {},
+    };
+    expect(staleSurvivors(many, sources, testsOf).map((e) => e.file)).toEqual([
+      'src/b.ts',
+      'src/a.ts',
+    ]);
+  });
+
+  it('copes with a report that has no files', () => {
+    expect(staleSurvivors({}, sources, testsOf)).toEqual([]);
   });
 });

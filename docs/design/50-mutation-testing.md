@@ -2063,3 +2063,31 @@ kills are the 7 above and L243, which the run now sees killed.
 No survivor is unclassified: all 20 were applied by hand against the 49 files
 (plain) and fuzzed, and none changes a result or an
 error message.
+
+## Stale survivors, and `--remeasure`
+
+Stryker's incremental report keeps a mutant's verdict while its lines stand.
+A mutant outside the run's `--mutate` set is therefore never given to a test
+written after the report, and a pass that mutates only changed lines leaves
+the old survivors of every other line as they were. The 1.24.0 report put
+`msa.ts` at 61% for this reason; its own tests had killed most of those
+mutants since, and a forced run measured it at about 87%.
+
+`npm run mutate:changed` now says so. It compares the test sources stored in
+the report (`testFiles`) with the current ones and, for each file of the
+`mutate` list with a Survived or NoCoverage mutant, names the files that have a
+test one or two imports away that is new or different (`staleSurvivors` in
+`scripts/mutationTools.mjs`). It looks only that far because a test reaches a
+file through a hub that most of the project shares, and a changed test there
+would flag every file; the `*.timing.test.ts` files and the skipped suites are
+left out, since they assert nothing in a mutation run. A file named is a
+reason to look, not a verdict: a test that imports a file need not exercise
+the changed line.
+
+`--remeasure <file>` (repeatable) is the remedy: that file is mutated whole and
+the run passes `--force`, so every one of its mutants is run again against the
+tests as they are now. It costs a run of that file, so name the files that
+matter (the most open first, as the warning lists them) rather than all.
+At the time of writing the report is current, since every file this pass
+touched was confirmed by its own run, and the check finds nothing in the
+list.

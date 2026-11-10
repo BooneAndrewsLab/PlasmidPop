@@ -254,6 +254,35 @@ export function resolveSpecifier(spec, from, known) {
 export const isTestFile = (file) => /\.(?:test|spec)\.tsx?$/.test(file);
 
 /**
+ * The files of the incremental report whose recorded survivors may be out of
+ * date: a file with a Survived or NoCoverage mutant that a test file reaching
+ * it has gained or changed since the report was written. Stryker reuses a
+ * verdict for a mutant outside the `--mutate` set, so a test added later
+ * never gets to kill it; the 1.24.0 report held MSA at 61% when it was nearer
+ * 87% (design note 50).
+ * @param {{ files?: Record<string, { mutants?: { status?: string }[] }>;
+ *   testFiles?: Record<string, { source?: string }> }} report
+ * @param {Readonly<Record<string, string>>} sources current `.ts`/`.tsx` text
+ * @param {(file: string) => string[]} testsOf the test files that reach a file
+ *   (`relatedTests` of it), called once per file with an open mutant
+ * @returns {{ file: string; open: number; changed: string[] }[]} most open first
+ */
+export function staleSurvivors(report, sources, testsOf) {
+  const recorded = report.testFiles ?? {};
+  /** @type {{ file: string; open: number; changed: string[] }[]} */
+  const found = [];
+  for (const [file, entry] of Object.entries(report.files ?? {})) {
+    const open = (entry.mutants ?? []).filter(
+      (m) => m.status === 'Survived' || m.status === 'NoCoverage',
+    ).length;
+    if (open === 0) continue;
+    const changed = testsOf(file).filter((t) => recorded[t]?.source !== sources[t]);
+    if (changed.length > 0) found.push({ file, open, changed });
+  }
+  return found.sort((a, b) => b.open - a.open || a.file.localeCompare(b.file));
+}
+
+/**
  * The test files that can reach any of `seeds` through imports: the tests a
  * mutant in a seed can be killed by, and then some. A superset is what a test
  * allowlist needs; an import this misses (a computed one) costs only a

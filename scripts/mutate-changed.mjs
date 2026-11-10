@@ -28,6 +28,12 @@
 //                       timeout costs its whole budget; the other 90 were
 //                       killed by a test, so the pass loses that signal on
 //                       loop counters.
+//   --remeasure <file>  mutate the whole of this file and rerun every one of
+//                       its mutants (`--force`), changed or not (repeatable).
+//                       The incremental report keeps a survivor's verdict
+//                       while its lines stand, so a test added since never
+//                       gets to kill it; the stale-survivor warning names
+//                       the files this is for.
 //   --without <file>    leave this file out of the pass (repeatable). A file
 //                       with no baseline here that changed is mutated whole and
 //                       its instrumented suites can be very slow; one that did
@@ -66,6 +72,7 @@ import {
   mutatePatterns,
   splitUnbaselined,
   staleBaseWarning,
+  staleSurvivors,
   readSources,
   relatedTests,
   workerCount,
@@ -121,6 +128,12 @@ const ref =
   }
 }
 
+/** Files of the `mutate` list to mutate whole and rerun in full (repeatable). */
+const remeasure = /** @type {string[]} */ ([]);
+for (let file = takeValue('--remeasure'); file !== undefined; file = takeValue('--remeasure')) {
+  remeasure.push(file);
+}
+
 const raw = /** @type {unknown} */ (JSON.parse(readFileSync('stryker.config.json', 'utf8')));
 const config = /** @type {{ mutate: string[]; incrementalFile: string; concurrency?: number }} */ (
   raw
@@ -149,6 +162,38 @@ if (existsSync(incrementalFile)) {
   const report = /** @type {{ files?: Record<string, unknown> }} */ (parsed);
   baseline = new Set(Object.keys(report.files ?? {}));
 }
+/** @typedef {Parameters<typeof staleSurvivors>[0]} StaleReport */
+const stale = (() => {
+  if (!existsSync(incrementalFile)) return [];
+  const sources = readSources();
+  const dom = domTestsOf(sources);
+  const skipped = (/** @type {string[]} */ list) => new Set(matchGlobs(MUTATION_SKIP, list));
+  const parsed = /** @type {unknown} */ (JSON.parse(readFileSync(incrementalFile, 'utf8')));
+  const report = /** @type {StaleReport} */ (parsed);
+  return staleSurvivors(report, sources, (file) => {
+    // Two imports out: further, a test reaches the file through a hub that
+    // most of the project shares, and every changed test would flag every file.
+    // The timing tests assert nothing in a mutation run (`itTimed`).
+    const related = relatedTests(sources, [file], { domTests: dom, maxDepth: 2 });
+    const left = skipped(related);
+    return related.filter((t) => !left.has(t) && !t.endsWith('.timing.test.ts'));
+  }).filter((entry) => mutate.includes(entry.file));
+})();
+if (stale.length > 0) {
+  const shown = stale.slice(0, 10);
+  out(
+    `${stale.length} file(s) of the list have survivors recorded before a test file near them (one ` +
+      `or two imports away) was added or changed, so their verdicts may be out of date. Most open first:\n` +
+      shown
+        .map((e) => `  ${e.file}: ${e.open} open, ${e.changed.length} test file(s) differ`)
+        .join('\n') +
+      `${stale.length > shown.length ? `\n  ... and ${stale.length - shown.length} more` : ''}\n` +
+      `  Rerun one with --remeasure <file>.`,
+  );
+}
+for (const file of remeasure) {
+  if (!mutate.includes(file)) throw new Error(`--remeasure ${file}: not in the mutate list`);
+}
 const ranges = changedRanges(
   execFileSync('git', ['diff', '-U0', '--no-renames', ref, 'HEAD', '--', 'src'], {
     encoding: 'utf8',
@@ -158,15 +203,15 @@ const ranges = changedRanges(
 const { whole: unbaselined, unmeasured } = splitUnbaselined(
   mutate,
   baseline,
-  new Set(ranges.keys()),
+  new Set([...ranges.keys(), ...remeasure]),
 );
 const patterns = mutatePatterns(
   mutate,
-  new Set(ranges.keys()),
+  new Set([...ranges.keys(), ...remeasure]),
   wholeFiles ? null : ranges,
-  unbaselined,
+  new Set([...unbaselined, ...remeasure]),
 );
-const files = mutate.filter((f) => ranges.has(f) || unbaselined.has(f));
+const files = mutate.filter((f) => ranges.has(f) || unbaselined.has(f) || remeasure.includes(f));
 
 if (unmeasured.length > 0) {
   out(
@@ -227,6 +272,7 @@ if (!args.includes('--concurrency')) {
 // The dry run is one process; config's 20 minutes is for a run of a few
 // files, and a ceiling costs nothing when it is not reached.
 if (!args.includes('--dryRunTimeoutMinutes')) flags.push('--dryRunTimeoutMinutes', '45');
+if (remeasure.length > 0) flags.push('--force');
 if (skipLoops) flags.push('--mutator.excludedMutations', 'UpdateOperator');
 
 execFileSync('node', ['scripts/patch-stryker-vitest.mjs'], { stdio: 'inherit' });
