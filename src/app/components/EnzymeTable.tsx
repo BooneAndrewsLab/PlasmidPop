@@ -68,6 +68,8 @@ function rowKey(row: Row): string {
 /** `from` to `to` of the sequence, round the origin on a circle and clipped on a line. */
 function readRange(doc: SeqDocument, from: number, to: number): string {
   const n = doc.length;
+  // Nothing to read, and no length to fold onto: the loop below would end only on a NaN.
+  if (n === 0) return '';
   if (doc.topology !== 'circular') return doc.sequence.slice(Math.max(0, from), Math.min(n, to));
   let out = '';
   for (let p = from; p < to;) {

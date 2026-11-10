@@ -221,20 +221,24 @@ sequence.
   that guard a zero length do not agree on the answer (null in
   `featureOrigin.ts`'s `fold`, 0 in `restriction.ts` and `gateway.ts:485`,
   the position as it came in `digest.ts`, `orf.ts`, `gateway.ts:243` and
-  `alignmentVerdict.ts`), and `EnzymeTable.tsx`'s `readRange` ends its loop
-  on the `NaN`: with a 0 there it would not end. Each guard stays where it
-  was.
-- **Can a zero length reach an unguarded site?** Eleven files guard at the
+  `alignmentVerdict.ts`). Each guard stays where it was.
+  - `EnzymeTable.tsx`'s `readRange` had no guard and ended its loop on the
+    `NaN`: with a 0 there it would not have ended. The code review found
+    that the one site whose result hung on the `NaN`, so it now returns
+    `''` for an empty document before the loop, which is what the `NaN`
+    gave. No test reaches it: `readRange` reads round a cut site, and an
+    empty document has none.
+- **Can a zero length reach an unguarded site?** Twelve files guard at the
   site or return before it (`methylation.ts`, `restriction.ts`, `orf.ts`,
   `digest.ts`, `gateway.ts`, `anneal.ts`, `checksum/align.ts`,
   `readAlignment.ts`, `alignmentVerdict.ts`, `editing.ts`,
-  `components/primerDesign.ts`), as do `fold` in `featureOrigin.ts` and
+  `components/primerDesign.ts`, `EnzymeTable.tsx`), as do `fold` in `featureOrigin.ts` and
   `primerDesign.ts:396`. In `translated.ts`, `bidirectional.ts:53` and
   `mutagenesis.ts` the `NaN` indexes an empty text and reads as past the
   end, which is right. The rest (`featureOrigin.ts` after `fold`,
   `crispr.ts`, `crisprEdit.ts`, `bidirectional.ts`'s `before`, `pcr.ts`,
   `cloningEnds.ts`, `checkPrimers.ts`, `primerDesign.ts:335`,
-  `alignmentSearch.ts`, `EnzymeTable.tsx`, `crisprEditing.ts` and the three
+  `alignmentSearch.ts`, `crisprEditing.ts` and the three
   renderers' mismatch marks) fold a position taken from a hit, a site, a
   guide or a mark, which an empty sequence has none of. That was checked
   by run and not by proof: with the helper made to log every call with a
