@@ -1,5 +1,5 @@
 import { type Strand } from '../features';
-import { type Range, type Topology } from '../range';
+import { type Range, type Topology, wrapPosition } from '../range';
 import { reverseComplement } from '../sequence';
 import { DEFAULT_TABLE, type TranslationTable, isStartCodon, isStopCodon } from './codons';
 
@@ -141,7 +141,7 @@ export function findOrfs(sequence: string, topology: Topology, options: OrfOptio
     // Reverse-strand position p corresponds to forward position L - p.
     const len = o.end - o.start;
     let start = L - o.end;
-    if (topology === 'circular' && L > 0) start = ((start % L) + L) % L;
+    if (topology === 'circular' && L > 0) start = wrapPosition(start, L);
     orfs.push({
       range: { start, end: start + len },
       strand: 'reverse',

@@ -1,5 +1,5 @@
 import { DEFAULT_MIN_ORF_CODONS } from '../analysis/orf';
-import { type Topology } from '../range';
+import { type Topology, wrapPosition } from '../range';
 import { type FeatureHit } from './detect';
 import { BASE_CODE } from './protein';
 
@@ -40,7 +40,7 @@ const END = 4;
 function codonKind(bases: Uint8Array, circular: boolean, q: number, forward: boolean): number {
   const n = bases.length;
   if (!circular && (q < 0 || q + 3 > n)) return END;
-  const at = (p: number): number => bases[((p % n) + n) % n] ?? 4;
+  const at = (p: number): number => bases[wrapPosition(p, n)] ?? 4;
   let a = at(q);
   let b = at(q + 1);
   let c = at(q + 2);

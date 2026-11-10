@@ -1,5 +1,5 @@
 import { type Feature, type Strand } from '../features';
-import { type Topology } from '../range';
+import { type Topology, wrapPosition } from '../range';
 import { type FeatureHit, overlapLength } from './detect';
 import { type LibraryPart } from './library';
 
@@ -50,7 +50,7 @@ const COMPLEMENT: Readonly<Record<string, string>> = { A: 'T', C: 'G', G: 'C', T
 function codonAt(bases: Bases, circular: boolean, q: number, strand: Strand): string {
   const n = bases.length;
   if (!circular && (q < 0 || q + 3 > n)) return '';
-  const base = (i: number): string => bases.charAt((((q + i) % n) + n) % n).toUpperCase();
+  const base = (i: number): string => bases.charAt(wrapPosition(q + i, n)).toUpperCase();
   if (strand === 'forward') return base(0) + base(1) + base(2);
   const complement = (i: number): string => COMPLEMENT[base(i)] ?? 'N';
   return complement(2) + complement(1) + complement(0);
@@ -83,7 +83,7 @@ function before(signal: FeatureHit, end: number, length: number, circular: boole
   // On a circle the gap is taken the short way round from the signal's start
   // back, so a 3′ end just inside the signal reads as a small negative.
   const size = signal.range.end - signal.range.start;
-  const around = ((gap % length) + length) % length;
+  const around = wrapPosition(gap, length);
   return around > length - size ? around - length : around;
 }
 

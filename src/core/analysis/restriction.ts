@@ -1,5 +1,5 @@
 import { type OverhangKind } from '../document';
-import { type Topology } from '../range';
+import { type Topology, wrapPosition } from '../range';
 import { reverseComplement } from '../sequence';
 import { ENZYME_TABLE } from './enzymeTable';
 import { matchPatterns, matchPositions, patternMasks, sequenceMasks } from './search';
@@ -217,7 +217,7 @@ export function cutLabel(cut: number, length: number, topology: Topology): numbe
 }
 
 function wrap(position: number, length: number, topology: Topology): number | null {
-  if (topology === 'circular') return length === 0 ? 0 : ((position % length) + length) % length;
+  if (topology === 'circular') return length === 0 ? 0 : wrapPosition(position, length);
   return position < 0 || position > length ? null : position;
 }
 

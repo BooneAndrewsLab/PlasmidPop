@@ -1,4 +1,5 @@
 import { type SeqDocument } from '../document';
+import { wrapPosition } from '../range';
 import { reverseComplement } from '../sequence';
 
 import { documentChecksum } from './seguid';
@@ -139,7 +140,7 @@ function anchoredOffset(
     if (found < 0 || found >= theirs.length) continue;
     const again = ring.indexOf(anchor, found + 1);
     if (again >= 0 && again < theirs.length) continue;
-    const offset = (((found - at) % theirs.length) + theirs.length) % theirs.length;
+    const offset = wrapPosition(found - at, theirs.length);
     votes.set(offset, (votes.get(offset) ?? 0) + 1);
     cast += 1;
   }

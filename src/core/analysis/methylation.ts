@@ -1,4 +1,4 @@
-import { type Topology } from '../range';
+import { type Topology, wrapPosition } from '../range';
 import { type CutSite, getEnzyme } from './restriction';
 
 /**
@@ -298,7 +298,7 @@ export function hostMethylationAt(
   let window = '';
   let offset = from;
   if (topology === 'circular' && L > 0) {
-    for (let i = from; i < to; i++) window += sequence.charAt(((i % L) + L) % L);
+    for (let i = from; i < to; i++) window += sequence.charAt(wrapPosition(i, L));
   } else {
     offset = Math.max(0, from);
     window = sequence.slice(offset, Math.min(L, to));

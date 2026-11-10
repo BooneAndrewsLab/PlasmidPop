@@ -1,5 +1,5 @@
 import { type Feature, createFeature, rangeSegment } from '../features';
-import { type Range, type Topology } from '../range';
+import { type Range, type Topology, wrapPosition } from '../range';
 import { complement, reverseComplement } from '../sequence';
 import { type CrisprGuide, type Nuclease } from './crispr';
 
@@ -155,8 +155,6 @@ export function primeEditProblem(
   return null;
 }
 
-const mod = (a: number, m: number): number => ((a % m) + m) % m;
-
 /** Prime editing nicks the PAM strand with an SpCas9 nickase: 3' PAM, one cut point. */
 export function supportsPrimeEditing(
   n: Pick<Nuclease, 'pamSide' | 'cut' | 'spacerLength'>,
@@ -197,7 +195,7 @@ export function designPegRnas(
     const at = (i: number): string | null => {
       const f = forward ? nick + i : nick - 1 - i;
       if (!circular && (f < 0 || f >= L)) return null;
-      const c = upper[mod(f, L)];
+      const c = upper[wrapPosition(f, L)];
       if (c === undefined) return null;
       return forward ? c : complement(c);
     };
@@ -214,7 +212,7 @@ export function designPegRnas(
     // Where the edit starts, along the PAM strand: downstream of the nick or out.
     const rel = forward ? edit.start - nick : nick - (edit.start + edit.deleteLength);
     const half = Math.floor(L / 2);
-    const distance = circular ? mod(rel + half, L) - half : rel;
+    const distance = circular ? wrapPosition(rel + half, L) - half : rel;
     if (distance < 0 || distance > MAX_NICK_DISTANCE) continue;
     const insert = forward ? edit.insert : reverseComplement(edit.insert);
 
@@ -323,7 +321,7 @@ export function pairNickases(
     for (const r of rev) {
       let offset = r.at - f.at;
       if (topology === 'circular') {
-        offset = ((offset % length) + length) % length;
+        offset = wrapPosition(offset, length);
         if (offset > length / 2) offset -= length;
       }
       if (Math.abs(offset) > maxOffset) continue;
