@@ -486,6 +486,37 @@ describe('renderLinearView preview overlay', () => {
   });
 });
 
+describe('renderLinearView preview marks over the origin', () => {
+  const ring = SeqDocument.create({ sequence: 'ACGTACGTACACGTACGTAC', topology: 'circular' });
+  /** A primer over the origin: its last 5 bases are bases 0 to 5 again, numbered 20 to 25. */
+  const primer = (marks: number[]): OverlaySpan[] => [
+    {
+      id: 'forward',
+      label: 'Fwd 1',
+      range: { start: 15, end: 25 },
+      strand: 'forward',
+      shape: 'arrow',
+      marks,
+    },
+  ];
+  const cells = (svg: string): string[] =>
+    [...svg.matchAll(/<rect[^>]*fill="#aa8800"[^>]*>/g)].map((m) => m[0]);
+
+  it('draws a mismatch past the end in the column of the base it is on the circle', () => {
+    const past = cells(render(ring, false, null, { overlay: primer([22]) }));
+    const folded = cells(render(ring, false, null, { overlay: primer([2]) }));
+    expect(past).toHaveLength(1);
+    expect(past).toEqual(folded);
+  });
+
+  it('draws one before the end where it is, and one at the end on the first row’s base 0', () => {
+    expect(cells(render(ring, false, null, { overlay: primer([17]) }))).toHaveLength(1);
+    const atEnd = cells(render(ring, false, null, { overlay: primer([20]) }));
+    expect(atEnd).toEqual(cells(render(ring, false, null, { overlay: primer([0]) })));
+    expect(atEnd).toHaveLength(1);
+  });
+});
+
 describe('renderLinearView residue numbers', () => {
   // Rows of 30 bases, 10 px each; the amino-acid line keeps an 11 px band
   // above its letters for the numbers.

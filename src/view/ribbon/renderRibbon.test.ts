@@ -118,6 +118,28 @@ describe('the map strip (item 107, point 5)', () => {
     expect(svg).toContain(theme.editChange);
   });
 
+  it('ticks a mismatch past the end of a primer over the origin where that base is on the circle', () => {
+    // 1,000 bases: the primer runs from 990 over the origin to 1,010, its mismatch at 1,004 is base 4.
+    const primer = (marks: number[]) => ({
+      overlay: [
+        {
+          id: 'fwd',
+          label: 'Fwd',
+          range: { start: 990, end: 1010 },
+          strand: 'forward' as const,
+          shape: 'arrow' as const,
+          marks,
+        },
+      ],
+    });
+    const past = draw(plain, primer([1004]));
+    const folded = draw(plain, primer([4]));
+    expect(past).toBe(folded);
+    expect(past).toContain(theme.editChange);
+    // A mismatch before the origin is where it says, which is not at base 4.
+    expect(draw(plain, primer([994]))).not.toBe(folded);
+  });
+
   it('keeps every lane above the backbone on a short ribbon, sharing the top one past the room', () => {
     const rows = ribbonRows(40, 6, 2);
     expect(rows.featureLanesShown).toBeGreaterThanOrEqual(1);
