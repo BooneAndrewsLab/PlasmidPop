@@ -1,9 +1,11 @@
 // `node scripts/dropCallProbe.mjs [--helper name] [--file substring] [--list]`
 //
 // The drop-the-call probe (#436). For each call of `wrapPosition`,
-// `shortWayRound`, `oneBasedEnd` and `formatSpan` in a non-test source file,
-// replace the call with its first argument (`formatSpan`: with the unfolded
-// text, `start + 1` and the raw end), one site at a time, run the tests
+// `foldPosition`, `shortWayRound`, `oneBasedEnd` and `formatSpan` in a
+// non-test source file, replace the call with its first argument
+// (`formatSpan`: with the unfolded text, `start + 1` and the raw end;
+// `foldPosition`, 15 sites: the position unfolded, on a circle too), one site at a
+// time, run the tests
 // related to that file (`vitest related`), and put the file back. A site where
 // nothing fails is a call whose helper no test reaches with an input that
 // makes it matter. Stryker has no mutator that drops a call, so this is the
@@ -21,7 +23,7 @@ import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const log = (/** @type {string} */ line) => process.stdout.write(`${line}\n`);
-const HELPERS = ['wrapPosition', 'shortWayRound', 'oneBasedEnd', 'formatSpan'];
+const HELPERS = ['wrapPosition', 'foldPosition', 'shortWayRound', 'oneBasedEnd', 'formatSpan'];
 const args = process.argv.slice(2);
 const opt = (/** @type {string} */ name) => {
   const i = args.indexOf(name);
