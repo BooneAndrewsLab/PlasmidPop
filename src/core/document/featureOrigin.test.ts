@@ -70,6 +70,36 @@ describe('a piece’s record of the feature it was cut from (#182)', () => {
   });
 });
 
+describe('a join that steps back (#432 step 3)', () => {
+  // `join(88..93,4..14)`: the second segment lies before the first. On a
+  // circle its start, 84 bases before the 5′ end, folds to 12 bases after
+  // it: the feature goes on round the origin. On a line it stays negative,
+  // and the original's own space starts at the lowest base.
+  const text = 'ACGTTGCA'.repeat(12);
+  const feature = createFeature({
+    id: 'cds',
+    type: 'CDS',
+    name: 'g',
+    segments: [rangeSegment(87, 93), rangeSegment(3, 14)],
+  });
+  const bases = (r: Range): string =>
+    r.end <= text.length
+      ? text.slice(r.start, r.end)
+      : text.slice(r.start) + text.slice(0, r.end - text.length);
+
+  it('on a line, lays the original out from its lowest base, the step kept as it is', () => {
+    const record = originRecord(feature, { length: 96, topology: 'linear' }, bases);
+    expect(record?.span).toBe(90);
+    expect(record?.whole.segments).toEqual([rangeSegment(84, 90), rangeSegment(0, 11)]);
+  });
+
+  it('on a circle, reads the step back as going on round the origin', () => {
+    const record = originRecord(feature, { length: 96, topology: 'circular' }, bases);
+    expect(record?.span).toBe(23);
+    expect(record?.whole.segments).toEqual([rangeSegment(0, 6), rangeSegment(12, 23)]);
+  });
+});
+
 describe('pieces put back together on a circle', () => {
   /** An 80 bp circle with one CDS at 10 to 40, cut at 25 into two pieces. */
   const ring = (strand: 'forward' | 'reverse') =>
