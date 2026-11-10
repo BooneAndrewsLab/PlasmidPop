@@ -106,6 +106,17 @@ export function wrapPosition(position: number, seqLength: number): number {
 }
 
 /**
+ * An offset round a circle taken the short way: `b - a` folded into
+ * `(-seqLength / 2, seqLength / 2]`, so a position just behind reads as a
+ * small negative and not as nearly a whole turn forward. Exactly half way
+ * round counts as forward. `NaN` for an empty sequence, as `wrapPosition`.
+ */
+export function shortWayRound(offset: number, seqLength: number): number {
+  const forward = wrapPosition(offset, seqLength);
+  return forward > seqLength / 2 ? forward - seqLength : forward;
+}
+
+/**
  * Splits a range into one or two non-wrapping pieces in real coordinates.
  * The pieces are returned in forward order: the head `[start, length)`
  * first, then the tail `[0, end - length)`.

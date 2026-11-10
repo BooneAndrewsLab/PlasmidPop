@@ -26,7 +26,7 @@ import {
   designAnchoredPrimers,
   findPrimerBindingSites,
 } from '../primers';
-import { type Range, type Topology, rangeContains, wrapPosition } from '../range';
+import { type Range, type Topology, rangeContains, shortWayRound, wrapPosition } from '../range';
 import { reverseComplement } from '../sequence';
 import { type DigestFragment, type FragmentEnd, cutEnd, cutOffset, digest } from './digest';
 import { endFlank } from './endFlanks';
@@ -329,9 +329,7 @@ interface LaidOut {
 function layOut(site: CutSite, cutUnrolled: number, siteLength: number, g: Geometry): LaidOut {
   const near = (p: number): number => {
     if (g.topology !== 'circular') return p;
-    let d = wrapPosition(p - site.cut, g.L);
-    if (d > g.L / 2) d -= g.L;
-    return cutUnrolled + d;
+    return cutUnrolled + shortWayRound(p - site.cut, g.L);
   };
   const cutBottom = cutUnrolled + cutOffset(site, g.L, g.topology);
   const siteStart = near(site.siteStart);

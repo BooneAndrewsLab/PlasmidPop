@@ -10,6 +10,7 @@ import {
   rotateRange,
   shiftRangeForDelete,
   shiftRangeForInsert,
+  shortWayRound,
   unrollRange,
   wrapPosition,
 } from './range';
@@ -305,5 +306,53 @@ describe('wrapPosition (#432)', () => {
   it('has no answer for an empty sequence: the caller rules it out', () => {
     expect(wrapPosition(5, 0)).toBeNaN();
     expect(wrapPosition(0, 0)).toBeNaN();
+  });
+});
+
+describe('shortWayRound (#432)', () => {
+  it('leaves a short offset forward as it is', () => {
+    expect(shortWayRound(0, 600)).toBe(0);
+    expect(shortWayRound(30, 600)).toBe(30);
+  });
+
+  it('reads nearly a whole turn forward as a little way back', () => {
+    // From base 20 to base 590 on 600 bases: 570 forward, or 30 back.
+    expect(shortWayRound(590 - 20, 600)).toBe(-30);
+    expect(shortWayRound(599, 600)).toBe(-1);
+  });
+
+  it('takes an offset across the origin the short way', () => {
+    // From base 590 to base 20: the plain difference is -570, the way round is 30.
+    expect(shortWayRound(20 - 590, 600)).toBe(30);
+    expect(shortWayRound(-1, 600)).toBe(-1);
+  });
+
+  it('counts exactly half way round as forward', () => {
+    expect(shortWayRound(300, 600)).toBe(300);
+    expect(shortWayRound(-300, 600)).toBe(300);
+    expect(shortWayRound(301, 600)).toBe(-299);
+    // An odd length has no half-way base: 3 forward, then 4 forward is 3 back.
+    expect(shortWayRound(3, 7)).toBe(3);
+    expect(shortWayRound(4, 7)).toBe(-3);
+  });
+
+  it('gives 0 for any whole number of turns', () => {
+    expect(shortWayRound(600, 600)).toBe(0);
+    expect(shortWayRound(-1200, 600)).toBe(0);
+  });
+
+  it('lands in (-length / 2, length / 2] and a whole number of turns from the offset', () => {
+    for (const length of [1, 2, 3, 7, 10]) {
+      for (let d = -3 * length - 1; d <= 3 * length + 1; d++) {
+        const short = shortWayRound(d, length);
+        expect(short).toBeGreaterThan(-length / 2);
+        expect(short).toBeLessThanOrEqual(length / 2);
+        expect(Math.abs((d - short) % length)).toBe(0);
+      }
+    }
+  });
+
+  it('has no answer for an empty sequence: the caller rules it out', () => {
+    expect(shortWayRound(5, 0)).toBeNaN();
   });
 });

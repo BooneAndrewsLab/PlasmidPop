@@ -1,5 +1,5 @@
 import { type Feature, createFeature, rangeSegment } from '../features';
-import { type Range, type Topology, wrapPosition } from '../range';
+import { type Range, type Topology, shortWayRound, wrapPosition } from '../range';
 import { complement, reverseComplement } from '../sequence';
 import { type CrisprGuide, type Nuclease } from './crispr';
 
@@ -320,10 +320,7 @@ export function pairNickases(
   for (const f of fwd) {
     for (const r of rev) {
       let offset = r.at - f.at;
-      if (topology === 'circular') {
-        offset = wrapPosition(offset, length);
-        if (offset > length / 2) offset -= length;
-      }
+      if (topology === 'circular') offset = shortWayRound(offset, length);
       if (Math.abs(offset) > maxOffset) continue;
       const lo = offset >= 0 ? f.at : r.at;
       pairs.push({

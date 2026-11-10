@@ -10,7 +10,7 @@ import {
 } from '../document';
 import { type Feature } from '../features';
 import { type LineageNode } from '../lineage/lineage';
-import { type Range, type Topology, wrapPosition } from '../range';
+import { type Range, type Topology, shortWayRound, wrapPosition } from '../range';
 
 /**
  * One end of a double-stranded fragment: the same description a document
@@ -81,12 +81,8 @@ export function cutOffset(
   length: number,
   topology: Topology,
 ): number {
-  let d = site.cutBottom - site.cut;
-  if (topology === 'circular' && length > 0) {
-    d = wrapPosition(d, length);
-    if (d > length / 2) d -= length;
-  }
-  return d;
+  const d = site.cutBottom - site.cut;
+  return topology === 'circular' && length > 0 ? shortWayRound(d, length) : d;
 }
 
 /** Overhang region of a cut as an unrolled range on the top strand. */
