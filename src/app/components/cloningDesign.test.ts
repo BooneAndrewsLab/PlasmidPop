@@ -83,6 +83,34 @@ describe('the cloning mode’s helpers (#303)', () => {
     }
   });
 
+  it('numbers a selection and a feature through the origin by the last base they cover', () => {
+    const ring = SeqDocument.create({
+      name: 'ring',
+      topology: 'circular',
+      sequence: 'ACGT'.repeat(150),
+      features: [
+        createFeature({ type: 'gene', name: 'across', segments: [rangeSegment(590, 620)] }),
+        createFeature({ type: 'gene', name: 'ending', segments: [rangeSegment(570, 600)] }),
+      ],
+    });
+    try {
+      const insertTab = open(ring, { start: 590, end: 620 });
+      const vectorTab = open(pUC19);
+      const groups = insertChoices(editorStore.getState().documents, vectorTab.documentId);
+      const choices = groups[0]?.choices ?? [];
+      const labels = choices.map((c) => c.label);
+      // A selection and a feature that wrap read 591–20, not 591–620.
+      expect(labels).toContain('Selection 591–20 · 30 bp');
+      expect(labels).toContain('across (gene) · 591–20');
+      expect(choices[0]?.ref.name).toBe('ring 591–20');
+      // The linear case beside it: ending on the last base is 600, not 0.
+      expect(labels).toContain('ending (gene) · 571–600');
+      expect(groups[0]?.documentId).toBe(insertTab.documentId);
+    } finally {
+      closeAll();
+    }
+  });
+
   it('resolves an insert off its tab now, and to nothing once the tab or the feature is gone', () => {
     try {
       const tab = open(U49845);

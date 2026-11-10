@@ -104,15 +104,17 @@ const MCS = { start: 395, end: 452 };
 function setup(
   layout: 'split' | 'phone' = 'split',
   vector: SeqDocument = pUC19,
+  region: { start: number; end: number } = MCS,
+  insertDoc: SeqDocument = U49845,
 ): { vectorId: string; insertId: string } {
   let insertId = '';
   let vectorId = '';
   act(() => {
-    insertId = editorStore.openDocument(U49845);
+    insertId = editorStore.openDocument(insertDoc);
     vectorId = editorStore.openDocument(vector);
     rememberWorkspacePage(vectorId, 'design');
     editorStore.setWorkspace('primers');
-    editorStore.setSelection(MCS);
+    editorStore.setSelection(region);
   });
   render(<PrimerWorkspace doc={vector} layout={layout} />);
   act(() => {
@@ -128,11 +130,11 @@ function insertSelect(): HTMLSelectElement {
 }
 
 /** Chooses the AXL2 CDS (named Axl2p, after its product) of the other tab, and waits for the scans and the pair table. */
-async function chooseAxl2(): Promise<HTMLElement> {
+async function chooseAxl2(label = 'Axl2p (CDS)'): Promise<HTMLElement> {
   const option = within(insertSelect())
     .getAllByRole('option')
-    .find((o) => o.textContent.startsWith('Axl2p (CDS)'));
-  if (option === undefined) throw new Error('Axl2p is not offered');
+    .find((o) => o.textContent.startsWith(label));
+  if (option === undefined) throw new Error(`${label} is not offered`);
   act(() => {
     fireEvent.change(insertSelect(), { target: { value: (option as HTMLOptionElement).value } });
   });
@@ -339,6 +341,51 @@ describe('the Design page’s cloning mode (#303)', () => {
     expect(product?.topology).toBe('circular');
     expect(product?.length).toBeGreaterThan(pUC19.length);
     expect(state.sidebarTab).toBe('features');
+  });
+
+  it('numbers a region and an insert through the origin by their last base', async () => {
+    // pUC19 turned so that its polylinker, 396-452, runs through the origin:
+    // the same 57 bases at 2,662 to 33 on the 2,686 bp circle.
+    const text = pUC19.sequence.toString();
+    const shift = 420;
+    const turned = SeqDocument.create({
+      name: 'pUC19-turned',
+      topology: 'circular',
+      sequence: text.slice(shift) + text.slice(0, shift),
+    });
+    const L = turned.length;
+    const region = { start: 395 - shift + L, end: 452 - shift + L };
+    expect(region.end).toBeGreaterThan(L);
+    // An insert tab with a gene that wraps and one that ends on its last base.
+    const ring = SeqDocument.create({
+      name: 'ring',
+      topology: 'circular',
+      sequence: U49845.sequence.toString(),
+      features: [
+        createFeature({
+          type: 'gene',
+          name: 'across',
+          segments: [rangeSegment(U49845.length - 30, U49845.length + 570)],
+        }),
+      ],
+    });
+    setup('split', turned, region, ring);
+    expect(
+      screen.getByText(`${(region.start + 1).toLocaleString()}–${String(region.end - L)}`),
+    ).toBeInTheDocument();
+    const grid = await chooseAxl2('across (gene)');
+    expect(screen.getByText(`${(U49845.length - 29).toLocaleString()}–570`)).toBeInTheDocument();
+    act(() => {
+      fireEvent.click(must(pairRows(grid)[0], 'a row'));
+    });
+    act(() => {
+      fireEvent.click(designButton());
+    });
+    expect(
+      screen.getByText(
+        `Cloning primers · across (ring) into ${turned.name} ${(region.start + 1).toLocaleString()}–${String(region.end - L)}`,
+      ),
+    ).toBeInTheDocument();
   });
 
   it('lists the pairs as rows on a phone, the selected one opened out with its product', async () => {

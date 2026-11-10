@@ -196,3 +196,26 @@ describe('CloneCheckPage without a context', () => {
     expect(pairRows().length).toBeGreaterThan(0);
   });
 });
+
+describe('CloneCheckPage spans on a circle', () => {
+  it('numbers an insert that runs through the origin by its last base, not the unrolled end', () => {
+    const L = product.length;
+    act(() => {
+      editorStore.openDocument(vector);
+    });
+    openOn(product);
+    // The last 300 bases and the first 500: 300 + 500 = 800 bp, ending at 500.
+    act(() => {
+      editorStore.setSelection({ start: L - 300, end: L + 500 });
+    });
+    expect(screen.getByText(`${(L - 299).toLocaleString()}–500`)).toBeInTheDocument();
+    expect(screen.getByText(/800 bp/)).toBeInTheDocument();
+    // The end on the last base is L, not 0.
+    act(() => {
+      editorStore.setSelection({ start: L - 300, end: L });
+    });
+    expect(
+      screen.getByText(`${(L - 299).toLocaleString()}–${L.toLocaleString()}`),
+    ).toBeInTheDocument();
+  });
+});
