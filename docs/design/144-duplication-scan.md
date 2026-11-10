@@ -538,3 +538,21 @@ test file, so `vitest related` and the drop-the-call probe pick them up.
   pair as their argument and cannot be called without one, so their tests
   are of the list that would feed them. Part 2 of #436 and step 3 of the
   order (the topology tests) are still where they were.
+
+## The test run's locale (#435)
+
+The app formats positions and lengths with `toLocaleString()` and no locale,
+on purpose; the tests expect the English form (`'4,991–10'`). Measured with
+the suite run under `LANG=de_DE.UTF-8 LC_ALL=de_DE.UTF-8` and no fix: 163 of
+8502 tests failed, in 61 files. Node resolved `de-DE` from the environment.
+
+The fix pins the run, not the app. `scripts/with-tmp.mjs` sets `LANG` and
+`LC_ALL` to `en_US.UTF-8` in the environment of the child, so `npm test`, the
+CI `test:coverage` step and the mutation runs all inherit it (Node reads the
+locale once at start-up and Vitest's workers inherit the environment; checked
+under Vitest with the shell at de_DE). The locale need not be installed:
+ICU takes the name, not the system's locale database. A bare `npx vitest`
+cannot be pinned from the config (the process has started), so
+`src/test/locale.test.ts` asserts the resolved locale starts with `en` and
+that `(5000).toLocaleString()` is `5,000`, and its message names `npm test`
+and this issue: one failure in place of dozens of separator mismatches.

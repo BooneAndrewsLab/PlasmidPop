@@ -138,6 +138,12 @@ npm run dev
 | `npm run bench`                   | Build, then the open-and-scan benchmark               |
 | `npm run oracle:*`                | Regenerate or run the independent-oracle checks       |
 
+`npm test` and its variants pin an English locale (`LC_ALL=en_US.UTF-8`, set in
+`scripts/with-tmp.mjs`): the app formats numbers in the reader's own locale on
+purpose, and the tests expect `5,000`. A bare `npx vitest` does not pin it, so
+set `LC_ALL=en_US.UTF-8` in the shell, or `src/test/locale.test.ts` fails with
+that advice (#435).
+
 ## Building and deploying
 
 `npm run build` writes a static, installable PWA to `dist/` (service worker,
