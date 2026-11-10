@@ -197,6 +197,15 @@ describe('pcr', () => {
     expect(result.products[0]?.templateRange).toEqual({ start: 2900, end: 3122 });
   });
 
+  it('amplifies the long way round when the reverse primer lies behind the forward one', () => {
+    // From 1,000 on to the end, over the origin, and up to 922: the reverse
+    // primer is at a lower number, which on a line is no product at all.
+    const result = pcr(PLASMID, [fwd(1000, 1022), rev(900, 922)]);
+    expect(one(result)).toBe(TEXT.slice(1000) + TEXT.slice(0, 922));
+    expect(result.products[0]?.length).toBe(2922);
+    expect(pcr(LINEAR, [fwd(1000, 1022), rev(900, 922)]).products).toHaveLength(0);
+  });
+
   it('amplifies the whole plasmid from back-to-back primers', () => {
     // Inverse PCR, which is how a vector is linearised for a Gibson. It
     // needs no case of its own: it is the long way round.
