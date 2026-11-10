@@ -310,6 +310,18 @@ describe('partJunctions', () => {
       [],
     );
   });
+
+  it('finds the same junctions on a circle whatever base the insert starts at', () => {
+    const whole = pseudo(1200, 21);
+    const parts = [whole.slice(0, 400), whole.slice(380, 800), whole.slice(780, 1200)].map(
+      (seq, i) => linear(`part ${i.toString()}`, seq),
+    );
+    const product = circular('ring', whole);
+    // The insert starts 20 bases in, so the first part begins before it (a homology arm)...
+    expect(partJunctions(product, { start: 20, end: 1180 }, parts)).toEqual([390, 790]);
+    // ...and 100 before the end, so it runs through the origin and every junction is folded back.
+    expect(partJunctions(product, { start: 1100, end: 2260 }, parts)).toEqual([390, 790]);
+  });
 });
 
 describe('flipInsert', () => {

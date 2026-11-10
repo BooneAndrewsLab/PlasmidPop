@@ -273,6 +273,30 @@ describe('positions and selections', () => {
     expect(clampPosition(SeqDocument.create({ sequence: '' }), 5)).toBe(0);
   });
 
+  it('moves a selection that lies before the new origin to the end of the circle', () => {
+    // The circle is 10 long: new origin 8 puts old base 2 at 4, old base 8 at 0.
+    expect(
+      selectionAfterOp(circular, { start: 2, end: 5 }, { type: 'setOrigin', position: 8 }),
+    ).toEqual({
+      start: 4,
+      end: 7,
+    });
+    // One that starts at the new origin or after it only counts down; neither folds.
+    expect(
+      selectionAfterOp(circular, { start: 9, end: 10 }, { type: 'setOrigin', position: 8 }),
+    ).toEqual({
+      start: 1,
+      end: 2,
+    });
+    // A selection that runs through the old origin comes out through the new one.
+    expect(
+      selectionAfterOp(circular, { start: 8, end: 13 }, { type: 'setOrigin', position: 3 }),
+    ).toEqual({
+      start: 5,
+      end: 10,
+    });
+  });
+
   it('stops a Shift+arrow at the ends of a circle', () => {
     expect(clampPosition(circular, 11, true)).toBe(10);
     expect(clampPosition(circular, -1, true)).toBe(0);

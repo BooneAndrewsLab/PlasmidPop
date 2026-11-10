@@ -408,6 +408,32 @@ describe('designCloningEnds on pUC19', () => {
     );
   });
 
+  it.each([
+    ['inside the first site, its cut after the origin', 'KpnI', 'siteStart', 2],
+    ['at the first cut', 'KpnI', 'cut', 0],
+    ['at the second cut', 'BamHI', 'cut', 0],
+    ['inside the second site, its cut after the origin', 'BamHI', 'siteStart', 1],
+  ] as const)('with the origin %s, the same product comes out', (_name, enzyme, at, shift) => {
+    const origin = siteOf(pUC19, enzyme)[at] + shift;
+    const turned = pUC19.setOrigin(origin);
+    const L = pUC19.length;
+    const region = {
+      start: (MCS.start - origin + L) % L,
+      end: ((MCS.start - origin + L) % L) + (MCS.end - MCS.start),
+    };
+    const product = designCloningEnds(context(turned, AXL2, { region }), {
+      forward: 'KpnI',
+      reverse: 'BamHI',
+    }).simulate().product;
+    if (product === null) throw new Error('no product');
+    expect(
+      sameCircle(
+        product.sequence.toString(),
+        expectedProduct(pUC19, 'KpnI', 'BamHI', insertSequence(AXL2)),
+      ),
+    ).toBe(true);
+  });
+
   it('an override that cuts the insert warns in red and the simulation says what happened', () => {
     const d = designCloningEnds(ctx, { forward: 'EcoRI', reverse: 'BamHI' });
     expect(d.problem).toBeNull();

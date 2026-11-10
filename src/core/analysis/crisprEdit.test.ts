@@ -178,6 +178,32 @@ describe('designPegRnas', () => {
     expect(turned?.extension).toBeDefined();
   });
 
+  it('reads an edit just past the origin as downstream of a nick just before it', () => {
+    // Turned so that the nick is 2 bases before the end and the edit 2 bases after the start.
+    const shift = nick + 2;
+    const rotated = SEQ.slice(shift) + SEQ.slice(0, shift);
+    const g = findCrisprGuides(rotated, 'circular', SPCAS9, { maxMismatches: 0 });
+    const plain = designPegRnas(SEQ, 'circular', guides, SPCAS9, {
+      start: nick + 4,
+      deleteLength: 1,
+      insert: 'G',
+    }).find((p) => p.guide.strand === 'forward' && p.guide.spacer === SPACER);
+    const turned = designPegRnas(rotated, 'circular', g, SPCAS9, {
+      start: 2,
+      deleteLength: 1,
+      insert: 'G',
+    }).find((p) => p.guide.strand === 'forward' && p.guide.spacer === SPACER);
+    expect(plain?.distance).toBe(4);
+    expect(turned?.distance).toBe(4);
+    expect(turned?.extension).toBe(plain?.extension);
+    // The same edit on a line is behind the nick, so nothing is offered.
+    expect(
+      designPegRnas(rotated, 'linear', g, SPCAS9, { start: 2, deleteLength: 1, insert: 'G' }).find(
+        (p) => p.guide.strand === 'forward' && p.guide.spacer === SPACER,
+      ),
+    ).toBeUndefined();
+  });
+
   it('drops guides whose template runs off a linear end, and non-Cas9 nucleases', () => {
     const peg = designPegRnas(SEQ, 'linear', guides, SPCAS9, {
       start: SEQ.length - 1,
