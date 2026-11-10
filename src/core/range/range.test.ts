@@ -1,5 +1,6 @@
 import {
   flipRange,
+  foldPosition,
   formatSpan,
   isValidRange,
   oneBasedEnd,
@@ -306,6 +307,36 @@ describe('wrapPosition (#432)', () => {
   it('has no answer for an empty sequence: the caller rules it out', () => {
     expect(wrapPosition(5, 0)).toBeNaN();
     expect(wrapPosition(0, 0)).toBeNaN();
+  });
+});
+
+describe('foldPosition (#432)', () => {
+  it('leaves a position on a line as it came, on and off the molecule', () => {
+    for (const p of [-601, -1, 0, 1, 599, 600, 601, 1200]) {
+      expect(foldPosition(p, 600, 'linear')).toBe(p);
+    }
+  });
+
+  it('folds onto a circle as wrapPosition does', () => {
+    expect(foldPosition(0, 600, 'circular')).toBe(0);
+    expect(foldPosition(599, 600, 'circular')).toBe(599);
+    expect(foldPosition(600, 600, 'circular')).toBe(0);
+    expect(foldPosition(601, 600, 'circular')).toBe(1);
+    expect(foldPosition(1200, 600, 'circular')).toBe(0);
+    expect(foldPosition(-1, 600, 'circular')).toBe(599);
+    expect(foldPosition(-600, 600, 'circular')).toBe(0);
+    expect(foldPosition(-601, 600, 'circular')).toBe(599);
+    for (let p = -1801; p <= 1801; p++) {
+      expect(foldPosition(p, 600, 'circular')).toBe(wrapPosition(p, 600));
+    }
+  });
+
+  it('has no answer for an empty circle, and leaves an empty line alone', () => {
+    expect(foldPosition(5, 0, 'circular')).toBeNaN();
+    expect(foldPosition(0, 0, 'circular')).toBeNaN();
+    expect(foldPosition(5, 0, 'linear')).toBe(5);
+    expect(foldPosition(-5, 0, 'linear')).toBe(-5);
+    expect(foldPosition(0, 0, 'linear')).toBe(0);
   });
 });
 

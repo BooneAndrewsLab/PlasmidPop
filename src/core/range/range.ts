@@ -106,6 +106,16 @@ export function wrapPosition(position: number, seqLength: number): number {
 }
 
 /**
+ * A position folded onto a circle (`wrapPosition`), or left as it is on a
+ * line, where a position outside `[0, seqLength)` is off the molecule and
+ * the caller's to judge. `NaN` for an empty circle, as `wrapPosition`: the
+ * sites that can see a zero length rule it out themselves (design note 144).
+ */
+export function foldPosition(position: number, seqLength: number, topology: Topology): number {
+  return topology === 'circular' ? wrapPosition(position, seqLength) : position;
+}
+
+/**
  * An offset round a circle taken the short way: `b - a` folded into
  * `(-seqLength / 2, seqLength / 2]`, so a position just behind reads as a
  * small negative and not as nearly a whole turn forward. Exactly half way
@@ -294,8 +304,7 @@ export function rotatePosition(position: number, origin: number, seqLength: numb
 export function flipRange(r: Range, seqLength: number, topology: Topology): Range {
   if (seqLength === 0) return r;
   const len = rangeLength(r);
-  let start = seqLength - r.end;
-  if (topology === 'circular') start = wrapPosition(start, seqLength);
+  const start = foldPosition(seqLength - r.end, seqLength, topology);
   return range(start, start + len);
 }
 
