@@ -539,6 +539,51 @@ test file, so `vitest related` and the drop-the-call probe pick them up.
   are of the list that would feed them. Part 2 of #436 and step 3 of the
   order (the topology tests) are still where they were.
 
+**Fold on a circle, leave on a line (core 1, second bullet; step 3 of the
+order).** The per-site table first, then tests of the linear branch at each
+site through its entry point, then the helper decision. "Flip" is the
+topology test turned to `true` by hand (fold on a line too), the mutant that
+survived at nearly every site in the before/after run; the other three
+(`false`, `!==`, `""`) unfold on a circle and were killed at every site but
+`featureOrigin.ts:155`. Each flip was run against the module's own tests and
+its near importers' (a transitive `vitest related` is two minutes per mutant
+here), before and after the tests below.
+
+| Site                                           | Topology test       | Length guard                     | Zero length gives   | Position at the fold on a line                                                 | Flip                                                                                                                                                                                             |
+| ---------------------------------------------- | ------------------- | -------------------------------- | ------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `featureOrigin.ts:39` `fold`                   | `space.topology`    | `=== 0` → null                   | null                | `fromOwn`'s placed start; null off either end                                  | equivalent: a piece that placed, and the pieces a rejoin places, lie on the molecule, so the null branch is the "cannot happen" the code says; the zero-length guard is behind `rangesOf` (#434) |
+| `:48` `toOwn`, site                            | `p.space.topology`  | none                             | `NaN`               | a located qualifier's site counted from the 5′ end, in `[0, span]`             | equivalent: `parseLocation` refuses a position past `L`, so `q < L` always                                                                                                                       |
+| `:54` `toOwn`, range                           | `p.space.topology`  | none                             | `NaN`               | a segment's start counted from the 5′ end; negative for a join that steps back | **killed** (test added: `join(88..93,4..14)` on a line and on a circle)                                                                                                                          |
+| `:155` `originRecord`                          | `space.topology`    | none                             | `NaN`               | the 5′ base, in `[0, L)`                                                       | equivalent, all four: `at` is read only through `toOwn` and `fold`, which fold again (the reason of #436's probe)                                                                                |
+| `:260`, `:264` `coverage`                      | `space.topology`    | none                             | `NaN`               | a segment's start, in `[0, L)`                                                 | equivalent; the circle's three killed by the two-segment piece (#436)                                                                                                                            |
+| `:308` `placementOf`                           | `space.topology`    | none                             | `NaN`               | the original's 5′ base, negative for a piece whose record starts before it     | killed already                                                                                                                                                                                   |
+| `range.ts:298` `flipRange`                     | `topology`          | `=== 0` returns `r`              | `r`                 | `L - end`; `L` for the caret at 0                                              | killed already (the caret at 0 flips to `L` on a line, to 0 on a circle)                                                                                                                         |
+| `crispr.ts:198` `toForward`, reverse           | `topology`          | none                             | `NaN`               | `L - (a + n)`, in `[0, L)` for a window of the text                            | equivalent                                                                                                                                                                                       |
+| `:205` `boundaryToForward`                     | `topology`          | none                             | `NaN`               | `L - x`, `L` for a boundary at 0                                               | killed already                                                                                                                                                                                   |
+| `cloningEnds.ts:317` `regionOffset`            | `g.topology`        | none                             | `NaN`               | `cut - region.start`, negative for a cut before the region                     | **killed** (test added: Sau3AI's cut at 0, a region to the end)                                                                                                                                  |
+| `:1282` `lowCut`                               | `vector.isCircular` | none                             | `NaN`               | the lower cut, `L` only when both cuts are at `L`                              | survives: the design then fails either way, and only a pair of two different enzymes both cutting at `L` would change which one the failure names                                                |
+| `:1283` `highCut`                              | `vector.isCircular` | none                             | `NaN`               | the higher cut, `L` for a cut on the last base                                 | **killed** (test added: MlyI's blunt cut at `L`)                                                                                                                                                 |
+| `primerDesign.ts:396` `norm`                   | local `circular`    | none (`L === 0` returns earlier) | —                   | candidate starts, kept in `[0, L]` by the `!circular` tests round it           | equivalent (no Stryker mutant: a bare identifier)                                                                                                                                                |
+| `anneal.ts:285` `norm`                         | local `circular`    | none (`L === 0` returns earlier) | —                   | site starts; the run stops at the tip, so `≥ 0`                                | equivalent (no Stryker mutant)                                                                                                                                                                   |
+| `anneal.ts:284`, `mutagenesis.ts:159` `baseAt` | local `circular`    | none                             | —                   | any `i`; `''` past either end of a line                                        | the five guard mutants at each are equivalent: `charAt` already gives `''` for `i < 0` and `i >= L`                                                                                              |
+| `digest.ts:92` `overhangRange`                 | `topology`          | `&& length > 0`                  | start as it came    | `min(cut, cutBottom)`, in `[0, L)` when the overhang is not empty              | equivalent, all five; a zero length has no site                                                                                                                                                  |
+| `gateway.ts:243` `crossoverOf` (and `:485`)    | `doc.isCircular`    | `&& length > 0` (`L === 0 ? 0`)  | `at` as it came (0) | inside an att site, in `[0, L)`                                                | equivalent, all five; an empty document has no att site                                                                                                                                          |
+| `orf.ts:144` `findOrfs`, reverse               | `topology`          | `&& L > 0`                       | start as it came    | `L - end`, in `[0, L - 3]`                                                     | equivalent, all five; an empty sequence has no ORF                                                                                                                                               |
+| `restriction.ts:220` `wrap`                    | `topology`          | `=== 0` → 0                      | 0 (null off a line) | `start + cut offset`, kept to `[0, L]` by the null                             | the guard's mutant is equivalent: no site matches a sequence shorter than itself                                                                                                                 |
+
+So of the 43: 6 were killed before this step by the #434 and #436 tests
+(`:48` and `:260`, the three circle mutants each); 3 are killed by the tests
+added here (`:54`, `:317`, `:1283`); 34 are equivalent, each with the reason
+above, and `:1282`'s one survives for the reason above. The pattern behind
+the equivalences is one: on a line every position that reaches these folds
+is already in `[0, L)` (a feature, a window, a site or a cut lies on the
+molecule), so folding it changes nothing; the topology test matters only
+where the arithmetic goes outside, which on a line is where the answer is
+"off the molecule" (`fold`'s null, `wrap`'s null) and on a circle is a fold.
+Tests of the linear branch exist at every site (the table's column names
+the input); what they cannot do is tell the branch from the fold where the
+two agree.
+
 ## The test run's locale (#435)
 
 The app formats positions and lengths with `toLocaleString()` and no locale,
