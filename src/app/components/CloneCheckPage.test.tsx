@@ -229,3 +229,47 @@ describe('CloneCheckPage spans on a circle', () => {
     ).toBeInTheDocument();
   });
 });
+
+describe('CloneCheckPage primers on a circle', () => {
+  const annealing = (): string[] =>
+    screen
+      .getAllByRole('cell')
+      .filter((c) => c.getAttribute('data-tip') === 'Where it anneals')
+      .map((c) => c.textContent);
+
+  async function designOn(turn: number) {
+    // The clone turned by `turn` bases, the insert chosen as the same 800.
+    const text = product.sequence.toString();
+    const L = text.length;
+    const turned = SeqDocument.create({
+      name: 'turned',
+      topology: 'circular',
+      sequence: text.slice(turn) + text.slice(0, turn),
+    });
+    act(() => {
+      editorStore.openDocument(vector);
+    });
+    openOn(turned);
+    const choice = screen.getByRole('combobox', { name: 'Empty vector' });
+    const option = within(choice).getByRole('option', { name: /pVec · 3,000 bp/ });
+    fireEvent.change(choice, { target: { value: option.getAttribute('value') } });
+    const start = (1506 - turn + L) % L;
+    act(() => {
+      editorStore.setSelection({ start, end: start + 800 });
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Design check primers' }));
+    await screen.findByText(/pairs for the selection/);
+    return L;
+  }
+
+  it('numbers a primer through the origin by its last base', async () => {
+    // Turned by 1,322 bases, the first pair's left primer lies over the origin.
+    await designOn(1322);
+    expect(annealing()).toEqual(['3,797–11', '341–361']);
+  });
+
+  it('numbers the same pair by where its primers end when the clone is not turned', async () => {
+    await designOn(0);
+    expect(annealing()).toEqual(['1,313–1,333', '1,663–1,683']);
+  });
+});

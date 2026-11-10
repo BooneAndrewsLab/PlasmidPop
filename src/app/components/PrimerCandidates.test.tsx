@@ -193,3 +193,49 @@ describe('the Results page (item 107, stage two)', () => {
     expect(products).toEqual([...products].sort((a, b) => b - a));
   });
 });
+
+describe('the Results page on a circle', () => {
+  afterEach(() => {
+    forgetPanels();
+    act(() => {
+      editorStore.closeDocument();
+    });
+  });
+
+  it('numbers primers and products through the origin by their last base', async () => {
+    // The template turned by 414 so that the best forward primer, 404 to 424 on the
+    // original, lies over the origin, and its product with it.
+    const text = template();
+    const ring = SeqDocument.create({
+      sequence: text.slice(414) + text.slice(0, 414),
+      topology: 'circular',
+    });
+    act(() => {
+      const id = editorStore.openDocument(ring);
+      rememberWorkspacePage(id, 'design');
+      editorStore.setWorkspace('primers');
+    });
+    render(<PrimerWorkspace doc={ring} />);
+    act(() => {
+      editorStore.setSelection({ start: 126, end: 226 });
+    });
+    await act(() =>
+      Promise.resolve(fireEvent.click(screen.getByRole('button', { name: 'Design primers' }))),
+    );
+    const rows = within(grid()).getAllByRole('row').slice(1);
+    fireEvent.click(rows[0] as HTMLElement);
+    const detail = screen.getByRole('complementary', { name: 'Pair 1' });
+    // The forward primer runs from base 590 over the origin to base 10, the
+    // product to base 266: not to 610 and 866.
+    expect(within(detail).getByText('590–10')).toBeInTheDocument();
+    expect(within(detail).getByText('246–266')).toBeInTheDocument();
+    expect(within(detail).getByText(/277 bp · 590–266 · ΔTm/)).toBeInTheDocument();
+  });
+
+  it('numbers the same pair by where its ends are on a line', async () => {
+    await setup();
+    fireEvent.click(bodyRows()[0] as HTMLElement);
+    const detail = screen.getByRole('complementary', { name: 'Pair 1' });
+    expect(within(detail).getByText(/^\d[\d,]* bp · \d[\d,]*–\d[\d,]* · ΔTm/)).toBeInTheDocument();
+  });
+});
