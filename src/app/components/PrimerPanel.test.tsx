@@ -115,6 +115,34 @@ describe('the slim Primers tab (item 107)', () => {
     expect(editorStore.getState().selection).toEqual({ start: 470, end: 487 });
   });
 
+  it('numbers the selection and a primer through the origin by their last base', () => {
+    const ring = SeqDocument.create({
+      name: 'pRing',
+      sequence: template(),
+      topology: 'circular',
+      features: [
+        createFeature({ type: 'primer_bind', name: 'across', segments: [rangeSegment(590, 612)] }),
+        createFeature({ type: 'primer_bind', name: 'ends', segments: [rangeSegment(570, 600)] }),
+      ],
+    });
+    open(ring);
+    const list = screen.getByRole('list', { name: 'Primers on this document' });
+    // Over the origin it ends at 12, not 612; the one ending on the last base ends at 600.
+    expect(
+      within(list)
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual(['→ends571–600', '→across591–12']);
+    act(() => {
+      editorStore.setSelection({ start: 590, end: 620 });
+    });
+    expect(screen.getByText('591–20 · 30 bp')).toBeInTheDocument();
+    act(() => {
+      editorStore.setSelection({ start: 570, end: 600 });
+    });
+    expect(screen.getByText('571–600 · 30 bp')).toBeInTheDocument();
+  });
+
   it('offers the last design, which reopens the workspace on Results, and My primers on its page', async () => {
     // A design made in the workspace, which then shuts.
     act(() => {

@@ -1722,6 +1722,52 @@ describe('AlignPanel', () => {
   });
 });
 
+describe('the slim Align tab on a circle', () => {
+  afterEach(() => {
+    act(() => {
+      while (editorStore.getState().documents.length > 0) editorStore.closeDocument();
+    });
+    forgetAlignSessions();
+    forgetPanels();
+  });
+
+  /** Opens `ring`, takes `selection` of it, turns on Against selection only, and shuts the workspace. */
+  async function referenceNote(selection: { start: number; end: number }): Promise<string> {
+    const ring = SeqDocument.create({
+      name: 'ring',
+      sequence: 'TTTTACGTACGTGGCCAATTGGCCTTTT',
+      topology: 'circular',
+    });
+    act(() => {
+      editorStore.openDocument(ring);
+      editorStore.setSelection(selection);
+    });
+    renderAlign(ring);
+    await act(() => Promise.resolve());
+    act(() => {
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Against selection only' }));
+    });
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /^Close/ }));
+    });
+    await act(() => Promise.resolve());
+    return screen.getByText(/^Reference:/).textContent;
+  }
+
+  it('numbers a selection through the origin by its last base in the reference line', async () => {
+    // The last 3 bases and the first 4 of 28: 26 to 4, not 26 to 32.
+    expect(await referenceNote({ start: 25, end: 32 })).toBe(
+      'Reference: ring, 28 bp, circular, the selection 26–4 only.',
+    );
+  });
+
+  it('numbers a selection that stops on the last base by that base', async () => {
+    expect(await referenceNote({ start: 20, end: 28 })).toBe(
+      'Reference: ring, 28 bp, circular, the selection 21–28 only.',
+    );
+  });
+});
+
 describe('useAlignedRegionPointer', () => {
   it('does not loop when the result is a new object on every render', () => {
     const base = {

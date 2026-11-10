@@ -547,6 +547,39 @@ describe('the workspace shell (item 107)', () => {
     ]);
   });
 
+  it('draws the search windows and names the target through the origin of a circle', () => {
+    const ring = SeqDocument.create({
+      sequence: template(),
+      topology: 'circular',
+      features: [
+        createFeature({ type: 'CDS', name: 'across', segments: [rangeSegment(570, 630)] }),
+      ],
+    });
+    open(ring);
+    act(() => {
+      editorStore.setSelection({ start: 570, end: 630 });
+    });
+    // 571 to the last base 30, not 630; the windows are 200 bases each side.
+    expect(screen.getByText('571–30').closest('p')?.textContent).toBe('across 571–30 · 60 bp');
+    expect(editorStore.getState().preview?.items.map((i) => [i.id, i.range])).toEqual([
+      ['primers:fwd-window', { start: 370, end: 570 }],
+      ['primers:rev-window', { start: 30, end: 230 }],
+    ]);
+    // A target near the origin has its forward window over it, ending at the last base.
+    act(() => {
+      editorStore.setSelection({ start: 10, end: 70 });
+    });
+    expect(editorStore.getState().preview?.items.map((i) => [i.id, i.range])).toEqual([
+      ['primers:fwd-window', { start: 410, end: 610 }],
+      ['primers:rev-window', { start: 70, end: 270 }],
+    ]);
+    // The same feature chosen from the list is named by the same numbers.
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Feature' }));
+    });
+    expect(screen.getByRole('option', { name: 'across · 571–30' })).toBeInTheDocument();
+  });
+
   it('offers the features as targets, and names the one the selection is', () => {
     const annotated = doc.addFeature(
       createFeature({
