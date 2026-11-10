@@ -93,6 +93,7 @@ export class AlignmentTooLargeError extends Error {
    * `memory`: the browser refused the allocation. `unanchored`: too large to
    * align in full, and too little in common to align in a band (banded.ts).
    */
+  // Stryker disable next-line StringLiteral: the reason is only compared with 'memory' and 'unanchored'; anything else gives the limit message
   constructor(cells: number, max: number, reason: 'limit' | 'memory' | 'unanchored' = 'limit') {
     super(
       reason === 'memory'
@@ -166,8 +167,10 @@ export function alignPairwise(
 ): Alignment {
   const n = a.length;
   const m = b.length;
+  // Stryker disable next-line LogicalOperator: fillBand checks the same cells against the same default, and throws the same error
   const maxCells = options.maxCells ?? DEFAULT_MAX_CELLS;
   const cells = (n + 1) * (m + 1);
+  // Stryker disable next-line CallExpression: fillBand throws the same error for the same cells
   if (cells > maxCells) throw new AlignmentTooLargeError(cells, maxCells);
   const band = { lo: new Int32Array(n + 1), hi: new Int32Array(n + 1).fill(m) };
   return alignInBand(a, b, band, options, onProgress).alignment;
@@ -231,7 +234,9 @@ interface EncodedFirst {
 const firstEncoded: EncodedFirst[] = [];
 
 function encodedFirst(a: string, protein: boolean): EncodedFirst {
+  // Stryker disable next-line ArrowFunction: never finding the entry only encodes the first sequence again
   const at = firstEncoded.findIndex((e) => e.a === a && e.protein === protein);
+  // Stryker disable next-line ArrayDeclaration: a miss is `undefined` either way
   const [hit] = at < 0 ? [undefined] : firstEncoded.splice(at, 1);
   const entry =
     hit ??
@@ -239,6 +244,7 @@ function encodedFirst(a: string, protein: boolean): EncodedFirst {
       const A = a.toUpperCase();
       return { a, protein, A, codesA: protein ? encodeProtein(A) : encode(A) };
     })();
+  // Stryker disable next-line CallExpression: an entry that is not kept is encoded again to the same codes
   firstEncoded.unshift(entry);
   firstEncoded.length = Math.min(firstEncoded.length, 2);
   return entry;
@@ -252,9 +258,11 @@ function fillBand(
   onProgress: AlignmentProgress | undefined,
   keep: boolean,
 ): Filled {
+  // Stryker disable next-line StringLiteral: `local` is the only thing the mode feeds here
   const mode = options.mode ?? 'global';
   const local = mode === 'local';
   const protein = options.alphabet === 'protein';
+  // Stryker disable next-line ArithmeticOperator,LogicalOperator,UnaryOperator: `mismatch` is read only as the fallback of `scores[...] ?? mismatch`, which an index inside the table never reaches
   const mismatch = Math.round((options.mismatch ?? -4) * SCALE);
   // BLAST's protein defaults, which is what a protein alignment is read
   // against; EMBOSS's DNA ones otherwise, as before.
@@ -302,10 +310,12 @@ function fillBand(
   const hi0 = hi[0] ?? 0;
   for (let j = lo0; j <= hi0; j++) {
     const at = j - lo0;
+    // Stryker disable next-line BlockStatement: (0, 0) is never read by the traceback, and the zeros the arrays start with give the same fill
     if (j === 0) {
       prevM[0] = 0;
       prevX[0] = NEG;
       prevY[0] = NEG;
+      // Stryker disable next-line ConditionalExpression: the traceback never reads the byte at (0, 0), and a write past a zero-length array is dropped
       if (keep) tb[at] = local ? STOP : M;
     } else {
       prevM[j] = local ? 0 : NEG;
@@ -314,8 +324,10 @@ function fillBand(
       if (keep) tb[at] = (local ? STOP : M) | ((j === 1 ? M : Y) << 4);
     }
   }
+  // Stryker disable next-line BlockStatement,ConditionalExpression,EqualityOperator: row 1 writes the same NEG to the cell left of its own band, which is the one row 0's block guards
   if (lo0 > 0) {
     prevM[lo0 - 1] = NEG;
+    // Stryker disable next-line ArithmeticOperator: row 1's own sentinel writes the same NEG to that cell
     prevX[lo0 - 1] = NEG;
     prevY[lo0 - 1] = NEG;
   }
@@ -333,8 +345,10 @@ function fillBand(
     const rowHi = hi[i] ?? 0;
     const rowBase = (rowStart[i] ?? 0) - rowLo;
     // Cells the row above did not fill, but this one reads, are out of band.
+    // Stryker disable next-line LogicalOperator: it only feeds the sentinel below, which the sentinel of each row writes as well
     const aboveLo = lo[i - 1] ?? 0;
     const aboveHi = hi[i - 1] ?? 0;
+    // Stryker disable next-line ArithmeticOperator,BlockStatement: the cell left of the row above's band was written NEG by that row's own sentinel (`cur` of the row before)
     if (rowLo > 0 && rowLo - 1 < aboveLo) {
       prevM[rowLo - 1] = NEG;
       prevX[rowLo - 1] = NEG;
@@ -351,6 +365,7 @@ function fillBand(
       curY[rowLo - 1] = NEG;
     }
     let first = rowLo;
+    // Stryker disable next-line BlockStatement: the general recurrence gives the same values at column 0, and a local path that starts with a gap scores no more than one that starts after it
     if (rowLo === 0) {
       curM[0] = local ? 0 : NEG;
       curX[0] = local ? NEG : gapOpen + (i - 1) * gapExtend;
