@@ -18,6 +18,7 @@ import {
   shiftPositionForDelete,
   typingRun,
   windowShift,
+  wrapPosition,
 } from '@/core';
 
 /** An edit to apply plus where the selection should land afterwards. */
@@ -70,7 +71,7 @@ export function clampPosition(doc: SeqDocument, position: number, extend = false
     if (position >= 0 && position <= doc.length) return position;
     if (position === doc.length + 1) return 0;
     if (position === -1) return doc.length;
-    return ((position % doc.length) + doc.length) % doc.length;
+    return wrapPosition(position, doc.length);
   }
   return Math.min(doc.length, Math.max(0, position));
 }
@@ -228,7 +229,7 @@ export function selectionAfterOp(
       const flipped = flippedLength(window, doc.length);
       const start = flipped - (selection.end + windowShift(window));
       if (doc.isCircular && doc.length > 0) {
-        const wrapped = ((start % doc.length) + doc.length) % doc.length;
+        const wrapped = wrapPosition(start, doc.length);
         return range(wrapped, wrapped + len);
       }
       const clamp = (p: number): number => Math.max(0, Math.min(p, flipped));
@@ -236,7 +237,7 @@ export function selectionAfterOp(
     }
     case 'setOrigin': {
       if (doc.length === 0) return selection;
-      const start = (((selection.start - op.position) % doc.length) + doc.length) % doc.length;
+      const start = wrapPosition(selection.start - op.position, doc.length);
       return range(start, start + (selection.end - selection.start));
     }
     case 'setTopology':

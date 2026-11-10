@@ -1,4 +1,11 @@
-import { type Feature, type Range, type SeqDocument, featureExtent, rangePieces } from '@/core';
+import {
+  type Feature,
+  type Range,
+  type SeqDocument,
+  featureExtent,
+  rangePieces,
+  wrapPosition,
+} from '@/core';
 
 import { type DrawingContext } from '../drawingContext';
 import { featureColor } from '../featureColors';
@@ -222,7 +229,7 @@ export function renderRibbon(ctx: DrawingContext, p: RibbonParams): void {
     ctx.strokeStyle = theme.editChange;
     ctx.lineWidth = 1.5;
     for (const mark of span.marks ?? []) {
-      const at = x((((mark % L) + L) % L) + 0.5);
+      const at = x(wrapPosition(mark, L) + 0.5);
       ctx.beginPath();
       ctx.moveTo(at, top - 1);
       ctx.lineTo(at, top + OVERLAY_LANE + 1);

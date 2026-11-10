@@ -15,6 +15,7 @@ import {
   rangesOverlap,
   segmentLength,
   sameFeatureLocation,
+  wrapPosition,
 } from '@/core';
 
 import { type DrawingContext } from '../drawingContext';
@@ -834,7 +835,7 @@ function drawOverlays(ctx: DrawingContext, p: CircularRenderParams): void {
     ctx.strokeStyle = theme.editChange;
     ctx.lineWidth = 2;
     for (const mark of span.marks ?? []) {
-      const angle = layout.angleOf((((mark % doc.length) + doc.length) % doc.length) + 0.5);
+      const angle = layout.angleOf(wrapPosition(mark, doc.length) + 0.5);
       const cos = Math.cos(angle);
       const sin = Math.sin(angle);
       ctx.beginPath();

@@ -14,6 +14,7 @@ import {
   primeEditProblem,
   supportsNickPairs,
   supportsPrimeEditing,
+  wrapPosition,
 } from '@/core';
 
 import { useCrisprSession } from '../crisprSession';
@@ -45,7 +46,7 @@ export function pairSpan(p: NickPair, length: number, topology: SeqDocument['top
   if (topology !== 'circular') {
     return { start: Math.min(a.start, b.start), end: Math.max(a.end, b.end) };
   }
-  let d = (((b.start - a.start) % length) + length) % length;
+  let d = wrapPosition(b.start - a.start, length);
   if (d > length / 2) d -= length;
   const start = Math.min(a.start, a.start + d);
   const end = Math.max(a.end, a.start + d + (b.end - b.start));

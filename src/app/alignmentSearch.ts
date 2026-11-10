@@ -1,4 +1,4 @@
-import { findSequenceMatches, looksLikeSequence } from '@/core';
+import { findSequenceMatches, looksLikeSequence, wrapPosition } from '@/core';
 
 import type { Stack } from './alignmentStack';
 
@@ -38,7 +38,7 @@ export function columnOfPosition(stack: Stack, position: number): PositionResult
   if (bases === 0) return { kind: 'invalid' };
   if (stack.wrap !== null) {
     if (position > stack.wrap) return { kind: 'past-end', last: stack.wrap };
-    const i = (((position - 1 - stack.offset) % stack.wrap) + stack.wrap) % stack.wrap;
+    const i = wrapPosition(position - 1 - stack.offset, stack.wrap);
     const c = column.get(i) ?? column.get(i + stack.wrap);
     if (c !== undefined) return { kind: 'column', column: c };
     return { kind: 'outside', first: stack.offset + 1, last: stack.offset + bases };

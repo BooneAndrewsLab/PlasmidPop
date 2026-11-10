@@ -1,3 +1,5 @@
+import { wrapPosition } from '@/core';
+
 import { Cell, isDifference, type Stack } from './alignmentStack';
 import { columnsOfIndex, spansOf, type TrackAnnotation } from './alignmentTrack';
 
@@ -227,7 +229,7 @@ export function verdictsOf(
 
 /** A 0-based document index as the 1-based position the ruler shows, wrapped on a circle. */
 function documentPosition(index: number, period: number): number {
-  return (period > 0 ? ((index % period) + period) % period : index) + 1;
+  return (period > 0 ? wrapPosition(index, period) : index) + 1;
 }
 
 /** The order of the table of verdicts: the document's, or the ones needing a look first. */

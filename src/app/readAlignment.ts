@@ -7,6 +7,7 @@ import {
   columnQualities,
   reverseComplementRead,
   trimByQuality,
+  wrapPosition,
 } from '@/core';
 import { type OverlaySpan } from '@/view/overlay';
 
@@ -218,7 +219,7 @@ export function alignedRegionSpan(
   const range = alignedRegionInDocument(result, documentIsRead);
   if (range === null || docLength <= 0) return null;
   const length = Math.min(range.end - range.start, docLength);
-  const start = ((range.start % docLength) + docLength) % docLength;
+  const start = wrapPosition(range.start, docLength);
   return {
     id: 'region',
     label: 'Aligned region',

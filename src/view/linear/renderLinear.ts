@@ -18,6 +18,7 @@ import {
   rangePieces,
   sameFeatureLocation,
   topStrandOverhang,
+  wrapPosition,
 } from '@/core';
 
 import { type DrawingContext } from '../drawingContext';
@@ -1138,7 +1139,7 @@ function drawOverlays(ctx: DrawingContext, p: RenderParams, row: RowLayout): voi
       drawOverlayLabel(ctx, p, span, x0, x1, mid, color);
       // A primer's mismatches, one cell each across the ribbon (#32).
       for (const mark of span.marks ?? []) {
-        const at = ((mark % doc.length) + doc.length) % doc.length;
+        const at = wrapPosition(mark, doc.length);
         if (at < s || at >= e) continue;
         const mx0 = layout.xOf(row, at);
         const mx1 = layout.xOf(row, at + 1);

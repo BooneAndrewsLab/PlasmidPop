@@ -8,6 +8,7 @@ import {
   isHostMethylationSensitive,
   overhangKind,
   overhangLength,
+  wrapPosition,
 } from '@/core';
 
 import type { WorkspaceLayout } from '../workspaceController';
@@ -70,7 +71,7 @@ function readRange(doc: SeqDocument, from: number, to: number): string {
   if (doc.topology !== 'circular') return doc.sequence.slice(Math.max(0, from), Math.min(n, to));
   let out = '';
   for (let p = from; p < to;) {
-    const at = ((p % n) + n) % n;
+    const at = wrapPosition(p, n);
     const take = Math.min(to - p, n - at);
     out += doc.sequence.slice(at, at + take);
     p += take;

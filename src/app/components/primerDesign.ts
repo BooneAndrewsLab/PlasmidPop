@@ -15,6 +15,7 @@ import {
   mismatchPositions,
   rangeSegment,
   unrollRange,
+  wrapPosition,
 } from '@/core';
 import { type OverlaySpan } from '@/view/overlay';
 
@@ -115,7 +116,7 @@ function windowOf(from: number, to: number, doc: SeqDocument): Range | null {
   if (L === 0 || to <= from) return null;
   if (doc.topology === 'circular') {
     if (to - from >= L) return { start: 0, end: L };
-    const wrap = (x: number): number => ((x % L) + L) % L;
+    const wrap = (x: number): number => wrapPosition(x, L);
     return unrollRange(wrap(from), wrap(to), L);
   }
   const start = Math.max(0, from);
