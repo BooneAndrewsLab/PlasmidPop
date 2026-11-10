@@ -351,3 +351,5 @@ the Bench, item 49). The rest stand.
 142. [A Validation page, generated from what is committed](142-validation-page.md)
 
 143. [The Batch page's Golden Gate constructs against pydna and Biopython](143-batch-golden-gate-oracle.md)
+
+144. [Duplication scan: where logic is written twice, and which copies matter](144-duplication-scan.md)
