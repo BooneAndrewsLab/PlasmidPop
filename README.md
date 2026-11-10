@@ -134,6 +134,7 @@ npm run dev
 | `npm run mutate:changed`          | Stryker on what changed, before a release (50)        |
 | `npm run mutate`                  | Stryker on the whole list; fails under 90%            |
 | `npm run mutate:recheck-timeouts` | Re-run old mutation timeouts against their tests (50) |
+| `node scripts/dropCallProbe.mjs`  | Drop each range-helper call, run its tests (#436)     |
 | `npm run bench`                   | Build, then the open-and-scan benchmark               |
 | `npm run oracle:*`                | Regenerate or run the independent-oracle checks       |
 

@@ -400,3 +400,70 @@ and what became of each:
 10. The reasoning for the wrap reached this note five commits after the
     first code that cites it. The branch is consistent at its tip and the
     history is left as it is.
+
+**Call sites no test reached (#436).** Stryker has no mutator that drops a
+call, so a site that calls `wrapPosition`, `shortWayRound`, `oneBasedEnd` or
+`formatSpan` has no mutant for the helper's arithmetic, and the before/after
+run above could not show whether a site still calls it.
+`scripts/dropCallProbe.mjs` is the check: for each call outside `range.ts` it
+puts the call's first argument in its place (for `formatSpan` the text
+unfolded, `start + 1` and the raw end), runs `vitest related` on that file,
+puts the file back (also on SIGINT/SIGTERM) and says whether anything failed.
+It took 96 sites: 51 of `wrapPosition`, 4 of `shortWayRound`, 8 of
+`oneBasedEnd` and 33 of `formatSpan`, about an hour on an idle machine
+(`node scripts/dropCallProbe.mjs`, `--helper`, `--file`, `--list`).
+
+- **First run:** 46 of the 96 survived: 27 of `formatSpan`, 17 of
+  `wrapPosition` (one, `alignmentSearch.ts:41`, was first a harness fault and
+  a rerun showed it survived), 1 of `shortWayRound` and 1 of `oneBasedEnd`.
+  Of the sites the issue names, about half were already killed (`crisprEdit`,
+  `cloningEnds` apart from `:332`, `editing.ts:74` and `:232`, `checkPrimers.ts:379`,
+  `primerDesign.ts:335`); most survivors were `formatSpan` sites of the panels,
+  which no test fed a wrapping range.
+- **Tests added** for 38 of them, each through the site's own entry point with
+  a range through the origin, a position at or past the length, or an offset
+  over half the circle, the linear case beside it, and where the site numbers
+  for the user the value on the last base (`L`, not 0): the panels'
+  selection, feature and window texts, the guide, pair and pegRNA tables, the
+  clone-check and cloning pages, `selectionAfterOp`, `designPegRnas`,
+  `partJunctions`, the cloning ends with the origin inside, at and next to
+  each cut, `rejoinPieces` and located qualifiers, the linear view's and the
+  strip's mismatch marks. A test that "kills" a site is checked to pass first
+  (a failing test makes every site look killed).
+- **Left, each with a reason (8 sites, still not failing under the probe).**
+  None is a bug; each is equivalent for every input its entry point can make.
+  - `ProteinPanel.tsx:70` (`formatSpan`): a protein document is always linear
+    (`SeqDocument` throws otherwise), so a selection never ends past the
+    length and `oneBasedEnd` returns its argument.
+  - `view/linear/joinGaps.ts:120` (`oneBasedEnd`): `JoinGap.end` is the
+    folded boundary in `(0, seqLength]` by construction (`joinGaps` folds an
+    earlier segment that wraps), so the call returns its argument.
+  - `core/cloning/cloningEnds.ts:1299`: the cut sites come from
+    `findCutSites`, which folds every circular cut into `[0, L)`, so the fold
+    is the identity there. A hand-built context with an unfolded cut would
+    differ; none is made.
+  - `core/cloning/pcr.ts:181`: `findAnnealingSites` gives starts in `[0, L)`
+    and ends at most one primer past `L`, and the `else if (span <
+annealLength) span += L` on the next lines adds `L` back to whatever the
+    fold took below the run, which is all it changes. Checked by running the
+    suite with the fold removed, and by a test of a reverse primer behind the
+    forward one that passes either way.
+  - `core/cloning/checkPrimers.ts:449`: the fold is in the key of the
+    specificity cache, so it only decides whether a candidate at `s` and at
+    `s + L` are scanned once or twice; the verdicts are the same and `scans`
+    is reported by nothing.
+  - `core/document/featureOrigin.ts:155`: `at` only goes on into `toOwn` and
+    `fromOwn`, which fold again, so only `at` modulo `L` is ever read.
+  - `app/alignmentSearch.ts:41`: for `position` from 1 and an offset under the
+    wrap, `i` is in `(-wrap, wrap)`, and `column.get(i) ?? column.get(i +
+wrap)` on the next line already adds the wrap back for a negative `i`.
+  - `view/circular/renderCircular.ts:838`: only feeds `angleOf`, which for a
+    circular layout has no gap (`gap` is 0), so the angle is periodic and the
+    tick lands in the same place with or without the fold.
+- **Second run:** all 96 sites, after the tests above bar the last one: 9
+  survived, the 8 above and `cloningEnds.ts:332`, which the first tests
+  killed only through a case later changed and which a count of the usable
+  pairs with the origin at each cut now kills; `--file cloning/cloningEnds.ts`
+  was run again after that. So 8 are left, each with the reason above. Part 2
+  of the issue (the 43 topology and zero-length mutants) is untouched and
+  stays with #434 and step 3 of the order.
