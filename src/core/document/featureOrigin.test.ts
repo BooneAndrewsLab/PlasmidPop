@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { createFeature, rangeSegment } from '../features';
+import { createFeature, rangeSegment, siteSegment } from '../features';
+import { type Range } from '../range';
 import { extractRange } from './extract';
-import { basesHash, placementOf, rejoinPieces } from './featureOrigin';
+import { basesHash, originRecord, pieceOrigin, placementOf, rejoinPieces } from './featureOrigin';
 import { SeqDocument } from './seqDocument';
 
 const doc = (strand: 'forward' | 'reverse') =>
@@ -200,5 +201,38 @@ describe('pieces put back together on a circle', () => {
     expect(before?.origin?.whole.qualifiers).toEqual([
       { name: 'transl_except', value: '(pos:10^11,aa:Sec)' },
     ]);
+  });
+});
+
+describe('an empty circular document (#434)', () => {
+  // The only feature an empty document can hold is a site (a range segment
+  // must cover a base), and every unguarded fold in `featureOrigin.ts` comes
+  // after `rangesOf`, which has no range to give for one: `originRecord`,
+  // `placementOf` and through them `pieceOrigin` answer null before a
+  // position is folded, and `rejoinPieces` gives the features back as they
+  // are. The callers (`extract.ts`, `trimTip`, `ligate.ts`) pass the
+  // document's own features, so no range reaches these with a length of 0.
+  const empty = SeqDocument.create({ sequence: '' }).setTopology('circular');
+  const doc = empty.addFeature(
+    createFeature({ id: 's', type: 'misc_feature', name: 's', segments: [siteSegment(0)] }),
+  );
+  const bases = (r: Range): string => doc.subsequence(r);
+
+  it('has no record to make of its feature, and no placement for it', () => {
+    const site = doc.requireFeature('s');
+    expect(originRecord(site, doc, bases)).toBeNull();
+    expect(placementOf(site, doc)).toBeNull();
+    expect(pieceOrigin(site, 0, 0, doc, bases)).toBeNull();
+  });
+
+  it('gives its features back as they are when asked to rejoin them', () => {
+    expect(rejoinPieces(doc.features.all(), doc, '')).toEqual(doc.features.all());
+    expect(rejoinPieces([], empty, '')).toEqual([]);
+  });
+
+  it('cuts an empty piece out of one', () => {
+    const piece = extractRange(doc, { start: 0, end: 0 });
+    expect(piece.length).toBe(0);
+    for (const f of piece.features.all()) expect(f.origin).toBeUndefined();
   });
 });

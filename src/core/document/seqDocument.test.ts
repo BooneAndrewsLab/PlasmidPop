@@ -460,6 +460,26 @@ describe('setTopology', () => {
     expect(circ.topology).toBe('circular');
     expect(circ.setTopology('circular')).toBe(circ);
   });
+
+  it('makes an empty document circular, and a circle emptied stays one (#434)', () => {
+    // The two ways the app comes by an empty circular document: the Edit
+    // bar's "Make circular" applies `setTopology` to a new document with no
+    // base in it, and deleting every base of a circle leaves its topology.
+    const made = SeqDocument.create({ sequence: '' }).setTopology('circular');
+    expect(made.length).toBe(0);
+    expect(made.topology).toBe('circular');
+    const emptied = SeqDocument.create({ sequence: SEQ, topology: 'circular' }).delete(
+      range(0, SEQ.length),
+    );
+    expect(emptied.length).toBe(0);
+    expect(emptied.topology).toBe('circular');
+    // The one feature either can hold is a site, at its only position: a
+    // range segment must cover a base.
+    const site = createFeature({ id: 's', type: 'misc_feature', segments: [siteSegment(0)] });
+    expect(segs(made.addFeature(site).getFeature('s'))).toEqual([range(0, 0)]);
+    const span = createFeature({ id: 'r', type: 'gene', segments: [rangeSegment(0, 1)] });
+    expect(() => made.addFeature(span)).toThrow(RangeError);
+  });
 });
 
 describe('feature CRUD', () => {
