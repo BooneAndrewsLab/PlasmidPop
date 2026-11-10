@@ -20,9 +20,10 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+const log = (/** @type {string} */ line) => process.stdout.write(`${line}\n`);
 const HELPERS = ['wrapPosition', 'shortWayRound', 'oneBasedEnd', 'formatSpan'];
 const args = process.argv.slice(2);
-const opt = (name) => {
+const opt = (/** @type {string} */ name) => {
   const i = args.indexOf(name);
   return i >= 0 ? args[i + 1] : undefined;
 };
@@ -30,6 +31,7 @@ const onlyHelper = opt('--helper');
 const onlyFile = opt('--file');
 const listOnly = args.includes('--list');
 
+/** @type {(dir: string) => string[]} */
 const walk = (dir) =>
   readdirSync(dir).flatMap((n) => {
     const p = join(dir, n);
@@ -38,8 +40,9 @@ const walk = (dir) =>
   });
 
 /** End index (exclusive) of the first argument of a call whose `(` is at `open`. */
-const firstArgEnd = (text, open) => {
+const firstArgEnd = (/** @type {string} */ text, /** @type {number} */ open) => {
   let depth = 0;
+  /** @type {string | null} */
   let quote = null;
   for (let i = open + 1; i < text.length; i++) {
     const c = text[i];
@@ -57,8 +60,9 @@ const firstArgEnd = (text, open) => {
   }
   throw new Error('unbalanced call');
 };
-const closeOf = (text, from) => {
+const closeOf = (/** @type {string} */ text, /** @type {number} */ from) => {
   let depth = 0;
+  /** @type {string | null} */
   let quote = null;
   for (let i = from; i < text.length; i++) {
     const c = text[i];
@@ -77,6 +81,7 @@ const closeOf = (text, from) => {
   throw new Error('unbalanced call');
 };
 
+/** @type {{ file: string; helper: string; line: number; mutated: string }[]} */
 const sites = [];
 for (const file of walk('src')) {
   if (file.endsWith(join('core', 'range', 'range.ts'))) continue;
@@ -97,7 +102,6 @@ for (const file of walk('src')) {
         helper,
         line,
         mutated: text.slice(0, m.index) + replacement + text.slice(close + 1),
-        original: text,
       });
     }
   }
@@ -110,7 +114,7 @@ const chosen = sites.filter(
 );
 
 if (listOnly) {
-  for (const s of chosen) console.log(`${s.helper}\t${s.file}:${String(s.line)}`);
+  for (const s of chosen) log(`${s.helper}\t${s.file}:${String(s.line)}`);
   process.exit(0);
 }
 
@@ -121,6 +125,7 @@ if (dirty.stdout.trim() !== '') {
   process.exit(2);
 }
 
+/** @type {string | null} */
 let current = null;
 const restore = () => {
   if (current !== null) {
@@ -135,6 +140,7 @@ for (const sig of ['SIGINT', 'SIGTERM']) {
   });
 }
 
+/** @type {{ helper: string; status: string }[]} */
 const results = [];
 try {
   for (const s of chosen) {
@@ -150,25 +156,25 @@ try {
     // No related test file at all counts as a survivor; a non-zero exit with no
     // failed test in the output is the harness, not a kill, and is flagged.
     const status =
-      run.status === 0 || /No test files found/.test(out)
+      run.status === 0 || out.includes('No test files found')
         ? 'SURVIVED'
         : /\d+ failed/.test(out)
           ? 'KILLED'
           : 'HARNESS-ERROR';
     results.push({ ...s, status });
-    console.log(`${status}\t${s.helper}\t${s.file}:${String(s.line)}`);
+    log(`${status}\t${s.helper}\t${s.file}:${String(s.line)}`);
   }
 } finally {
   restore();
 }
 
 const survivors = results.filter((r) => r.status === 'SURVIVED');
-console.log('\nSummary (sites, survived):');
+log('\nSummary (sites, survived):');
 for (const h of HELPERS) {
   const of = results.filter((r) => r.helper === h);
-  console.log(
+  log(
     `  ${h}: ${String(of.length)} sites, ${String(of.filter((r) => r.status === 'SURVIVED').length)} survived`,
   );
 }
-console.log(`Total: ${String(results.length)} sites, ${String(survivors.length)} survived`);
+log(`Total: ${String(results.length)} sites, ${String(survivors.length)} survived`);
 process.exit(survivors.length > 0 ? 1 : 0);
