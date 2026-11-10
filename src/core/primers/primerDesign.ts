@@ -1,5 +1,5 @@
 import { type Strand } from '../features';
-import { type Range, type Topology, rangePieces } from '../range';
+import { type Range, type Topology, rangePieces, wrapPosition } from '../range';
 import { reverseComplement } from '../sequence';
 import { IUPAC_SETS } from '../analysis/codons';
 import {
@@ -332,7 +332,7 @@ export function annealsElsewhere(
   own: Range,
 ): boolean {
   const L = sequence.length;
-  const norm = (x: number): number => ((x % L) + L) % L;
+  const norm = (x: number): number => wrapPosition(x, L);
   // Position of the 3' end in forward coordinates, wrapped on a circle.
   const threePrime = (r: Range, s: Strand): number => norm(s === 'forward' ? r.end : r.start);
   const ownEnd = threePrime(own, strand);
@@ -393,7 +393,7 @@ export function designPrimers(
   const text = sequence.toUpperCase();
   if (L === 0 || target.end <= target.start) return [];
   const circular = topology === 'circular';
-  const norm = (p: number): number => (circular ? ((p % L) + L) % L : p);
+  const norm = (p: number): number => (circular ? wrapPosition(p, L) : p);
   // On a circle a region wider than the molecule would meet itself.
   const span = (r: { near: number; far: number }): number => Math.min(r.far - r.near, L);
 

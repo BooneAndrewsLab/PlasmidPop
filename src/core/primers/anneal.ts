@@ -1,5 +1,5 @@
 import { type Strand } from '../features';
-import { type Range, type Topology } from '../range';
+import { type Range, type Topology, wrapPosition } from '../range';
 import { reverseComplement } from '../sequence';
 import { codeMask } from '../analysis/search';
 import { meltingTemperature } from './thermo';
@@ -38,7 +38,7 @@ export function mismatchPositions(
   const out: number[] = [];
   for (let i = 0; i < along.length; i++) {
     const at = site.range.start + offset + i;
-    const base = template.charAt(((at % L) + L) % L).toUpperCase();
+    const base = template.charAt(wrapPosition(at, L)).toUpperCase();
     if (!pairsWithCode(base, along.charAt(i))) out.push(at);
   }
   return out;
@@ -281,8 +281,8 @@ export function findAnnealingSites(
   const text = sequence.toUpperCase();
   const circular = topology === 'circular';
   const baseAt = (i: number): string =>
-    circular ? text.charAt(((i % L) + L) % L) : i < 0 || i >= L ? '' : text.charAt(i);
-  const norm = (i: number): number => (circular ? ((i % L) + L) % L : i);
+    circular ? text.charAt(wrapPosition(i, L)) : i < 0 || i >= L ? '' : text.charAt(i);
+  const norm = (i: number): number => (circular ? wrapPosition(i, L) : i);
 
   /**
    * The last `len` bases of the primer as the template makes them pair: a
