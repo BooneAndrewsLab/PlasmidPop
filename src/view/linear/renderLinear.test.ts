@@ -1022,3 +1022,27 @@ describe('cut sites the Enzymes table is pointing at (#401)', () => {
     expect(widths(plain)).not.toContain('2.5');
   });
 });
+
+describe('an empty circular document (#434)', () => {
+  it('draws no mark of a primer preview left open, and nothing at a NaN', () => {
+    // The one row of an empty document covers no base, so the preview's
+    // pieces are clipped to nothing before its marks are folded. The
+    // preview is what a panel's primer leaves on the views when every base
+    // is then deleted; a new empty document has none.
+    const empty = SeqDocument.create({ sequence: '' }).setTopology('circular');
+    const left: OverlaySpan[] = [
+      {
+        id: 'fwd',
+        label: 'Fwd',
+        range: { start: 0, end: 20 },
+        strand: 'forward',
+        shape: 'arrow',
+        marks: [5],
+      },
+    ];
+    const svg = render(empty, false, null, { overlay: left });
+    expect(svg).not.toContain('NaN');
+    expect(svg).not.toContain('fill="#aa8800"');
+    expect(svg).not.toContain('stroke-dasharray');
+  });
+});

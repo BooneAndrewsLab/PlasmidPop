@@ -148,3 +148,27 @@ describe('the map strip (item 107, point 5)', () => {
     expect(rows.featureTop(0)).toBeLessThan(rows.overlayTop(1));
   });
 });
+
+describe('an empty circular document (#434)', () => {
+  it('draws only the background, a primer preview left open and its marks included', () => {
+    // The strip returns on a length of 0 before a mark is folded. The
+    // preview is what a panel's primer leaves on the views when every base
+    // is then deleted; a new empty document has none.
+    const empty = SeqDocument.create({ sequence: '' }).setTopology('circular');
+    const svg = draw(empty, {
+      overlay: [
+        {
+          id: 'fwd',
+          label: 'Fwd',
+          range: { start: 0, end: 20 },
+          strand: 'forward',
+          shape: 'arrow',
+          marks: [5],
+        },
+      ],
+    });
+    expect(svg).not.toContain('NaN');
+    expect(svg).not.toContain(theme.editChange);
+    expect(svg).not.toContain('<path');
+  });
+});

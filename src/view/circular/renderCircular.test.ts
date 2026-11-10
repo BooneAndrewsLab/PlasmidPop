@@ -1189,3 +1189,47 @@ describe('cut labels the Enzymes table is pointing at (#401)', () => {
     expect(heavy(draw(new Set(['Enz29'])))).toBeGreaterThan(heavy(draw()));
   });
 });
+
+describe('an empty circular document (#434)', () => {
+  it('draws no mark of a primer preview left open, and nothing at a NaN', () => {
+    // `drawOverlays` returns on a length of 0 before a mark is folded. The
+    // preview is what a panel's primer leaves on the views when every base
+    // is then deleted; a new empty document has none.
+    const empty = SeqDocument.create({ sequence: '' }).setTopology('circular');
+    const lanes = assignLanes([], 0);
+    const layout = new CircularLayout(0, 'circular', { ...opts, laneCount: lanes.laneCount });
+    const primer: OverlaySpan = {
+      id: 'fwd',
+      label: 'Forward',
+      range: { start: 0, end: 22 },
+      strand: 'forward',
+      shape: 'arrow',
+      marks: [4, 10],
+    };
+    const rec = recorder();
+    renderCircularMap(rec.ctx, {
+      doc: empty,
+      layout,
+      lanes,
+      selection: null,
+      cutSites: [],
+      overlay: [primer],
+      overlayLanes: overlayLanes([primer], 0),
+      edits: null,
+      hoveredFeatureId: null,
+      hoveredCut: null,
+      width: 600,
+      height: 600,
+      devicePixelRatio: 1,
+      theme: { ...PRINT_THEME, editChange: '#mismatch' },
+      sansFont: '12px Helvetica, Arial, sans-serif',
+      titleFont: '600 15px Helvetica, Arial, sans-serif',
+    });
+    expect(rec.lines.filter((l) => l.color === '#mismatch')).toEqual([]);
+    const drawn = [
+      ...rec.lines.flatMap((l) => [...l.from, ...l.to]),
+      ...rec.arcs.flatMap((a) => [a.r, a.start, a.end]),
+    ];
+    expect(drawn.every(Number.isFinite)).toBe(true);
+  });
+});

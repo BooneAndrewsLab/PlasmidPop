@@ -136,6 +136,17 @@ describe('read, write, read (#204)', () => {
       if (original) Object.defineProperty(crypto, 'randomUUID', original);
     }
   });
+
+  it('refuses an empty circular document before any primer is written (#434)', () => {
+    // `primerRange` folds a primer's ends with `% length`. A primer feature
+    // needs a range, which an empty document cannot hold (the one feature
+    // it can is a site, which `asPrimer` passes over), and the writer
+    // refuses the document first in any case.
+    const empty = Doc.create({ sequence: '' })
+      .setTopology('circular')
+      .addFeature(createFeature({ type: 'primer_bind', name: 'p', segments: [siteSegment(0)] }));
+    expect(() => writeSnapGene(empty)).toThrow('A SnapGene file needs at least one base.');
+  });
 });
 
 describe('what the packets hold', () => {
