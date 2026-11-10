@@ -15,6 +15,7 @@ import { openCrisprWorkspace } from '../crisprWorkspace';
 import { editorStore } from '../state/editorStore';
 import { forgetPanels } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';
+import { getByTip } from '@/test/tips';
 import { CrisprPanel } from './CrisprPanel';
 import { CrisprWorkspace } from './CrisprWorkspace';
 
@@ -432,5 +433,34 @@ describe('the keys in the pegRNA table', () => {
     expect(editorStore.getState().workspace).toBe('crispr');
     fireEvent.keyDown(first, { key: 'Escape' });
     expect(editorStore.getState().workspace).toBeNull();
+  });
+});
+
+describe('a pegRNA for a guide through the origin', () => {
+  it('numbers the protospacer by its last base, in the row and in the detail', async () => {
+    // The same sequence turned by 30 bases: the guide at 21 to 40 now starts 10 before the origin.
+    const turn = 30;
+    const text = SEQUENCE.slice(turn) + SEQUENCE.slice(0, turn);
+    const L = text.length;
+    await openPrime(docOf(text, 'circular'), {
+      ...EDIT_4('A'),
+      position: String(NICK + 4 + 1 - turn),
+    });
+    expect(L).toBe(75);
+    // The guide runs from base 66 over the origin to base 5, not to 85; the other ends at 26.
+    // The guides run from base 66 and 60 over the origin, to 10 and 4, not to 85 and 79.
+    expect(getByTip(rowAt(0), 'Protospacer 66–10')).toBeInTheDocument();
+    expect(getByTip(rowAt(1), 'Protospacer 60–4')).toBeInTheDocument();
+    fireEvent.click(rowAt(0));
+    expect(screen.getByText('pegRNA for the guide at 66 (forward)')).toBeInTheDocument();
+    expect(screen.getByText('66–10')).toBeInTheDocument();
+  });
+
+  it('numbers the same guides on a line by where they end', async () => {
+    await openPrime(docOf(SEQUENCE), EDIT_4('A'));
+    expect(getByTip(rowAt(0), 'Protospacer 21–40')).toBeInTheDocument();
+    expect(getByTip(rowAt(1), 'Protospacer 15–34')).toBeInTheDocument();
+    fireEvent.click(rowAt(0));
+    expect(screen.getByText('21–40')).toBeInTheDocument();
   });
 });

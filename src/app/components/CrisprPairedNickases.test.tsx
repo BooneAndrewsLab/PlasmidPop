@@ -9,6 +9,7 @@ import { type CrisprSession, forgetCrisprSessions, updateCrisprSession } from '.
 import { openCrisprWorkspace } from '../crisprWorkspace';
 import { editorStore } from '../state/editorStore';
 import { forgetPanels } from '../state/panelMemory';
+import { getByTip } from '@/test/tips';
 import { useEditorState } from '../state/useEditorStore';
 import { CrisprPanel } from './CrisprPanel';
 import { CrisprWorkspace } from './CrisprWorkspace';
@@ -399,5 +400,34 @@ describe('a table of thousands of pairs', () => {
     expect(rowEls().length).toBeLessThan(100);
     fireEvent.keyDown(last, { key: 'Home' });
     expect(rowEls()[0]).toHaveFocus();
+  });
+});
+
+describe('a pair across the origin of a circular document', () => {
+  it('numbers a guide through the origin by its last base, in the cell and in its tooltip', async () => {
+    const ring = docOf(
+      `${'A'.repeat(10)}TGG${FILLER}${reverseComplement(UNIT)}${FILLER}${'A'.repeat(10)}`,
+      'circular',
+    );
+    await openPairs(ring);
+    expect(cells(rowAt(0)).slice(1, 3)).toEqual([`← 27–46 ${SPACER}`, `→ 57–10 ${SPACER}`]);
+    expect(getByTip(rowAt(0), 'Guide at 57–10, forward strand, PAM TGG')).toBeInTheDocument();
+    // The linear guide beside it ends where it ends.
+    expect(getByTip(rowAt(0), 'Guide at 27–46, reverse strand, PAM TGG')).toBeInTheDocument();
+  });
+
+  it('numbers the single-stranded gap through the origin by its last base', async () => {
+    // The reverse guide's nick is 6 bases after the origin, the forward guide's 6 before it.
+    const ring = docOf(`${reverseComplement(UNIT)}${FILLER}${UNIT}`, 'circular');
+    await openPairs(ring);
+    expect(getByTip(rowAt(0), 'The single-stranded bases are 51–6')).toBeInTheDocument();
+    expect(apart()).toEqual(['12']);
+  });
+
+  it('numbers the gap of a pair on a line by its end', async () => {
+    await openPairs(ONE());
+    expect(getByTip(rowAt(0), /^The single-stranded bases are \d+–\d+$/).dataset.tip).toBe(
+      'The single-stranded bases are 18–39',
+    );
   });
 });
