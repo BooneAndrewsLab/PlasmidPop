@@ -234,6 +234,26 @@ describe('CrisprPanel', () => {
     expect(screen.getByText('AAACAATGCAATGCCAATGCAGGTC')).toBeInTheDocument();
   });
 
+  it('names a region through the origin by its last base, and a linear one by its end', async () => {
+    // 66 bp: a guide on the last 10 bases and the first 10, and one in the middle.
+    const ring = docOf(
+      `${'A'.repeat(10)}TGG${FILLER}${UNIT}${FILLER}${'A'.repeat(10)}`,
+      'circular',
+    );
+    await openTab(ring, null);
+    act(() => {
+      editorStore.setSelection({ start: 56, end: 76 });
+    });
+    fireEvent.click(screen.getByLabelText('Only cuts in the selection'));
+    expect(await screen.findByText(/^Cuts in 57–10/)).toBeInTheDocument();
+    act(() => {
+      editorStore.setSelection({ start: 20, end: 66 });
+    });
+    fireEvent.click(screen.getByLabelText('Only cuts in the selection'));
+    fireEvent.click(screen.getByLabelText('Only cuts in the selection'));
+    expect(await screen.findByText(/^Cuts in 21–66/)).toBeInTheDocument();
+  });
+
   it('holds the region it was narrowed to while guides in it are clicked', async () => {
     // Three guides, cutting at 17, 50 and 83; a selection over the last two.
     await openTab(docOf([UNIT, UNIT, UNIT].join(FILLER)), null);

@@ -198,18 +198,28 @@ describe('CloneCheckPage without a context', () => {
 });
 
 describe('CloneCheckPage spans on a circle', () => {
-  it('numbers an insert that runs through the origin by its last base, not the unrolled end', () => {
+  it('numbers an insert that runs through the origin by its last base, not the unrolled end', async () => {
     const L = product.length;
     act(() => {
       editorStore.openDocument(vector);
     });
     openOn(product);
+    const choice = screen.getByRole('combobox', { name: 'Empty vector' });
+    const option = within(choice).getByRole('option', { name: /pVec · 3,000 bp/ });
+    fireEvent.change(choice, { target: { value: option.getAttribute('value') } });
     // The last 300 bases and the first 500: 300 + 500 = 800 bp, ending at 500.
     act(() => {
       editorStore.setSelection({ start: L - 300, end: L + 500 });
     });
     expect(screen.getByText(`${(L - 299).toLocaleString()}–500`)).toBeInTheDocument();
     expect(screen.getByText(/800 bp/)).toBeInTheDocument();
+    // The design remembers it by the same numbers.
+    fireEvent.click(screen.getByRole('button', { name: 'Design check primers' }));
+    expect(
+      await screen.findByText(
+        new RegExp(`pairs for the selection ${(L - 299).toLocaleString()}–500, checked against`),
+      ),
+    ).toBeInTheDocument();
     // The end on the last base is L, not 0.
     act(() => {
       editorStore.setSelection({ start: L - 300, end: L });

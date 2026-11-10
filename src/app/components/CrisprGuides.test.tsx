@@ -295,6 +295,51 @@ describe('sorting the guide table', () => {
   });
 });
 
+describe('a guide through the origin of a circular document', () => {
+  /** 66 bp: a guide on the last 10 bases and the first 10, one in the middle, the same spacer. */
+  const ring = (): SeqDocument =>
+    docOf(`${'A'.repeat(10)}TGG${FILLER}${UNIT}${FILLER}${'A'.repeat(10)}`, 'circular');
+
+  it('numbers the protospacer in the table and the detail by its last base, with the linear one beside it', async () => {
+    await openGuides(ring());
+    // The guide through the origin ends at base 10, not 76; the other ends at 56.
+    expect(positions()).toEqual(['24–43', '57–10']);
+    fireEvent.click(rowAt(1));
+    const detail = screen.getByRole('complementary', { name: 'Guide at 57 (forward)' });
+    expect(within(detail).getByText('57–10 (forward)')).toBeInTheDocument();
+    // Its other site is the middle one, and from the middle guide the one through the origin.
+    const sites = screen.getByRole('table', { name: 'Other sites' });
+    expect(within(sites).getAllByRole('row')[1]).toHaveTextContent('→ 24–43');
+    fireEvent.click(rowAt(0));
+    const others = screen.getByRole('table', { name: 'Other sites' });
+    expect(within(others).getAllByRole('row')[1]).toHaveTextContent('→ 57–10');
+    fireEvent.click(within(others).getByRole('button', { name: 'Show the site at 57–10' }));
+    expect(editorStore.getState().selection).toEqual({ start: 56, end: 76 });
+  });
+});
+
+describe('a base editor window through the origin', () => {
+  it('numbers the edited bases by the last base of the window', async () => {
+    // A 20 nt spacer whose first 5 bases are the last 5 of the circle: its
+    // C's are at 5 and 7, so the window reaches from base 33 over the origin.
+    const spacer = 'GATACACAGATCGATCGATC';
+    const ring = docOf(`${spacer.slice(5)}TGG${FILLER}${spacer.slice(0, 5)}`, 'circular');
+    await openGuides(ring);
+    fireEvent.change(screen.getByLabelText('Base editor'), { target: { value: 'cbe' } });
+    expect(positions()).toEqual(['29–15']);
+    fireEvent.click(rowAt(0));
+    // The window is bases 4 to 8 of the spacer: 32 to 36 here, ending at 3.
+    expect(screen.getByText('C5, C7 (32–3)')).toBeInTheDocument();
+  });
+
+  it('numbers the same window on a line, ending where it ends', async () => {
+    await openGuides(docOf(`GATACACAGATCGATCGATCTGG${FILLER}`));
+    fireEvent.change(screen.getByLabelText('Base editor'), { target: { value: 'cbe' } });
+    fireEvent.click(rowAt(0));
+    expect(screen.getByText('C5, C7 (4–8)')).toBeInTheDocument();
+  });
+});
+
 describe('the keys in the guide table', () => {
   it('are one stop in the tab order: the selected row, or the first', async () => {
     await openGuides(plain());
