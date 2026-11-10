@@ -205,3 +205,54 @@ the six-frame file name and header, `siteSpan` and the status bar's "7 to 2",
 each across the origin and each ending on the last base (the `end % length`
 mistake gives 0 there). The lineage and GenBank-comment sites had wrap
 tests already.
+
+**Position wrap (core 1).** `range.ts` now exports `wrapPosition(position,
+seqLength)`. 41 inline folds were swapped for it (two of them in `range.ts`
+itself) and the three private helpers (`mod` twice, `wrapMod`) removed with
+their 16 calls. With the short way round below taking four of them, 51 calls
+in 26 files use it now. Left as they are: `FindBar.tsx`'s three, which cycle
+through a list of hits, and the reading-frame phase in
+`overlapExtension.ts:399`, which is modulo 3. Neither is a position on a
+sequence.
+
+- **A zero length gives `NaN`, as before.** The helper is the expression
+  and no more, so every swap is textual and no site's result changes for
+  any input. A helper that answered 0 was considered and dropped: the sites
+  that guard a zero length do not agree on the answer (null in
+  `featureOrigin.ts`'s `fold`, 0 in `restriction.ts` and `gateway.ts:485`,
+  the position as it came in `digest.ts`, `orf.ts`, `gateway.ts:243` and
+  `alignmentVerdict.ts`), and `EnzymeTable.tsx`'s `readRange` ends its loop
+  on the `NaN`: with a 0 there it would not end. Each guard stays where it
+  was.
+- **Can a zero length reach an unguarded site?** Eleven files guard at the
+  site or return before it (`methylation.ts`, `restriction.ts`, `orf.ts`,
+  `digest.ts`, `gateway.ts`, `anneal.ts`, `checksum/align.ts`,
+  `readAlignment.ts`, `alignmentVerdict.ts`, `editing.ts`,
+  `components/primerDesign.ts`), as do `fold` in `featureOrigin.ts` and
+  `primerDesign.ts:396`. In `translated.ts`, `bidirectional.ts:53` and
+  `mutagenesis.ts` the `NaN` indexes an empty text and reads as past the
+  end, which is right. The rest (`featureOrigin.ts` after `fold`,
+  `crispr.ts`, `crisprEdit.ts`, `bidirectional.ts`'s `before`, `pcr.ts`,
+  `cloningEnds.ts`, `checkPrimers.ts`, `primerDesign.ts:335`,
+  `alignmentSearch.ts`, `EnzymeTable.tsx`, `crisprEditing.ts` and the three
+  renderers' mismatch marks) fold a position taken from a hit, a site, a
+  guide or a mark, which an empty sequence has none of. That was checked
+  by run and not by proof: with the helper made to log every call with a
+  length that is not positive, the whole suite (8,421 tests) logged none
+  but the helper's own test.
+- **The short way round** is `shortWayRound(offset, seqLength)`, the offset
+  folded into `(-length / 2, length / 2]`, at the four sites listed above.
+  All four had the same tie rule. `crisprEdit.ts:215` folds the other way
+  at the tie (`[-half, length - half)`) and is left alone.
+- **Cost.** 12 million folds in a loop, inline against the imported
+  helper, Node 25 on `ridiculousbuild`: 232 ms and 233 ms. V8 inlines it.
+- **Tests.** `range.test.ts`: positions on the sequence, at and past the
+  end (0-based: position `length` is base 0), negatives, multiples of the
+  length (0 and never -0), the forward distance, a sweep of every position
+  three turns either way for five lengths, and the zero length; the same
+  for `shortWayRound` with the tie on even and odd lengths. No site's own
+  tests changed.
+- **Mutation.** Both helpers are new lines in `range.ts`. The three private
+  helpers' mutants and the inline arithmetic's at each site are removed by
+  the refactor, not killed: the before/after run of the touched files will
+  show them as fewer mutants, to be reported apart from kills.
