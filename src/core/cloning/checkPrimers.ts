@@ -19,7 +19,7 @@ import {
   threePrimeComplementarity,
   threePrimeDimer,
 } from '../primers';
-import { type Range, rangePieces } from '../range';
+import { type Range, rangePieces, wrapPosition } from '../range';
 import { reverseComplement } from '../sequence';
 import { type PcrPrimer, pcr } from './pcr';
 
@@ -164,7 +164,7 @@ export function locateInsert(
   parts: readonly SeqDocument[] = [],
 ): CloneGeometry | null {
   const L = product.length;
-  const norm = (p: number): number => ((p % L) + L) % L;
+  const norm = (p: number): number => wrapPosition(p, L);
   const stretch = longestSharedStretch(product, vector);
   if (stretch === null) return null;
   const vectorLength = stretch.range.end - stretch.range.start;
@@ -205,7 +205,7 @@ export function partJunctions(
   parts: readonly SeqDocument[],
 ): number[] {
   const L = product.length;
-  const norm = (p: number): number => ((p % L) + L) % L;
+  const norm = (p: number): number => wrapPosition(p, L);
   const insertLength = insert.end - insert.start;
   const stretches: { start: number; end: number }[] = [];
   for (const part of parts) {
@@ -376,7 +376,7 @@ function candidatesIn(
 ): Candidate[] {
   const L = text.length;
   const circular = product.isCircular;
-  const norm = (p: number): number => ((p % L) + L) % L;
+  const norm = (p: number): number => wrapPosition(p, L);
   const lo = circular ? window.start : Math.max(0, window.start);
   const hi = circular ? window.end : Math.min(L, window.end);
   const out: Candidate[] = [];
@@ -446,7 +446,7 @@ class Specificity {
 
   specific(cand: Candidate, strand: Strand): boolean {
     const L = this.text.length;
-    const own = ((cand.site.start % L) + L) % L;
+    const own = wrapPosition(cand.site.start, L);
     const key = `${strand}:${own}:${cand.report.sequence}`;
     const seen = this.known.get(key);
     if (seen !== undefined) return seen;
@@ -611,7 +611,7 @@ export function designCheckPrimers(
   const text = product.sequence.toString().toUpperCase();
   const L = text.length;
   const circular = product.isCircular;
-  const norm = (p: number): number => ((p % L) + L) % L;
+  const norm = (p: number): number => wrapPosition(p, L);
   const size = { min: minProduct, max: maxProduct };
   const notes: string[] = [];
   const { insert } = geometry;

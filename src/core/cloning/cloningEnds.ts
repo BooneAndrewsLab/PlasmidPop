@@ -26,7 +26,7 @@ import {
   designAnchoredPrimers,
   findPrimerBindingSites,
 } from '../primers';
-import { type Range, type Topology, rangeContains } from '../range';
+import { type Range, type Topology, rangeContains, wrapPosition } from '../range';
 import { reverseComplement } from '../sequence';
 import { type DigestFragment, type FragmentEnd, cutEnd, cutOffset, digest } from './digest';
 import { endFlank } from './endFlanks';
@@ -310,15 +310,11 @@ interface Geometry {
   readonly region: Range;
 }
 
-function wrapMod(x: number, L: number): number {
-  return ((x % L) + L) % L;
-}
-
 /** Where a cut lies from the region's start, unrolled, or null when it is outside. */
 function regionOffset(cut: number, g: Geometry): number | null {
   const span = g.region.end - g.region.start;
   let d = cut - g.region.start;
-  if (g.topology === 'circular') d = wrapMod(d, g.L);
+  if (g.topology === 'circular') d = wrapPosition(d, g.L);
   return d >= 0 && d <= span ? d : null;
 }
 
@@ -333,7 +329,7 @@ interface LaidOut {
 function layOut(site: CutSite, cutUnrolled: number, siteLength: number, g: Geometry): LaidOut {
   const near = (p: number): number => {
     if (g.topology !== 'circular') return p;
-    let d = wrapMod(p - site.cut, g.L);
+    let d = wrapPosition(p - site.cut, g.L);
     if (d > g.L / 2) d -= g.L;
     return cutUnrolled + d;
   };
@@ -1285,8 +1281,8 @@ function simulate(
   const fragments = digest(vector, cuttable);
   const replaced = report.replaced;
   if (replaced === null) return fail('The pair has no cut inside the region.', amplicon);
-  const lowCut = vector.isCircular ? wrapMod(replaced.start, L) : replaced.start;
-  const highCut = vector.isCircular ? wrapMod(replaced.end, L) : replaced.end;
+  const lowCut = vector.isCircular ? wrapPosition(replaced.start, L) : replaced.start;
+  const highCut = vector.isCircular ? wrapPosition(replaced.end, L) : replaced.end;
   const sameEnzyme = forward.enzyme === reverse.enzyme;
 
   const placed = report.orientation === 'reverse' ? flipFragment(insertPiece) : insertPiece;
@@ -1300,9 +1296,9 @@ function simulate(
         amplicon,
       );
     }
-    const backboneEnd = wrapMod(backbone.range.end, L);
+    const backboneEnd = wrapPosition(backbone.range.end, L);
     if (!sameEnzyme && backboneEnd !== lowCut) {
-      if (!cuttable.some((s) => wrapMod(s.cut, L) === lowCut)) {
+      if (!cuttable.some((s) => wrapPosition(s.cut, L) === lowCut)) {
         return fail(blockedText(ctx, report, enzymeAt(report, 'lower')), amplicon);
       }
       warnings.push(vectorPiecesWarning(backbone, vector));
@@ -1341,7 +1337,7 @@ function simulate(
     circular &&
     !rangeContains({ start: lowCut, end: lowCut + (replaced.end - replaced.start) }, 0, L)
   ) {
-    const origin = wrapMod(L - highCut, L);
+    const origin = wrapPosition(L - highCut, L);
     if (origin !== 0 && origin < product.length) product = product.setOrigin(origin);
   }
   // How it was made: the insert's digested amplicon joined to the vector's pieces.

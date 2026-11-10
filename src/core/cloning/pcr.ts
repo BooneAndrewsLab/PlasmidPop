@@ -11,7 +11,7 @@ import {
   threePrimeComplementarity,
   threePrimeDuplexEnergy,
 } from '../primers';
-import { type Range } from '../range';
+import { type Range, wrapPosition } from '../range';
 import { reverseComplement } from '../sequence';
 
 /**
@@ -178,7 +178,7 @@ export function pcr(
       // product that happens to be nearly the whole plasmid.
       let span = r.range.end - f.range.start;
       if (circular) {
-        span = ((span % L) + L) % L;
+        span = wrapPosition(span, L);
         // Back-to-back primers whose ends meet exactly amplify the whole
         // circle, not nothing.
         if (span === 0) span = L;

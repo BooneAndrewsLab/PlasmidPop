@@ -1,6 +1,6 @@
 import { type SeqDocument, createMetadata, fragmentFromRange } from '../document';
 import { type Feature, type Strand, createFeature, rangeSegment } from '../features';
-import { type Range } from '../range';
+import { type Range, wrapPosition } from '../range';
 import { type DigestFragment } from './digest';
 import { ligate } from './ligate';
 
@@ -240,7 +240,7 @@ function crossoverOf(
   // near the end of the sequence and runs past it; the crossover is wrapped
   // back into the molecule.
   const wrap = (at: number, doc: SeqDocument): number =>
-    doc.isCircular && doc.length > 0 ? ((at % doc.length) + doc.length) % doc.length : at;
+    doc.isCircular && doc.length > 0 ? wrapPosition(at, doc.length) : at;
   return {
     inFirst: wrap(first.site.range.start + core.inA + half, first.doc),
     inSecond: wrap(second.site.range.start + core.inB + half, second.doc),
@@ -482,7 +482,7 @@ function recombinant(
   let out = circle;
   for (const site of spec.sites) {
     if (site.length <= 0) continue;
-    const start = L === 0 ? 0 : ((site.at % L) + L) % L;
+    const start = L === 0 ? 0 : wrapPosition(site.at, L);
     out = out.addFeature(
       createFeature({
         type: 'protein_bind',
@@ -536,7 +536,7 @@ function frameWarnings(product: SeqDocument): string[] {
   const L = product.length;
   if (L === 0) return [];
   /** Distance forward from `x` to `y` round the circle. */
-  const forward = (x: number, y: number): number => (((y - x) % L) + L) % L;
+  const forward = (x: number, y: number): number => wrapPosition(y - x, L);
   const coding = product.features
     .all()
     .filter((f) => f.type === 'CDS')

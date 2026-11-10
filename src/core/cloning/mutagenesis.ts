@@ -13,7 +13,7 @@ import {
   q5AnnealingTemperature,
   q5MeltingTemperature,
 } from '../primers/thermo';
-import { type Range, oneBasedEnd } from '../range';
+import { type Range, oneBasedEnd, wrapPosition } from '../range';
 import { type Strand } from '../features';
 import { complement, reverseComplement } from '../sequence';
 
@@ -156,7 +156,7 @@ export function designMutagenesis(
   const text = doc.sequence.toString();
   const circular = doc.isCircular;
   const at = (i: number): string =>
-    circular ? text.charAt(((i % L) + L) % L) : i < 0 || i >= L ? '' : text.charAt(i);
+    circular ? text.charAt(wrapPosition(i, L)) : i < 0 || i >= L ? '' : text.charAt(i);
   /** Template bases [from, to), wrapping on a circle, '' past a linear end. */
   const stretch = (from: number, to: number): string => {
     let out = '';
