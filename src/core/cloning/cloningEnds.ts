@@ -26,7 +26,14 @@ import {
   designAnchoredPrimers,
   findPrimerBindingSites,
 } from '../primers';
-import { type Range, type Topology, rangeContains, shortWayRound, wrapPosition } from '../range';
+import {
+  type Range,
+  type Topology,
+  foldPosition,
+  rangeContains,
+  shortWayRound,
+  wrapPosition,
+} from '../range';
 import { reverseComplement } from '../sequence';
 import { type DigestFragment, type FragmentEnd, cutEnd, cutOffset, digest } from './digest';
 import { endFlank } from './endFlanks';
@@ -313,8 +320,7 @@ interface Geometry {
 /** Where a cut lies from the region's start, unrolled, or null when it is outside. */
 function regionOffset(cut: number, g: Geometry): number | null {
   const span = g.region.end - g.region.start;
-  let d = cut - g.region.start;
-  if (g.topology === 'circular') d = wrapPosition(d, g.L);
+  const d = foldPosition(cut - g.region.start, g.L, g.topology);
   return d >= 0 && d <= span ? d : null;
 }
 
@@ -1279,8 +1285,8 @@ function simulate(
   const fragments = digest(vector, cuttable);
   const replaced = report.replaced;
   if (replaced === null) return fail('The pair has no cut inside the region.', amplicon);
-  const lowCut = vector.isCircular ? wrapPosition(replaced.start, L) : replaced.start;
-  const highCut = vector.isCircular ? wrapPosition(replaced.end, L) : replaced.end;
+  const lowCut = foldPosition(replaced.start, L, vector.topology);
+  const highCut = foldPosition(replaced.end, L, vector.topology);
   const sameEnzyme = forward.enzyme === reverse.enzyme;
 
   const placed = report.orientation === 'reverse' ? flipFragment(insertPiece) : insertPiece;
