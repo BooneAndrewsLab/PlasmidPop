@@ -1,5 +1,5 @@
 import { type Strand } from '../features';
-import { type Range, type Topology, rangeContains, wrapPosition } from '../range';
+import { type Range, type Topology, foldPosition, rangeContains } from '../range';
 import { reverseComplement } from '../sequence';
 import { codeMask } from './search';
 
@@ -194,15 +194,13 @@ function toForward(strand: Strand, a: number, n: number, L: number, topology: To
     const start = topology === 'circular' ? a % L : a;
     return { start, end: start + n };
   }
-  let start = L - (a + n);
-  if (topology === 'circular') start = wrapPosition(start, L);
+  const start = foldPosition(L - (a + n), L, topology);
   return { start, end: start + n };
 }
 
 /** A strand-local boundary (between bases) as a forward one, 0…L. */
 function boundaryToForward(strand: Strand, x: number, L: number, topology: Topology): number {
-  const b = strand === 'forward' ? x : L - x;
-  return topology === 'circular' ? wrapPosition(b, L) : b;
+  return foldPosition(strand === 'forward' ? x : L - x, L, topology);
 }
 
 /** Four bit planes, one per base: bit j set when the base at j could be that base. */
