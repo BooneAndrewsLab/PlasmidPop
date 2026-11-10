@@ -39,7 +39,14 @@ const clean = () => {
   rmSync(dir, { recursive: true, force: true });
 };
 
-const child = spawn(command, args, { stdio: 'inherit', env: { ...process.env, TMPDIR: dir } });
+// The tests expect English number formatting (`4,991–10`), and the app
+// formats with the reader's own locale on purpose (#435). Node reads the
+// locale once at start-up, so it is pinned here, in the environment the
+// child inherits, and src/test/locale.test.ts fails a run that bypassed this.
+const child = spawn(command, args, {
+  stdio: 'inherit',
+  env: { ...process.env, TMPDIR: dir, LANG: 'en_US.UTF-8', LC_ALL: 'en_US.UTF-8' },
+});
 // Ctrl-C reaches the child through the shared process group; forward a plain
 // kill so it can shut down, and clean up once it has.
 for (const signal of /** @type {const} */ (['SIGTERM', 'SIGHUP'])) {
