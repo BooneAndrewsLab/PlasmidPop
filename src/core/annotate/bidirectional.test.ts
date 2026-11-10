@@ -191,3 +191,15 @@ describe('the SV40 poly(A) signals of the bundled library (#282)', () => {
     expect(lib.parts.filter((p) => p.complementOf !== undefined)).toHaveLength(1);
   });
 });
+
+describe('an empty circular document (#434)', () => {
+  it('offers nothing, and has no pair whose gap it would fold', () => {
+    // `before` folds the gap between a gene's end and a signal's start the
+    // short way round; it is asked per pair of hits, and an empty sequence
+    // has no hit, so `splitStrands` returns before it.
+    expect(detectFeatures('', 'circular', LIB)).toEqual([]);
+    expect(offered('', 'circular')).toEqual([]);
+    expect(splitStrands([], '', 'circular')).toEqual({ shown: [], hidden: [] });
+    expect(inUseStrands([], '', 'circular')).toEqual([]);
+  });
+});

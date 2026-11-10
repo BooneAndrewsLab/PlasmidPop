@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { type Alignment } from '../alignment';
+import { SeqDocument } from '../document';
 import { createFeature, rangeSegment, siteSegment } from '../features';
 
 import {
@@ -332,5 +333,27 @@ describe('whereVariant and describeVariant', () => {
       'extra region of 1,200 bp after 1,000',
     );
     expect(describeVariant(v('missing', 100, 130, 30))).toBe('missing region of 30 bp at 101..130');
+  });
+});
+
+describe('an empty circular document (#434)', () => {
+  it('places a variant in no feature', () => {
+    // `touches` folds an insertion's two neighbours with `% length`; it is
+    // asked only for a feature with a range, and the only feature an empty
+    // document can hold is a site, which is dropped before it.
+    const doc = SeqDocument.create({ sequence: '' })
+      .setTopology('circular')
+      .addFeature(createFeature({ type: 'misc_feature', name: 's', segments: [siteSegment(0)] }));
+    const insertion: Variant = {
+      kind: 'insertion',
+      start: 0,
+      end: 0,
+      size: 1,
+      expected: '',
+      observed: 'A',
+      features: [],
+    };
+    expect(placeVariants([insertion], doc.features.all(), doc.length)).toEqual([insertion]);
+    expect(placeVariants([insertion], [], 0)).toEqual([insertion]);
   });
 });
