@@ -467,3 +467,74 @@ wrap)` on the next line already adds the wrap back for a negative `i`.
   was run again after that. So 8 are left, each with the reason above. Part 2
   of the issue (the 43 topology and zero-length mutants) is untouched and
   stays with #434 and step 3 of the order.
+
+**The empty circular document (#434).** "Can a zero length reach an
+unguarded site?" above was answered by one logging run. The kept answer is a
+test per entry point, each calling it with a circular document of length 0
+built as the app builds one (`SeqDocument.create({ sequence: '' })
+.setTopology('circular')`; `seqDocument.test.ts` also records that deleting
+every base of a circle leaves it circular, and that the one feature either
+can hold is a site, since a range segment must cover a base) and asserting
+the result: the empty list, null, the problem text, the input unchanged, and
+no `NaN` in any range, segment or drawn coordinate (`src/test/noNaN.ts`
+spells a `NaN` out before `JSON.stringify` writes it as `null`). The
+`describe('an empty circular document (#434)')` blocks sit in each site's own
+test file, so `vitest related` and the drop-the-call probe pick them up.
+
+- **Entry points tested (23 files, 28 tests):** `originRecord`,
+  `placementOf`, `pieceOrigin`, `rejoinPieces`, `extractRange`;
+  `findCrisprGuides` (with a region, and as a background document),
+  `designPegRnas`, `pairNickases`, `findOrfs`, `codonPieces`;
+  `detectFeatures`, `splitStrands`, `inUseStrands`, `placeVariants`; `pcr`,
+  `suggestEnzymePairs`, `evaluateEnzymePair`, `designCloningEnds`,
+  `designCloningResults`, `longestSharedStretch`, `locateInsert`,
+  `partJunctions`, `flipInsert`, `attSites`, `gateway`, `digest`,
+  `partialDigest`, `designPrimers`, `findPrimerBindingSites`,
+  `designAnchoredPrimers`, `annealsElsewhere`; `typeText`, `pasteFragment`,
+  `deleteBackward`, `deleteForward`, `clampPosition`, `columnOfPosition`,
+  `findMotif`, `runReadBatch` with `summarizeRow`, the Prime page's "Use the
+  selection"; `renderRibbon`, `renderLinearView`, `renderCircularMap` with
+  a primer preview left open; `writeSnapGene`.
+- **Sites guarded: none.** No test showed a `NaN` in a range, a segment or a
+  drawn coordinate, so no production line changed and `wrapPosition` is as
+  it was. Every site is safe for one of four reasons, named in its test:
+  - _returns before the fold_: `renderRibbon.ts:143` (`L === 0`),
+    `renderCircular.ts:778` (`drawOverlays`), `digest.ts:136`,
+    `gateway.ts:537`, `designPrimers` (`primerDesign.ts:394`),
+    `findPrimerBindingSites`, `columnOfPosition` (no base in any column
+    comes before the wrap), `alignedReferenceRange` (no range for a wrap of
+    0, so `readBatch.ts:185` never folds), `writeSnapGene` (refuses the
+    document);
+  - _folds per hit, site, guide, pair, candidate or codon, of which an empty
+    sequence has none_: `crispr.ts` (`pamWindows` gives no window to a
+    sequence shorter than spacer and PAM), `crisprEdit.ts` (the guide list;
+    note that an insertion at 0 replacing nothing passes `primeEditProblem`
+    on an empty circle, so the guide list is the only thing in the way),
+    `bidirectional.ts`'s `before`, `pcr.ts:181`, `cloningEnds.ts:317` and
+    the simulation, `checkPrimers.ts` (`longestSharedStretch` finds nothing
+    shorter than a k-mer, so the page gets no geometry), `crisprEditing.ts`'s
+    `pairSpan`, `orf.ts` (`scanCircle` wants six bases), `splitCodons.ts`,
+    `findMotif`;
+  - _the only feature an empty document holds is a site_: `featureOrigin.ts`
+    (every fold comes after `rangesOf`, which has no range for a site),
+    `variants.ts:154` (`touches` is asked per feature with a range),
+    `writeSnapGene.ts`'s `primerRange` (`asPrimer` passes a site over);
+  - _the only selection an empty document has is the caret at 0_:
+    `editing.ts:97` (a replacement takes a non-empty selection) and
+    `CrisprPrimeEditing.tsx:248` (the fold is for a non-empty selection).
+  - `renderLinear.ts:1142` is a fifth: the document's one row covers no base,
+    so the preview's pieces clip to nothing before the marks.
+  - `primerDesign.ts:335` does fold a `NaN` (the site's own 3′ end) and
+    compares it with the ends of the sites found, of which there are none,
+    so `annealsElsewhere` answers false and nothing carries the `NaN` on; the
+    test records that rather than guarding it.
+- **Weaker folds** (`a % L`, `(x - 1 + L) % L`; the Related list of #434) are
+  covered by the same tests where the entry point reaches them with a zero
+  length: `crispr.ts:194`, `:517`; `orf.ts:104`, `:109`; `splitCodons.ts:37`;
+  `variants.ts:154`; `digest.ts:120`; `gateway.ts:549`; `editing.ts:97`;
+  `alignmentSearch.ts:115`; `CrisprPrimeEditing.tsx:248`;
+  `writeSnapGene.ts:122`, `:259`; `readBatch.ts:185`. None was rewritten.
+- **Not covered here:** `baseEditWindow` and `pairSpan` take a guide or a
+  pair as their argument and cannot be called without one, so their tests
+  are of the list that would feed them. Part 2 of #436 and step 3 of the
+  order (the topology tests) are still where they were.
