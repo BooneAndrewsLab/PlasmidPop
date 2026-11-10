@@ -50,7 +50,7 @@ Ranked by risk, which is what #432 asks of the core.
    `crispr.ts`, `crisprEdit.ts`, and one each in 18 more, three of them in
    `src/view/`). Three files have a private helper for it: `mod` in
    `document/featureOrigin.ts` and in `analysis/crisprEdit.ts`, `wrapMod` in
-   `cloning/cloningEnds.ts` (8 calls). **Nothing exports it.**
+   `cloning/cloningEnds.ts` (8 calls). **At the scan nothing exported it.**
    `range.ts`'s `normalizePosition` is not this: it maps only
    `position === length` to 0. The sites differ in what they do with a
    zero length (`x % 0` is `NaN`): some guard it (`digest.ts`,
@@ -60,7 +60,26 @@ Ranked by risk, which is what #432 asks of the core.
    - On top of it, **the short way round** (`d = wrap(b - a); if (d > n / 2)
 d -= n`) is written four times: `cloning/digest.ts:86`,
      `analysis/crisprEdit.ts:326`, `cloning/cloningEnds.ts:336`,
-     `app/components/crisprEditing.ts:48`.
+     `app/components/crisprEditing.ts:48` (lines as at the scan; the same
+     four call `shortWayRound` at `:85`, `:323`, `:332` and `:49` now).
+   - **Fold on a circle, leave as it is on a line.** Found by the code
+     review of the wrap, not by the scan: with the arithmetic in one helper,
+     what still repeats is the topology test in front of it. As a ternary:
+     `document/featureOrigin.ts:49`, `:54`, `:155`, `:260`, `:308`,
+     `analysis/crispr.ts:205`, `cloning/cloningEnds.ts:1282`, `:1283`,
+     `cloning/digest.ts:92`, `cloning/gateway.ts:243`,
+     `primers/primerDesign.ts:396`, `primers/anneal.ts:285`. As an `if`:
+     `range.ts:298`, `analysis/crispr.ts:198`, `analysis/orf.ts:144`,
+     `cloning/cloningEnds.ts:317`, and the two with their own answer for a
+     zero length, `fold` in `featureOrigin.ts:40` (null) and `wrap` in
+     `analysis/restriction.ts:220` (0). The sites are not the same rule
+     yet: three also ask for a positive length (`digest.ts`, `gateway.ts`,
+     `orf.ts`), and they test `topology`, `isCircular` or a local
+     `circular`. One line is in two files whole, the base at `i` or `''`
+     past either end of a line: `cloning/mutagenesis.ts:159` and
+     `primers/anneal.ts:284`. The before/after mutation run says where the
+     tests are thin: of the 49 mutants not killed on either side of the
+     wrap, 43 are on one of these topology tests or zero-length guards.
 2. **The 1-based end of a range that wraps.** `range.ts` has `oneBasedEnd`
    and `formatSpan` (17 files use `formatSpan`). The same fold is derived
    again in `lineage/describe.ts:34`, `io/genbank/madeFromComment.ts:112`,
@@ -76,7 +95,7 @@ d -= n`) is written four times: `cloning/digest.ts:86`,
    confirmed first.
    `verify/variants.ts:207` prints `end` unfolded; whether a variant's range
    can wrap is to be checked. `io/snapgene/writeSnapGene.ts:122,127` take
-   `% length` unguarded.
+   `% length` unguarded. What became of both is under Done.
 3. **GC content: six implementations, three rules.**
    `analysis/gcContent.ts` weighs IUPAC codes and leaves N out of the
    denominator. `primers/thermo.ts`'s `gcFraction` counts G, C and S over
@@ -169,14 +188,20 @@ props.
    length be 0), then one exported helper in `range.ts` with tests for
    negatives, multiples of the length and a zero length, then one commit per
    module. `range.ts` is a new mutation surface only for the helper's lines.
-3. IUPAC tables and complement tables (core 4, 5): derive from the one
+3. Fold on a circle, leave on a line (core 1, its second bullet): the
+   per-site table again (which topology test, which zero-length answer),
+   and tests of the linear branch and the zero length at each site before
+   any helper, since that is where the surviving mutants are. A helper
+   beside `normalizePosition` only for the sites that turn out to be one
+   rule.
+4. IUPAC tables and complement tables (core 4, 5): derive from the one
    source, or pin their agreement in a test where a typed-array table is
    kept for speed.
-4. GC (core 3): decide the intended rules first; this may end as a note in
+5. GC (core 3): decide the intended rules first; this may end as a note in
    each function's comment and no extraction.
-5. `thermo.ts` and the overlap primer pair (core 7, 8).
-6. Components, largest first.
-7. Circular scan text (core 6) last: many sites, one line each, and the
+6. `thermo.ts` and the overlap primer pair (core 7, 8).
+7. Components, largest first.
+8. Circular scan text (core 6) last: many sites, one line each, and the
    least to gain.
 
 Each extraction follows #432: tests for wraparound and indexing first, a
@@ -206,6 +231,31 @@ each across the origin and each ending on the last base (the `end % length`
 mistake gives 0 there). The lineage and GenBank-comment sites had wrap
 tests already.
 
+An eighth copy was missed by the scan and found by the code review: the
+`to` of the span in `app/readBatch.ts`'s `summarizeRow`, written
+`wrap(range.end - 1) + 1` with the fold in a closure, so no search for the
+one-line form found it. It calls `oneBasedEnd` now and keeps its own case
+for a reference that does not wrap. `alignedReferenceRange` gives a range
+only when `end > start`, and none for a wrap of 0, so the two agree for
+everything that reaches the line. Its test (a read across the origin, one
+ending on the last base, one on a line) was added first and passes on both
+sides.
+
+The two sites the scan left open:
+
+- `verify/variants.ts`'s `whereVariant` prints `end` unfolded and is right
+  to. A variant's coordinates come from a global alignment whose first side
+  is the construct's text once, the clone having been turned to the
+  construct's origin first (`verify.ts`), so `end` never passes the length.
+- `io/snapgene/writeSnapGene.ts`'s `featureRange` is left as it is. It
+  writes a segment and also the gap between two segments, whose "end" is
+  the next segment's start and can be 0; `oneBasedEnd` is for the end of a
+  non-empty range, and the two differ there on a 1-base sequence. A range
+  segment cannot exist on an empty document (`assertValidSegment`), so it
+  is never given a zero length. `primerRange` beside it is 0-based, a
+  different number; whether it can see a zero length was not checked and
+  is on #434.
+
 **Position wrap (core 1).** `range.ts` now exports `wrapPosition(position,
 seqLength)`. 41 inline folds were swapped for it (two of them in `range.ts`
 itself) and the three private helpers (`mod` twice, `wrapMod`) removed with
@@ -213,7 +263,14 @@ their 16 calls. With the short way round below taking four of them, 51 calls
 in 26 files use it now. Left as they are: `FindBar.tsx`'s three, which cycle
 through a list of hits, and the reading-frame phase in
 `overlapExtension.ts:399`, which is modulo 3. Neither is a position on a
-sequence.
+sequence. Also left, and these are positions: the weaker folds, a bare
+`x % length` or `(x + length) % length`, which are right only while `x`
+cannot go below 0 or below `-length` (`crispr.ts:193` and `:517`,
+`orf.ts:104` and `:109`, `splitCodons.ts:37`, `verify/variants.ts:154`,
+`digest.ts:120`, `gateway.ts:549`, `editing.ts:97`,
+`alignmentSearch.ts:115`, `CrisprPrimeEditing.tsx:248`,
+`readBatch.ts:185`). They are not the helper's expression, so a swap would
+not be textual: each needs its input range shown first. #434 lists them.
 
 - **A zero length gives `NaN`, as before.** The helper is the expression
   and no more, so every swap is textual and no site's result changes for
@@ -250,6 +307,8 @@ sequence.
   at the tie (`[-half, length - half)`) and is left alone.
 - **Cost.** 12 million folds in a loop, inline against the imported
   helper, Node 25 on `ridiculousbuild`: 232 ms and 233 ms. V8 inlines it.
+  Only V8 under Node was measured, not Firefox or Safari;
+  `docs/perf-notes.md` has the set-up.
 - **Tests.** `range.test.ts`: positions on the sequence, at and past the
   end (0-based: position `length` is base 0), negatives, multiples of the
   length (0 and never -0), the forward distance, a sweep of every position
@@ -258,5 +317,86 @@ sequence.
   tests changed.
 - **Mutation.** Both helpers are new lines in `range.ts`. The three private
   helpers' mutants and the inline arithmetic's at each site are removed by
-  the refactor, not killed: the before/after run of the touched files will
-  show them as fewer mutants, to be reported apart from kills.
+  the refactor, not killed; the run below reports them apart from kills.
+
+**Before/after mutation run, both refactors as one diff.** `8da3dfa`
+against `35f2cdc`, so without the `readRange` guard and the `readBatch`
+swap, which the review brought after. On each side Stryker mutated only the
+lines the other side does not have (the lines taken away, before; the lines
+put in, after), every mutant run and none read from the incremental file,
+with the tests `mutate:changed` picks for those files (431 and 433 test
+files), in a worktree of its own so the release baseline in
+`reports/mutation` was not touched.
+
+| Changed lines | Before | After |
+| ------------- | ------ | ----- |
+| Mutants       | 378    | 185   |
+| Killed        | 271    | 121   |
+| Survived      | 91     | 51    |
+| No coverage   | 12     | 12    |
+| Timed out     | 2      | 1     |
+| Ignored       | 2      | 0     |
+
+- **Killed by tests: none new.** 136 mutants have the same text on both
+  sides and every one kept its status (87 killed, 44 survived, 4 without
+  coverage, 1 timed out). No site's tests changed, so this is as expected.
+- **Removed by the refactor: 242** (184 killed, 47 survived, 8 without
+  coverage, 2 ignored, 1 timed out). Of the 47 survivors, 7 are still there
+  under another text (the helper's name inside the mutated expression) and
+  40 went with the arithmetic they mutated: the two `span` functions (14),
+  `StatusBar` (3), the two renderers' mismatch marks (6),
+  `components/primerDesign.ts` (3), `checkPrimers.ts` (4),
+  `primers/primerDesign.ts` (2), `editing.ts`, `alignmentSearch.ts`, and the
+  short way round in `cloningEnds.ts`, `crisprEdit.ts` (4) and
+  `crisprEditing.ts`. The 8 without coverage are back under the new name
+  too (`cloningEnds.ts:1299`).
+- **New code:** the helpers' 16 mutants in `range.ts`, all killed. No new
+  survivor anywhere.
+- **Survivors, 91 to 51:** 51 unchanged, 40 removed, none killed.
+- **The score on these lines goes down, 72.6% to 65.9%**, and that is not a
+  loss of testing: most of what was removed was killed, so what is left is
+  weighted to the survivors both sides share.
+- **What the smaller number hides.** The 40 were gaps in the sites' tests
+  as they stood before (nothing asserted what the two `span` functions
+  wrote; nothing reached the far half in `crisprEdit.ts`). The status
+  bar's three have a test since the swap, the "7 to 2" one. The other 37
+  sites have none new, so they are gaps still. The arithmetic is tested
+  once, in the helper; a site that stopped calling it would not be caught
+  at those sites, and Stryker has no mutant that drops a call, so the
+  report no longer says so.
+- **Where the shared survivors are:** 43 of the 49 mutants not killed on
+  either side are on a topology test or a zero-length guard beside a fold.
+  That is the next candidate (core 1, second bullet) and #434.
+- **Timeouts.** `methylation.ts:301` (`i++` to `i--`) on both sides and
+  `EnzymeTable.tsx:73` before are loops that do not end, stopped by the hit
+  limit. `checkPrimers.ts:167` (`norm` to `() => undefined`) was killed
+  before and timed out after with nothing but the clock against it; run
+  alone it is killed by the same test, and the table counts it so.
+
+**Code review** of both refactors (`8da3dfa..35f2cdc`, one independent
+reviewer, high effort). It found no change of behaviour. Its ten findings
+and what became of each:
+
+1. The eighth 1-based-end copy in `readBatch.ts`: swapped, above.
+2. No outcome written for `whereVariant` and `featureRange`: written, above.
+3. This note's line numbers for the short way round were the scan's, and
+   "nothing exports it" was in the present tense: both corrected.
+4. The timing was only here and only for V8: now in `docs/perf-notes.md`,
+   which says what was not measured.
+5. `readRange`'s loop ended on the `NaN`: guarded, above.
+6. About fifteen sites fold with no zero-length guard, shown safe by a run
+   and not by proof, while an empty circular document can be made ("Make
+   circular" on an empty one): #434, a test per entry point, a guard only
+   where a `NaN` gets out.
+7. The weaker folds were left and not named: named above and on #434.
+8. Two things still repeat. The one-line closures (`norm` four times in
+   `checkPrimers.ts`, once in `primers/primerDesign.ts`, `wrap` in
+   `components/primerDesign.ts`) stay: each is shorthand in a function that
+   folds several positions onto one length, and holds no arithmetic now.
+   The topology test in front of the fold is a new candidate (core 1,
+   second bullet; step 3 of the order).
+9. The tests expect English thousands separators and nothing pins the
+   locale of the run. The new tests follow the old ones in this: #435.
+10. The reasoning for the wrap reached this note five commits after the
+    first code that cites it. The branch is consistent at its tip and the
+    history is left as it is.

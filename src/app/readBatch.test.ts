@@ -198,6 +198,35 @@ describe('runReadBatch (#59)', () => {
     expect(row.result.alignment.score).toBe(3 * 5 - 4 + 900 * 5);
   });
 
+  it('numbers the covered stretch 1-based and inclusive, folded onto the circle', async () => {
+    const L = reference.length;
+    const spans = async (sequences: string[], wrap: number | null) => {
+      const { rows } = await runReadBatch(
+        sequences.map((sequence, i) => ({ name: `r${i}`, sequence, read: null })),
+        { sequence: reference, offset: 0, wrap },
+        inline,
+        { options: {}, mode: 'local', trimCutoff: null },
+      );
+      return rows.map((r) => (r.status === 'aligned' ? summarizeRow(r, 20).span : null));
+    };
+    // [50, 70) on 60 bases: 51 round to 10. [30, 60) ends on the last base, 60 and not 0.
+    expect(
+      await spans(
+        [reference.slice(50) + reference.slice(0, 10), reference.slice(30), reference.slice(0, 20)],
+        L,
+      ),
+    ).toEqual([
+      { from: 51, to: 10 },
+      { from: 31, to: 60 },
+      { from: 1, to: 20 },
+    ]);
+    // On a line nothing folds.
+    expect(await spans([reference.slice(30), reference.slice(0, 20)], null)).toEqual([
+      { from: 31, to: 60 },
+      { from: 1, to: 20 },
+    ]);
+  });
+
   it('refuses more reads than a plate', async () => {
     const many = Array.from({ length: BATCH_LIMIT + 1 }, (_, i) => ({
       name: `r${i}`,

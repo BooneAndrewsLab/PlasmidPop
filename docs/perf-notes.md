@@ -1743,3 +1743,29 @@ assert the design time (the CI runner took 83 s for the 96 rows, 4 times the
 workstation, and a 60 s budget failed main on 2026-11-08): it runs 12 rows and
 asserts what they make, plus a loose budget on the pool check. `PLASMIDPOP_PERF=1
 npx vitest run src/app/batch.timing.test.ts` runs all 96 and prints the time.
+
+## A position fold through a helper (#432, design note 144, 2026-11-10)
+
+`wrapPosition(position, seqLength)` in `range.ts` took the place of 41
+inline `((x % n) + n) % n`, some of them inside loops over every base (the
+methylation window, the translated scan's base lookup, the primer anneal).
+The question was whether a call to an imported function costs anything
+there.
+
+12 million folds (every position from `-L` to `2L` of a 100,003-base text,
+40 times, each indexing a `charCodeAt`), the expression inline against the
+same expression imported from another module, median of nine runs after a
+warm-up. `ridiculousbuild` (Xeon E5-2630 v3), Node 25.2.1:
+
+| What                   | Time   |
+| ---------------------- | ------ |
+| inline                 | 232 ms |
+| through `wrapPosition` | 233 ms |
+
+V8 inlines the call; there is nothing to pay.
+
+**Only V8 under Node was measured**, and on plain `.mjs` files, not the
+built bundle. Chrome and Edge run V8 too. Firefox (SpiderMonkey) and Safari
+(JavaScriptCore) were not measured; a small monomorphic function is the
+kind every current engine inlines, but that is an expectation and not a
+number. If a scan ever shows up slower there, this fold is a place to look.

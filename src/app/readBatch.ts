@@ -2,6 +2,7 @@ import {
   type AlignmentMode,
   type AlignmentOptions,
   type StrandedAlignment,
+  oneBasedEnd,
   readDifferences,
 } from '@/core';
 import { AnalysisCancelledError, type LongRequestOptions } from '@/workers/analysisClient';
@@ -172,12 +173,18 @@ export function summarizeRow(
   const { result } = row;
   const diffs = readDifferences(result.alignment, result.qualities ?? [], confidentFrom);
   const range = alignedReferenceRange(result);
-  const wrap = (p: number): number => (result.wrap === null ? p : p % result.wrap);
+  const { wrap } = result;
   return {
     identity: result.alignment.identity,
     confident: result.qualities === null ? null : diffs.filter((d) => d.confident).length,
     differences: diffs.length,
-    span: range === null ? null : { from: wrap(range.start) + 1, to: wrap(range.end - 1) + 1 },
+    span:
+      range === null
+        ? null
+        : {
+            from: (wrap === null ? range.start : range.start % wrap) + 1,
+            to: wrap === null ? range.end : oneBasedEnd(range.end, wrap),
+          },
   };
 }
 
