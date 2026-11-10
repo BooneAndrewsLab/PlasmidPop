@@ -195,3 +195,12 @@ describe('findOrfs', () => {
     expect(isStartCodon('TTG', 11)).toBe(true);
   });
 });
+
+describe('an empty circular document (#434)', () => {
+  it('has no reading frame', () => {
+    // `scanCircle` wants six bases before it folds a position with
+    // `(q - back + L) % L`, and the reverse strand's fold is guarded.
+    expect(findOrfs('', 'circular')).toEqual([]);
+    expect(findOrfs('', 'circular', { minCodons: 1, atgOnly: false })).toEqual([]);
+  });
+});

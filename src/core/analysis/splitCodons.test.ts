@@ -245,3 +245,13 @@ describe('codonNoteAt', () => {
     );
   });
 });
+
+describe('an empty circular document (#434)', () => {
+  it('has no codon to cut into pieces', () => {
+    // `codonPieces` folds each next position with `(next + L) % L`, once
+    // per position given; the translation of an empty document has no
+    // codon, so `codonNoteAt` finds none to ask about and gives none.
+    expect(codonPieces([], 'forward', 0, true)).toEqual([]);
+    expect(codonPieces([], 'reverse', 0, true)).toEqual([]);
+  });
+});

@@ -712,3 +712,22 @@ describe('a region is met by a base on either side of the cut', () => {
     expect(starts(rotated, 'circular', { start: 1, end: 2 })).toBe(0);
   });
 });
+
+describe('an empty circular document (#434)', () => {
+  // `pamWindows` gives no window to a sequence shorter than spacer and PAM
+  // together, so the folds of `toForward`, `boundaryToForward` and
+  // `cutInRegion` (asked only once a window was found) never run with a
+  // length of 0: there is no site to take a position from.
+  it('finds no guide, with or without a region, and counts no off-target in one', () => {
+    for (const n of [SPCAS9, ASCAS12A]) {
+      expect(findCrisprGuides('', 'circular', n)).toEqual([]);
+      expect(findCrisprGuides('', 'circular', n, { region: { start: 0, end: 0 } })).toEqual([]);
+    }
+    const guides = findCrisprGuides(UNIT, 'linear', SPCAS9, {
+      background: [{ sequence: '', topology: 'circular' }],
+    });
+    expect(guides).toHaveLength(1);
+    expect(guides[0]?.offTargets).toEqual([0, 0, 0, 0]);
+    expect(guides[0]?.sites).toEqual([]);
+  });
+});

@@ -317,3 +317,25 @@ describe('guideFeature', () => {
     expect(guideFeature(reverse).strand).toBe('reverse');
   });
 });
+
+describe('an empty circular document (#434)', () => {
+  // `designPegRnas` folds positions off a guide's nick (`at`, and the
+  // distance to the edit), `baseEditWindow` off a guide's range, and
+  // `pairNickases` the offset between two guides' nicks. Each is asked per
+  // guide, and the scan of an empty document finds none.
+  it('designs no pegRNA: the one edit the checks allow has no guide to pair with', () => {
+    // An insertion at 0 replacing nothing passes `primeEditProblem` on an
+    // empty circle, so the guide list is what keeps the folds off.
+    const edit = { start: 0, deleteLength: 0, insert: 'A' };
+    expect(primeEditProblem(edit, 0, 'circular')).toBeNull();
+    const guides = findCrisprGuides('', 'circular', SPCAS9);
+    expect(guides).toEqual([]);
+    expect(designPegRnas('', 'circular', guides, SPCAS9, edit)).toEqual([]);
+    expect(designPegRnas('', 'circular', guides, SPCAS9, edit, { pbsLength: 8 })).toEqual([]);
+  });
+
+  it('pairs no nickases', () => {
+    expect(pairNickases([], 0, 'circular')).toEqual([]);
+    expect(pairNickases([], 0, 'circular', { nickStrand: 'pam', maxOffset: 0 })).toEqual([]);
+  });
+});
