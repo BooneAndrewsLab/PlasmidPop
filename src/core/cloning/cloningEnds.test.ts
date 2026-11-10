@@ -614,6 +614,71 @@ describe('methylation', () => {
   });
 });
 
+describe('a cut at either tip of the vector (#432 step 3)', () => {
+  // The same bases as a line and as a circle, the region running from 300 to
+  // the end. Sau3AI (^GATC) cuts the first four bases at 0: on the circle that
+  // is the point after the last base, the region's end; on the line it is
+  // before the first base, outside the region. MlyI (GAGTC 5/5, blunt) cuts
+  // the last ten bases at L: on the circle L is 0 again, the first cut of the
+  // digest; on the line a cut at L leaves the vector whole, so no piece of
+  // the digest begins there.
+  const rand = seededRandom(432);
+  const clean = (n: number): string =>
+    randomDna(rand, n).replace(/GATC|GAGTC|GACTC|GAATTC/g, (m) => 'T'.repeat(m.length));
+  const text = `GATC${clean(296)}${clean(50)}GAATTC${clean(60)}GAGTCAAAAA`;
+  const L = text.length;
+  const region = { start: 300, end: L };
+  const line = SeqDocument.create({
+    name: 'pTip',
+    sequence: text,
+    topology: 'linear',
+    methylation: UNMETHYLATED_HOST,
+  });
+  const circle = line.setTopology('circular');
+  const insert: CloningInsert = {
+    document: SeqDocument.create({ name: 'src', sequence: clean(240), topology: 'linear' }),
+    range: { start: 20, end: 220 },
+    strand: 'forward',
+    name: 'ins',
+  };
+
+  it('counts the cut at 0 as inside the region on the circle, not on the line', () => {
+    expect(siteOf(line, 'Sau3AI').cut).toBe(0);
+    expect(siteOf(line, 'EcoRI').cut).toBe(351);
+    const onCircle = evaluateEnzymePair(context(circle, insert, { region }), 'EcoRI', 'Sau3AI');
+    expect(onCircle.reverse.site?.cut).toBe(0);
+    expect(onCircle.replaced).toEqual({ start: 351, end: L });
+    expect(suggestEnzymePairs(context(circle, insert, { region })).candidates).toContain('Sau3AI');
+    const onLine = evaluateEnzymePair(context(line, insert, { region }), 'EcoRI', 'Sau3AI');
+    expect(onLine.reverse.vectorCuts).toBe(1);
+    expect(onLine.reverse.site).toBeNull();
+    expect(onLine.replaced).toBeNull();
+    expect(suggestEnzymePairs(context(line, insert, { region })).candidates).not.toContain(
+      'Sau3AI',
+    );
+  });
+
+  it('clones up to a cut at L on the circle, and makes nothing of it on the line', () => {
+    expect(siteOf(line, 'MlyI').cut).toBe(L);
+    const onCircle = designCloningEnds(context(circle, insert, { region }), {
+      forward: 'EcoRI',
+      reverse: 'MlyI',
+    }).simulate();
+    expect(onCircle.problem).toBeNull();
+    expect(onCircle.product?.sequence.toString().toUpperCase()).toContain(
+      insertSequence(insert).toUpperCase(),
+    );
+    const onLine = designCloningEnds(context(line, insert, { region }), {
+      forward: 'EcoRI',
+      reverse: 'MlyI',
+    });
+    expect(onLine.pair.replaced).toEqual({ start: 351, end: L });
+    const sim = onLine.simulate();
+    expect(sim.product).toBeNull();
+    expect(sim.problem).toBe('MlyI does not cut pTip inside the region.');
+  });
+});
+
 describe('scanForCloning', () => {
   it('asks the scanner for the vector and the insert stretch alone', async () => {
     const asked: string[] = [];
