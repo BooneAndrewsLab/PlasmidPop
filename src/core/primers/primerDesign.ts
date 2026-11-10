@@ -1,5 +1,5 @@
 import { type Strand } from '../features';
-import { type Range, type Topology, rangePieces, wrapPosition } from '../range';
+import { type Range, type Topology, foldPosition, rangePieces, wrapPosition } from '../range';
 import { reverseComplement } from '../sequence';
 import { IUPAC_SETS } from '../analysis/codons';
 import {
@@ -393,7 +393,7 @@ export function designPrimers(
   const text = sequence.toUpperCase();
   if (L === 0 || target.end <= target.start) return [];
   const circular = topology === 'circular';
-  const norm = (p: number): number => (circular ? wrapPosition(p, L) : p);
+  const norm = (p: number): number => foldPosition(p, L, topology);
   // On a circle a region wider than the molecule would meet itself.
   const span = (r: { near: number; far: number }): number => Math.min(r.far - r.near, L);
 
