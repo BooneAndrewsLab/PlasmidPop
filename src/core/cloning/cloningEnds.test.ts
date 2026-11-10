@@ -421,6 +421,10 @@ describe('designCloningEnds on pUC19', () => {
       const L = pUC19.length;
       const start = (MCS.start - origin + L) % L;
       const region = { start, end: start + (MCS.end - MCS.start) };
+      // The same pairs are usable however the circle is numbered, with a site split by the origin too.
+      expect(
+        suggestEnzymePairs(context(turned, AXL2, { region })).pairs.filter((p) => p.usable),
+      ).toHaveLength(suggestEnzymePairs(ctx).pairs.filter((p) => p.usable).length);
       const product = designCloningEnds(context(turned, AXL2, { region }), {
         forward: 'KpnI',
         reverse: 'BamHI',
