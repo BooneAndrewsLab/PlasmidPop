@@ -11,6 +11,7 @@ import {
   shiftRangeForDelete,
   shiftRangeForInsert,
   unrollRange,
+  wrapPosition,
 } from './range';
 
 describe('isValidRange', () => {
@@ -253,5 +254,56 @@ describe('oneBasedEnd / formatSpan (#143)', () => {
     expect(formatSpan(range(590, 620), 600)).toBe('591–20');
     expect(formatSpan(range(85, 1276), 5000)).toBe('86–1,276');
     expect(formatSpan(range(4300, 4481), 4361, '..')).toBe('4,301..120');
+  });
+});
+
+describe('wrapPosition (#432)', () => {
+  it('leaves a position on the sequence where it is', () => {
+    expect(wrapPosition(0, 600)).toBe(0);
+    expect(wrapPosition(1, 600)).toBe(1);
+    expect(wrapPosition(599, 600)).toBe(599);
+  });
+
+  it('folds a position at or past the end round to the start', () => {
+    // 0-based: position 600 of 600 bases is base 0 again, not a 601st.
+    expect(wrapPosition(600, 600)).toBe(0);
+    expect(wrapPosition(601, 600)).toBe(1);
+    expect(wrapPosition(1199, 600)).toBe(599);
+    expect(wrapPosition(1200, 600)).toBe(0);
+  });
+
+  it('folds a negative position back from the end', () => {
+    expect(wrapPosition(-1, 600)).toBe(599);
+    expect(wrapPosition(-599, 600)).toBe(1);
+    expect(wrapPosition(-601, 600)).toBe(599);
+  });
+
+  it('gives 0 and never -0 for a multiple of the length', () => {
+    // `toBe` tells 0 from -0, which `-600 % 600` alone would give.
+    expect(wrapPosition(-600, 600)).toBe(0);
+    expect(wrapPosition(-1200, 600)).toBe(0);
+    expect(wrapPosition(-0, 600)).toBe(0);
+  });
+
+  it('is the distance forward round the circle from one position to another', () => {
+    // From base 590 forward to base 20 on 600 bases is 30; back the other way is 570.
+    expect(wrapPosition(20 - 590, 600)).toBe(30);
+    expect(wrapPosition(590 - 20, 600)).toBe(570);
+  });
+
+  it('lands in [0, length) and a whole number of turns from where it started', () => {
+    for (const length of [1, 2, 3, 7, 10]) {
+      for (let p = -3 * length - 1; p <= 3 * length + 1; p++) {
+        const at = wrapPosition(p, length);
+        expect(at).toBeGreaterThanOrEqual(0);
+        expect(at).toBeLessThan(length);
+        expect(Math.abs((p - at) % length)).toBe(0);
+      }
+    }
+  });
+
+  it('has no answer for an empty sequence: the caller rules it out', () => {
+    expect(wrapPosition(5, 0)).toBeNaN();
+    expect(wrapPosition(0, 0)).toBeNaN();
   });
 });

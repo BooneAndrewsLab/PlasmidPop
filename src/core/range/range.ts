@@ -93,6 +93,19 @@ export function normalizePosition(position: number, seqLength: number, topology:
 }
 
 /**
+ * A position folded onto a circle of `seqLength` bases, into
+ * `[0, seqLength)`: -1 is the last base, `seqLength` is base 0 again. Given
+ * `b - a` it is how far forward round the circle `b` lies from `a`.
+ *
+ * An empty sequence has no position to fold onto and gives `NaN`, as `%`
+ * does. The callers differ in what they want there (null, 0, the position
+ * as it came), so each rules a zero length out itself (design note 144).
+ */
+export function wrapPosition(position: number, seqLength: number): number {
+  return ((position % seqLength) + seqLength) % seqLength;
+}
+
+/**
  * Splits a range into one or two non-wrapping pieces in real coordinates.
  * The pieces are returned in forward order: the head `[start, length)`
  * first, then the tail `[0, end - length)`.
@@ -253,7 +266,7 @@ export function shiftPositionForDelete(
  */
 export function rotateRange(r: Range, origin: number, seqLength: number): Range {
   if (seqLength === 0) return r;
-  const start = (((r.start - origin) % seqLength) + seqLength) % seqLength;
+  const start = wrapPosition(r.start - origin, seqLength);
   return range(start, start + rangeLength(r));
 }
 
@@ -271,7 +284,7 @@ export function flipRange(r: Range, seqLength: number, topology: Topology): Rang
   if (seqLength === 0) return r;
   const len = rangeLength(r);
   let start = seqLength - r.end;
-  if (topology === 'circular') start = ((start % seqLength) + seqLength) % seqLength;
+  if (topology === 'circular') start = wrapPosition(start, seqLength);
   return range(start, start + len);
 }
 
