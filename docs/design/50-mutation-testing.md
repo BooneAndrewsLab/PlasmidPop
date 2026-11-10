@@ -1923,3 +1923,143 @@ since the other conditional mutants on that line are killed. `msa.ts` is at
 **93.30%** (930 killed, 44 timed out, 67 survived, 3 uncovered, 29 ignored);
 counting the 27 new disables as survivors, **90.94%**. The same run puts
 `pairing.ts` at 94.08% and `banded.ts` at 91.34%, and the project at 94.66%.
+
+## At 1.25: `alignment/pairwise.ts` and `quality.ts`
+
+Their only figures were from 2026-11-02, on another machine: `pairwise.ts` at
+71.3% with 131 survivors, `quality.ts` at 78.9% with 24. Neither file had an
+entry in the incremental file. Both were measured here with `--force` (no
+stale result reused), after the 1.23 tests of #399 that the old figures
+predate.
+
+### `quality.ts`: already above the floor, not touched
+
+`PLASMIDPOP_MUTATION_TESTS=<the 370 files that reach it> npm run mutate --
+--mutate src/core/alignment/quality.ts --dryRunTimeoutMinutes 45 --force
+--reporters clear-text,progress,json` (dry run 8 min, whole run 9 min):
+**97.37%**, 108 killed, 3 timed out, 3 survived, 0 uncovered, 2 ignored (static
+`[]` of the two choice lists). No disables were needed, so the figure counted
+the other way is the same. The 3 survivors are the ones #399 classed
+equivalent: `typeof v === 'number'` to `true` in `isConfidentQuality` and
+`isTrimCutoff` (L27, L39: `includes` of a list of numbers is false for
+anything else), and `c < alignment.columns` to `<=` in `readDifferences` (L142:
+`charAt` past the end is `''`, no difference). Its 24 old survivors were the
+stale ones of the same kind as `msa.ts`'s. No tests were added.
+
+### `pairwise.ts`
+
+**Running it.** The 375 test files that can reach it by their imports (the 13
+of `MUTATION_SKIP` already left out) did not make a run: the dry run took 76 min
+(the 45 min of the command are not enough; it was run with 180), and the
+mutation phase then tested 71 of 485 mutants in 44 min, a survivor costing a
+pass over every covering test instrumented. That run was stopped. Which files
+run the fill at all was then measured on each file alone with v8 coverage
+(46 of the 375 do, and three more failed that run; the rest only import the module), and the run was split:
+
+- **In the Stryker run (34 files):** every one of the 46 but 12 of those below,
+  the six direct suites among them (`pairwise`, `pairwiseBand`, `pairwiseLimits`,
+  `protein`, `quality`, `bandedEdges`) and the `alignmentX` and `readBatch` suites
+  of the app. Dry run 2 min, whole run 19 min.
+- **Left out of the Stryker run, for time (15 files):** `app/compare`,
+  `AlignPanel`, `AssemblyResult`, `DetectFeatures`, `YeastTutorial`,
+  `app/shortcuts`, `annotate/detect`, `assembly/assemble`, `overlapBound`,
+  `pairing.assemble`, `diff/documentDiff.readings`, `oracle/plannotate`,
+  `CloneCheckPage`, `PrimerCandidates` and `workers/analysisClient` (the last
+  three failed the coverage run and are kept in the list in case they reach it,
+  so that 12 of the 15 are known to run the fill).
+  Plain, they take 32 s together. **Every survivor was applied by hand against
+  these 15 (plain, `timeout 120`) as well as against the 34**, so what is
+  reported below is not weakened by their absence from the run.
+- **Left out by `MUTATION_SKIP`:** the Sanger assembly and alignment oracles, the
+  `banded`, `strands`, `readAlignment` and `alignmentOrigin` suites and the two
+  property suites listed there. `itTimed` also drops its time assertions in a
+  mutation run (`TIMING_ASSERTED`); five tests of the 34 are skipped then.
+
+**Before (2026-11-09, `--force`, the 34 files):** 422 killed, 12 timed out,
+51 survived, 0 uncovered, 2 ignored (static): **89.48%**. Applied by hand
+against the files as they stood, 4 of the 51 failed an existing test, so the
+file already stood at about **90.3%** (438 of 485):
+
+- L330 `onProgress !== undefined` to `true`: killed by `aligns two 3 kb
+sequences quickly`, a timing test, which a mutation run does not assert.
+- L243 `Math.min(firstEncoded.length, 2)` to `Math.max`: fails 14 tests of
+  `pairwise.test.ts` and 93 tests of the 34 files by hand (it leaves a hole in the cache
+  after the first call, and the next call reads `undefined.a`). The run saw it
+  survive, most likely because its worker had called the module already and the
+  cache was two entries long.
+- L318 `prevM[lo0 - 1]` to `lo0 + 1`: fails `seeds the first row with a leading
+gap when the band starts right of column 0`, also under `PLASMIDPOP_MUTATION=1`.
+  Stryker's coverage did not list that test for the mutant. Unexplained.
+- L430 `(prevX[m] ?? NEG) > best` to `>=`: only the 15 files kill it (a tie of
+  the diagonal and a gap at the corner: 9,756 of the 231,200 cases of two `ACGT` words of 1 to 4
+  bases in either mode under the default options; `AA` against `A` puts the gap
+  in front).
+
+**Tests:** `pairwiseEdges.test.ts` (12 tests, about 0.2 s plain). Each of these
+survived or was invisible to the run and fails the file when applied by hand:
+
+- the tie at the corner, `AA` against `A`, `A` against `AA`, `AA` against `C`
+  (L430 `>` to `>=`: the diagonal wins over a gap that ends the alignment);
+- the cache of the first sequence told apart by alphabet: the same letters as
+  bases and then as residues, and the other way round (L234 `e.protein ===
+protein` to `true` and to `!==`);
+- a 1,500 by 1,500 fill scored with no callback, and with one, told once at
+  row 1,332 (L330, in a test that is asserted in a mutation run);
+- a band whose trace leaves it on the right, as the 1.23 test did on the left
+  (L458 `j > rowHi`);
+- a local band that starts right of column 0 starting a match in a column other
+  than its first (L318, in a test Stryker sees);
+- a mismatch counted as neither identical nor ambiguous (L500 `mark === ':'` to
+  `true`: the 1.23 tests count ambiguity codes but never a plain mismatch
+  next to them) and a match through `N` as ambiguous only.
+
+**Disables (15 lines, 23 mutants):** `// Stryker disable next-line <Mutators>`,
+each only where every mutant of that mutator on the line is a survivor that
+was applied by hand against all 49 files and also fuzzed (8,000 random pairs,
+bands, options, both alphabets, against a copy that differs only in that mutant:
+the output, with errors, is the same) and is equivalent. The reasons are in
+the comments: the `'limit'` and `'global'` defaults that are only compared
+(L96, L255), `maxCells ?? DEFAULT_MAX_CELLS` and the throw after it, which
+`fillBand` repeats with the same error (L169, L171 `CallExpression`), a cache
+that never finds its entry or never keeps it (L234 `ArrowFunction`, L235,
+L242), `mismatch` as a fallback that is never read (L258, three mutators), (0, 0)
+and column 0 of the traceback bytes (L305, L309, L354), and the sentinel written
+twice (L317, 319, 336, 338: `BlockStatement`, `ArithmeticOperator`,
+`LogicalOperator`, and the conditionals of L317, whose two mutants are both
+equivalent). Where a line also carries a killed mutant of the same mutator the
+line is not disabled.
+
+**Result (2026-11-09, `PLASMIDPOP_MUTATION_TESTS=<the 35 files> npm run mutate
+-- --mutate src/core/alignment/pairwise.ts --dryRunTimeoutMinutes 45`, incremental, 10
+min):** **95.67%**: 430 killed, 12 timed out, 20 survived, 0 uncovered, 25
+ignored (2 static, 23 new disables). Counted as survivors the 23 would put it at
+**91.13%** (442 of 485). The summary file is for the release run. The 8 new
+kills are the 7 above and L243, which the run now sees killed.
+
+**Equivalent survivors left (20), and the timeouts, by kind:**
+
+- _A check done twice (1):_ L174 `cells > maxCells` to `false`
+  (`alignPairwise` checks the whole matrix, `fillBand` the same cells with the
+  same options and message). Its `true` is killed, so the line is not disabled.
+- _Cache hit or miss (3):_ L238 (`e.a === a && e.protein === protein` to
+  `false`), L240 `at < 0` to `true` and to `<= 0`: a miss encodes again to the same
+  codes.
+- _`keep` where nothing is kept (3):_ L324, L373, L426, `if (keep)` to `true`
+  writes past a zero-length `Uint8Array`, which is dropped.
+- _A byte the traceback never reads (2):_ L324 `j === 1` and L373 `i === 1`
+  to `false`: the state it picks ends at the edge, where the loop stops.
+- _A sentinel written twice, or past a typed array (7):_ L352 (four mutants:
+  `false`, `rowLo > 0` to `true`, `>=`, `<=`) and L362 (`true`, `>=`): the cell
+  left of the row above's band has been written `NEG` as `cur` of the row before,
+  and index -1 is dropped.
+- _Column 0 is not a path (1):_ L369 `rowLo === 0` to `false`: the recurrence
+  gives the same values at column 0 (see #399).
+- _Guards the traceback never meets (4):_ L478 (`i === 0` and `j === 0` in the
+  `M` branch), L485 `i === 0` in `X`, L491 `j === 0` in `Y`.
+- _Timeouts (12, counted as detected):_ `i--`, `j--`, `k--` and `k > rowHi` in
+  the loops of the fill and of `bandCells` and the match line, and the traceback's
+  loop and branches emptied; every one hit the limit.
+
+No survivor is unclassified: all 20 were applied by hand against the 49 files
+(plain) and fuzzed, and none changes a result or an
+error message.
