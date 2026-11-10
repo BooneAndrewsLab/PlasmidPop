@@ -13,7 +13,7 @@ import {
   siteSegment,
 } from '../features';
 import { newId } from '../ids';
-import { type Range, wrapPosition } from '../range';
+import { type Range, foldPosition, wrapPosition } from '../range';
 import { reverseComplement } from '../sequence';
 
 /*
@@ -45,13 +45,11 @@ function fold(start: number, length: number, space: SequenceSpace): number | nul
 function toOwn(seg: Segment, p: Placement): Segment | null {
   if (seg.kind === 'site') {
     const q = p.reverse ? p.at + 1 - seg.position : seg.position - p.at;
-    return p.space.topology === 'circular'
-      ? siteSegment(wrapPosition(q, p.space.length))
-      : siteSegment(q);
+    return siteSegment(foldPosition(q, p.space.length, p.space.topology));
   }
   const length = seg.end - seg.start;
   const s = p.reverse ? p.at - (seg.end - 1) : seg.start - p.at;
-  const start = p.space.topology === 'circular' ? wrapPosition(s, p.space.length) : s;
+  const start = foldPosition(s, p.space.length, p.space.topology);
   return rangeSegment(start, start + length, {
     partialStart: p.reverse ? seg.partialEnd : seg.partialStart,
     partialEnd: p.reverse ? seg.partialStart : seg.partialEnd,
@@ -152,7 +150,7 @@ export function originRecord(
   if (ranges === null || first === undefined || last === undefined) return null;
   const reverse = feature.strand === 'reverse';
   const fivePrime = reverse ? last.end - 1 : first.start;
-  const at = space.topology === 'circular' ? wrapPosition(fivePrime, space.length) : fivePrime;
+  const at = foldPosition(fivePrime, space.length, space.topology);
   const raw = relocate(feature, { at, reverse, space }, toOwn);
   if (raw === null) return null;
   // Segments read 5' to 3' usually run on along the sequence, round a
@@ -257,13 +255,11 @@ function coverage(feature: Feature, space: SequenceSpace): string {
   const runs: [number, number][] = [];
   for (const seg of feature.segments) {
     if (seg.kind !== 'range') return '';
-    const start = space.topology === 'circular' ? wrapPosition(seg.start, space.length) : seg.start;
+    const start = foldPosition(seg.start, space.length, space.topology);
     const prev = runs[runs.length - 1];
     if (
       prev !== undefined &&
-      (space.topology === 'circular'
-        ? wrapPosition(prev[0] + prev[1], space.length) === start
-        : prev[0] + prev[1] === start)
+      foldPosition(prev[0] + prev[1], space.length, space.topology) === start
     ) {
       prev[1] += seg.end - seg.start;
     } else runs.push([start, seg.end - seg.start]);
@@ -305,7 +301,7 @@ export function placementOf(piece: Feature, space: SequenceSpace): Placement | n
   if (first === undefined || last === undefined || own === null) return null;
   const reverse = piece.strand === 'reverse';
   const raw = reverse ? last.end - 1 + own : first.start - own;
-  const at = space.topology === 'circular' ? wrapPosition(raw, space.length) : raw;
+  const at = foldPosition(raw, space.length, space.topology);
   const p: Placement = { at, reverse, space };
   const expected = place(ownPiece(origin, origin.from, origin.to), p, origin.span);
   if (expected === null || coverage(expected, space) !== coverage(piece, space)) return null;
