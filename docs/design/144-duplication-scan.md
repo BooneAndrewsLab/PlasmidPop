@@ -761,3 +761,19 @@ the component body, written once and placed either inside the `<details>` or
 bare. A local hoist: no new module, no signature change, no visible text change.
 Tests for the paragraphs on both layouts landed first. The before/after Stryker
 run is for the user to start.
+
+**Components, item 6: the primer row.** `OverlapPrimerDesign`, `MutagenesisPanel`
+and `SoePanel` each carried a private component for one designed primer: the
+`pair` frame, the label, a meta line, the `<code>` sequence and a Copy button
+that calls `copyText(primer.sequence)`. They are now `PrimerLine`
+(`label`, `sequence`, optional `copyLabel`, the meta line as `children`), a
+stateless leaf with its own test. Each panel keeps its meta sentence inline,
+since the three come from three core types and are worded differently; the SOE
+panel passes `copyLabel` because its accessible name (`Copy <name>, <strand>
+primer`) is not the default `Copy the <label> primer`. Tests pinning the Copy
+buttons of the SOE and overlap panels landed first. Deliberately not shared:
+the "Saved N primers" messages (13 sites, four phrasings: unifying them
+changes visible text) and the `tabs` memo. If the wording is ever harmonised,
+a `savedPrimersMessage` beside `savePrimers` is the piece to lift; that is
+an issue to file, not done here. `PcrPanel`'s product row has similar classes
+and is left alone.
