@@ -1,7 +1,7 @@
-import { useState } from 'react';
-
 import { type RebaseImportSummary, persistence } from '../state/persistence';
 import { useEditorState } from '../state/useEditorStore';
+import { useFileImport } from '../useFileImport';
+
 import { FileDrop } from './FileDrop';
 
 /**
@@ -40,27 +40,9 @@ function describeSkipped(s: RebaseImportSummary['skipped']): string | null {
  */
 export function EnzymeImport({ onClose }: { readonly onClose?: () => void }) {
   const { enzymeSetInfo } = useEditorState();
-  const [busy, setBusy] = useState(false);
-  const [summary, setSummary] = useState<RebaseImportSummary | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const take = (file: File | undefined): void => {
-    if (file === undefined) return;
-    setBusy(true);
-    setError(null);
-    setSummary(null);
-    persistence
-      .importEnzymeFile(file)
-      .then((s) => {
-        setSummary(s);
-      })
-      .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : String(e));
-      })
-      .finally(() => {
-        setBusy(false);
-      });
-  };
+  const { busy, summary, error, take, fail } = useFileImport((file) =>
+    persistence.importEnzymeFile(file),
+  );
 
   return (
     <div className="panel__section enzyme-import">
@@ -109,7 +91,7 @@ export function EnzymeImport({ onClose }: { readonly onClose?: () => void }) {
             className="link"
             onClick={() => {
               persistence.useBundledEnzymes().catch(() => {
-                setError('Could not clear the imported table.');
+                fail('Could not clear the imported table.');
               });
             }}
           >
