@@ -2,8 +2,8 @@ import { useState } from 'react';
 
 import { type FidelityTable, formatFidelity, setFidelity } from '@/core';
 
-import { type FidelityImportSummary, persistence } from '../state/persistence';
-
+import { persistence } from '../state/persistence';
+import { useFileImport } from '../useFileImport';
 import { FileDrop } from './FileDrop';
 
 /**
@@ -41,27 +41,9 @@ const NAMED = 3;
  * browser and never uploaded.
  */
 function FidelityImport({ onClose }: { readonly onClose: () => void }) {
-  const [busy, setBusy] = useState(false);
-  const [summary, setSummary] = useState<FidelityImportSummary | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const take = (file: File | undefined): void => {
-    if (file === undefined) return;
-    setBusy(true);
-    setError(null);
-    setSummary(null);
-    persistence
-      .importFidelityFile(file)
-      .then((s) => {
-        setSummary(s);
-      })
-      .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : String(e));
-      })
-      .finally(() => {
-        setBusy(false);
-      });
-  };
+  const { busy, summary, error, take } = useFileImport((file) =>
+    persistence.importFidelityFile(file),
+  );
 
   return (
     <div className="panel__section enzyme-import">
