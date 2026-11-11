@@ -19,7 +19,12 @@ export interface ReadPair {
   readonly second: number;
   /** What the two names share, as written in the first mate's name. */
   readonly stem: string;
+  /** The naming rule that made the pair (#421); `manual` for one made by hand. Absent on a pair built directly. */
+  readonly rule?: PairRule;
 }
+
+/** How a pair was made: the shape of the names, or by hand. */
+export type PairRule = 'casava' | 'illumina' | 'separated' | 'joined' | 'manual';
 
 export interface PairNames {
   readonly pairs: readonly ReadPair[];
@@ -68,6 +73,7 @@ interface Parsed {
   readonly mate: 'first' | 'second' | 'other';
   /** Letters and numbers are not mixed: `A_F` is not the mate of `A_2`. */
   readonly family: 'letters' | 'numbers' | 'illumina';
+  readonly rule: Exclude<PairRule, 'manual'>;
 }
 
 function parseName(raw: string): Parsed | null {
@@ -79,6 +85,7 @@ function parseName(raw: string): Parsed | null {
       stem: casava[1] ?? '',
       mate: casava[2] === '1' ? 'first' : 'second',
       family: 'numbers',
+      rule: 'casava',
     };
   }
   const illumina = ILLUMINA.exec(name);
@@ -88,9 +95,11 @@ function parseName(raw: string): Parsed | null {
       mate: illumina[2] === '1' ? 'first' : 'second',
       // Stryker disable next-line StringLiteral: no other family is '', so the key is as distinct without the name.
       family: 'illumina',
+      rule: 'illumina',
     };
   }
-  const m = SEPARATED.exec(name) ?? JOINED.exec(name);
+  const sep = SEPARATED.exec(name);
+  const m = sep ?? JOINED.exec(name);
   if (m === null) return null;
   // Stryker disable next-line StringLiteral: both patterns have the group; the fallback is for noUncheckedIndexedAccess.
   const token = (m[2] ?? '').toLowerCase();
@@ -99,7 +108,12 @@ function parseName(raw: string): Parsed | null {
   // clone_2, clone_3), so that clone_1 and clone_2 are not taken for a pair.
   const mate = FIRST.has(token) ? 'first' : SECOND.has(token) ? 'second' : numeric ? 'other' : null;
   if (mate === null) return null;
-  return { stem: m[1] ?? '', mate, family: numeric ? 'numbers' : 'letters' };
+  return {
+    stem: m[1] ?? '',
+    mate,
+    family: numeric ? 'numbers' : 'letters',
+    rule: sep === null ? 'joined' : 'separated',
+  };
 }
 
 /**
@@ -112,9 +126,25 @@ function parseName(raw: string): Parsed | null {
  * reads of one stem that are not exactly one of each are not guessed at.
  */
 export function findReadPairs(names: readonly string[]): PairNames {
+  const found = findRulePairs(names);
+  return {
+    pairs: found.pairs.map(({ first, second, stem }) => ({ first, second, stem })),
+    ambiguous: found.ambiguous,
+  };
+}
+
+/** `findReadPairs`, with each pair carrying the naming rule that made it (#421). */
+export function findRulePairs(names: readonly string[]): PairNames {
   const groups = new Map<
     string,
-    { stem: string; first: number[]; second: number[]; other: number[]; all: number[] }
+    {
+      stem: string;
+      rule: Exclude<PairRule, 'manual'>;
+      first: number[];
+      second: number[];
+      other: number[];
+      all: number[];
+    }
   >();
   names.forEach((name, index) => {
     const p = parseName(name);
@@ -122,7 +152,7 @@ export function findReadPairs(names: readonly string[]): PairNames {
     const key = `${p.family}\u0000${p.stem.toLowerCase()}`;
     let g = groups.get(key);
     if (g === undefined) {
-      g = { stem: p.stem, first: [], second: [], other: [], all: [] };
+      g = { stem: p.stem, rule: p.rule, first: [], second: [], other: [], all: [] };
       groups.set(key, g);
     }
     g[p.mate].push(index);
@@ -149,7 +179,7 @@ export function findReadPairs(names: readonly string[]): PairNames {
       second !== undefined &&
       byStem.get(stem) === 1
     ) {
-      pairs.push({ first, second, stem: g.stem });
+      pairs.push({ first, second, stem: g.stem, rule: g.rule });
     } else if (g.all.length >= 2 || (byStem.get(stem) ?? 0) > 1) {
       ambiguous.push({
         stem: g.stem,
@@ -367,4 +397,72 @@ export function checkPairs(
     (p, q) => q.pairs - p.pairs || p.from.contig - q.from.contig || p.to.contig - q.to.contig,
   );
   return { checks, links, insert, templates: templates.sort((a, b) => a - b) };
+}
+
+/** What the user did to the inferred pairs, for one run (#421). Nothing is kept beyond it. */
+export interface PairEdits {
+  /** False: no pairs at all, inferred or manual. */
+  readonly enabled: boolean;
+  /** Inferred pairs the user broke, by `pairKey`. */
+  readonly broken: readonly string[];
+  /** Pairs made by hand: read indexes, the first mate then the second. */
+  readonly manual: readonly { readonly first: number; readonly second: number }[];
+}
+
+export const NO_PAIR_EDITS: PairEdits = { enabled: true, broken: [], manual: [] };
+
+/** An identity for a pair that does not change with the other pairs: its two read indexes. */
+export function pairKey(p: Pick<ReadPair, 'first' | 'second'>): string {
+  return `${p.first}:${p.second}`;
+}
+
+/**
+ * The pairs a run uses: the inferred ones less those broken, plus the manual
+ * ones. A manual pair takes its two reads: an inferred pair or an earlier
+ * manual pair that has either of them is dropped, since a read has one mate.
+ * A manual pair of a read with itself, or with an index that is no read, is
+ * ignored. With pairing off there are none.
+ */
+export function applyPairEdits(
+  inferred: readonly ReadPair[],
+  edits: PairEdits,
+  readCount: number,
+): readonly ReadPair[] {
+  if (!edits.enabled) return [];
+  const broken = new Set(edits.broken);
+  const manual: ReadPair[] = [];
+  for (const m of edits.manual) {
+    const valid = (i: number): boolean => Number.isInteger(i) && i >= 0 && i < readCount;
+    if (m.first === m.second || !valid(m.first) || !valid(m.second)) continue;
+    const at = manual.filter(
+      (p) => ![p.first, p.second].some((i) => i === m.first || i === m.second),
+    );
+    manual.length = 0;
+    manual.push(...at, { first: m.first, second: m.second, stem: '', rule: 'manual' });
+  }
+  const taken = new Set(manual.flatMap((p) => [p.first, p.second]));
+  const kept = inferred.filter(
+    (p) => !broken.has(pairKey(p)) && !taken.has(p.first) && !taken.has(p.second),
+  );
+  return [...kept, ...manual].sort(
+    (a, b) => Math.min(a.first, a.second) - Math.min(b.first, b.second),
+  );
+}
+
+/** The rule in words, for the list of pairs. */
+export function describePairRule(rule: PairRule | undefined): string {
+  switch (rule) {
+    case 'casava':
+      return 'Illumina header read number (1:N:0 / 2:N:0)';
+    case 'illumina':
+      return 'Illumina file name (_R1 / _R2)';
+    case 'separated':
+      return 'name ends in a mate token (F/R, fwd/rev, 1/2) after a separator';
+    case 'joined':
+      return 'primer name ends in F/R after a digit';
+    case 'manual':
+      return 'made by hand';
+    default:
+      return 'by name';
+  }
 }
