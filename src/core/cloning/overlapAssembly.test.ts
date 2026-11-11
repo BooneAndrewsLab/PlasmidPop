@@ -1,7 +1,8 @@
 import { SeqDocument, reverseComplement } from '@/core';
+import { meltingTemperature } from '@/core/primers/thermo';
 
 import { designMultiOverlapPrimers } from './overlapAssembly';
-import { designOverlapPrimers } from './overlapPrimers';
+import { OVERLAP_DEFAULTS, designOverlapPrimers } from './overlapPrimers';
 
 function filler(length: number, seed: number): string {
   let x = seed;
@@ -33,6 +34,66 @@ describe('designMultiOverlapPrimers', () => {
     expect(one.problem).toBeNull();
     expect(one.inserts[0]?.forward.sequence).toBe(single.forward.sequence);
     expect(one.inserts[0]?.reverse.sequence).toBe(single.reverse.sequence);
+  });
+
+  it('gives each insert’s primers as a tail and the shortest annealing part that reaches the Tm', () => {
+    const d = designMultiOverlapPrimers(
+      vector,
+      [A, B].map((region) => ({ template: source, region })),
+      'yeast',
+    );
+    expect(d.problem).toBeNull();
+    const { minAnneal, targetTm } = OVERLAP_DEFAULTS;
+    for (const [n, region] of [A, B].entries()) {
+      const insert = GENOME.slice(region.start, region.end).toUpperCase();
+      const made = must(d.inserts[n]);
+      const forward = insert.slice(0, made.forward.annealLength);
+      const reverse = reverseComplement(insert.slice(insert.length - made.reverse.annealLength));
+      expect(made.forward.sequence).toBe(made.forward.tail + forward.toLowerCase());
+      expect(made.reverse.sequence).toBe(made.reverse.tail + reverse.toLowerCase());
+      expect(made.forward.tm).toBe(meltingTemperature(forward));
+      expect(made.reverse.tm).toBe(meltingTemperature(reverse));
+      for (const [p, part] of [
+        [made.forward, forward],
+        [made.reverse, reverse],
+      ] as const) {
+        expect(p.annealLength >= minAnneal).toBe(true);
+        if (p.annealLength > minAnneal) {
+          const shorter = part === forward ? forward.slice(0, -1) : reverse.slice(0, -1);
+          expect(meltingTemperature(shorter)).toBeLessThan(targetTm);
+        }
+      }
+    }
+  });
+
+  it('reads an insert across the origin of a circular template, and one on the reverse strand', () => {
+    const circle = SeqDocument.create({ name: 'ring', sequence: GENOME, topology: 'circular' });
+    const wrap = { start: 5900, end: 6100 };
+    const insert = (GENOME.slice(5900) + GENOME.slice(0, 100)).toUpperCase();
+    const d = designMultiOverlapPrimers(
+      vector,
+      [
+        { template: circle, region: wrap },
+        { template: source, region: B, reverse: true },
+      ],
+      'yeast',
+    );
+    expect(d.problem).toBeNull();
+    const first = must(d.inserts[0]);
+    expect(first.forward.sequence.slice(40)).toBe(
+      insert.slice(0, first.forward.annealLength).toLowerCase(),
+    );
+    expect(first.reverse.sequence.slice(first.reverse.tail.length)).toBe(
+      reverseComplement(insert.slice(insert.length - first.reverse.annealLength)).toLowerCase(),
+    );
+    expect(must(first.amplicon).length).toBe(insert.length + 40 + 20);
+    // The second insert is read as its reverse complement.
+    const second = reverseComplement(GENOME.slice(B.start, B.end)).toUpperCase();
+    const made = must(d.inserts[1]);
+    expect(made.forward.sequence.slice(made.forward.tail.length)).toBe(
+      second.slice(0, made.forward.annealLength).toLowerCase(),
+    );
+    expect(must(d.product).length).toBe(3000 + 200 + 900);
   });
 
   it.each(['both', 'forward', 'reverse'] as const)(

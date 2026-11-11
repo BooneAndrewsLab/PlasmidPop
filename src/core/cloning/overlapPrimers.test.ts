@@ -1,7 +1,7 @@
 import { SeqDocument, createFeature, rangeSegment, reverseComplement } from '@/core';
 import { meltingTemperature } from '@/core/primers/thermo';
 
-import { KIT_OVERLAP, designOverlapPrimers } from './overlapPrimers';
+import { KIT_OVERLAP, OVERLAP_DEFAULTS, designOverlapPrimers } from './overlapPrimers';
 
 function filler(length: number, seed: number): string {
   let x = seed;
@@ -273,5 +273,53 @@ describe('designOverlapPrimers, pinned (#77)', () => {
     expect(d.amplicon).not.toBeNull();
     expect(d.product).toBeNull();
     expect(d.warnings).toEqual([]);
+  });
+
+  describe('the primer records', () => {
+    // A record is its tail plus the annealing part in lower case, the part's
+    // length and its Tm; the part is the shortest that reaches the target.
+    function expectRecord(
+      p: { sequence: string; tail: string; annealLength: number; tm: number },
+      tail: string,
+      anneal: (n: number) => string,
+    ): void {
+      const part = anneal(p.annealLength);
+      expect(p.tail).toBe(tail);
+      expect(p.sequence).toBe(tail + part.toLowerCase());
+      expect(p.tm).toBe(meltingTemperature(part));
+      const { minAnneal, targetTm } = OVERLAP_DEFAULTS;
+      expect(p.annealLength >= minAnneal).toBe(true);
+      if (p.annealLength > minAnneal) {
+        expect(meltingTemperature(anneal(p.annealLength - 1))).toBeLessThan(targetTm);
+      }
+    }
+
+    it('reads the forward part from the insert’s start and the reverse part from its end', () => {
+      const insert = GENOME.slice(REGION.start, REGION.end).toUpperCase();
+      const d = designOverlapPrimers(vector, source, REGION, 'in-fusion');
+      const overlap = KIT_OVERLAP['in-fusion'];
+      const text = VECTOR_TEXT.toUpperCase();
+      expectRecord(d.forward, text.slice(-overlap), (n) => insert.slice(0, n).toUpperCase());
+      expectRecord(d.reverse, reverseComplement(text.slice(0, overlap)), (n) =>
+        reverseComplement(insert.slice(insert.length - n)),
+      );
+    });
+
+    it('reads an insert across the origin of a circular template, 0-based and half-open', () => {
+      const circle = SeqDocument.create({ name: 'ring', sequence: GENOME, topology: 'circular' });
+      // The last 60 bases and the first 80: 140 bases, start 3940, end 4080 past the length 4000.
+      const wrap = { start: 3940, end: 4080 };
+      const insert = (GENOME.slice(3940) + GENOME.slice(0, 80)).toUpperCase();
+      const d = designOverlapPrimers(vector, circle, wrap, 'in-fusion');
+      expect(d.problem).toBeNull();
+      const overlap = KIT_OVERLAP['in-fusion'];
+      const text = VECTOR_TEXT.toUpperCase();
+      expectRecord(d.forward, text.slice(-overlap), (n) => insert.slice(0, n));
+      expectRecord(d.reverse, reverseComplement(text.slice(0, overlap)), (n) =>
+        reverseComplement(insert.slice(insert.length - n)),
+      );
+      expect(must(d.amplicon, 'an amplicon').length).toBe(insert.length + overlap * 2);
+      expect(must(d.product, 'a product').length).toBe(vector.length + insert.length);
+    });
   });
 });
