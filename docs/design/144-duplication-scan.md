@@ -866,3 +866,14 @@ target), an insert across the origin of a circular template (a range with
 before/after mutation run: `overlapPrimers.ts` `primerPair` (new) and the
 `designOverlapPrimers` call to it; `overlapAssembly.ts` the call in the
 per-insert loop.
+
+**Circular scan text: no helper (#439).** The sites were read again. The line
+itself, `text + text.slice(0, k - 1)`, is the whole of what repeats; what
+differs, and matters, is the guard around it (`verify` and `crispr` skip a
+circle shorter than the window, `search` and `primerDesign` refuse a pattern
+longer than the sequence earlier) and where a hit may start (`maxStart` in
+`search`, `p < n` in `yeastAssembly`, the whole length in `orf`). A helper
+would take the text and `k` and return that one expression, leaving every
+rule at its call site, and the Stryker annotations beside several sites
+(`search`, `yeastAssembly`) are written against the inline form. Nothing
+simpler, so nothing was changed; the issue said to do it only if it was.
