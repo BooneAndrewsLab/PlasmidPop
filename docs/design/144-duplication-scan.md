@@ -794,3 +794,17 @@ that. A `useWheelZoom` hook would be about 20 lines replacing two 22-line
 blocks, needing a latest-callback ref, which is indirection in the two
 hardest-to-test files for little saving. `alignmentZoom.ts`'s `wheelZoom` is
 a different rule and is left alone.
+
+**Components, item 9: the file drop.** `EnzymeImport` and `FidelityReport`
+(`FidelityImport`) repeated the same one-file import: the busy, summary and
+error state with a byte-identical `take`, the drop zone with its hidden input,
+button and hint, and the error line. They differed only in the persistence call,
+the `accept` string and the hint text. They are now `FileDrop` (`accept`,
+`hint`, `busy`, `onFile`; it holds only the drag highlight, and the DOM and the
+`enzyme-import__*` class names are unchanged) and `useFileImport(read)`
+(`busy`, `summary`, `error`, `take`, and `fail` for `EnzymeImport`'s "bundled
+table" button, which reports into the same line). Deliberately not shared: the
+headings and copy, the summary sentence, the "Go back to the bundled table"
+button, the REBASE copyright note and the Close/Done footer. `ModularPanel` and
+`RecodeControls` have a similar hidden-input shape and may use the hook later;
+they are not touched. The before/after Stryker run is the user's to start.
