@@ -90,6 +90,8 @@ Biopython and pydna that wrote it, pinned in `requirements.txt` (1.85 and
 
 ## Not done
 
+Item 145 did what is listed here.
+
 The restriction-sites and homology-ends recipes of the same batch are not
 checked this way. Restriction ends need an enzyme pair, a region of the vector
 and a per-recipe orientation convention; homology ends need the kit's tails and

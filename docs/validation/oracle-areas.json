@@ -140,6 +140,34 @@
       ]
     },
     {
+      "id": "batch-recipes",
+      "title": "Batch restriction sites, homology ends and Golden Gate extras",
+      "oracles": [
+        {
+          "name": "pydna amplify.pcr, Dseqrecord.cut, looped() and assembly.Assembly",
+          "package": "pydna",
+          "stampKey": "pydna"
+        },
+        {
+          "name": "Biopython Bio.Restriction search, read for the cuts, overhangs and sites",
+          "package": "biopython",
+          "stampKey": "biopython"
+        }
+      ],
+      "compares": "The Batch page's other recipes, on seeded vectors and templates and on the tutorial's own rows. Restriction sites: pydna runs the tailed PCR with PlasmidPop's primers, cuts vector and amplicon with the pair and joins the pieces; a second circle is spliced from Bio.Restriction's cut positions alone; both must be PlasmidPop's construct up to rotation and strand, the amplicon must read padding, site, extra bases, the insert, extra bases, site and padding, the construct's sites must be the vector's own plus the two the junctions rebuild, and the orientation must be the one the ligation allows (pairs in either order, a per-row enzyme pair, extra5/extra3, cloning regions across the origin, vectors read from either strand, PstI's 3-prime ends). Homology ends (In-Fusion, NEBuilder HiFi, yeast at 30, 40 and 60 bases, a kit per row): the amplicon must be the vector's end, the insert and the vector's start, and pydna Assembly on the linear vector and the amplicon must close into PlasmidPop's construct. Golden Gate: the judge of the batch-golden-gate area on rows with a second enzyme in the tube, a per-row enzyme, extra5/extra3 and left/right overhangs; a row for which the batch builds no circle is confirmed by a reason the oracle finds itself (a site of the second enzyme on the part, two cassettes both opened, overhangs that are not the destination's). Constructs made wrong on purpose must be refused and the right one turned round accepted.",
+      "files": ["batchRecipes.json"],
+      "tests": ["batchRecipes.test.ts"],
+      "counts": [
+        { "file": "batchRecipes.json", "path": "batches", "unit": "vectors with their rows" },
+        { "file": "batchRecipes.json", "path": "batches.*.rows", "unit": "rows judged" },
+        {
+          "file": "batchRecipes.json",
+          "path": "controls",
+          "unit": "controls (wrong constructs refused, right one accepted)"
+        }
+      ]
+    },
+    {
       "id": "gateway",
       "title": "Gateway BP and LR reactions",
       "oracles": [{ "name": "pydna gateway_assembly", "package": "pydna" }],

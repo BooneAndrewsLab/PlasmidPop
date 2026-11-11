@@ -11,6 +11,12 @@
 #                                    Golden Gate constructs (exported from the TypeScript batch first)
 #                                    rebuilt by pydna and Biopython. Not part of `generate`, which
 #                                    cannot run the batch
+#   scripts/oracle/run.sh batch-recipes
+#                                    rewrite src/test/oracle/batchRecipes.json: the Batch page's
+#                                    restriction-sites and homology-ends constructs and the Golden Gate
+#                                    extras (second enzyme, per-row enzyme, left/right, extra5/extra3),
+#                                    exported from the TypeScript batch first, rebuilt by pydna and
+#                                    Biopython. Not part of `generate`
 #   scripts/oracle/run.sh writer     have Biopython read every file our GenBank writer produces
 #   scripts/oracle/run.sh snapgene-writer
 #                                    have Biopython read every SnapGene file our writer produces
@@ -58,6 +64,12 @@ case "${1:-}" in
     (cd "$root" && ORACLE_EXPORT_BATCH_GG="$out/ours.json" npx vitest run src/test/oracle/batchGoldenGate.test.ts -t 'exports our constructs')
     (cd "$root/scripts/oracle" && ORACLE_EXPORT_BATCH_GG="$out/ours.json" "$venv/bin/python" batchgoldengate.py)
     ;;
+  batch-recipes)
+    out="$(mktemp -d)"
+    trap 'rm -rf "$out"' EXIT
+    (cd "$root" && ORACLE_EXPORT_BATCH_RECIPES="$out/ours.json" npx vitest run src/test/oracle/batchRecipes.test.ts -t 'exports our constructs')
+    (cd "$root/scripts/oracle" && ORACLE_EXPORT_BATCH_RECIPES="$out/ours.json" "$venv/bin/python" batchrecipes.py)
+    ;;
   writer)
     out="$(mktemp -d)"
     trap 'rm -rf "$out"' EXIT
@@ -89,7 +101,7 @@ case "${1:-}" in
     "$venv/bin/python" "$root/scripts/oracle/ncbi_region.py"
     ;;
   *)
-    echo "usage: $0 generate|primer-pairs|batch-golden-gate|writer|snapgene-writer|snapgene-local [dir]|abif-local [dir...]|ncbi-region" >&2
+    echo "usage: $0 generate|primer-pairs|batch-golden-gate|batch-recipes|writer|snapgene-writer|snapgene-local [dir]|abif-local [dir...]|ncbi-region" >&2
     exit 2
     ;;
 esac
