@@ -656,3 +656,17 @@ A/C/G/T complement tables (`bidirectional.ts`, `thermo.ts`, `structure.ts`)
 are **kept**: they are strict Watson-Crick pairing, `undefined` or `'N'` for
 anything else, where `alphabet.ts`'s table maps `R` to `Y`; swapping them
 would change what a degenerate primer pairs with.
+
+**GC content (core 3; step 5) and the nearest-neighbour sum (core 7; step 6).**
+GC: no extraction. The rules differ on purpose and each is read by its
+caller: `gcContent.ts` weighs ambiguity codes for a window or a record;
+`gcFraction` counts G, C and S over every base because the Q5 salt
+correction was fitted that way; `primerDesign.ts` reports the min and max of
+a degenerate primer; `yeastAssembly.ts`, `recode.ts`, `crisprEdit.ts` and
+`crispr.ts` count G and C in text already upper-cased (`recode.ts` in a hot
+loop on character codes). One helper would take a flag per caller and still
+leave the loops apart. NN sum: `meltingTemperature` and
+`q5MeltingTemperature` shared 14 lines of steps, ends and the null for a
+step without parameters; both now call `nearestNeighbourSum`. The existing
+thermo tests are unchanged and pass. The overlap primer pair (core 8) is
+left for the components pass.

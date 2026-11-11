@@ -50,17 +50,16 @@ function isSelfComplementary(seq: string): boolean {
 }
 
 /**
- * Melting temperature in °C. Returns NaN for sequences shorter than 2 bases
- * or containing characters other than A, C, G, T (U is treated as T).
+ * ΔH (kcal/mol) and ΔS (cal/K·mol) of a duplex of `seq`, upper-case A, C, G,
+ * T: the nearest-neighbour steps plus the initiation of both ends. null when
+ * a step has no parameters.
  */
-export function meltingTemperature(sequence: string, conditions: ThermoConditions = {}): number {
-  const seq = sequence.toUpperCase().replace(/U/g, 'T');
-  if (seq.length < 2 || /[^ACGT]/.test(seq)) return NaN;
+function nearestNeighbourSum(seq: string): { dH: number; dS: number } | null {
   let dH = 0;
   let dS = 0;
   for (let i = 0; i + 1 < seq.length; i++) {
     const nn = NN_PARAMS[seq.slice(i, i + 2)];
-    if (nn === undefined) return NaN;
+    if (nn === undefined) return null;
     dH += nn.dH;
     dS += nn.dS;
   }
@@ -69,6 +68,20 @@ export function meltingTemperature(sequence: string, conditions: ThermoCondition
     dH += init.dH;
     dS += init.dS;
   }
+  return { dH, dS };
+}
+
+/**
+ * Melting temperature in °C. Returns NaN for sequences shorter than 2 bases
+ * or containing characters other than A, C, G, T (U is treated as T).
+ */
+export function meltingTemperature(sequence: string, conditions: ThermoConditions = {}): number {
+  const seq = sequence.toUpperCase().replace(/U/g, 'T');
+  if (seq.length < 2 || /[^ACGT]/.test(seq)) return NaN;
+  const sum = nearestNeighbourSum(seq);
+  if (sum === null) return NaN;
+  const { dH } = sum;
+  let { dS } = sum;
   const symmetric = isSelfComplementary(seq);
   if (symmetric) dS += SYMMETRY_DS;
 
@@ -103,19 +116,10 @@ const Q5_MAX_ANNEAL = 72;
 export function q5MeltingTemperature(sequence: string): number {
   const seq = sequence.toUpperCase().replace(/U/g, 'T');
   if (seq.length < 2 || /[^ACGT]/.test(seq)) return NaN;
-  let dH = 0;
-  let dS = 0;
-  for (let i = 0; i + 1 < seq.length; i++) {
-    const nn = NN_PARAMS[seq.slice(i, i + 2)];
-    if (nn === undefined) return NaN;
-    dH += nn.dH;
-    dS += nn.dS;
-  }
-  for (const end of [seq.charAt(0), seq.charAt(seq.length - 1)]) {
-    const init = end === 'G' || end === 'C' ? INIT_GC : INIT_AT;
-    dH += init.dH;
-    dS += init.dS;
-  }
+  const sum = nearestNeighbourSum(seq);
+  if (sum === null) return NaN;
+  const { dH } = sum;
+  let { dS } = sum;
   // A self-complementary primer pairs with itself, which costs it the
   // symmetry entropy as in meltingTemperature; NEB's calculator applies it
   // too (#140). Its concentration term is unchanged, being the whole primer
