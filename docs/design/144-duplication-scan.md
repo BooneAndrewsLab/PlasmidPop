@@ -686,3 +686,14 @@ its tooltip) and the name of the length. Both now use `CloningOligoRow` with
 a `covers` prop. `CloneCheckPage` and `PrimerCandidates` have an `OligoRow`
 of their own with other columns and were left alone; `HomologyEndsResult`'s
 share with the first two is the constant only and was not read further.
+
+**Components, items 5 and 7: read, not extracted.** `AlignmentCopyPanel` /
+`MsaCopyPanel` share the frame and the doc comment, not the body: the options
+types, the selection model and the output builders are different modules
+(`alignmentCopy`, `msaCopy`), so a shared panel would be a component taking
+those as props, which is more indirection than the 28 shared lines cost.
+`BatchProtocolDialog` / `ProtocolDialog` share the amounts form (vector ng,
+ratio) and the download; the rest (one construct at a time with a busy state,
+against a memoised protocol with concentrations) differs. If the amounts form
+is touched again it is the piece to lift. Items 1, 3 (done through the
+spacer), 4, 6, 8, 9 and 10 remain unread.
