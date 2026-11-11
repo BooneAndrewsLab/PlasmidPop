@@ -808,3 +808,22 @@ headings and copy, the summary sentence, the "Go back to the bundled table"
 button, the REBASE copyright note and the Close/Done footer. `ModularPanel` and
 `RecodeControls` have a similar hidden-input shape and may use the hook later;
 they are not touched. The before/after Stryker run is the user's to start.
+
+**Components, item 10: the two stores, read and left as they are.**
+`state/myParts.ts` and `state/primerCollection.ts` share a skeleton of about
+25 lines (state with `status` and `error`, `subscribe`/`getState`/`set`, a
+lazy one-time `load` that keeps what was added during the read, a `write`
+that skips on a failed read and says `Could not save …` on a failed write,
+and `add`/`update`/`remove`/`dismissError`). Everything that differs is
+woven through it: the repository methods (`loadMyParts` and `loadPrimers`,
+with different row validation), `preparePartDrafts` against `preparePrimers`
+and their reports, the patch types, the write labels, and the public field
+(`parts` against `primers`, read by components and `detection.ts`). A
+`createRepoStore` would need four type parameters and five or six
+configuration fields to save the 25 lines, and a generic `items` field would
+rename the public API or need a per-store wrapper: "only more props", as in
+items 5 and 7. No third store has this shape, so nothing would adopt it.
+What the plan did find is that no test builds either store with a fake
+repository (the constructor takes one): load-once, the merge of adds made
+during the read, a failed read, a failed write, the error clearing on the
+next success and `dismissError` are unpinned. That is filed as an issue.
