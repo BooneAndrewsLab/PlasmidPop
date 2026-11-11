@@ -643,3 +643,16 @@ cannot be pinned from the config (the process has started), so
 `src/test/locale.test.ts` asserts the resolved locale starts with `en` and
 that `(5000).toLocaleString()` is `5,000`, and its message names `npm test`
 and this issue: one failure in place of dozens of separator mismatches.
+
+**IUPAC and complement tables (core 4 and 5; step 4 of the order).**
+Three hand-written IUPAC tables are gone: `alignment/scoring.ts`'s `BASES`
+and `annotate/detect.ts`'s `MASKS` now come from `codeMask` (the bitmask
+`search.ts` derives from `IUPAC_SETS`), and `assembly/assemble.ts`'s string
+table reads `IUPAC_SETS` itself. `assemble.ts` now also takes `U` as `T`,
+which a consensus symbol never is. `assembly/consensus.ts` keeps its
+inverted table (set to code, needed for speed of lookup), and a test now
+pins it against `IUPAC_SETS` for every multi-base code. The three private
+A/C/G/T complement tables (`bidirectional.ts`, `thermo.ts`, `structure.ts`)
+are **kept**: they are strict Watson-Crick pairing, `undefined` or `'N'` for
+anything else, where `alphabet.ts`'s table maps `R` to `Y`; swapping them
+would change what a degenerate primer pairs with.

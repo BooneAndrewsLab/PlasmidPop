@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { IUPAC_SETS } from '../analysis/codons';
+
 import { callColumn, columnPosterior, iupacOf } from './consensus';
 
 const v = (base: string, quality: number) => ({ base, quality });
@@ -113,5 +115,13 @@ describe('iupacOf', () => {
     expect(iupacOf(['G', 'C', 'A'])).toBe('V');
     expect(iupacOf(['A', 'C', 'G', 'T'])).toBe('N');
     expect(iupacOf(['A', 'A'])).toBe('A');
+  });
+});
+
+describe('iupacOf against the shared IUPAC table', () => {
+  it('names every code of more than one base by the set `IUPAC_SETS` gives it', () => {
+    for (const [code, bases] of Object.entries(IUPAC_SETS)) {
+      if (bases.length > 1) expect(iupacOf([...bases].reverse())).toBe(code);
+    }
   });
 });

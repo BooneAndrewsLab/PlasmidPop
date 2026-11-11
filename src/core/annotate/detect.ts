@@ -1,3 +1,4 @@
+import { codeMask } from '../analysis/search';
 import { type Strand } from '../features';
 import { type Range, type Topology, rangePieces } from '../range';
 import { alignNearDiagonal, bandCells } from './gapped';
@@ -177,32 +178,8 @@ export interface FeatureHit {
 export const MIN_PARTIAL_BASES = 30;
 export const MIN_PARTIAL_SHARE = 0.2;
 
-/** A–T as bits of a mask, IUPAC codes as the bases they stand for; 0 is not a base. */
-const MASKS = (() => {
-  const m = new Uint8Array(128);
-  const set = (letters: string, mask: number): void => {
-    for (const c of letters) {
-      m[c.charCodeAt(0)] = mask;
-      m[c.toLowerCase().charCodeAt(0)] = mask;
-    }
-  };
-  set('A', 1);
-  set('C', 2);
-  set('G', 4);
-  set('TU', 8);
-  set('R', 5);
-  set('Y', 10);
-  set('S', 6);
-  set('W', 9);
-  set('K', 12);
-  set('M', 3);
-  set('B', 14);
-  set('D', 13);
-  set('H', 11);
-  set('V', 7);
-  set('N', 15);
-  return m;
-})();
+/** `codeMask` of every ASCII character: A–T as bits of a mask, IUPAC codes as the bases they stand for; 0 is not a base. */
+const MASKS = Uint8Array.from({ length: 128 }, (_, c) => codeMask(String.fromCharCode(c)));
 
 /** Two bits per definite base; -1 for anything else. */
 const BITS = (() => {

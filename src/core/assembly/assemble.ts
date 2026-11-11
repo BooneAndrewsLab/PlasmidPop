@@ -5,6 +5,7 @@ import {
   CONFIDENT_QUALITY,
   trimByQuality,
 } from '../alignment';
+import { IUPAC_SETS } from '../analysis/codons';
 import { reverseComplement } from '../sequence/alphabet';
 
 import { type ColumnVote, callColumn } from './consensus';
@@ -1178,20 +1179,6 @@ function collapseWarnings(depth: readonly number[], readCount: number): ContigWa
   return out;
 }
 
-const IUPAC_SETS: Readonly<Record<string, string>> = {
-  R: 'AG',
-  Y: 'CT',
-  S: 'CG',
-  W: 'AT',
-  K: 'GT',
-  M: 'AC',
-  B: 'CGT',
-  D: 'AGT',
-  H: 'ACT',
-  V: 'ACG',
-  N: 'ACGT',
-};
-
 function ambiguityIncludes(code: string, base: string): boolean {
-  return (IUPAC_SETS[code] ?? code).includes(base);
+  return (IUPAC_SETS[code] ?? [code]).includes(base);
 }

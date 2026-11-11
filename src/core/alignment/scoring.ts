@@ -8,6 +8,8 @@
  * in the document would never match (#47).
  */
 
+import { codeMask } from '../analysis/search';
+
 import { BLOSUM62, BLOSUM62_ORDER } from './blosum62';
 
 /** Row and column order of the matrix below. */
@@ -85,33 +87,13 @@ export function scoreTable(
   return table;
 }
 
-/** Bases each code stands for, as a bit set (A 1, C 2, G 4, T 8). */
-const BASES: Readonly<Record<string, number>> = {
-  A: 1,
-  C: 2,
-  G: 4,
-  T: 8,
-  U: 8,
-  R: 5,
-  Y: 10,
-  S: 6,
-  W: 9,
-  K: 12,
-  M: 3,
-  B: 14,
-  D: 13,
-  H: 11,
-  V: 7,
-  N: 15,
-};
-
 /**
  * How two aligned characters relate: `'|'` the same definite base, `':'`
  * compatible through an ambiguity code (A against R or N), `'.'` a mismatch.
  */
 export function pairMark(x: string, y: string): '|' | ':' | '.' {
-  const bx = BASES[x.toUpperCase()] ?? 0;
-  const by = BASES[y.toUpperCase()] ?? 0;
+  const bx = codeMask(x);
+  const by = codeMask(y);
   if ((bx & by) === 0) return '.';
   const definite = (bx & (bx - 1)) === 0;
   return bx === by && definite ? '|' : ':';
