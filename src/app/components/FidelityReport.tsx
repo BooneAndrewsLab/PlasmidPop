@@ -1,9 +1,10 @@
-import { useRef, useState } from 'react';
-import { pickerAccept } from '../pickerAccept';
+import { useState } from 'react';
 
 import { type FidelityTable, formatFidelity, setFidelity } from '@/core';
 
 import { type FidelityImportSummary, persistence } from '../state/persistence';
+
+import { FileDrop } from './FileDrop';
 
 /**
  * What the picker offers (#141): most published tables are Excel workbooks,
@@ -43,8 +44,6 @@ function FidelityImport({ onClose }: { readonly onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [summary, setSummary] = useState<FidelityImportSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [dragging, setDragging] = useState(false);
-  const input = useRef<HTMLInputElement>(null);
 
   const take = (file: File | undefined): void => {
     if (file === undefined) return;
@@ -78,41 +77,12 @@ function FidelityImport({ onClose }: { readonly onClose: () => void }) {
         should be a square matrix: a first row of overhangs, then one row per overhang, each cell a
         count. It is read in your browser and never uploaded.
       </p>
-      <div
-        className={`enzyme-import__drop${dragging ? ' enzyme-import__drop--over' : ''}`}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => {
-          setDragging(false);
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragging(false);
-          take(e.dataTransfer.files[0]);
-        }}
-      >
-        <input
-          ref={input}
-          type="file"
-          className="visually-hidden"
-          accept={pickerAccept(FIDELITY_FILE_ACCEPT)}
-          onChange={(e) => {
-            take(e.target.files?.[0]);
-            e.target.value = '';
-          }}
-        />
-        <button
-          type="button"
-          className="button button--small"
-          disabled={busy}
-          onClick={() => input.current?.click()}
-        >
-          {busy ? 'Reading…' : 'Choose file…'}
-        </button>
-        <span className="enzyme-import__hint">or drop the table here</span>
-      </div>
+      <FileDrop
+        accept={FIDELITY_FILE_ACCEPT}
+        hint="or drop the table here"
+        busy={busy}
+        onFile={take}
+      />
       {error !== null && <p className="panel__note panel__note--error">{error}</p>}
       {summary !== null && (
         <p className="panel__note">
