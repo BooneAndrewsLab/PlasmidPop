@@ -6,7 +6,14 @@ import { type DocumentSummary, SCRATCH_LIFETIME_DAYS } from '@/storage';
 import { onOpenGuide } from '../help/openGuide';
 import { editorStore } from '../state/editorStore';
 import { persistence } from '../state/persistence';
+import { EXAMPLES } from '../examples';
+import { openExample } from '../openFile';
 import { EmptyState } from './EmptyState';
+
+vi.mock('../openFile', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  openExample: vi.fn(() => null),
+}));
 
 describe('EmptyState licence line', () => {
   it('names the MIT licence and links to LICENSE and the source', async () => {
@@ -201,10 +208,57 @@ describe('EmptyState on a touch phone', () => {
     expect(more).toContainElement(screen.getByRole('link', { name: 'MIT licence' }));
   });
 
+  it('keeps the other-ways-in paragraphs inside the folded details', async () => {
+    answer(['(pointer: coarse)', '(max-width: 600px)']);
+    await renderEmpty();
+    const more = screen.getByText('Other ways in, and your data').closest('details');
+    expect(more).not.toBeNull();
+    if (more === null) return;
+    const inside = within(more);
+    expect(
+      inside.getByText(/^Or paste a sequence, GenBank or FASTA record here \(Ctrl\+V\)/),
+    ).toBeInTheDocument();
+    expect(inside.getByText(/^Everything stays in your browser/)).toBeInTheDocument();
+  });
+
   it('keeps the drop wording and the open prose on a mouse', async () => {
     answer([]);
     await renderEmpty();
     expect(screen.getByText(/^Drop a GenBank/)).toBeInTheDocument();
     expect(screen.queryByText('Other ways in, and your data')).toBeNull();
+  });
+});
+
+describe('EmptyState other ways in', () => {
+  const renderEmpty = async (): Promise<void> => {
+    const listed = Promise.resolve([]);
+    vi.spyOn(persistence, 'listStored').mockReturnValue(listed);
+    vi.spyOn(persistence, 'pruneScratch').mockResolvedValue(0);
+    render(<EmptyState />);
+    await act(() => listed);
+  };
+
+  it('shows the paste and privacy paragraphs on desktop', async () => {
+    await renderEmpty();
+    expect(
+      screen.getByText(/^Or paste a sequence, GenBank or FASTA record here \(Ctrl\+V\)/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/^Everything stays in your browser/)).toBeInTheDocument();
+  });
+
+  it('opens the NCBI dialog from "open a record from NCBI"', async () => {
+    await renderEmpty();
+    fireEvent.click(screen.getByRole('button', { name: 'open a record from NCBI' }));
+    expect(editorStore.getState().ncbiDialog).toBe(true);
+    act(() => {
+      editorStore.dismissNcbi();
+    });
+    expect(editorStore.getState().ncbiDialog).toBe(false);
+  });
+
+  it('opens the bundled example from its link', async () => {
+    await renderEmpty();
+    fireEvent.click(screen.getByRole('button', { name: 'open pBR322 (4,361 bp, circular)' }));
+    expect(openExample).toHaveBeenCalledWith(EXAMPLES[0]);
   });
 });
