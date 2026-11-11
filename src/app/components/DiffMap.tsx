@@ -31,6 +31,7 @@ import { NO_OVERLAY } from '@/view/overlay';
 import { drawableFeatures } from '@/view/visibleFeatures';
 
 import { readCircularTheme } from './circularTheme';
+import { MAP_ZOOM_STEP, MapZoomControls } from './MapZoomControls';
 
 /** Square side of the map in the review, wide enough for the label ring. */
 const SIZE = 380;
@@ -38,8 +39,6 @@ const RING_WIDTH = 12;
 const OUTER_MARGIN = 92;
 const SANS_FONT = '11px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 const TITLE_FONT = '600 13px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
-/** Zoom factor of one press of the +/− buttons and of a double-click, as on the editor's map. */
-const ZOOM_STEP = 1.6;
 /** How far the pointer may travel and still count as a tap rather than a drag. */
 const CLICK_SLOP = 3;
 
@@ -347,7 +346,7 @@ export function DiffMap({
       setViewport(fitRange(drawing.layout.bounds, extent.start, extent.end, doc.length, pad));
       return;
     }
-    zoomBy(ZOOM_STEP, pt.x, pt.y);
+    zoomBy(MAP_ZOOM_STEP, pt.x, pt.y);
   };
 
   const pickMove = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
@@ -400,49 +399,16 @@ export function DiffMap({
   return (
     <div className="diff-map--explore" style={{ width: size }}>
       {canvas}
-      <div className="map-view__controls" role="toolbar" aria-label="Map zoom">
-        <button
-          type="button"
-          className="button map-view__control"
-          data-tip="Zoom in (mouse wheel or pinch also zooms; double-click a feature to fit it)"
-          aria-label="Zoom in"
-          disabled={layout.zoom >= layout.maxZoom}
-          onClick={() => {
-            zoomBy(ZOOM_STEP);
-          }}
-        >
-          +
-        </button>
-        <button
-          type="button"
-          className="button map-view__control"
-          data-tip="Zoom out"
-          aria-label="Zoom out"
-          disabled={!zoomed}
-          onClick={() => {
-            zoomBy(1 / ZOOM_STEP);
-          }}
-        >
-          −
-        </button>
-        <button
-          type="button"
-          className="button map-view__control"
-          data-tip="Show the whole map"
-          aria-label="Show the whole map"
-          disabled={!zoomed}
-          onClick={() => {
-            setViewport(FIT_VIEWPORT);
-          }}
-        >
-          Fit
-        </button>
-        {zoomed && (
-          <span className="map-view__zoom" aria-live="polite">
-            {layout.zoom < 10 ? layout.zoom.toFixed(1) : Math.round(layout.zoom).toString()}×
-          </span>
-        )}
-      </div>
+      <MapZoomControls
+        zoom={layout.zoom}
+        maxZoom={layout.maxZoom}
+        onZoomBy={(factor) => {
+          zoomBy(factor);
+        }}
+        onFit={() => {
+          setViewport(FIT_VIEWPORT);
+        }}
+      />
     </div>
   );
 }
