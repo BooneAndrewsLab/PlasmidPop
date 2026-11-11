@@ -1,8 +1,8 @@
-import { useRef, useState } from 'react';
-import { pickerAccept } from '../pickerAccept';
+import { useState } from 'react';
 
 import { type RebaseImportSummary, persistence } from '../state/persistence';
 import { useEditorState } from '../state/useEditorStore';
+import { FileDrop } from './FileDrop';
 
 /**
  * The file to send people to. `withrefm` is the monthly format that carries
@@ -43,8 +43,6 @@ export function EnzymeImport({ onClose }: { readonly onClose?: () => void }) {
   const [busy, setBusy] = useState(false);
   const [summary, setSummary] = useState<RebaseImportSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [dragging, setDragging] = useState(false);
-  const input = useRef<HTMLInputElement>(null);
 
   const take = (file: File | undefined): void => {
     if (file === undefined) return;
@@ -77,47 +75,12 @@ export function EnzymeImport({ onClose }: { readonly onClose?: () => void }) {
         </li>
         <li>Open it below. It is read here in your browser and never uploaded.</li>
       </ol>
-      <div
-        className={`enzyme-import__drop${dragging ? ' enzyme-import__drop--over' : ''}`}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => {
-          setDragging(false);
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragging(false);
-          take(e.dataTransfer.files[0]);
-        }}
-      >
-        <input
-          ref={input}
-          type="file"
-          className="visually-hidden"
-          /*
-           * A hint, not a gate: browsers keep an "All files" entry in the
-           * picker's filter list, which is the way out when the download
-           * arrived without an extension (saving the page gives
-           * link_withrefm.txt, but "Save link as" need not).
-           */
-          accept={pickerAccept('text/plain,.txt,.dat')}
-          onChange={(e) => {
-            take(e.target.files?.[0]);
-            e.target.value = '';
-          }}
-        />
-        <button
-          type="button"
-          className="button button--small"
-          disabled={busy}
-          onClick={() => input.current?.click()}
-        >
-          {busy ? 'Reading…' : 'Choose file…'}
-        </button>
-        <span className="enzyme-import__hint">or drop link_withrefm.txt here</span>
-      </div>
+      <FileDrop
+        accept={'text/plain,.txt,.dat'}
+        hint="or drop link_withrefm.txt here"
+        busy={busy}
+        onFile={take}
+      />
       {error !== null && <p className="panel__note panel__note--error">{error}</p>}
       {summary !== null && (
         <p className="panel__note">
