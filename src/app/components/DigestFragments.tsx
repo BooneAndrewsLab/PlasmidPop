@@ -16,6 +16,7 @@ import { useEditorState } from '../state/useEditorStore';
 import { fragmentId, shelve, useDigestPieces } from './digestPieces';
 import { useRowCursor } from './useRowCursor';
 import { useRowWindow } from './useRowWindow';
+import { TableSpacer } from './TableSpacer';
 
 /** Height assumed for a row not yet measured, in pixels: one line of text. */
 const ROW_ESTIMATE = 32;
@@ -216,7 +217,7 @@ export function DigestFragments({ doc }: { readonly doc: SeqDocument }) {
               </tr>
             </thead>
             <tbody ref={body} onKeyDown={onKeyDown}>
-              {padTop > 0 && <Spacer height={padTop} span={columns} />}
+              {padTop > 0 && <TableSpacer height={padTop} columns={columns} />}
               {listed.slice(first, end).map((f, k) => {
                 const i = first + k;
                 const id = keys[i] ?? '';
@@ -283,7 +284,7 @@ export function DigestFragments({ doc }: { readonly doc: SeqDocument }) {
                   </tr>
                 );
               })}
-              {padBottom > 0 && <Spacer height={padBottom} span={columns} />}
+              {padBottom > 0 && <TableSpacer height={padBottom} columns={columns} />}
             </tbody>
           </table>
         </div>
@@ -301,14 +302,5 @@ export function DigestFragments({ doc }: { readonly doc: SeqDocument }) {
         </button>
       </div>
     </div>
-  );
-}
-
-/** Rows not drawn, as the height they would take. */
-function Spacer({ height, span }: { readonly height: number; readonly span: number }) {
-  return (
-    <tr className="wst__spacer" aria-hidden="true" style={{ height }}>
-      <td colSpan={span} />
-    </tr>
   );
 }

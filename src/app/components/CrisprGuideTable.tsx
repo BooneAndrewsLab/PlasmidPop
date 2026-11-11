@@ -17,6 +17,7 @@ import { type CrisprScan } from './CrisprGuideList';
 import { SortTh } from './SortTh';
 import { type SortState, nextRowIndex } from './tableKeys';
 import { useRowWindow } from './useRowWindow';
+import { TableSpacer } from './TableSpacer';
 
 /** Height assumed for a row not yet measured, in pixels: one line of text. */
 const ROW_ESTIMATE = 28;
@@ -214,7 +215,7 @@ export function CrisprGuideTable({ doc, scan }: Props) {
               </tr>
             </thead>
             <tbody ref={body} onKeyDown={onRowsKeyDown}>
-              {padTop > 0 && <Spacer height={padTop} columns={columns} />}
+              {padTop > 0 && <TableSpacer height={padTop} columns={columns} />}
               {sorted.slice(first, end).map((g, i) => {
                 const key = guideId(g);
                 const on = key === selectedId;
@@ -242,7 +243,7 @@ export function CrisprGuideTable({ doc, scan }: Props) {
                   />
                 );
               })}
-              {padBottom > 0 && <Spacer height={padBottom} columns={columns} />}
+              {padBottom > 0 && <TableSpacer height={padBottom} columns={columns} />}
             </tbody>
           </table>
         </div>
@@ -312,15 +313,6 @@ export function CrisprGuideTable({ doc, scan }: Props) {
         />
       )}
     </div>
-  );
-}
-
-/** Rows not drawn, as the height they would take. */
-function Spacer({ height, columns }: { readonly height: number; readonly columns: number }) {
-  return (
-    <tr className="wst__spacer" aria-hidden="true" style={{ height }}>
-      <td colSpan={columns} />
-    </tr>
   );
 }
 

@@ -35,6 +35,7 @@ import { Gel } from './Gel';
 import { SortTh } from './SortTh';
 import { type SortState, nextRowIndex, toggleSort } from './tableKeys';
 import { useRowWindow } from './useRowWindow';
+import { TableSpacer } from './TableSpacer';
 
 /**
  * Height assumed for a row not yet measured, in pixels: one line of text.
@@ -362,7 +363,7 @@ function EnzymeGrid({ doc, list, layout, onPartner }: TableProps) {
               </tr>
             </thead>
             <tbody ref={body} onKeyDown={onRowsKeyDown}>
-              {padTop > 0 && <Spacer height={padTop} />}
+              {padTop > 0 && <TableSpacer height={padTop} columns={8} />}
               {rows.slice(first, end).map((row) => {
                 const key = rowKey(row);
                 const on = key === selected;
@@ -383,7 +384,7 @@ function EnzymeGrid({ doc, list, layout, onPartner }: TableProps) {
                   />
                 );
               })}
-              {padBottom > 0 && <Spacer height={padBottom} />}
+              {padBottom > 0 && <TableSpacer height={padBottom} columns={8} />}
             </tbody>
           </table>
         </div>
@@ -413,15 +414,6 @@ function EnzymeGrid({ doc, list, layout, onPartner }: TableProps) {
         />
       )}
     </div>
-  );
-}
-
-/** Rows not drawn, as the height they would take. */
-function Spacer({ height }: { readonly height: number }) {
-  return (
-    <tr className="wst__spacer" aria-hidden="true" style={{ height }}>
-      <td colSpan={8} />
-    </tr>
   );
 }
 

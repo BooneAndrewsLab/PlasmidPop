@@ -20,6 +20,7 @@ import { useEditorState } from '../state/useEditorStore';
 import { type usePegRnas, pegId } from './crisprEditing';
 import { guideId, useCrisprPreview } from './crisprScan';
 import { useRowPicker } from './useRowPicker';
+import { TableSpacer } from './TableSpacer';
 
 /** Height assumed for a row not yet measured, in pixels: one line of text. */
 const ROW_ESTIMATE = 28;
@@ -305,7 +306,7 @@ export function PrimeEditing({ doc, design }: Props) {
                 </tr>
               </thead>
               <tbody ref={body} onKeyDown={onKeyDown}>
-                {padTop > 0 && <Spacer height={padTop} />}
+                {padTop > 0 && <TableSpacer height={padTop} columns={7} />}
                 {pegs.slice(first, end).map((p, k) => {
                   const key = pegId(p);
                   const on = open !== null && key === pegId(open);
@@ -344,7 +345,7 @@ export function PrimeEditing({ doc, design }: Props) {
                     </tr>
                   );
                 })}
-                {padBottom > 0 && <Spacer height={padBottom} />}
+                {padBottom > 0 && <TableSpacer height={padBottom} columns={7} />}
               </tbody>
             </table>
           </div>
@@ -357,14 +358,5 @@ export function PrimeEditing({ doc, design }: Props) {
       )}
       {open !== null && <PegDetail key={pegId(open)} peg={open} doc={doc} />}
     </>
-  );
-}
-
-/** Rows not drawn, as the height they would take. */
-function Spacer({ height }: { readonly height: number }) {
-  return (
-    <tr className="wst__spacer" aria-hidden="true" style={{ height }}>
-      <td colSpan={7} />
-    </tr>
   );
 }

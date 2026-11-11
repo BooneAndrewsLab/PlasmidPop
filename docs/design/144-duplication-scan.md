@@ -670,3 +670,11 @@ leave the loops apart. NN sum: `meltingTemperature` and
 step without parameters; both now call `nearestNeighbourSum`. The existing
 thermo tests are unchanged and pass. The overlap primer pair (core 8) is
 left for the components pass.
+
+**Components, first pass: the windowed tables' spacer.** Five tables
+(`EnzymeTable`, `CrisprGuideTable`, `CrisprPairedNickases`,
+`CrisprPrimeEditing`, `DigestFragments`) each defined the same `Spacer` row,
+four of them identical but for the column count. They now use
+`TableSpacer` (`columns` prop). The remaining items of the list above are
+unread and open; the `ROW_ESTIMATE` constants differ per table (28 to 32)
+and stay where they are.

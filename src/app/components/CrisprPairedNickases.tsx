@@ -11,6 +11,7 @@ import { useEditorState } from '../state/useEditorStore';
 import { type useNickPairs, pairId, pairSpan } from './crisprEditing';
 import { guideId, useCrisprPreview } from './crisprScan';
 import { useRowPicker } from './useRowPicker';
+import { TableSpacer } from './TableSpacer';
 
 /** Height assumed for a row not yet measured, in pixels: one line of text. */
 const ROW_ESTIMATE = 28;
@@ -173,7 +174,7 @@ export function PairedNickases({ doc, nick, guideCount }: Props) {
                 </tr>
               </thead>
               <tbody ref={body} onKeyDown={onKeyDown}>
-                {padTop > 0 && <Spacer height={padTop} />}
+                {padTop > 0 && <TableSpacer height={padTop} columns={5} />}
                 {pairs.slice(first, end).map((p, k) => {
                   const key = pairId(p);
                   const on = key === (open === null ? null : pairId(open));
@@ -207,7 +208,7 @@ export function PairedNickases({ doc, nick, guideCount }: Props) {
                     </tr>
                   );
                 })}
-                {padBottom > 0 && <Spacer height={padBottom} />}
+                {padBottom > 0 && <TableSpacer height={padBottom} columns={5} />}
               </tbody>
             </table>
           </div>
@@ -219,14 +220,5 @@ export function PairedNickases({ doc, nick, guideCount }: Props) {
         </>
       )}
     </>
-  );
-}
-
-/** Rows not drawn, as the height they would take. */
-function Spacer({ height }: { readonly height: number }) {
-  return (
-    <tr className="wst__spacer" aria-hidden="true" style={{ height }}>
-      <td colSpan={5} />
-    </tr>
   );
 }
