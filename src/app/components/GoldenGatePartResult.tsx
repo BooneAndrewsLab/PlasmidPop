@@ -1,11 +1,6 @@
 import { useMemo } from 'react';
 
-import {
-  type CloningPrimer,
-  type GoldenGatePartDesign,
-  goldenGatePrimerNames,
-  goldenGateSeed,
-} from '@/core';
+import { type GoldenGatePartDesign, goldenGatePrimerNames, goldenGateSeed } from '@/core';
 
 import { analytics } from '../analytics';
 import { copyText } from '../clipboard';
@@ -19,52 +14,9 @@ import { useEditorState } from '../state/useEditorStore';
 import { CheckSpecificity } from './CheckSpecificity';
 import { type CloningDesignRecord } from './cloningDesign';
 import { MapStrip } from './MapStrip';
-import { Oligo } from './Oligo';
-import { pct } from './primerDesign';
+import { BLAST_ANNEALING, CloningOligoRow } from './CloningOligoRow';
 
-/** What the annealing parts' trip to Primer-BLAST sends: the tails would not match any template. */
-const BLAST_ANNEALING =
-  'Opens NCBI Primer-BLAST in a new tab with the two annealing parts (not the tails, which match no template) in the address. Nothing else leaves the browser, and nothing until you click.';
-
-function OligoRow({
-  strand,
-  primer,
-  bodyLength,
-}: {
-  readonly strand: 'forward' | 'reverse';
-  readonly primer: CloningPrimer;
-  readonly bodyLength: number;
-}) {
-  const n = primer.segments.annealing.length;
-  const lands =
-    strand === 'forward'
-      ? `1–${n.toLocaleString()}`
-      : `${(bodyLength - n + 1).toLocaleString()}–${bodyLength.toLocaleString()}`;
-  return (
-    <tr>
-      <th scope="row">{strand === 'forward' ? '→ Forward' : '← Reverse'}</th>
-      <td className="dt__seq">
-        <Oligo primer={primer} />
-      </td>
-      <td className="wst__n">{primer.sequence.length.toLocaleString()} nt</td>
-      <td className="wst__n" data-tip="Melting temperature of the annealing part">
-        Tm {primer.tm.toFixed(1)}
-      </td>
-      <td className="wst__n" data-tip="GC content of the annealing part">
-        GC {pct(primer.annealing.gc)}
-      </td>
-      <td className="wst__n" data-tip="The bases of the part the annealing part covers">
-        part {lands}
-      </td>
-      <td
-        className={primer.annealing.gcClamp ? 'dt__ok' : 'dt__warn'}
-        data-tip="Whether the 3′ end is G or C"
-      >
-        {primer.annealing.gcClamp ? 'clamp' : 'no clamp'}
-      </td>
-    </tr>
-  );
-}
+const PART_COVERED = { label: 'part', tip: 'The bases of the part the annealing part covers' };
 
 interface Props {
   readonly record: CloningDesignRecord;
@@ -197,8 +149,18 @@ export function GoldenGatePartResult({ record, design, layout, onSaid }: Props) 
           <>
             <table className="dt">
               <tbody>
-                <OligoRow strand="forward" primer={forward} bodyLength={bodyLength} />
-                <OligoRow strand="reverse" primer={reverse} bodyLength={bodyLength} />
+                <CloningOligoRow
+                  strand="forward"
+                  primer={forward}
+                  coveredLength={bodyLength}
+                  covers={PART_COVERED}
+                />
+                <CloningOligoRow
+                  strand="reverse"
+                  primer={reverse}
+                  coveredLength={bodyLength}
+                  covers={PART_COVERED}
+                />
               </tbody>
             </table>
             <p className="dnote">

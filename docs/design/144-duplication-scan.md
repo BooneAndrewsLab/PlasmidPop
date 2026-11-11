@@ -678,3 +678,11 @@ four of them identical but for the column count. They now use
 `TableSpacer` (`columns` prop). The remaining items of the list above are
 unread and open; the `ROW_ESTIMATE` constants differ per table (28 to 32)
 and stay where they are.
+
+**Components, item 2: the cloning oligo row.** `CloningCandidates` and
+`GoldenGatePartResult` each had the same `OligoRow` and the same
+`BLAST_ANNEALING` text; they differ in one label (`insert` or `part`, with
+its tooltip) and the name of the length. Both now use `CloningOligoRow` with
+a `covers` prop. `CloneCheckPage` and `PrimerCandidates` have an `OligoRow`
+of their own with other columns and were left alone; `HomologyEndsResult`'s
+share with the first two is the constant only and was not read further.

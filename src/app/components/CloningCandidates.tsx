@@ -33,12 +33,10 @@ import { GoldenGatePartResult } from './GoldenGatePartResult';
 import { HomologyEndsResult } from './HomologyEndsResult';
 import { Oligo } from './Oligo';
 import { MapStrip } from './MapStrip';
-import { pct } from './primerDesign';
+import { BLAST_ANNEALING, CloningOligoRow } from './CloningOligoRow';
 import { nextRowIndex } from './tableKeys';
 
-/** What the annealing parts' trip to Primer-BLAST sends: the tails would not match any template. */
-const BLAST_ANNEALING =
-  'Opens NCBI Primer-BLAST in a new tab with the two annealing parts (not the tails, which match no template) in the address. Nothing else leaves the browser, and nothing until you click.';
+const INSERT_COVERED = { label: 'insert', tip: "The insert's bases the annealing part covers" };
 
 /** A warning's tag in the table; the sentence is its tooltip. */
 function tagText(w: CloningWarning): string {
@@ -108,46 +106,6 @@ function WarningTags({ warnings }: { readonly warnings: readonly CloningWarning[
       ))}
       {more > 0 && <span className="dnote">+{more.toString()}</span>}
     </span>
-  );
-}
-
-function OligoRow({
-  strand,
-  primer,
-  insertLength,
-}: {
-  readonly strand: 'forward' | 'reverse';
-  readonly primer: CloningPrimer;
-  readonly insertLength: number;
-}) {
-  const n = primer.segments.annealing.length;
-  const lands =
-    strand === 'forward'
-      ? `1–${n.toLocaleString()}`
-      : `${(insertLength - n + 1).toLocaleString()}–${insertLength.toLocaleString()}`;
-  return (
-    <tr>
-      <th scope="row">{strand === 'forward' ? '→ Forward' : '← Reverse'}</th>
-      <td className="dt__seq">
-        <Oligo primer={primer} />
-      </td>
-      <td className="wst__n">{primer.sequence.length.toLocaleString()} nt</td>
-      <td className="wst__n" data-tip="Melting temperature of the annealing part">
-        Tm {primer.tm.toFixed(1)}
-      </td>
-      <td className="wst__n" data-tip="GC content of the annealing part">
-        GC {pct(primer.annealing.gc)}
-      </td>
-      <td className="wst__n" data-tip="The insert's bases the annealing part covers">
-        insert {lands}
-      </td>
-      <td
-        className={primer.annealing.gcClamp ? 'dt__ok' : 'dt__warn'}
-        data-tip="Whether the 3′ end is G or C"
-      >
-        {primer.annealing.gcClamp ? 'clamp' : 'no clamp'}
-      </td>
-    </tr>
   );
 }
 
@@ -314,8 +272,18 @@ function CloningDetail({ record, design, rank, layout, onSaid }: DetailProps) {
           <>
             <table className="dt">
               <tbody>
-                <OligoRow strand="forward" primer={forward} insertLength={insertLength} />
-                <OligoRow strand="reverse" primer={reverse} insertLength={insertLength} />
+                <CloningOligoRow
+                  strand="forward"
+                  primer={forward}
+                  coveredLength={insertLength}
+                  covers={INSERT_COVERED}
+                />
+                <CloningOligoRow
+                  strand="reverse"
+                  primer={reverse}
+                  coveredLength={insertLength}
+                  covers={INSERT_COVERED}
+                />
               </tbody>
             </table>
             <table className="dt dt--ends">
