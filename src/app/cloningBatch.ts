@@ -26,6 +26,7 @@ import { AnalysisCancelledError, type LongRequestOptions } from '@/workers/analy
 import { analysisClient } from '@/workers/analysisClient';
 import { type DocumentSnapshot, snapshotOf } from '@/workers/saveProtocol';
 
+import { runInLanes } from './batchLanes';
 import { TM_HALF_WINDOW, findTemplate } from './primerBatch';
 
 /**
@@ -98,6 +99,8 @@ export interface CloningBatchHooks {
   readonly onProgress?: (fraction: number) => void;
   readonly signal?: AbortSignal;
   readonly client?: CloningBatchClient;
+  /** One client per lane: the rows run that many at a time, one on each (#423). Takes the place of `client`. */
+  readonly clients?: readonly CloningBatchClient[];
 }
 
 export interface CloningBatchOutcome {
@@ -144,7 +147,7 @@ export async function runCloningBatch(
   rows: readonly DesignRow[],
   vector: SeqDocument,
   options: CloningBatchOptions,
-  { onRow, onProgress, signal, client = analysisClient }: CloningBatchHooks = {},
+  { onRow, onProgress, signal, client = analysisClient, clients }: CloningBatchHooks = {},
 ): Promise<CloningBatchOutcome> {
   if (rows.length > BATCH_ROW_LIMIT) {
     throw new Error(
@@ -171,52 +174,43 @@ export async function runCloningBatch(
   const clashes = new Map(insertNameClashes(rows).map((c) => [c.index, c.message]));
   const vectorSnapshot = snapshotOf(vector);
   const snapshots = new Map<SeqDocument, DocumentSnapshot>();
-  const done: CloningBatchRow[] = [];
+  const lanes = clients ?? [client];
   const n = rows.length;
-  const outcome = (cancelled: boolean): CloningBatchOutcome => ({
-    rows: done,
-    cancelled,
-    refused: null,
-    vector: batchCheck,
-  });
-  for (let index = 0; index < n; index++) {
-    if (signal?.aborted === true) return outcome(true);
-    const row = rows[index];
-    if (row === undefined) continue;
-    const base: Base = { index, line: row.line, name: row.name };
-    const long: LongRequestOptions = {
-      ...(onProgress === undefined
-        ? {}
-        : {
-            onProgress: (f: number) => {
-              onProgress((index + f) / n);
-            },
-          }),
-      ...(signal === undefined ? {} : { signal }),
-    };
-    let result: CloningBatchRow;
-    try {
-      const clash = clashes.get(index);
-      result =
-        clash !== undefined
+  const { rows: done, cancelled } = await runInLanes<CloningBatchRow>(
+    n,
+    lanes.length,
+    async (index, lane, progress) => {
+      const row = rows[index];
+      if (row === undefined) throw new Error(`No row ${index}`);
+      const base: Base = { index, line: row.line, name: row.name };
+      const long: LongRequestOptions = {
+        ...(onProgress === undefined ? {} : { onProgress: progress }),
+        ...(signal === undefined ? {} : { signal }),
+      };
+      try {
+        const clash = clashes.get(index);
+        return clash !== undefined
           ? { ...base, status: 'failed', message: clash }
           : await designRow(row, base, options, settings, {
-              client,
+              client: lanes[lane] ?? client,
               long,
               checkFor,
               vector: vectorSnapshot,
               vectorDocument: vector,
               snapshots,
             });
-    } catch (e: unknown) {
-      if (e instanceof AnalysisCancelledError) return outcome(true);
-      result = { ...base, status: 'failed', message: e instanceof Error ? e.message : String(e) };
-    }
-    done.push(result);
-    onRow?.(result);
-    onProgress?.((index + 1) / n);
-  }
-  return outcome(false);
+      } catch (e: unknown) {
+        if (e instanceof AnalysisCancelledError) throw e;
+        return { ...base, status: 'failed', message: e instanceof Error ? e.message : String(e) };
+      }
+    },
+    {
+      ...(onRow === undefined ? {} : { onRow }),
+      ...(onProgress === undefined ? {} : { onProgress }),
+      ...(signal === undefined ? {} : { signal }),
+    },
+  );
+  return { rows: done, cancelled, refused: null, vector: batchCheck };
 }
 
 interface Run {

@@ -12,6 +12,8 @@ import {
 } from '@/core';
 import { AnalysisCancelledError, type LongRequestOptions } from '@/workers/analysisClient';
 import { analysisClient } from '@/workers/analysisClient';
+
+import { runInLanes } from './batchLanes';
 import { type DocumentSnapshot, snapshotOf } from '@/workers/saveProtocol';
 
 /**
@@ -83,6 +85,8 @@ export interface PrimerBatchHooks {
   readonly onProgress?: (fraction: number) => void;
   readonly signal?: AbortSignal;
   readonly client?: PrimerBatchClient;
+  /** One client per lane: the rows run that many at a time, one on each (#423). Takes the place of `client`. */
+  readonly clients?: readonly PrimerBatchClient[];
 }
 
 export interface PrimerBatchOutcome {
@@ -141,47 +145,48 @@ export async function runPrimerBatch(
   rows: readonly DesignRow[],
   templates: readonly BatchTemplate[],
   options: PrimerBatchOptions,
-  { onRow, onProgress, signal, client = analysisClient }: PrimerBatchHooks = {},
+  { onRow, onProgress, signal, client = analysisClient, clients }: PrimerBatchHooks = {},
 ): Promise<PrimerBatchOutcome> {
   if (rows.length > BATCH_ROW_LIMIT) {
     throw new Error(
       `At most ${BATCH_ROW_LIMIT} rows are designed at once; this has ${rows.length}`,
     );
   }
-  const done: PrimerBatchRow[] = [];
   const snapshots = new Map<SeqDocument, DocumentSnapshot>();
+  const lanes = clients ?? [client];
   const n = rows.length;
-  for (let index = 0; index < n; index++) {
-    if (signal?.aborted === true) return { rows: done, cancelled: true };
-    const row = rows[index];
-    if (row === undefined) continue;
-    const base = { index, line: row.line, name: row.name };
-    const long: LongRequestOptions = {
-      ...(onProgress === undefined
-        ? {}
-        : {
-            onProgress: (f: number) => {
-              onProgress((index + f) / n);
-            },
-          }),
-      ...(signal === undefined ? {} : { signal }),
-    };
-    let result: PrimerBatchRow;
-    try {
-      result = await designRow(row, base, templates, options, client, long, snapshots);
-    } catch (e: unknown) {
-      if (e instanceof AnalysisCancelledError) return { rows: done, cancelled: true };
-      result = {
-        ...base,
-        status: 'failed',
-        message: e instanceof Error ? e.message : String(e),
+  return runInLanes<PrimerBatchRow>(
+    n,
+    lanes.length,
+    async (index, lane, progress) => {
+      const row = rows[index];
+      if (row === undefined) throw new Error(`No row ${index}`);
+      const base = { index, line: row.line, name: row.name };
+      const long: LongRequestOptions = {
+        ...(onProgress === undefined ? {} : { onProgress: progress }),
+        ...(signal === undefined ? {} : { signal }),
       };
-    }
-    done.push(result);
-    onRow?.(result);
-    onProgress?.((index + 1) / n);
-  }
-  return { rows: done, cancelled: false };
+      try {
+        return await designRow(
+          row,
+          base,
+          templates,
+          options,
+          lanes[lane] ?? client,
+          long,
+          snapshots,
+        );
+      } catch (e: unknown) {
+        if (e instanceof AnalysisCancelledError) throw e;
+        return { ...base, status: 'failed', message: e instanceof Error ? e.message : String(e) };
+      }
+    },
+    {
+      ...(onRow === undefined ? {} : { onRow }),
+      ...(onProgress === undefined ? {} : { onProgress }),
+      ...(signal === undefined ? {} : { signal }),
+    },
+  );
 }
 
 async function designRow(
