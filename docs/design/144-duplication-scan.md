@@ -697,3 +697,28 @@ ratio) and the download; the rest (one construct at a time with a busy state,
 against a memoised protocol with concentrations) differs. If the amounts form
 is touched again it is the piece to lift. Items 1, 3 (done through the
 spacer), 4, 6, 8, 9 and 10 remain unread.
+
+**The re-run (2026-11-11, #436 part 2).** The before/after driver on `538517b`
+against `8da3dfa` (every source line changed since the first run's "before"
+side: 48 files, 136 ranges, 279 mutants, whole run under an hour in a
+separate worktree). Against the first run's 378 mutants of the old lines,
+22 are not killed on either side, down from 49:
+
+- The 18 predicted above, all equivalent for the reasons in the table:
+  `featureOrigin.ts:41` (2), `orf.ts:144` (5), `digest.ts:97` (5),
+  `gateway.ts:243` (4) and `:485` (1), `restriction.ts:220` (1).
+- 4 that are not on a topology test: `alignmentSearch.ts:41` (equivalent, the
+  #436 list), `PrimerCandidates.tsx:148` (the `' '` between a span's two
+  parts, text the tests match loosely), `methylation.ts:301` (`i <= to` and
+  `i--`, a window loop one base long at either end). Not caused by the folds;
+  not killed here.
+- The 25 the note expected gone are gone; `foldPosition`'s own four are
+  killed. New code the run showed thin and this branch fixed:
+  `CloningOligoRow` (16 survivors, now 19 of 19 killed, by its own test).
+  The rest of the new survivors are the `padTop > 0` / `padBottom > 0` guards
+  of three windowed tables (`CrisprPairedNickases`, `CrisprPrimeEditing`,
+  `DigestFragments`): the line was touched, the mutants are old, and no
+  jsdom test scrolls those tables; `thermo.ts:62, :82, :120` (the `null` of
+  `nearestNeighbourSum` is unreachable after the A, C, G, T check, as the
+  `undefined` it replaced was); `assemble.ts:1183` (a symbol is always an
+  IUPAC code, so the `[code]` fallback is never read).
