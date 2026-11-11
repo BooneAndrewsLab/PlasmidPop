@@ -45,6 +45,12 @@ export function FileDrop({
         ref={input}
         type="file"
         className="visually-hidden"
+        /*
+         * A hint, not a gate: browsers keep an "All files" entry in the
+         * picker's filter list, which is the way out when a download arrived
+         * without the extension `accept` names (REBASE's link_withrefm.txt,
+         * saved with "Save link as", need not have one).
+         */
         accept={pickerAccept(accept)}
         onChange={(e) => {
           onFile(e.target.files?.[0]);
