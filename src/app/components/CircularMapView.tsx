@@ -49,6 +49,7 @@ import { drawableFeatures } from '@/view/visibleFeatures';
 
 import { selectionBetween } from '../editing';
 import { readCircularTheme } from './circularTheme';
+import { MAP_ZOOM_STEP, MapZoomControls } from './MapZoomControls';
 import { selectChange, useEditDiff } from '../state/editDiff';
 import { editorStore } from '../state/editorStore';
 import { withHighlighted } from '../state/enzymeHighlight';
@@ -65,8 +66,6 @@ const RING_WIDTH = 14;
 const OUTER_MARGIN = labelMargin(SANS_FONT);
 /** How far the pointer may travel and still count as a click rather than a drag. */
 const CLICK_SLOP = 3;
-/** Zoom factor of one press of the +/− buttons and of a double-click. */
-const ZOOM_STEP = 1.6;
 
 type Gesture =
   | { readonly kind: 'idle' }
@@ -725,7 +724,7 @@ export function CircularMapView({ doc }: Props) {
         return;
       }
     }
-    zoomBy(ZOOM_STEP, pt.x, pt.y);
+    zoomBy(MAP_ZOOM_STEP, pt.x, pt.y);
   };
 
   const cursor = panning
@@ -739,7 +738,6 @@ export function CircularMapView({ doc }: Props) {
         ? 'grab'
         : 'default';
   const hasRange = selection !== null && !isEmptyRange(selection);
-  const zoomed = layout.zoom > 1;
 
   return (
     <div ref={containerRef} className="map-view">
@@ -764,61 +762,22 @@ export function CircularMapView({ doc }: Props) {
           if (e.pointerType !== 'touch') setHover(NO_HOVER);
         }}
       />
-      <div className="map-view__controls" role="toolbar" aria-label="Map zoom">
-        <button
-          type="button"
-          className="button map-view__control"
-          data-tip="Zoom in (mouse wheel or pinch also zooms; double-click a feature to fit it)"
-          aria-label="Zoom in"
-          disabled={layout.zoom >= layout.maxZoom}
-          onClick={() => {
-            zoomBy(ZOOM_STEP);
-          }}
-        >
-          +
-        </button>
-        <button
-          type="button"
-          className="button map-view__control"
-          data-tip="Zoom out"
-          aria-label="Zoom out"
-          disabled={!zoomed}
-          onClick={() => {
-            zoomBy(1 / ZOOM_STEP);
-          }}
-        >
-          −
-        </button>
-        <button
-          type="button"
-          className="button map-view__control"
-          data-tip="Zoom to the selected bases"
-          aria-label="Zoom to selection"
-          disabled={!hasRange}
-          onClick={() => {
+      <MapZoomControls
+        zoom={layout.zoom}
+        maxZoom={layout.maxZoom}
+        onZoomBy={(factor) => {
+          zoomBy(factor);
+        }}
+        onFit={() => {
+          commit(FIT_VIEWPORT);
+        }}
+        zoomToSelection={{
+          disabled: !hasRange,
+          onClick: () => {
             if (selection !== null) zoomTo(selection.start, selection.end);
-          }}
-        >
-          Sel
-        </button>
-        <button
-          type="button"
-          className="button map-view__control"
-          data-tip="Show the whole map"
-          aria-label="Show the whole map"
-          disabled={!zoomed}
-          onClick={() => {
-            commit(FIT_VIEWPORT);
-          }}
-        >
-          Fit
-        </button>
-        {zoomed && (
-          <span className="map-view__zoom" aria-live="polite">
-            {layout.zoom < 10 ? layout.zoom.toFixed(1) : Math.round(layout.zoom).toString()}×
-          </span>
-        )}
-      </div>
+          },
+        }}
+      />
     </div>
   );
 }
