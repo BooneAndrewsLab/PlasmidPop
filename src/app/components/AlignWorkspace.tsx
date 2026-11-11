@@ -15,6 +15,7 @@ import { type LargeView, useAlignRun } from './alignRun';
 import { AssemblyResult } from './AssemblyResult';
 import { MsaControls } from './MsaControls';
 import type { WorkspaceLayout } from '../workspaceController';
+import { ReadPairsPanel } from './ReadPairsPanel';
 import { ReadBatchList } from './ReadBatchList';
 import { WorkspaceShell } from './WorkspaceShell';
 
@@ -87,6 +88,10 @@ export function AlignWorkspace({ doc, layout = 'split' }: Props) {
   };
 
   const hasResults = result !== null || showBatch;
+  const pairsEdited =
+    !align.pairEdits.enabled ||
+    align.pairEdits.broken.length > 0 ||
+    align.pairEdits.manual.length > 0;
   const canAssemble = records.length >= 2 && records.length <= BATCH_LIMIT;
 
   return (
@@ -370,11 +375,23 @@ export function AlignWorkspace({ doc, layout = 'split' }: Props) {
               </label>
             </div>
           )}
+          {records.length >= 2 && (
+            <ReadPairsPanel
+              names={records.map((r) => r.name)}
+              pairs={align.readPairs.pairs}
+              enabled={align.pairEdits.enabled}
+              edited={pairsEdited}
+              onEnabled={align.setPairingOn}
+              onBreak={align.breakPair}
+              onMake={align.makePair}
+              onReset={align.resetPairs}
+            />
+          )}
           {align.readPairs.pairs.length > 0 && (
             <p className="panel__note">
-              {`${align.readPairs.pairs.length} read ${align.readPairs.pairs.length === 1 ? 'pair' : 'pairs'} found by name (${align.readPairs.pairs
+              {`${align.readPairs.pairs.length} read ${align.readPairs.pairs.length === 1 ? 'pair' : 'pairs'} ${pairsEdited ? 'in use' : 'found by name'} (${align.readPairs.pairs
                 .slice(0, 3)
-                .map((p) => p.stem)
+                .map((p) => (p.stem === '' ? 'by hand' : p.stem))
                 .join(
                   ', ',
                 )}${align.readPairs.pairs.length > 3 ? ', …' : ''}). Mates face each other about an insert size apart, which places a read that fits a repeat in more than one place and shows a contig that lost the stretch between two mates.`}

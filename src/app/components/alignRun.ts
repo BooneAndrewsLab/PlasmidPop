@@ -4,7 +4,12 @@ import {
   type AlignmentMode,
   type SeqDocument,
   type SequencingRead,
+  NO_PAIR_EDITS,
+  type PairEdits,
   type PairNames,
+  type ReadPair,
+  applyPairEdits,
+  pairKey,
   assembleReads,
   isEmptyRange,
 } from '@/core';
@@ -88,6 +93,15 @@ export interface AlignRun {
   readonly setTrim: (trim: boolean) => void;
   /** The read pairs the records' names give (#347): who is whose mate, and names that could not be told. */
   readonly readPairs: PairNames;
+  /** The pairs the names gave, before the user's edits, each with its rule (#421). */
+  readonly inferredPairs: readonly ReadPair[];
+  readonly pairEdits: PairEdits;
+  readonly setPairingOn: (on: boolean) => void;
+  readonly breakPair: (pair: ReadPair) => void;
+  /** Pairs two reads by hand: `first` read forward, `second` read reverse. */
+  readonly makePair: (first: number, second: number) => void;
+  /** Drops every edit: the pairs the names give, and pairing on. */
+  readonly resetPairs: () => void;
   /** The insert size as typed, and as a number of bases (null when blank or not a size). */
   readonly insertSize: string;
   readonly insertBases: number | null;
@@ -185,7 +199,17 @@ export function useAlignRun(doc: SeqDocument): AlignRun {
   const record = records[all ? 0 : Math.min(Math.max(picked, 0), records.length - 1)];
   const hasSelection = selection !== null && !isEmptyRange(selection);
   // Mates by name (#347); the insert size is bases between the outer ends of two mates.
-  const readPairs = useMemo(() => findRecordPairs(records), [records]);
+  const found = useMemo(() => findRecordPairs(records), [records]);
+  // Edits belong to the records they were made on (#421); other records start clean.
+  const recordsId = useMemo(
+    () => records.map((r) => `${r.name}\u0000${String(r.sequence.length)}`).join('\u0001'),
+    [records],
+  );
+  const pairEdits = session.pairEditsFor === recordsId ? session.pairEdits : NO_PAIR_EDITS;
+  const readPairs = useMemo(
+    () => ({ ...found, pairs: applyPairEdits(found.pairs, pairEdits, records.length) }),
+    [found, pairEdits, records.length],
+  );
   const insertBases = parseInsertSize(insertSize);
 
   const otherTabs = useMemo(
@@ -531,6 +555,38 @@ export function useAlignRun(doc: SeqDocument): AlignRun {
       update({ trim: on });
     },
     readPairs,
+    inferredPairs: found.pairs,
+    pairEdits,
+    setPairingOn: (on) => {
+      update({ pairEdits: { ...pairEdits, enabled: on }, pairEditsFor: recordsId });
+    },
+    breakPair: (pair) => {
+      if (pair.rule === 'manual') {
+        update({
+          pairEdits: {
+            ...pairEdits,
+            manual: pairEdits.manual.filter(
+              (m) => !(m.first === pair.first && m.second === pair.second),
+            ),
+          },
+          pairEditsFor: recordsId,
+        });
+        return;
+      }
+      update({
+        pairEdits: { ...pairEdits, broken: [...pairEdits.broken, pairKey(pair)] },
+        pairEditsFor: recordsId,
+      });
+    },
+    makePair: (first, second) => {
+      update({
+        pairEdits: { ...pairEdits, manual: [...pairEdits.manual, { first, second }] },
+        pairEditsFor: recordsId,
+      });
+    },
+    resetPairs: () => {
+      update({ pairEdits: NO_PAIR_EDITS, pairEditsFor: recordsId });
+    },
     insertSize,
     insertBases,
     setInsertSize: (text) => {

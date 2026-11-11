@@ -5,7 +5,7 @@ import {
   type SequencingRead,
   normalizeSequenceInput,
   type PairNames,
-  findReadPairs,
+  findRulePairs,
   pairingName,
 } from '@/core';
 import { parseSequenceFile, readSequenceData, writeFastaRecords } from '@/io';
@@ -34,7 +34,7 @@ export interface SequenceRecord {
 export function findRecordPairs(
   records: readonly { name: string; pairName?: string }[],
 ): PairNames {
-  return findReadPairs(records.map((r) => r.pairName ?? r.name));
+  return findRulePairs(records.map((r) => r.pairName ?? r.name));
 }
 
 /** `pairName` for a document, kept only when it differs from the name (#415). */

@@ -904,6 +904,59 @@ describe('AlignPanel', () => {
     ).toBeVisible();
   });
 
+  it('lists the inferred pairs with their rule, and lets one be broken and another made by hand (#421)', async () => {
+    renderAlign(doc);
+    fireEvent.drop(
+      box(),
+      fileDrop(
+        new File(
+          ['>c1_F\nACGTACGTAC\n>c1_R\nGGCCAATTGG\n>left\nTTGACCAGTA\n>right\nCATGCATGCA\n'],
+          'p.fa',
+        ),
+      ),
+    );
+    await screen.findByText(/From p\.fa\./);
+    page('Assemble');
+    const list = screen.getByRole('list', { name: 'Read pairs' });
+    expect(within(list).getByText(/c1_F \+ c1_R/)).toBeVisible();
+    expect(within(list).getByText(/name ends in a mate token/)).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Break pair c1_F + c1_R' }));
+    expect(screen.queryByRole('list', { name: 'Read pairs' })).not.toBeInTheDocument();
+    expect(screen.getByText('No reads are paired.')).toBeVisible();
+    const make = screen.getByRole('button', { name: 'Pair them' });
+    expect(make).toBeDisabled();
+    fireEvent.change(screen.getByRole('combobox', { name: 'First mate' }), {
+      target: { value: '2' },
+    });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Second mate' }), {
+      target: { value: '3' },
+    });
+    fireEvent.click(make);
+    const made = screen.getByRole('list', { name: 'Read pairs' });
+    expect(within(made).getByText(/left \+ right/)).toBeVisible();
+    expect(within(made).getByText(/made by hand/)).toBeVisible();
+    expect(screen.getByRole('textbox', { name: 'Insert size in bases' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Back to the pairs the names give' }));
+    expect(screen.getByText(/c1_F \+ c1_R/)).toBeVisible();
+    expect(screen.queryByText(/left \+ right/)).not.toBeInTheDocument();
+  });
+
+  it('turns pairing off for the run: no pairs, no insert size (#421)', async () => {
+    renderAlign(doc);
+    fireEvent.drop(box(), fileDrop(new File(['>c1_F\nACGTACGTAC\n>c1_R\nGGCCAATTGG\n'], 'q.fa')));
+    await screen.findByText(/From q\.fa\./);
+    page('Assemble');
+    const on = screen.getByRole('checkbox', { name: 'Use read pairs in this run' });
+    expect(on).toBeChecked();
+    fireEvent.click(on);
+    expect(on).not.toBeChecked();
+    expect(screen.queryByRole('list', { name: 'Read pairs' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Insert size in bases' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Pair them' })).not.toBeInTheDocument();
+    fireEvent.click(on);
+    expect(screen.getByRole('list', { name: 'Read pairs' })).toBeVisible();
+  });
+
   it('offers to align the assembled reads to the open document when a repeat warning shows (#347)', async () => {
     let x = 99991;
     const bases = (n: number): string => {

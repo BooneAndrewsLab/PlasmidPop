@@ -259,6 +259,20 @@ but are not exactly one forward and one reverse (two `F`s, a `_F` beside a
 `_2`, a series `clone_1`, `clone_2`, `clone_3`) are not guessed at: they are
 listed as not paired. The page says how many pairs it found.
 
+- **Check, correct or switch off the pairs.** A name that merely ends in 1
+  and 2 can be taken for mates, so the **Read pairs** section on the Assemble
+  page lists every pair in use, with the rule that made it (an Illumina
+  header's read number, an Illumina file name, a mate token after a
+  separator, a primer name such as `M13F`, or made by hand). **Break** drops
+  one. To pair two records the names do not pair (`left` and `right`), pick
+  the first mate (read forward) and the second (read reverse) and choose
+  **Pair them**; a record has one mate, so the new pair replaces any other
+  pair that holds either record. Untick **Use read pairs in this run** to
+  assemble with no pairs at all. **Back to the pairs the names give** undoes
+  every change. The changes last while the same records are loaded: load other
+  records and the names decide again. Nothing
+  is saved.
+
 - **Insert size.** The field appears when pairs are found. It is the bases
   from the outer end of one mate to the outer end of the other, as the
   template is, measured between the ends kept after trimming, so the mates

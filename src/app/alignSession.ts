@@ -1,4 +1,4 @@
-import type { AlignmentMode, Assembly } from '@/core';
+import { type AlignmentMode, type Assembly, NO_PAIR_EDITS, type PairEdits } from '@/core';
 
 import type { SampleFeatures } from './alignmentSampleTrack';
 import { EMPTY_RECORD_BOX, type RecordBoxState } from './components/useRecordBox';
@@ -54,6 +54,13 @@ export interface AlignSession {
   /** The insert size typed for the Assemble page's read pairs (#347), as typed; blank when not known. */
   readonly insertSize: string;
   /**
+   * What the user did to the pairs the names gave (#421): broke, made, or
+   * switched off. Good for the records it was made on (`pairEditsFor`) and
+   * dropped when they change; never saved.
+   */
+  readonly pairEdits: PairEdits;
+  readonly pairEditsFor: string;
+  /**
    * The mode picked by hand, kept whatever the box then holds; null until
    * then, for the one `suggestAlignMode` gives (#86).
    */
@@ -81,6 +88,8 @@ export const INITIAL_SESSION: AlignSession = {
   picked: 0,
   trim: true,
   insertSize: '',
+  pairEdits: NO_PAIR_EDITS,
+  pairEditsFor: '',
   pickedMode: null,
   useSelection: false,
   docAsRead: true,

@@ -357,3 +357,5 @@ the Bench, item 49). The rest stand.
 145. [The Batch page's restriction-sites, homology-ends and Golden Gate extras against pydna and Biopython](145-batch-recipes-oracle.md)
 
 146. [A worker pool for batch runs](146-batch-worker-pool.md)
+
+147. [Paired reads: show, correct, switch off](147-paired-reads-controls.md)
