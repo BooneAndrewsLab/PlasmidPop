@@ -241,7 +241,11 @@ function generateInputs(): BatchInput[] {
   const MINI =
     'ATGTGTCGTAGAAACGGACGCCGCCCCCAGAGTGACGAAAACTCTCTTAGGAGCGCCTATGTACTTACTAACAGAGACAGCAGTCCGACTAGGGTGCAATGTGTCGCCGGTGGCATTTAA';
 
-  type Tpl = { name: string; sequence: string; circular: boolean };
+  interface Tpl {
+    name: string;
+    sequence: string;
+    circular: boolean;
+  }
   type RowKind = 'forward' | 'reverse' | 'whole' | 'bare' | 'wrap-forward' | 'wrap-reverse';
   /** A row's first six cells: name, template, region, sequence. */
   const rowFor = (
@@ -334,7 +338,7 @@ function generateInputs(): BatchInput[] {
         if (!enzymes.includes(e)) enzymes.push(e);
       }
       let mcs = dna(int(8, 12), RS);
-      for (const e of enzymes) mcs += (SITES[e] as string) + dna(int(8, 12), RS);
+      for (const e of enzymes) mcs += (SITES[e] ?? '') + dna(int(8, 12), RS);
       const left = dna(int(300, 480), RS);
       const right = dna(int(300, 480), RS);
       const full = left + mcs + right;
@@ -347,7 +351,7 @@ function generateInputs(): BatchInput[] {
       }
       const start0 = left.length;
       const n = full.length;
-      let turn = 0;
+      let turn: number;
       if (mode === 'across-mcs')
         turn = start0 + int(Math.floor(mcs.length / 3), Math.floor(mcs.length / 2));
       else turn = int(0, 1) === 0 ? 0 : int(1, start0 - 1);
@@ -455,7 +459,7 @@ function generateInputs(): BatchInput[] {
     const kits = ['', '', 'In-Fusion', 'NEBuilder HiFi', 'nebuilder', 'Yeast'];
     const rows = kinds.map((k, j) => {
       const r = rowFor(k, `h${(j + 1).toString()}`, tpl, []);
-      return [...r, i >= 5 ? (kits[int(0, kits.length - 1)] as string) : ''];
+      return [...r, i >= 5 ? (kits[int(0, kits.length - 1)] ?? '') : ''];
     });
     out.push({
       id: `homology-random-${(i + 1).toString()}`,
@@ -494,7 +498,7 @@ function generateInputs(): BatchInput[] {
   };
   /** [o1][A][site, reversed][dropout][site][A][o0][backbone], as batchGoldenGate.test.ts has it. */
   const cassette = (enzyme: string, [o0, o1]: [string, string]): string => {
-    const site = GG_SITES[enzyme] as string;
+    const site = GG_SITES[enzyme] ?? '';
     return o1 + 'A' + reverseComplement(site) + dna(int(60, 140), GG) + site + 'A' + o0;
   };
   const turned = (s: string): string => {
