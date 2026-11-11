@@ -572,17 +572,59 @@ here), before and after the tests below.
 | `restriction.ts:220` `wrap`                    | `topology`          | `=== 0` → 0                      | 0 (null off a line) | `start + cut offset`, kept to `[0, L]` by the null                             | the guard's mutant is equivalent: no site matches a sequence shorter than itself                                                                                                                 |
 
 So of the 43: 6 were killed before this step by the #434 and #436 tests
-(`:48` and `:260`, the three circle mutants each); 3 are killed by the tests
-added here (`:54`, `:317`, `:1283`); 34 are equivalent, each with the reason
-above, and `:1282`'s one survives for the reason above. The pattern behind
-the equivalences is one: on a line every position that reaches these folds
-is already in `[0, L)` (a feature, a window, a site or a cut lies on the
-molecule), so folding it changes nothing; the topology test matters only
-where the arithmetic goes outside, which on a line is where the answer is
-"off the molecule" (`fold`'s null, `wrap`'s null) and on a circle is a fold.
-Tests of the linear branch exist at every site (the table's column names
-the input); what they cannot do is tell the branch from the fold where the
-two agree.
+(`:48` and `:260`, the three circle mutants each); 2 are killed by the tests
+added here (`:54`, `:317`); 35 are equivalent, each with the reason above.
+Stryker makes no mutant of a bare `isCircular ?` or `circular ?`, so
+`:1282`, `:1283`, `:396` and `:285` are hand flips only: `:1283`'s is killed
+by the new test, the other three are equivalent for the reasons above. The
+pattern behind the equivalences is one: on a line every position that
+reaches these folds is already in `[0, L)` (a feature, a window, a site or
+a cut lies on the molecule), so folding it changes nothing; the topology
+test matters only where the arithmetic goes outside, which on a line is
+where the answer is "off the molecule" (`fold`'s null, `wrap`'s null) and on
+a circle is a fold. Tests of the linear branch exist at every site (the
+table's column names the input); what they cannot do is tell the branch from
+the fold where the two agree.
+
+- **Extracted: `foldPosition(position, seqLength, topology)`**, beside
+  `normalizePosition` in `range.ts`: the ternary and no more, `NaN` on an
+  empty circle as `wrapPosition`, which is unchanged. Fifteen sites in six
+  modules were that one rule, written three ways (`topology ===
+'circular'`, `isCircular`, a local `circular`), none with a length guard:
+  `featureOrigin.ts` (`toOwn` twice, `originRecord`, `coverage` twice,
+  `placementOf`), `crispr.ts` (`toForward`, `boundaryToForward`),
+  `cloningEnds.ts` (`regionOffset`, the two cuts of the replaced stretch),
+  `anneal.ts` (`baseAt`, `norm`), `primerDesign.ts` (`norm`),
+  `mutagenesis.ts` (the template reader), and `flipRange` in `range.ts`
+  itself. One commit per module, existing tests unchanged; the helper's own
+  tests take a line on and off the molecule, a circle against `wrapPosition`
+  over three turns, negatives and a zero length. The two `baseAt` closures
+  also lose their `i < 0 || i >= L ? ''` branch: `charAt` gives `''` there
+  already (the ten guard mutants were equivalent for that reason), so a base
+  past either end of a line is `''` as before.
+- **Kept as they are**, each a different rule: `fold` (null off a line and
+  on an empty circle), `restriction.ts`'s `wrap` (0 on an empty circle, null
+  off a line), and the three with a positive-length guard that leave the
+  position as it came, `digest.ts:92`, `gateway.ts:243` (and `:485`'s
+  guard), `orf.ts:144`. A helper that took the guard too would have to pick
+  one zero-length answer, and they have three.
+- **The probe** (`scripts/dropCallProbe.mjs --helper foldPosition`, which
+  now knows the helper): 14 of the 15 sites killed, the one survivor
+  `featureOrigin.ts:153` (`originRecord`'s `at`), the same site and the same
+  reason as in the #436 list above: `at` is read only through `toOwn` and
+  `fold`, which fold again.
+- **Mutation expectation.** The topology tests at the 15 sites are gone, so
+  their mutants are gone with them: of the 43, the 15 at converted sites (6
+  killed before, 2 killed by the new tests, 7 equivalent: `:48` and `:260`'s
+  `true`, `:155`'s four, `crispr.ts:198`'s) and the 10 guard mutants of the
+  two `baseAt` lines. The helper's one line carries four, killed by its
+  linear-against-circular tests. The 18 that remain in the code are all
+  equivalent, with their reasons in the table: `fold`'s two, `orf.ts:144`'s
+  five, `digest.ts:92`'s five, `gateway.ts`'s five, `wrap`'s one. The next
+  full run should show no new survivor in the six modules, the 18 named here
+  surviving as before, and the 25 others absent. Measured here by hand (the
+  flips above against each module's own and near tests), not by Stryker; the
+  18 sit in files this step did not change, at the same lines.
 
 ## The test run's locale (#435)
 
