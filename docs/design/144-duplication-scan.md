@@ -777,3 +777,20 @@ changes visible text) and the `tabs` memo. If the wording is ever harmonised,
 a `savedPrimersMessage` beside `savePrimers` is the piece to lift; that is
 an issue to file, not done here. `PcrPanel`'s product row has similar classes
 and is left alone.
+
+**Components, item 8: the map zoom toolbar.** `CircularMapView` and `DiffMap`
+(explore mode) rendered the same zoom toolbar: +, −, fit and the zoom readout,
+with the same tips, labels and disabled rules, and each kept its own
+`ZOOM_STEP = 1.6`. They are now `MapZoomControls` (`zoom`, `maxZoom`,
+`onZoomBy`, `onFit`, and an optional `zoomToSelection` that adds the Sel button
+for the editor's map, which has a selection; the Bench's product has none) and
+the exported `MAP_ZOOM_STEP`, which the double-click of both maps also uses.
+The DOM is unchanged. Tests pinning the circular map's toolbar and wheel
+landed first (the diff map was already pinned by `DiffMap.explore.test.tsx`).
+Deliberately not shared: the wheel, pinch, point and clamp code. The two
+maps differ in refs, in `commit` versus `setViewport`, and in effect
+dependencies; `DiffMap` renders synchronously and its explore test relies on
+that. A `useWheelZoom` hook would be about 20 lines replacing two 22-line
+blocks, needing a latest-callback ref, which is indirection in the two
+hardest-to-test files for little saving. `alignmentZoom.ts`'s `wheelZoom` is
+a different rule and is left alone.
