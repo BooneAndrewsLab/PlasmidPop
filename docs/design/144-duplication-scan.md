@@ -722,3 +722,20 @@ separate worktree). Against the first run's 378 mutants of the old lines,
   `nearestNeighbourSum` is unreachable after the A, C, G, T check, as the
   `undefined` it replaced was); `assemble.ts:1183` (a symbol is always an
   IUPAC code, so the `[code]` fallback is never read).
+
+**Components, item 1: the assembly order.** Planned by a read-only pass
+first (what is the same, what differs, what not to share). `GibsonPanel` and
+`YeastAssemblyPanel` shared the part rows, the junction rows, the "N parts
+join" note, the summary and warnings, and the "left out" disclosure; they
+differ in the junction's verdict (Tm under 48 °C in a tube; length and GC in a
+nucleus), the vector mark, and everything about the controls and the
+`assemble` action. Shared now: `AssemblyOrder` (takes the assembly, the list's
+label, an optional vector index and a `judge` function that each panel keeps
+beside its own comment) and `DroppedParts`. Kept apart on purpose: the bench
+state and setters, the overlap control (a select against a clamped number),
+the Yeast-only hints and the vector select, and `assemble` (core function,
+analytics label, clone-check kit): a shared hook would have taken all of them
+as arguments. Both panels' tests are unchanged and pass; `AssemblyOrder.test`
+pins the numbering, flipped and vector marks, the closing junction, the mark
+and tip, the singular and plural left-out line, and both reasons. About 170
+duplicated lines became one file.

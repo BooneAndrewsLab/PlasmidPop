@@ -1,13 +1,10 @@
-import { Fragment, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import {
-  type DroppedPart,
   type GibsonJoin,
-  type GibsonPart,
   YEAST_GC,
   YEAST_OVERLAP,
   clampYeastOverlap,
-  describeGibsonDropped,
   gcPercent,
   recordGibson,
   yeastAssembly,
@@ -18,36 +15,11 @@ import { FIXED_BY, cloneCheckFromParts, longestPart, openCloneCheck } from '../c
 import { openGuide } from '../help/openGuide';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
-import { AssemblyWarnings } from './AssemblyWarnings';
+import { AssemblyOrder, DroppedParts, type JunctionVerdict } from './AssemblyOrder';
 import { BenchProduct } from './BenchProduct';
 import { OverlapPrimerDesign } from './OverlapPrimerDesign';
 import { PartsTube } from './PartsTube';
-import { ProductSummary } from './ProductSummary';
 import { useTube } from './tube';
-
-function PartRow({
-  part,
-  index,
-  vector,
-}: {
-  readonly part: GibsonPart;
-  readonly index: number;
-  readonly vector: boolean;
-}) {
-  return (
-    <li className="part">
-      <span className="part__index">{index + 1}</span>
-      <span className="part__text">
-        <span className="part__name">
-          {part.document.name}
-          {part.flipped ? ' (flipped)' : ''}
-          {vector ? ' (vector)' : ''}
-        </span>
-        <span className="part__detail">{part.document.length.toLocaleString()} bp</span>
-      </span>
-    </li>
-  );
-}
 
 /**
  * The homology a junction is made of: its length and its GC, never its Tm,
@@ -55,24 +27,13 @@ function PartRow({
  * tube. Marked when it is under the 30 bp the warnings give or outside the
  * GC they give.
  */
-function JoinRow({ join, closing }: { readonly join: GibsonJoin; readonly closing: boolean }) {
+const judgeJoin = (join: GibsonJoin): JunctionVerdict => {
   const gc = gcPercent(join.overlap);
-  const weak = join.length < YEAST_OVERLAP.floor || gc < YEAST_GC.low || gc > YEAST_GC.high;
-  return (
-    <li
-      className={`junction${weak ? ' junction--weak' : ' junction--ok'}`}
-      data-tip={`Shared: ${join.overlap.toUpperCase()}`}
-    >
-      <span className="junction__mark" aria-hidden="true">
-        {weak ? '!' : '✓'}
-      </span>
-      <span className="junction__text">
-        {closing ? 'closes: ' : ''}
-        {join.length} bp overlap, {gc.toFixed(0)}% GC
-      </span>
-    </li>
-  );
-}
+  return {
+    weak: join.length < YEAST_OVERLAP.floor || gc < YEAST_GC.low || gc > YEAST_GC.high,
+    detail: `${gc.toFixed(0)}% GC`,
+  };
+};
 
 /**
  * Assembly in yeast by homologous recombination (#411): TAR cloning, gap
@@ -265,30 +226,13 @@ export function YeastAssemblyPanel() {
       {docs.length === 0 ? (
         <p className="panel__note">Tick the documents to put in the tube.</p>
       ) : assembly !== null ? (
-        <>
-          <p className="panel__note">
-            {assembly.order.length === 1
-              ? '1 part closes on itself'
-              : `${assembly.order.length} parts join`}{' '}
-            into a {assembly.product.length.toLocaleString()} bp {circular ? 'circle' : 'molecule'},
-            in this order:
-          </p>
-          <ol className="part-list" aria-label="Yeast assembly order">
-            {assembly.order.map((p, i) => {
-              const join = assembly.joins[i];
-              return (
-                <Fragment key={`${p.document.name}-${i}`}>
-                  <PartRow part={p} index={i} vector={i === assembly.vectorIndex} />
-                  {join !== undefined && (
-                    <JoinRow join={join} closing={i === assembly.order.length - 1} />
-                  )}
-                </Fragment>
-              );
-            })}
-          </ol>
-          <ProductSummary product={assembly.product} />
-          <AssemblyWarnings texts={assembly.warnings.map((w) => w.text)} />
-        </>
+        <AssemblyOrder
+          assembly={assembly}
+          circular={circular}
+          label="Yeast assembly order"
+          vectorIndex={assembly.vectorIndex}
+          judge={judgeJoin}
+        />
       ) : (
         <>
           <p className="panel__error">{result?.problem}</p>
@@ -303,21 +247,7 @@ export function YeastAssemblyPanel() {
       )}
 
       {result !== null && result.dropped.length > 0 && (
-        <details className="gg__left-out">
-          <summary>
-            {result.dropped.length === 1
-              ? '1 document left out'
-              : `${result.dropped.length} documents left out`}
-          </summary>
-          <ul>
-            {result.dropped.map((d: DroppedPart, i) => (
-              <li key={`${d.document.name}-${i}`} className="gg__dropped">
-                <span className="gg__dropped-size">{d.document.name}</span>{' '}
-                {describeGibsonDropped(d, minOverlap)}.
-              </li>
-            ))}
-          </ul>
-        </details>
+        <DroppedParts dropped={result.dropped} minOverlap={minOverlap} />
       )}
 
       {assembly !== null && (
