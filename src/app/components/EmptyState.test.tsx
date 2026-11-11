@@ -246,6 +246,24 @@ describe('EmptyState other ways in', () => {
     expect(screen.getByText(/^Everything stays in your browser/)).toBeInTheDocument();
   });
 
+  it('spaces the paste and privacy paragraphs between their buttons', async () => {
+    await renderEmpty();
+    const paste = screen
+      .getByText(/^Or paste a sequence, GenBank or FASTA record here/)
+      .closest('p');
+    expect(paste?.textContent).toMatch(
+      /^Or paste a sequence, GenBank or FASTA record here \(Ctrl\+V\), or start a new sequence and type it in, or open a record from NCBI by its accession number\. Or align several sequences together without opening any of them\.$/,
+    );
+    const privacy = screen.getByText(/^Everything stays in your browser/).closest('p');
+    expect(privacy?.textContent).toMatch(
+      / runs low\. Or open pBR322 \(4,361 bp, circular\) to look around\.$/,
+    );
+    const licence = screen.getByRole('link', { name: 'MIT licence' }).closest('p');
+    expect(licence?.textContent).toBe(
+      'Free and open source under the MIT licence; the source is on GitHub.',
+    );
+  });
+
   it('opens the NCBI dialog from "open a record from NCBI"', async () => {
     await renderEmpty();
     fireEvent.click(screen.getByRole('button', { name: 'open a record from NCBI' }));

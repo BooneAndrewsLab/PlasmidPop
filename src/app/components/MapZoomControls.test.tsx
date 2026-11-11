@@ -34,6 +34,14 @@ describe('MapZoomControls', () => {
     expect(screen.queryByText(/×$/)).toBeNull();
   });
 
+  it('reads a zoom of exactly 10 as a whole number, below it with a decimal', () => {
+    renderControls(10);
+    expect(screen.getByText('10×')).toBeTruthy();
+    cleanup();
+    renderControls(9.96);
+    expect(screen.getByText('10.0×')).toBeTruthy();
+  });
+
   it('disables zoom in at the maximum', () => {
     renderControls(40);
     expect(button('Zoom in').disabled).toBe(true);

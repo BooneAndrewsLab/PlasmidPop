@@ -2,7 +2,7 @@
 import 'fake-indexeddb/auto';
 
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { persistence } from '../state/persistence';
 import { EnzymeImport } from './EnzymeImport';
@@ -48,5 +48,26 @@ describe('EnzymeImport warnings (#150)', () => {
     await screen.findByText(/Imported 1 enzyme from REBASE 699/);
     expect(screen.getByText(/check these against REBASE/)).toBeTruthy();
     expect(screen.getByText(/^HauII: REBASE now writes TGGCCANNNNNNNNNNNN\^/)).toBeTruthy();
+  });
+});
+
+describe('EnzymeImport picker and clearing', () => {
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    await persistence.useBundledEnzymes();
+  });
+
+  it('offers text files in the picker', () => {
+    render(<EnzymeImport onClose={() => undefined} />);
+    expect(document.querySelector('input[type="file"]')?.getAttribute('accept')).toContain('.txt');
+  });
+
+  it('says so when the imported table cannot be cleared', async () => {
+    render(<EnzymeImport onClose={() => undefined} />);
+    await importFile(rebase('TGGCCANNNNNNNNNNN^'));
+    await screen.findByText(/Imported 2 enzymes from REBASE 699/);
+    vi.spyOn(persistence, 'useBundledEnzymes').mockRejectedValue(new Error('no'));
+    fireEvent.click(screen.getByRole('button', { name: /bundled/i }));
+    expect(await screen.findByText('Could not clear the imported table.')).toBeTruthy();
   });
 });

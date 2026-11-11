@@ -483,4 +483,10 @@ describe('CircularMapView zoom toolbar', () => {
     fireEvent.wheel(canvas, { deltaY: -100, clientX: 300, clientY: 300 });
     expect(screen.getByText(/×$/)).toBeTruthy();
   });
+
+  it('zooms in a step on a double-click that is on nothing', () => {
+    const canvas = setup();
+    fireEvent.doubleClick(canvas, { clientX: 2, clientY: 2 });
+    expect(screen.getByText('1.6×')).toBeTruthy();
+  });
 });
