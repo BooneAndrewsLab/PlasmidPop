@@ -1,39 +1,18 @@
 import { useMemo, useState } from 'react';
 
-import {
-  type GibsonJoin,
-  YEAST_GC,
-  YEAST_OVERLAP,
-  clampYeastOverlap,
-  gcPercent,
-  recordGibson,
-  yeastAssembly,
-} from '@/core';
+import { YEAST_OVERLAP, clampYeastOverlap, recordGibson, yeastAssembly } from '@/core';
 
 import { analytics } from '../analytics';
 import { FIXED_BY, cloneCheckFromParts, longestPart, openCloneCheck } from '../cloneCheck';
 import { openGuide } from '../help/openGuide';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
-import { AssemblyOrder, DroppedParts, type JunctionVerdict } from './AssemblyOrder';
+import { AssemblyOrder, DroppedParts } from './AssemblyOrder';
+import { yeastVerdict } from './assemblyVerdict';
 import { BenchProduct } from './BenchProduct';
 import { OverlapPrimerDesign } from './OverlapPrimerDesign';
 import { PartsTube } from './PartsTube';
 import { useTube } from './tube';
-
-/**
- * The homology a junction is made of: its length and its GC, never its Tm,
- * because the cell recombines it at 30 °C in a nucleus and not at 50 °C in a
- * tube. Marked when it is under the 30 bp the warnings give or outside the
- * GC they give.
- */
-const judgeJoin = (join: GibsonJoin): JunctionVerdict => {
-  const gc = gcPercent(join.overlap);
-  return {
-    weak: join.length < YEAST_OVERLAP.floor || gc < YEAST_GC.low || gc > YEAST_GC.high,
-    detail: `${gc.toFixed(0)}% GC`,
-  };
-};
 
 /**
  * Assembly in yeast by homologous recombination (#411): TAR cloning, gap
@@ -231,7 +210,7 @@ export function YeastAssemblyPanel() {
           circular={circular}
           label="Yeast assembly order"
           vectorIndex={assembly.vectorIndex}
-          judge={judgeJoin}
+          judge={yeastVerdict}
         />
       ) : (
         <>

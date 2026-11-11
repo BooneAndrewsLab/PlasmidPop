@@ -1,35 +1,18 @@
 import { useMemo } from 'react';
 
-import { type GibsonJoin, gibson, recordGibson } from '@/core';
+import { gibson, recordGibson } from '@/core';
 
 import { analytics } from '../analytics';
 import { FIXED_BY, cloneCheckFromParts, longestPart, openCloneCheck } from '../cloneCheck';
 import { GIBSON_OVERLAPS } from '../state/benchSettings';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
-import { AssemblyOrder, DroppedParts, type JunctionVerdict } from './AssemblyOrder';
+import { AssemblyOrder, DroppedParts } from './AssemblyOrder';
+import { gibsonVerdict } from './assemblyVerdict';
 import { OverlapPrimerDesign } from './OverlapPrimerDesign';
 import { PartsTube } from './PartsTube';
 import { BenchProduct } from './BenchProduct';
 import { useTube } from './tube';
-
-/** Overlaps a designer would ask for; NEB's protocol wants 15 or more. */
-
-/**
- * Below this a junction anneals poorly at the 50 °C the reaction is held at.
- * It is a warning, not a refusal: the homology is there, and whether it
- * works is a bench question.
- */
-const WEAK_TM = 48;
-
-/** A junction anneals or it does not: marked under `WEAK_TM`, with its Tm. */
-const judgeJoin = (join: GibsonJoin): JunctionVerdict => {
-  const weak = join.tm < WEAK_TM;
-  return {
-    weak,
-    detail: `Tm ${join.tm.toFixed(0)} °C${weak ? ` — under ${WEAK_TM} °C, so it may not anneal` : ''}`,
-  };
-};
 
 /**
  * Gibson assembly: no enzyme, no site, no scar. Each piece is made to end in
@@ -176,7 +159,7 @@ export function GibsonPanel() {
           assembly={assembly}
           circular={circular}
           label="Gibson assembly order"
-          judge={judgeJoin}
+          judge={gibsonVerdict}
         />
       ) : (
         <p className="panel__error">{result?.problem}</p>

@@ -51,7 +51,6 @@ export function AssemblyOrder({
       <ol className="part-list" aria-label={label}>
         {assembly.order.map((p, i) => {
           const join = assembly.joins[i];
-          const verdict = join === undefined ? null : judge(join);
           return (
             <Fragment key={`${p.document.name}-${i}`}>
               <li className="part">
@@ -65,19 +64,8 @@ export function AssemblyOrder({
                   <span className="part__detail">{p.document.length.toLocaleString()} bp</span>
                 </span>
               </li>
-              {join !== undefined && verdict !== null && (
-                <li
-                  className={`junction${verdict.weak ? ' junction--weak' : ' junction--ok'}`}
-                  data-tip={`Shared: ${join.overlap.toUpperCase()}`}
-                >
-                  <span className="junction__mark" aria-hidden="true">
-                    {verdict.weak ? '!' : '✓'}
-                  </span>
-                  <span className="junction__text">
-                    {i === last ? 'closes: ' : ''}
-                    {join.length} bp overlap, {verdict.detail}
-                  </span>
-                </li>
+              {join !== undefined && (
+                <JunctionRow join={join} verdict={judge(join)} closing={i === last} />
               )}
             </Fragment>
           );
@@ -86,6 +74,31 @@ export function AssemblyOrder({
       <ProductSummary product={assembly.product} />
       <AssemblyWarnings texts={assembly.warnings.map((w) => w.text)} />
     </>
+  );
+}
+
+function JunctionRow({
+  join,
+  verdict,
+  closing,
+}: {
+  readonly join: GibsonJoin;
+  readonly verdict: JunctionVerdict;
+  readonly closing: boolean;
+}) {
+  return (
+    <li
+      className={`junction${verdict.weak ? ' junction--weak' : ' junction--ok'}`}
+      data-tip={`Shared: ${join.overlap.toUpperCase()}`}
+    >
+      <span className="junction__mark" aria-hidden="true">
+        {verdict.weak ? '!' : '✓'}
+      </span>
+      <span className="junction__text">
+        {closing ? 'closes: ' : ''}
+        {join.length} bp overlap, {verdict.detail}
+      </span>
+    </li>
   );
 }
 
