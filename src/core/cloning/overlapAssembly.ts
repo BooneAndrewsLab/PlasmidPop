@@ -1,5 +1,4 @@
 import { type SeqDocument } from '../document';
-import { meltingTemperature } from '../primers/thermo';
 import { type Range } from '../range';
 import { reverseComplement } from '../sequence';
 import { YEAST_OVERLAP, clampYeastOverlap, gibson } from './gibson';
@@ -9,9 +8,9 @@ import {
   type OverlapPrimer,
   KIT_NAMES,
   homologyVectorProblem,
+  primerPair,
   KIT_OVERLAP,
   OVERLAP_DEFAULTS,
-  growAnnealing,
   productHolding,
 } from './overlapPrimers';
 import { pcr } from './pcr';
@@ -136,25 +135,7 @@ export function designMultiOverlapPrimers(
         ? fromVectorStart
         : reverseComplement(next.slice(0, overlap - carried)).toUpperCase();
 
-    // As in the single design: no annealing part grows past half the insert.
-    const grow = { ...opts, maxAnneal: Math.min(opts.maxAnneal, Math.floor(text.length / 2)) };
-    const forwardAnneal = growAnnealing((k) => text.slice(0, k), grow);
-    const reverseAnneal = growAnnealing(
-      (k) => reverseComplement(text.slice(text.length - k)),
-      grow,
-    );
-    const forward: OverlapPrimer = {
-      sequence: forwardTail + forwardAnneal.toLowerCase(),
-      tail: forwardTail,
-      annealLength: forwardAnneal.length,
-      tm: meltingTemperature(forwardAnneal),
-    };
-    const reverse: OverlapPrimer = {
-      sequence: reverseTail + reverseAnneal.toLowerCase(),
-      tail: reverseTail,
-      annealLength: reverseAnneal.length,
-      tm: meltingTemperature(reverseAnneal),
-    };
+    const { forward, reverse } = primerPair(text, forwardTail, reverseTail, opts);
 
     const reaction = pcr(insert.template, [
       { name: 'Forward', sequence: forward.sequence },

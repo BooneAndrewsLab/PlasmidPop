@@ -86,6 +86,41 @@ export function growAnnealing(
 }
 
 /**
+ * The two primers for `insert`, read along the strand to amplify: each is
+ * its tail plus an annealing part grown from its end of the insert. Neither
+ * annealing part grows past half the insert: two that overlap are not an
+ * amplicon (`pcr`), and an insert the length check let through as long enough
+ * would otherwise fail as primers pointing away from each other.
+ */
+export function primerPair(
+  insert: string,
+  forwardTail: string,
+  reverseTail: string,
+  opts: Required<Omit<OverlapOptions, 'name'>>,
+): { forward: OverlapPrimer; reverse: OverlapPrimer } {
+  const grow = { ...opts, maxAnneal: Math.min(opts.maxAnneal, Math.floor(insert.length / 2)) };
+  const forwardAnneal = growAnnealing((n) => insert.slice(0, n), grow);
+  const reverseAnneal = growAnnealing(
+    (n) => reverseComplement(insert.slice(insert.length - n)),
+    grow,
+  );
+  return {
+    forward: {
+      sequence: forwardTail + forwardAnneal.toLowerCase(),
+      tail: forwardTail,
+      annealLength: forwardAnneal.length,
+      tm: meltingTemperature(forwardAnneal),
+    },
+    reverse: {
+      sequence: reverseTail + reverseAnneal.toLowerCase(),
+      tail: reverseTail,
+      annealLength: reverseAnneal.length,
+      tm: meltingTemperature(reverseAnneal),
+    },
+  };
+}
+
+/**
  * Why `vector` cannot be the other half of a `kit` design, or null: a
  * circle has no ends for the tails to match, and the ends must hold the
  * kit's homology. The one reason both designers give, and a batch gives once.
@@ -145,28 +180,7 @@ export function designOverlapPrimers(
   const text = vector.sequence.toString();
   const forwardTail = text.slice(text.length - overlap).toUpperCase();
   const reverseTail = reverseComplement(text.slice(0, overlap)).toUpperCase();
-  // Neither annealing part grows past half the insert: two that overlap are
-  // not an amplicon (`pcr`), and an insert the check above let through as
-  // long enough would otherwise fail as primers pointing away from each other.
-  const grow = { ...opts, maxAnneal: Math.min(opts.maxAnneal, Math.floor(insert.length / 2)) };
-  const forwardAnneal = growAnnealing((n) => insert.slice(0, n), grow);
-  const reverseAnneal = growAnnealing(
-    (n) => reverseComplement(insert.slice(insert.length - n)),
-    grow,
-  );
-
-  const forward: OverlapPrimer = {
-    sequence: forwardTail + forwardAnneal.toLowerCase(),
-    tail: forwardTail,
-    annealLength: forwardAnneal.length,
-    tm: meltingTemperature(forwardAnneal),
-  };
-  const reverse: OverlapPrimer = {
-    sequence: reverseTail + reverseAnneal.toLowerCase(),
-    tail: reverseTail,
-    annealLength: reverseAnneal.length,
-    tm: meltingTemperature(reverseAnneal),
-  };
+  const { forward, reverse } = primerPair(insert, forwardTail, reverseTail, opts);
 
   // Run them, rather than claim what they would do.
   const reaction = pcr(template, [
