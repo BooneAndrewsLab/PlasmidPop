@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 
 import { SeqDocument, createFeature, rangeSegment } from '@/core';
 import { CircularLayout, overlayRingRadius } from '@/view/circular';
@@ -444,5 +444,43 @@ describe('grouped features (#308)', () => {
     click();
     expect(editorStore.getState().expandedFeatureGroups.size).toBe(1);
     expect(editorStore.getState().selectedFeatureId).toBe('m1');
+  });
+});
+
+describe('CircularMapView zoom toolbar', () => {
+  const button = (name: string): HTMLButtonElement => {
+    const el = screen.getByRole('button', { name });
+    if (!(el instanceof HTMLButtonElement)) throw new Error('not a button');
+    return el;
+  };
+
+  it('zooms in by one step, shows the readout, and Fit shows the whole map again', () => {
+    setup();
+    expect(screen.queryByText('1.6×')).toBeNull();
+    expect(button('Zoom out').disabled).toBe(true);
+    expect(button('Show the whole map').disabled).toBe(true);
+    fireEvent.click(button('Zoom in'));
+    expect(screen.getByText('1.6×')).toBeTruthy();
+    expect(button('Zoom out').disabled).toBe(false);
+    expect(button('Show the whole map').disabled).toBe(false);
+    fireEvent.click(button('Show the whole map'));
+    expect(screen.queryByText(/×$/)).toBeNull();
+  });
+
+  it('zooms to the selection only when there is one', () => {
+    setup();
+    expect(button('Zoom to selection').disabled).toBe(true);
+    act(() => {
+      editorStore.setSelection({ start: 100, end: 900 });
+    });
+    expect(button('Zoom to selection').disabled).toBe(false);
+    fireEvent.click(button('Zoom to selection'));
+    expect(screen.getByText(/×$/)).toBeTruthy();
+  });
+
+  it('zooms with the mouse wheel', () => {
+    const canvas = setup();
+    fireEvent.wheel(canvas, { deltaY: -100, clientX: 300, clientY: 300 });
+    expect(screen.getByText(/×$/)).toBeTruthy();
   });
 });
