@@ -739,3 +739,16 @@ as arguments. Both panels' tests are unchanged and pass; `AssemblyOrder.test`
 pins the numbering, flipped and vector marks, the closing junction, the mark
 and tip, the singular and plural left-out line, and both reasons. About 170
 duplicated lines became one file.
+
+**Mutation of the assembly order (before/after, 2026-11-11).** `GibsonPanel`
+and `YeastAssemblyPanel` at `1a4e4b3` against the commit that put in
+`AssemblyOrder`, `DroppedParts` and `assemblyVerdict`: 103 mutants of the old
+lines (70 killed, 25 survived, 8 with no coverage) against 74 of the new
+(72 killed, 2 survived). The first after-run left 10: the two panels' junction
+rules had no test at their boundaries (a Tm of 48, 30 bp, 30 and 70 % GC) and
+the weak Gibson text was never reached, so the rules moved to
+`assemblyVerdict.ts` with `assemblyVerdict.test.ts`, and a guard in
+`AssemblyOrder` that repeated another was folded into one. The 2 left are the
+`key` strings of the part list and the left-out list, which React reads only to
+reconcile and no test can see; equivalent. The old figure's 33 survivors are
+the panels' own copies, removed with the code.
