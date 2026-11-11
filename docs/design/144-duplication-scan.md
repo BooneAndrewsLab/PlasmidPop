@@ -849,3 +849,20 @@ added and the lines re-run: all killed. Left, with reasons: `EmptyState`'s
 cannot be false) and two mutants of `EnzymeImport`'s summary lines, which the
 refactor did not touch. Item 6 had nothing to add: its new file is killed 6
 of 6 by its own test.
+
+**Core item 8: a primer pair for one insert (#438).** What repeated was the
+same 17 lines at two sites: the annealing growth capped at half the insert
+(forward from the start, reverse from the end, reverse-complemented) and the
+two `OverlapPrimer` records built from it. The two sites differ only in where
+the insert text and the two tails come from, so the helper `primerPair(insert,
+forwardTail, reverseTail, opts)` in `overlapPrimers.ts` takes exactly those
+and returns the pair; the rest of each designer (tails, the `pcr` run, the
+assembly) stays where it was. It adds no flags or callbacks, and the
+half-insert rule, which was written twice, now sits in one place with its
+comment. Tests were added first and passed against the old code: both designs'
+records (tail, annealing part, length, Tm, shortest part that reaches the
+target), an insert across the origin of a circular template (a range with
+`end` past the length) and a reverse-strand insert. Lines changed for a
+before/after mutation run: `overlapPrimers.ts` `primerPair` (new) and the
+`designOverlapPrimers` call to it; `overlapAssembly.ts` the call in the
+per-insert loop.
