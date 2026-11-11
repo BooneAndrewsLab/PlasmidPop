@@ -13,6 +13,8 @@ import {
   YEAST_OVERLAP,
 } from '@/core';
 
+import { batchLanes, batchPool } from '@/workers/analysisPool';
+
 import { analytics } from './analytics';
 import { type BatchSortKey, DEFAULT_BATCH_SORT } from './batchResults';
 import { type SortState } from './components/tableKeys';
@@ -246,6 +248,7 @@ export async function startBatch(documentId: string | null, a: StartBatch): Prom
       a.criteria === undefined ? {} : { criteria: a.criteria },
       {
         signal: controller.signal,
+        clients: batchLanes(),
         onRow: (row) => {
           if (discarded.has(controller)) return;
           batchSession.update(documentId, (s) =>
@@ -267,6 +270,7 @@ export async function startBatch(documentId: string | null, a: StartBatch): Prom
     }
   } finally {
     if (running.get(key(documentId)) === controller) running.delete(key(documentId));
+    if (running.size === 0) batchPool.release();
   }
 }
 
@@ -372,6 +376,7 @@ export async function startCloningBatch(
       },
       {
         signal: controller.signal,
+        clients: batchLanes(),
         onRow: (row) => {
           if (discarded.has(controller)) return;
           batchSession.update(documentId, (s) =>
@@ -396,5 +401,6 @@ export async function startCloningBatch(
     }
   } finally {
     if (running.get(key(documentId)) === controller) running.delete(key(documentId));
+    if (running.size === 0) batchPool.release();
   }
 }

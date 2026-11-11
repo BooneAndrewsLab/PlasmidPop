@@ -36,6 +36,7 @@ import {
 import { featureColor } from '@/view/featureColors';
 
 import { analysisClient } from '@/workers/analysisClient';
+import { batchPool } from '@/workers/analysisPool';
 import { saveClient } from '@/workers/saveClient';
 
 import { analytics } from '../analytics';
@@ -557,6 +558,7 @@ export class PersistenceService {
             ].sort((a, b) => a.name.localeCompare(b.name)),
           };
     analysisClient.useEnzymes(merged);
+    batchPool.useEnzymes(merged);
     editorStore.setEnzymeSetInfo({
       label: base.label,
       count: (merged ?? BUNDLED_ENZYME_SET).enzymes.length,
