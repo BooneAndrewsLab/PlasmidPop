@@ -16,13 +16,13 @@ import {
 
 import { analytics } from '../analytics';
 import { FIXED_BY, cloneCheckFromParts, openCloneCheck } from '../cloneCheck';
-import { copyText } from '../clipboard';
 import { OVERLAP_MAX_INSERTS, type OverlapSlot } from '../state/benchSettings';
 import { cloningDocuments, editorStore } from '../state/editorStore';
 import { savePrimers } from '../state/primerCollection';
 import { useEditorState } from '../state/useEditorStore';
 import { AssemblyWarnings } from './AssemblyWarnings';
 import { type InsertChoice, insertChoices } from './insertChoices';
+import { PrimerLine } from './PrimerLine';
 import { ProductSummary } from './ProductSummary';
 
 const KITS: readonly OverlapKit[] = ['in-fusion', 'nebuilder', 'yeast'];
@@ -33,7 +33,7 @@ const SPLITS: readonly { readonly value: JunctionSplit; readonly label: string }
   { value: 'reverse', label: 'On the previous insert’s reverse primer' },
 ];
 
-function PrimerLine({
+function OverlapPrimerLine({
   label,
   primer,
   tailOf = 'vector',
@@ -44,30 +44,10 @@ function PrimerLine({
   readonly tailOf?: string;
 }) {
   return (
-    <li className="pair">
-      <div className="pair__row pair__row--wide">
-        <span className="pair__length">{label}</span>
-        <span className="pair__meta">
-          {primer.sequence.length} nt: {primer.tail.length} of {tailOf}, {primer.annealLength}{' '}
-          annealing at {primer.tm.toFixed(0)} °C
-        </span>
-      </div>
-      <div className="pair__foot">
-        <code className="mutagenesis__oligo">{primer.sequence}</code>
-        <span className="pair__buttons">
-          <button
-            type="button"
-            className="button button--quiet button--small"
-            aria-label={`Copy the ${label.toLowerCase()} primer`}
-            onClick={() => {
-              copyText(primer.sequence);
-            }}
-          >
-            Copy
-          </button>
-        </span>
-      </div>
-    </li>
+    <PrimerLine label={label} sequence={primer.sequence}>
+      {primer.sequence.length} nt: {primer.tail.length} of {tailOf}, {primer.annealLength} annealing
+      at {primer.tm.toFixed(0)} °C
+    </PrimerLine>
   );
 }
 
@@ -437,12 +417,12 @@ export function OverlapPrimerDesign({ fixedKit }: { readonly fixedKit?: OverlapK
               {multi.inserts.map((m, n) => (
                 <li key={n}>
                   <ol className="pair-list" aria-label={`Insert ${n + 1} primers`}>
-                    <PrimerLine
+                    <OverlapPrimerLine
                       label={`Insert ${n + 1} forward`}
                       primer={m.forward}
                       tailOf={n === 0 ? 'vector' : 'homology'}
                     />
-                    <PrimerLine
+                    <OverlapPrimerLine
                       label={`Insert ${n + 1} reverse`}
                       primer={m.reverse}
                       tailOf={n === multi.inserts.length - 1 ? 'vector' : 'homology'}
@@ -508,8 +488,8 @@ export function OverlapPrimerDesign({ fixedKit }: { readonly fixedKit?: OverlapK
       ) : (
         <>
           <ol className="pair-list" aria-label="Insert primers">
-            <PrimerLine label="Forward" primer={design.forward} />
-            <PrimerLine label="Reverse" primer={design.reverse} />
+            <OverlapPrimerLine label="Forward" primer={design.forward} />
+            <OverlapPrimerLine label="Reverse" primer={design.reverse} />
           </ol>
           <p className="panel__note panel__note--quiet">
             Upper case is the vector&rsquo;s end; the rest anneals to the template.

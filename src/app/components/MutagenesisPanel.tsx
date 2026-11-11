@@ -22,10 +22,10 @@ import {
 } from '@/core';
 
 import { analytics } from '../analytics';
-import { copyText } from '../clipboard';
 import { editorStore } from '../state/editorStore';
 import { useRemembered } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';
+import { PrimerLine } from './PrimerLine';
 
 const METHODS: readonly { value: MutagenesisMethod; label: string; title: string }[] = [
   {
@@ -41,7 +41,7 @@ const METHODS: readonly { value: MutagenesisMethod; label: string; title: string
   },
 ];
 
-function PrimerLine({
+function MutagenesisPrimerLine({
   label,
   primer,
   method,
@@ -51,31 +51,11 @@ function PrimerLine({
   readonly method: MutagenesisMethod;
 }) {
   return (
-    <li className="pair">
-      <div className="pair__row pair__row--wide">
-        <span className="pair__length">{label}</span>
-        <span className="pair__meta">
-          {primer.sequence.length} nt, Tm {primer.tm.toFixed(0)} °C
-          {primer.q5Tm === null ? '' : ` (NEB Q5 ${primer.q5Tm.toFixed(0)} °C)`}
-          {method === 'overlapping' ? ' (Agilent)' : ` over the ${primer.annealLength} that anneal`}
-        </span>
-      </div>
-      <div className="pair__foot">
-        <code className="mutagenesis__oligo">{primer.sequence}</code>
-        <span className="pair__buttons">
-          <button
-            type="button"
-            className="button button--quiet button--small"
-            aria-label={`Copy the ${label.toLowerCase()} primer`}
-            onClick={() => {
-              copyText(primer.sequence);
-            }}
-          >
-            Copy
-          </button>
-        </span>
-      </div>
-    </li>
+    <PrimerLine label={label} sequence={primer.sequence}>
+      {primer.sequence.length} nt, Tm {primer.tm.toFixed(0)} °C
+      {primer.q5Tm === null ? '' : ` (NEB Q5 ${primer.q5Tm.toFixed(0)} °C)`}
+      {method === 'overlapping' ? ' (Agilent)' : ` over the ${primer.annealLength} that anneal`}
+    </PrimerLine>
   );
 }
 
@@ -357,8 +337,8 @@ export function MutagenesisPanel({ doc }: { readonly doc: SeqDocument }) {
             {design.proteinChanges.length > 0 ? ` · ${design.proteinChanges.join('; ')}` : ''}
           </p>
           <ol className="pair-list" aria-label="Mutagenesis primers">
-            <PrimerLine label="Forward" primer={design.forward} method={method} />
-            <PrimerLine label="Reverse" primer={design.reverse} method={method} />
+            <MutagenesisPrimerLine label="Forward" primer={design.forward} method={method} />
+            <MutagenesisPrimerLine label="Reverse" primer={design.reverse} method={method} />
           </ol>
           {design.problem !== null && (
             <p className="panel__note panel__note--warn">{design.problem}</p>

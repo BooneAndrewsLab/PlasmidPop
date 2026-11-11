@@ -11,7 +11,6 @@ import {
 
 import { analytics } from '../analytics';
 import { fusionContext, openCloneCheck } from '../cloneCheck';
-import { copyText } from '../clipboard';
 import { SOE_MAX_FRAGMENTS, SOE_OVERLAP_TMS, type SoeSlot } from '../state/benchSettings';
 import { cloningDocuments, editorStore } from '../state/editorStore';
 import { savePrimers } from '../state/primerCollection';
@@ -19,38 +18,22 @@ import { useEditorState } from '../state/useEditorStore';
 import { AssemblyWarnings } from './AssemblyWarnings';
 import { BenchProduct } from './BenchProduct';
 import { insertChoices } from './insertChoices';
+import { PrimerLine } from './PrimerLine';
 import { ProductSummary } from './ProductSummary';
 
 function PrimerRow({ primer }: { readonly primer: SoePrimer }) {
-  const label = `${primer.name}, ${primer.strand}`;
   return (
-    <li className="pair">
-      <div className="pair__row pair__row--wide">
-        <span className="pair__length">{primer.name}</span>
-        <span className="pair__meta">
-          {primer.sequence.length} nt, {primer.strand}
-          {primer.role === 'outer'
-            ? ', outer'
-            : `: ${primer.tail.length} of the neighbour, ${primer.annealLength} annealing`}{' '}
-          at {primer.tm.toFixed(0)} °C
-        </span>
-      </div>
-      <div className="pair__foot">
-        <code className="mutagenesis__oligo">{primer.sequence}</code>
-        <span className="pair__buttons">
-          <button
-            type="button"
-            className="button button--quiet button--small"
-            aria-label={`Copy ${label} primer`}
-            onClick={() => {
-              copyText(primer.sequence);
-            }}
-          >
-            Copy
-          </button>
-        </span>
-      </div>
-    </li>
+    <PrimerLine
+      label={primer.name}
+      sequence={primer.sequence}
+      copyLabel={`Copy ${primer.name}, ${primer.strand} primer`}
+    >
+      {primer.sequence.length} nt, {primer.strand}
+      {primer.role === 'outer'
+        ? ', outer'
+        : `: ${primer.tail.length} of the neighbour, ${primer.annealLength} annealing`}{' '}
+      at {primer.tm.toFixed(0)} °C
+    </PrimerLine>
   );
 }
 

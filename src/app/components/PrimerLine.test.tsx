@@ -12,14 +12,16 @@ afterEach(() => {
   vi.mocked(copyText).mockClear();
 });
 
-const renderLine = (copyLabel?: string) =>
-  render(
+const renderLine = (copyLabel?: string) => {
+  const named = copyLabel === undefined ? {} : { copyLabel };
+  return render(
     <ol>
-      <PrimerLine label="Insert 1 forward" sequence="ACGTACGT" copyLabel={copyLabel}>
+      <PrimerLine label="Insert 1 forward" sequence="ACGTACGT" {...named}>
         8 nt, Tm 52 °C
       </PrimerLine>
     </ol>,
   );
+};
 
 describe('PrimerLine', () => {
   it('shows the label, the meta line the caller wrote, and the sequence, in the pair frame', () => {
