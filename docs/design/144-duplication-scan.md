@@ -827,3 +827,25 @@ What the plan did find is that no test builds either store with a fake
 repository (the constructor takes one): load-once, the merge of adds made
 during the read, a failed read, a failed write, the error clearing on the
 next success and `dismissError` are unpinned. That is filed as an issue.
+
+**Mutation of the four component extractions (before/after, 2026-11-11).**
+Each pair is the commit that has the pinning tests and the old code against
+the commit with the refactor, on the changed lines (the before side already
+has the tests, so what the refactor removed is not credited to them):
+
+| Item                          | Before (killed / survived / no coverage) | After             | Not killed in the new code |
+| ----------------------------- | ---------------------------------------- | ----------------- | -------------------------- |
+| 4 `EmptyState`                | 21 / 23 / 6 of 50                        | 14 / 11 / 0 of 25 | 11, all pre-existing       |
+| 6 `PrimerLine`                | 31 / 0 / 0 of 31                         | 25 / 0 / 0 of 25  | none                       |
+| 8 `MapZoomControls`           | 31 / 9 / 5 of 45                         | 36 / 1 / 1 of 38  | 2                          |
+| 9 `FileDrop`, `useFileImport` | 16 / 18 / 21 of 57 (2 runtime errors)    | 18 / 1 / 1 of 20  | 2, both pre-existing       |
+
+The survivors were all in lines the refactor moved, not made: the `' '`
+between the start screen's buttons (item 4), `zoom < 10` at exactly 10 and
+the double-click that zooms a step on empty map (item 8), the REBASE picker's
+`accept` and the message of a failed clear (item 9). Tests for each were
+added and the lines re-run: all killed. Left, with reasons: `EmptyState`'s
+`example !== undefined` (the example list is never empty, so the branch
+cannot be false) and two mutants of `EnzymeImport`'s summary lines, which the
+refactor did not touch. Item 6 had nothing to add: its new file is killed 6
+of 6 by its own test.
