@@ -355,3 +355,5 @@ the Bench, item 49). The rest stand.
 144. [Duplication scan: where logic is written twice, and which copies matter](144-duplication-scan.md)
 
 145. [The Batch page's restriction-sites, homology-ends and Golden Gate extras against pydna and Biopython](145-batch-recipes-oracle.md)
+
+146. [A worker pool for batch runs](146-batch-worker-pool.md)

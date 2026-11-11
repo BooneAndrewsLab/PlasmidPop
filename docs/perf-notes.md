@@ -1744,6 +1744,14 @@ workstation, and a 60 s budget failed main on 2026-11-08): it runs 12 rows and
 asserts what they make, plus a loose budget on the pool check. `PLASMIDPOP_PERF=1
 npx vitest run src/app/batch.timing.test.ts` runs all 96 and prints the time.
 
+**The pool (#423, design note 146).** Built: batch runs use up to four
+workers (`hardwareConcurrency`, capped). The 96-row plate was **not** timed
+through the pool: vitest has no `Worker`, and a real-browser timed run was
+not possible in the environment this was written in, so there is no
+pooled number here and none is claimed. `PLASMIDPOP_PERF=1` cannot show it either, since it is the engine path.
+The browser run, to compare with the 19.6-21.9 s above, is still to be made
+and recorded.
+
 ## A position fold through a helper (#432, design note 144, 2026-11-10)
 
 `wrapPosition(position, seqLength)` in `range.ts` took the place of 41
