@@ -2,14 +2,18 @@
 import 'fake-indexeddb/auto';
 
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { vi } from 'vitest';
 
 import { SeqDocument } from '@/core';
 import { getRepository } from '@/storage';
 
+import { copyText } from '../clipboard';
 import { DEFAULT_BENCH, normalizeBenchSettings } from '../state/benchSettings';
 import { editorStore } from '../state/editorStore';
 import { primerCollection } from '../state/primerCollection';
 import { SoePanel } from './SoePanel';
+
+vi.mock('../clipboard', () => ({ copyText: vi.fn() }));
 
 function filler(length: number, seed: number): string {
   let x = seed;
@@ -57,6 +61,24 @@ describe('SoePanel', () => {
     expect(primers.getAllByRole('listitem')).toHaveLength(4);
     expect(screen.getByText(/Junction 1: \d+ bp overlap, Tm \d+ °C/)).toBeTruthy();
     expect(screen.getByLabelText('Product')).toHaveTextContent('1,600 bp, linear');
+  });
+
+  it('copies a primer under its full name, with the sequence shown in its row', () => {
+    act(() => {
+      editorStore.openDocument(a);
+      editorStore.openDocument(b);
+    });
+    render(<SoePanel />);
+    pick();
+    vi.mocked(copyText).mockClear();
+    const button = screen.getByRole('button', { name: 'Copy SOE partA-partB F1, forward primer' });
+    const sequence = button.closest('li')?.querySelector('code')?.textContent ?? '';
+    expect(sequence).toMatch(/^[ACGT]+$/i);
+    act(() => {
+      fireEvent.click(button);
+    });
+    expect(copyText).toHaveBeenCalledTimes(1);
+    expect(copyText).toHaveBeenCalledWith(sequence);
   });
 
   it('opens the fused product with how it was made', () => {

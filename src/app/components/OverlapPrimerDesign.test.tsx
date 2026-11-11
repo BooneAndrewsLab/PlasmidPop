@@ -1,11 +1,15 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { vi } from 'vitest';
 
 import { SeqDocument } from '@/core';
 
+import { copyText } from '../clipboard';
 import { DEFAULT_BENCH } from '../state/benchSettings';
 import { editorStore } from '../state/editorStore';
 import { OverlapPrimerDesign } from './OverlapPrimerDesign';
+
+vi.mock('../clipboard', () => ({ copyText: vi.fn() }));
 
 function filler(length: number, seed: number): string {
   let x = seed;
@@ -158,6 +162,17 @@ describe('OverlapPrimerDesign with several inserts (#413)', () => {
     const first = within(screen.getByRole('list', { name: 'Insert 1 primers' }));
     expect(first.getByText(/40 of vector/)).toBeInTheDocument();
     expect(first.getByText(/20 of homology/)).toBeInTheDocument();
+
+    // Each primer copies the sequence its row shows, under the row's label.
+    vi.mocked(copyText).mockClear();
+    const copy = first.getByRole('button', { name: 'Copy the insert 1 forward primer' });
+    const shown = copy.closest('li')?.querySelector('code')?.textContent ?? '';
+    expect(shown).toMatch(/^[ACGT]+$/i);
+    act(() => {
+      fireEvent.click(copy);
+    });
+    expect(copyText).toHaveBeenCalledTimes(1);
+    expect(copyText).toHaveBeenCalledWith(shown);
 
     act(() => {
       fireEvent.change(screen.getByLabelText('Homology between inserts'), {
