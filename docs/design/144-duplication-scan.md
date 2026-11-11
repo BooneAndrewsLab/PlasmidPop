@@ -752,3 +752,12 @@ the weak Gibson text was never reached, so the rules moved to
 `key` strings of the part list and the left-out list, which React reads only to
 reconcile and no test can see; equivalent. The old figure's 33 survivors are
 the panels' own copies, removed with the code.
+
+**Components, item 4: EmptyState.** The phone `<details>` and the desktop
+fragment each carried the same three paragraphs (the paste / new sequence / NCBI /
+alignment line, the "Everything stays in your browser" notice, and the licence
+line), character for character. They are now one JSX constant, `otherWaysIn`, in
+the component body, written once and placed either inside the `<details>` or
+bare. A local hoist: no new module, no signature change, no visible text change.
+Tests for the paragraphs on both layouts landed first. The before/after Stryker
+run is for the user to start.

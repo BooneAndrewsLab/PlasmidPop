@@ -149,6 +149,83 @@ export function EmptyState() {
   // Everything under Recent files is kept, so there is nothing to Keep.
   const { onKeep: _onKeep, ...recentActions } = actions;
 
+  const otherWaysIn = (
+    <>
+      <p className="empty__hint">
+        Or paste a sequence, GenBank or FASTA record here (Ctrl+V), or{' '}
+        <button
+          type="button"
+          className="link"
+          onClick={() => {
+            editorStore.requestNewDocument();
+          }}
+        >
+          start a new sequence
+        </button>{' '}
+        and type it in, or{' '}
+        <button
+          type="button"
+          className="link"
+          onClick={() => {
+            editorStore.requestNcbi();
+          }}
+        >
+          open a record from NCBI
+        </button>{' '}
+        by its accession number. Or{' '}
+        <button
+          type="button"
+          className="link"
+          onClick={() => {
+            editorStore.requestMsa();
+          }}
+        >
+          align several sequences together
+        </button>{' '}
+        without opening any of them.
+      </p>
+      <p className="empty__hint">
+        Everything stays in your browser: documents are kept here as you work and never uploaded,
+        and no file on your disk is written to. Opening from NCBI sends NCBI the accession numbers
+        you type, and nothing else. Download the ones you want as files. Your browser may ask
+        whether PlasmidPop can keep its data; saying yes protects your documents when disk space
+        runs low.
+        {example !== undefined && (
+          <>
+            {' '}
+            Or{' '}
+            <button
+              type="button"
+              className="link"
+              onClick={() => {
+                openExample(example);
+              }}
+            >
+              open {example.label}
+            </button>{' '}
+            to look around.
+          </>
+        )}
+      </p>
+      <p className="empty__hint empty__licence">
+        Free and open source under the{' '}
+        <a
+          className="link"
+          href={`${REPOSITORY_URL}/blob/main/LICENSE`}
+          target="_blank"
+          rel="noreferrer noopener"
+        >
+          MIT licence
+        </a>
+        ; the{' '}
+        <a className="link" href={REPOSITORY_URL} target="_blank" rel="noreferrer noopener">
+          source is on GitHub
+        </a>
+        .
+      </p>
+    </>
+  );
+
   return (
     <div className="empty">
       <div className="empty__card">
@@ -183,154 +260,10 @@ export function EmptyState() {
         {phone ? (
           <details className="empty__more">
             <summary>Other ways in, and your data</summary>
-            <p className="empty__hint">
-              Or paste a sequence, GenBank or FASTA record here (Ctrl+V), or{' '}
-              <button
-                type="button"
-                className="link"
-                onClick={() => {
-                  editorStore.requestNewDocument();
-                }}
-              >
-                start a new sequence
-              </button>{' '}
-              and type it in, or{' '}
-              <button
-                type="button"
-                className="link"
-                onClick={() => {
-                  editorStore.requestNcbi();
-                }}
-              >
-                open a record from NCBI
-              </button>{' '}
-              by its accession number. Or{' '}
-              <button
-                type="button"
-                className="link"
-                onClick={() => {
-                  editorStore.requestMsa();
-                }}
-              >
-                align several sequences together
-              </button>{' '}
-              without opening any of them.
-            </p>
-            <p className="empty__hint">
-              Everything stays in your browser: documents are kept here as you work and never
-              uploaded, and no file on your disk is written to. Opening from NCBI sends NCBI the
-              accession numbers you type, and nothing else. Download the ones you want as files.
-              Your browser may ask whether PlasmidPop can keep its data; saying yes protects your
-              documents when disk space runs low.
-              {example !== undefined && (
-                <>
-                  {' '}
-                  Or{' '}
-                  <button
-                    type="button"
-                    className="link"
-                    onClick={() => {
-                      openExample(example);
-                    }}
-                  >
-                    open {example.label}
-                  </button>{' '}
-                  to look around.
-                </>
-              )}
-            </p>
-            <p className="empty__hint empty__licence">
-              Free and open source under the{' '}
-              <a
-                className="link"
-                href={`${REPOSITORY_URL}/blob/main/LICENSE`}
-                target="_blank"
-                rel="noreferrer noopener"
-              >
-                MIT licence
-              </a>
-              ; the{' '}
-              <a className="link" href={REPOSITORY_URL} target="_blank" rel="noreferrer noopener">
-                source is on GitHub
-              </a>
-              .
-            </p>
+            {otherWaysIn}
           </details>
         ) : (
-          <>
-            <p className="empty__hint">
-              Or paste a sequence, GenBank or FASTA record here (Ctrl+V), or{' '}
-              <button
-                type="button"
-                className="link"
-                onClick={() => {
-                  editorStore.requestNewDocument();
-                }}
-              >
-                start a new sequence
-              </button>{' '}
-              and type it in, or{' '}
-              <button
-                type="button"
-                className="link"
-                onClick={() => {
-                  editorStore.requestNcbi();
-                }}
-              >
-                open a record from NCBI
-              </button>{' '}
-              by its accession number. Or{' '}
-              <button
-                type="button"
-                className="link"
-                onClick={() => {
-                  editorStore.requestMsa();
-                }}
-              >
-                align several sequences together
-              </button>{' '}
-              without opening any of them.
-            </p>
-            <p className="empty__hint">
-              Everything stays in your browser: documents are kept here as you work and never
-              uploaded, and no file on your disk is written to. Opening from NCBI sends NCBI the
-              accession numbers you type, and nothing else. Download the ones you want as files.
-              Your browser may ask whether PlasmidPop can keep its data; saying yes protects your
-              documents when disk space runs low.
-              {example !== undefined && (
-                <>
-                  {' '}
-                  Or{' '}
-                  <button
-                    type="button"
-                    className="link"
-                    onClick={() => {
-                      openExample(example);
-                    }}
-                  >
-                    open {example.label}
-                  </button>{' '}
-                  to look around.
-                </>
-              )}
-            </p>
-            <p className="empty__hint empty__licence">
-              Free and open source under the{' '}
-              <a
-                className="link"
-                href={`${REPOSITORY_URL}/blob/main/LICENSE`}
-                target="_blank"
-                rel="noreferrer noopener"
-              >
-                MIT licence
-              </a>
-              ; the{' '}
-              <a className="link" href={REPOSITORY_URL} target="_blank" rel="noreferrer noopener">
-                source is on GitHub
-              </a>
-              .
-            </p>
-          </>
+          otherWaysIn
         )}
       </div>
       {expiring !== null && (
