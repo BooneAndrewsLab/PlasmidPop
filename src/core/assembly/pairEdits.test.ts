@@ -67,7 +67,11 @@ describe('applyPairEdits (#421)', () => {
   });
 
   it('breaks the pair asked for and no other', () => {
-    const out = applyPairEdits(inferred, { ...NO_PAIR_EDITS, broken: [pairKey(inferred[0]!)] }, 4);
+    const out = applyPairEdits(
+      inferred,
+      { ...NO_PAIR_EDITS, broken: [pairKey(inferred[0] ?? { first: -1, second: -1 })] },
+      4,
+    );
     expect(out.map((p) => p.stem)).toEqual(['b']);
   });
 

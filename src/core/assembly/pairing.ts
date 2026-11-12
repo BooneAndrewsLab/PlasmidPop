@@ -462,7 +462,7 @@ export function describePairRule(rule: PairRule | undefined): string {
       return 'primer name ends in F/R after a digit';
     case 'manual':
       return 'made by hand';
-    default:
+    case undefined:
       return 'by name';
   }
 }
