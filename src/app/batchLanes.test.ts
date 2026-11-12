@@ -136,7 +136,9 @@ describe('runInLanes', () => {
   });
 });
 
-describe('runPrimerBatch over a pool', () => {
+// These run the real primer engine: a CI runner takes several seconds for four rows, so the
+// per-test limit is raised; nothing asserts a duration.
+describe('runPrimerBatch over a pool', { timeout: 30_000 }, () => {
   /** A client that counts what it was asked, and fails one region. */
   function client(asked: number[], failAt = -1): PrimerBatchClient {
     return {
