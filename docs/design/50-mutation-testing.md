@@ -2064,6 +2064,61 @@ No survivor is unclassified: all 20 were applied by hand against the 49 files
 (plain) and fuzzed, and none changes a result or an
 error message.
 
+## At 1.25.0: the release pass on changed lines (2026-11-16)
+
+`npm run mutate:changed` scored 94.59 (floor 90). 46 survivors and uncovered
+mutants sat on lines changed since v1.24.0; 1 timeout is a loop kill (sound,
+left). Each was applied by hand and the nearest tests rerun.
+
+**Killed by new tests (24, all in `assembly/pairing.ts`, by
+`pairEdits.test.ts`):** `addManualPair`'s three read-sharing terms (a later
+pair over an earlier one that shares its first or its second read, as first or
+second mate); `applyPairEdits`' `i >= 0` and `i < readCount` boundaries (read 0
+taken, read `readCount` refused), the displacement of an earlier manual pair by
+either read, the sort by the lower read of each pair over every creation order
+(inferred and manual together, a pair whose first mate is the higher read), and
+`describePairRule`'s six exact strings.
+
+Equivalents left as survivors (22):
+
+- **Unreachable fallback for `noUncheckedIndexedAccess` (2):** `pairing.ts`
+  L112 `casava[1] ?? ''` (group 1 is there whenever CASAVA matched) and
+  `assemble.ts` L1183 `[code]` as `[]` (a call's symbol is always an IUPAC
+  code or `N`, so the fallback has no coverage).
+- **The key stays distinct (1):** `pairing.ts` L114 `'letters'` as `''`: the
+  pairing key is `family + stem`, and `''` is still unlike `'numbers'` and
+  `'illumina'` (as for the `'illumina'` already disabled on L96).
+- **Redundant by the caller (1):** `assemble.ts` L1183 `??` as `&&`: the
+  ambiguity test only matters for a call that is not `ambiguous`, and such a
+  call is a single base or the no-vote `N`, which no confident vote disagrees
+  with. Also run against the Sanger assembly oracle.
+- **Both-or-neither invariant (2):** `msa.ts` L168 `node.left === null` and
+  `node.right === null` as `false`, like the `||` for that line already
+  disabled. Also run against `src/test/oracle/msa.test.ts` and
+  `alignment.test.ts`.
+- **A window the motif never reaches (1):** `methylation.ts` L301 `i < to` as
+  `i <= to`: a motif that puts a methylated base inside the site ends at most
+  four bases past it, so the extra base is never read. Also run against
+  `mutagenesis.property.test.ts`.
+- **No site on a zero-length molecule (1):** `restriction.ts` L220
+  `length === 0 ? 0 :` as `false`: `wrap` is only asked for a cut of a site.
+  Also run against the property suite.
+- **Wrapping that a line and a circle both leave alone (10):** `digest.ts` L92
+  (5 mutants of `topology === 'circular' && length > 0`) and `gateway.ts` L243
+  (4 of the same test): on a line the start of an overhang, or a crossover, lies
+  in `[0, length)`, so `wrapPosition` leaves it as it is, and a zero-length
+  circle has no site. `gateway.ts` L485 `L === 0 ? 0 :` (1): `recombinant` gets
+  sites of length above 0 only from pieces, which make the circle longer than 0.
+  All run against `src/core/cloning` and the two property suites.
+- **Case already folded (1):** `anneal.ts` L41 `toUpperCase()` as
+  `toLowerCase()`: `codeMask` takes either case (a lower-case template test did
+  not kill it).
+- **Unreachable `null` from the table (3):** `thermo.ts` L62, L82 and L120:
+  after the check for A, C, G and T only, every dinucleotide has parameters, so
+  `nearestNeighbourSum` never returns `null`.
+
+None was killed only by a skipped suite, and none is left in doubt.
+
 ## Stale survivors, and `--remeasure`
 
 Stryker's incremental report keeps a mutant's verdict while its lines stand.
