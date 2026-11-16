@@ -28,7 +28,8 @@ biases repeat placement and the mate-based contig links.
   edits are read indexes. Nothing is written to IndexedDB or the URL.
 - A manual pair's first mate is the one read forward, as for a named pair, so
   the user chooses the order. Only the checks that read orientation care.
-- Breaking a manual pair removes it; an inferred pair it had displaced
+- Making a manual pair drops any earlier manual pair that shares a read with it (#441), so breaking
+  the new one leaves nothing of the old. Breaking a manual pair removes it; an inferred pair it had displaced
   returns. The reset button is the way back to the names' pairs.
 - The note under the controls says "in use" instead of "found by name" once
   anything is edited.

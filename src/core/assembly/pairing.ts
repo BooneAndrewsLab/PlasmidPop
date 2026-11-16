@@ -411,6 +411,18 @@ export interface PairEdits {
 
 export const NO_PAIR_EDITS: PairEdits = { enabled: true, broken: [], manual: [] };
 
+/**
+ * `edits` with one more manual pair. A read has one mate, so an earlier manual pair that shares
+ * a read with it is dropped now, not just hidden by `applyPairEdits`: breaking the new pair must
+ * not bring the old one back (#441).
+ */
+export function addManualPair(edits: PairEdits, first: number, second: number): PairEdits {
+  const kept = edits.manual.filter(
+    (m) => m.first !== first && m.second !== first && m.first !== second && m.second !== second,
+  );
+  return { ...edits, manual: [...kept, { first, second }] };
+}
+
 /** An identity for a pair that does not change with the other pairs: its two read indexes. */
 export function pairKey(p: Pick<ReadPair, 'first' | 'second'>): string {
   return `${p.first}:${p.second}`;

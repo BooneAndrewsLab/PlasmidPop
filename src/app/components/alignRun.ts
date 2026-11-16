@@ -8,6 +8,7 @@ import {
   type PairEdits,
   type PairNames,
   type ReadPair,
+  addManualPair,
   applyPairEdits,
   pairKey,
   assembleReads,
@@ -579,10 +580,7 @@ export function useAlignRun(doc: SeqDocument): AlignRun {
       });
     },
     makePair: (first, second) => {
-      update({
-        pairEdits: { ...pairEdits, manual: [...pairEdits.manual, { first, second }] },
-        pairEditsFor: recordsId,
-      });
+      update({ pairEdits: addManualPair(pairEdits, first, second), pairEditsFor: recordsId });
     },
     resetPairs: () => {
       update({ pairEdits: NO_PAIR_EDITS, pairEditsFor: recordsId });

@@ -9,6 +9,7 @@ import { type AssemblyAlign, type AssemblyRead, assembleReads } from './assemble
 import {
   NO_PAIR_EDITS,
   type PairRule,
+  addManualPair,
   applyPairEdits,
   describePairRule,
   findRulePairs,
@@ -82,6 +83,19 @@ describe('applyPairEdits (#421)', () => {
       4,
     );
     expect(out).toEqual([{ first: 1, second: 2, stem: '', rule: 'manual' }]);
+  });
+
+  it('a manual pair made over an earlier one replaces it for good (#441)', () => {
+    // Pair 0+1, then 0+2; breaking 0+2 must leave no pair, not bring 0+1 back.
+    const made = addManualPair(addManualPair(NO_PAIR_EDITS, 0, 1), 0, 2);
+    expect(made.manual).toEqual([{ first: 0, second: 2 }]);
+    const afterBreak = { ...made, manual: made.manual.filter((m) => m.second !== 2) };
+    expect(applyPairEdits([], afterBreak, 4)).toEqual([]);
+    // Pairs that share no read stay.
+    expect(addManualPair(made, 1, 3).manual).toEqual([
+      { first: 0, second: 2 },
+      { first: 1, second: 3 },
+    ]);
   });
 
   it('lets a later manual pair take a read from an earlier one', () => {
