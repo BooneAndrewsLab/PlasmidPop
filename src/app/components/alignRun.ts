@@ -87,6 +87,8 @@ export interface AlignRun {
   readonly suggestedReason: string | null;
   /** The result or the batch is from other options than those set now (#117). */
   readonly stale: boolean;
+  /** The assembly is from other pairs, insert size or trim than those set now (#442). */
+  readonly assemblyStale: boolean;
   /** The batch's list is shown once a read is in it, or when the batch has ended with none. */
   readonly showBatch: boolean;
   readonly batchPickedRow: BatchRow | undefined;
@@ -212,6 +214,14 @@ export function useAlignRun(doc: SeqDocument): AlignRun {
     [found, pairEdits, records.length],
   );
   const insertBases = parseInsertSize(insertSize);
+  // Everything runAssemble reads, so an assembly made with other inputs is marked stale (#442).
+  const assemblyKey = JSON.stringify([
+    recordsId,
+    trim ? readTrimCutoff : null,
+    readConfidentQuality,
+    readPairs.pairs,
+    insertBases,
+  ]);
 
   const otherTabs = useMemo(
     () =>
@@ -361,6 +371,7 @@ export function useAlignRun(doc: SeqDocument): AlignRun {
     if (records.length < 2 || records.length > BATCH_LIMIT) return;
     analytics.track('align', 'assemble');
     const names = records.map(named);
+    const madeWith = assemblyKey;
     const controller = begin();
     update({ progress: 0, result: null, batch: null, batchPicked: null, assembly: null });
     assembleReads(
@@ -381,7 +392,7 @@ export function useAlignRun(doc: SeqDocument): AlignRun {
       },
     )
       .then((out) => {
-        update({ assembly: { assembly: out, names } });
+        update({ assembly: { assembly: out, names, madeWith } });
       })
       .catch((e: unknown) => {
         if (e instanceof AnalysisCancelledError || controller.signal.aborted) return;
@@ -524,6 +535,7 @@ export function useAlignRun(doc: SeqDocument): AlignRun {
 
   const anyReads = readInUse !== null || records.some((r) => r.read !== undefined);
   const stale = (result !== null || batch !== null) && session.alignedWith !== optionsKey;
+  const assemblyStale = session.assembly !== null && session.assembly.madeWith !== assemblyKey;
   const showBatch = batch !== null && (batch.rows.length > 0 || !session.busy);
   const batchPickedRow =
     batch === null || session.batchPicked === null
@@ -546,6 +558,7 @@ export function useAlignRun(doc: SeqDocument): AlignRun {
     mode,
     suggestedReason: pickedMode === null ? suggested.reason : null,
     stale,
+    assemblyStale,
     showBatch,
     batchPickedRow,
     setPicked: (index) => {

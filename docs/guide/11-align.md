@@ -316,6 +316,12 @@ places, and they are not used by Align all. An insert size that is wrong
 makes every pair of a right layout look wrong, so a warning on every pair is
 a reason to check the number first.
 
+Changing what an assembly was made with (the pairs, whether pairing is on,
+the insert size or the trim) leaves the contigs on screen but dimmed, with
+"Input changed, assemble again." above them, so they are never read next to
+pairs they were not made with. Click **Assemble reads** again to make them
+current.
+
 A repeat longer than the reads cannot be resolved by the reads alone: reads
 long enough to reach unique sequence on both sides, or mates that do, are
 what do. A contig without a warning can still be wrong, but no repeat was

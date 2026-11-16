@@ -44,6 +44,8 @@ export interface ShownAlignment extends ReadAlignment {
 export interface ShownAssembly {
   readonly assembly: Assembly;
   readonly names: readonly string[];
+  /** What the assembly depends on when it was made (#442); a change of it marks the assembly stale. */
+  readonly madeWith: string;
 }
 
 export interface AlignSession {

@@ -36,7 +36,11 @@ export class AnalysisPool {
     for (const c of this.clients) c.useEnzymes(set);
   }
 
-  /** Stops the workers; the next request starts them again, with the enzyme set. */
+  /**
+   * Stops the workers; the next request starts them again, with the enzyme set.
+   * Requests still pending are dropped, not settled (`AnalysisClient.dispose()`),
+   * so call it only once the run's signal is aborted (#442).
+   */
   release(): void {
     for (const c of this.clients) c.dispose();
   }

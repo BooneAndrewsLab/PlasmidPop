@@ -40,7 +40,8 @@ export function AlignPanel({ doc }: Props) {
     if (takeAlignFocusRequest()) more.current?.focus();
   }, []);
 
-  const { session, records, docIsRead, docRead, hasSelection, stale, showBatch } = align;
+  const { session, records, docIsRead, docRead, hasSelection, stale, assemblyStale, showBatch } =
+    align;
   const { result, batch, assembly, useSelection } = session;
   const selectionOnly = useSelection && hasSelection && !docIsRead && selection !== null;
   const against = selectionOnly ? 'the selection' : doc.name;
@@ -87,6 +88,9 @@ export function AlignPanel({ doc }: Props) {
           )}
           {showBatch && batch !== null && (
             <p className="panel__note">{batchLine(batch, against)}.</p>
+          )}
+          {assemblyStale && (
+            <p className="panel__note align-stale-note">Input changed, assemble again.</p>
           )}
           {assembly !== null && <p className="panel__note">{assemblyLine(assembly.assembly)}.</p>}
           <button

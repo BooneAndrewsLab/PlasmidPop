@@ -33,3 +33,4 @@ biases repeat placement and the mate-based contig links.
   returns. The reset button is the way back to the names' pairs.
 - The note under the controls says "in use" instead of "found by name" once
   anything is edited.
+- An assembly records what it was made with (`ShownAssembly.madeWith`: the reads, trim cutoff, confident quality, pairs after edits, insert size) and is dimmed with "Input changed, assemble again." when the current inputs differ (#442), as a result and a batch are by `alignedWith`. It is marked, not cleared, because people tweak these while comparing.

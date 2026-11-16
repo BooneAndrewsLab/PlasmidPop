@@ -58,7 +58,17 @@ export function AlignWorkspace({ doc, layout = 'split' }: Props) {
   const { documentId, readConfidentQuality, readTrimCutoff } = useEditorState();
   const [page, setPage] = alignWorkspace.usePage(documentId);
   const align = useAlignRun(doc);
-  const { session, records, stale, showBatch, docIsRead, docRead, hasSelection, record } = align;
+  const {
+    session,
+    records,
+    stale,
+    assemblyStale,
+    showBatch,
+    docIsRead,
+    docRead,
+    hasSelection,
+    record,
+  } = align;
   const { result, batch, assembly, useSelection, trim, docAsRead, busy } = session;
   const [large, setLarge] = useState<LargeView | null>(null);
   const against = useSelection && hasSelection && !docIsRead ? 'the selection' : doc.name;
@@ -423,22 +433,33 @@ export function AlignWorkspace({ doc, layout = 'split' }: Props) {
             </p>
           )}
           {session.error !== null && <p className="panel__error">{session.error}</p>}
+          {assembly !== null && assemblyStale && (
+            <p className="panel__note align-stale-note" role="status">
+              Input changed, assemble again.
+            </p>
+          )}
           {assembly !== null && (
-            <AssemblyResult
-              assembly={assembly.assembly}
-              readNames={assembly.names}
-              reference={
-                doc.length === 0
-                  ? null
-                  : {
-                      name: doc.name,
-                      busy,
-                      onAlign: () => {
-                        if (align.runAll()) setPage('results');
-                      },
-                    }
-              }
-            />
+            <fieldset
+              className={`align-results${assemblyStale ? ' align-results--stale' : ''}`}
+              disabled={assemblyStale}
+              aria-label="Assembly results"
+            >
+              <AssemblyResult
+                assembly={assembly.assembly}
+                readNames={assembly.names}
+                reference={
+                  doc.length === 0
+                    ? null
+                    : {
+                        name: doc.name,
+                        busy,
+                        onAlign: () => {
+                          if (align.runAll()) setPage('results');
+                        },
+                      }
+                }
+              />
+            </fieldset>
           )}
         </div>
       )}

@@ -957,6 +957,67 @@ describe('AlignPanel', () => {
     expect(screen.getByRole('list', { name: 'Read pairs' })).toBeVisible();
   });
 
+  it('marks the assembly stale when the pairs, insert size or trim change, and Assemble clears it (#442)', async () => {
+    let x = 2463534242;
+    let genome = '';
+    for (let i = 0; i < 160; i++) {
+      x ^= x << 13;
+      x >>>= 0;
+      x ^= x >>> 17;
+      x ^= x << 5;
+      x >>>= 0;
+      genome += 'ACGT'.charAt((x >>> 8) % 4);
+    }
+    const fasta = `>c1_F\n${genome.slice(0, 80)}\n>c1_R\n${reverseComplement(genome.slice(50, 130))}\n>other\n${genome.slice(100)}\n`;
+    renderAlign(doc);
+    fireEvent.drop(box(), fileDrop(new File([fasta], 'reads.fa')));
+    await screen.findByText(/From reads\.fa\./);
+    page('Assemble');
+    const assemble = async (): Promise<void> => {
+      fireEvent.click(screen.getByRole('button', { name: 'Assemble reads' }));
+      await screen.findByText('3 reads in 1 contig', undefined, { timeout: 30_000 });
+    };
+    const stale = (): boolean => screen.queryByText('Input changed, assemble again.') !== null;
+    await assemble();
+    expect(stale()).toBe(false);
+    const results = screen.getByRole('group', { name: 'Assembly results' });
+    expect(results).toBeEnabled();
+    const edits: (() => void)[] = [
+      () => {
+        fireEvent.change(screen.getByRole('textbox', { name: 'Insert size in bases' }), {
+          target: { value: '130' },
+        });
+      },
+      () => {
+        // The trim box shows only with quality reads; the cutoff is what the key reads.
+        act(() => {
+          editorStore.setReadTrimCutoff(0.001);
+        });
+      },
+      () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Break pair c1_F + c1_R' }));
+      },
+      () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Back to the pairs the names give' }));
+      },
+      () => {
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Use read pairs in this run' }));
+      },
+    ];
+    for (const edit of edits) {
+      edit();
+      expect(stale()).toBe(true);
+      expect(screen.getByRole('group', { name: 'Assembly results' })).toBeDisabled();
+      await assemble();
+      expect(stale()).toBe(false);
+      expect(screen.getByRole('group', { name: 'Assembly results' })).toBeEnabled();
+    }
+    act(() => {
+      editorStore.setReadTrimCutoff(0.05);
+      editorStore.closeDocument();
+    });
+  }, 120_000);
+
   it('offers to align the assembled reads to the open document when a repeat warning shows (#347)', async () => {
     let x = 99991;
     const bases = (n: number): string => {
