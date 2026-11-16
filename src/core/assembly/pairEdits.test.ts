@@ -126,6 +126,116 @@ describe('applyPairEdits (#421)', () => {
     expect(applyPairEdits([], edits, 4)).toEqual([]);
   });
 
+  it('a manual pair made over an earlier one drops it whichever of its reads is shared (#441)', () => {
+    const over = (first: number, second: number): readonly { first: number; second: number }[] =>
+      addManualPair({ ...NO_PAIR_EDITS, manual: [{ first: 0, second: 1 }] }, first, second).manual;
+    expect(over(0, 2)).toEqual([{ first: 0, second: 2 }]);
+    expect(over(1, 2)).toEqual([{ first: 1, second: 2 }]);
+    expect(over(2, 0)).toEqual([{ first: 2, second: 0 }]);
+    expect(over(2, 1)).toEqual([{ first: 2, second: 1 }]);
+    expect(over(2, 3)).toEqual([
+      { first: 0, second: 1 },
+      { first: 2, second: 3 },
+    ]);
+  });
+
+  it('a later manual pair displaces an earlier one that shares any of its reads', () => {
+    const after = (first: number, second: number): number[][] =>
+      applyPairEdits(
+        [],
+        {
+          ...NO_PAIR_EDITS,
+          manual: [
+            { first: 0, second: 1 },
+            { first, second },
+          ],
+        },
+        6,
+      ).map((p) => [p.first, p.second]);
+    expect(after(0, 2)).toEqual([[0, 2]]);
+    expect(after(1, 2)).toEqual([[1, 2]]);
+    expect(after(2, 0)).toEqual([[2, 0]]);
+    expect(after(2, 1)).toEqual([[2, 1]]);
+    expect(after(2, 3)).toEqual([
+      [0, 1],
+      [2, 3],
+    ]);
+  });
+
+  it('takes read 0 and stops short of the read count', () => {
+    const one = (first: number, second: number): number[][] =>
+      applyPairEdits([], { ...NO_PAIR_EDITS, manual: [{ first, second }] }, 4).map((p) => [
+        p.first,
+        p.second,
+      ]);
+    expect(one(0, 3)).toEqual([[0, 3]]);
+    expect(one(3, 0)).toEqual([[3, 0]]);
+    expect(one(0, 4)).toEqual([]);
+    expect(one(4, 0)).toEqual([]);
+  });
+
+  it('lists the pairs by their lower read, inferred and manual together', () => {
+    const inferred = findRulePairs(['b_F', 'b_R', 'x', 'y', 'c_F', 'c_R']).pairs;
+    expect(inferred.map((p) => [p.first, p.second])).toEqual([
+      [0, 1],
+      [4, 5],
+    ]);
+    const out = applyPairEdits(
+      inferred,
+      {
+        ...NO_PAIR_EDITS,
+        manual: [
+          { first: 3, second: 2 },
+          { first: 7, second: 6 },
+        ],
+      },
+      8,
+    );
+    expect(out.map((p) => [p.first, p.second])).toEqual([
+      [0, 1],
+      [3, 2],
+      [4, 5],
+      [7, 6],
+    ]);
+    // The lower read decides, not the first mate, whatever the order they were made in.
+    const mates = [
+      { first: 1, second: 2 },
+      { first: 9, second: 0 },
+      { first: 5, second: 3 },
+    ];
+    const orders = [
+      [0, 1, 2],
+      [0, 2, 1],
+      [1, 0, 2],
+      [1, 2, 0],
+      [2, 0, 1],
+      [2, 1, 0],
+    ];
+    for (const order of orders) {
+      const flipped = applyPairEdits(
+        [],
+        { ...NO_PAIR_EDITS, manual: order.map((i) => mates[i] ?? { first: -1, second: -1 }) },
+        10,
+      );
+      expect(flipped.map((p) => [p.first, p.second])).toEqual([
+        [9, 0],
+        [1, 2],
+        [5, 3],
+      ]);
+    }
+  });
+
+  it('words each rule exactly', () => {
+    expect(describePairRule('casava')).toBe('Illumina header read number (1:N:0 / 2:N:0)');
+    expect(describePairRule('illumina')).toBe('Illumina file name (_R1 / _R2)');
+    expect(describePairRule('separated')).toBe(
+      'name ends in a mate token (F/R, fwd/rev, 1/2) after a separator',
+    );
+    expect(describePairRule('joined')).toBe('primer name ends in F/R after a digit');
+    expect(describePairRule('manual')).toBe('made by hand');
+    expect(describePairRule(undefined)).toBe('by name');
+  });
+
   it('describes every rule', () => {
     const rules: (PairRule | undefined)[] = [
       'casava',
