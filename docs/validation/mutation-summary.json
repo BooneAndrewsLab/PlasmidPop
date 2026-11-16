@@ -1,17 +1,17 @@
 {
-  "score": 92.13,
+  "score": 94.68,
   "floor": 90,
-  "date": "2026-11-08",
-  "appVersion": "1.24.0",
-  "run": "the pre-release run on the changes since v1.23.0",
+  "date": "2026-11-16",
+  "appVersion": "1.25.0",
+  "run": "the pre-release run on the changes since v1.24.0",
   "stryker": "10.0.0",
   "counts": {
-    "Ignored": 2590,
-    "Killed": 23595,
-    "NoCoverage": 168,
-    "RuntimeError": 11,
-    "Survived": 1888,
-    "Timeout": 458
+    "Ignored": 2638,
+    "Killed": 24675,
+    "NoCoverage": 135,
+    "RuntimeError": 10,
+    "Survived": 1277,
+    "Timeout": 468
   },
   "files": [
     {
@@ -104,24 +104,40 @@
     },
     {
       "file": "src/core/alignment/banded.ts",
-      "score": 44.16,
-      "killed": 237,
+      "score": 91.34,
+      "killed": 486,
       "timeout": 20,
-      "survived": 302,
-      "noCoverage": 23
+      "survived": 48,
+      "noCoverage": 0
     },
     {
       "file": "src/core/alignment/msa.ts",
-      "score": 61.27,
-      "killed": 607,
-      "timeout": 48,
-      "survived": 403,
-      "noCoverage": 11
+      "score": 93.3,
+      "killed": 930,
+      "timeout": 44,
+      "survived": 67,
+      "noCoverage": 3
+    },
+    {
+      "file": "src/core/alignment/pairwise.ts",
+      "score": 95.67,
+      "killed": 430,
+      "timeout": 12,
+      "survived": 20,
+      "noCoverage": 0
+    },
+    {
+      "file": "src/core/alignment/quality.ts",
+      "score": 97.37,
+      "killed": 108,
+      "timeout": 3,
+      "survived": 3,
+      "noCoverage": 0
     },
     {
       "file": "src/core/alignment/scoring.ts",
-      "score": 80.95,
-      "killed": 113,
+      "score": 80.28,
+      "killed": 108,
       "timeout": 6,
       "survived": 27,
       "noCoverage": 1
@@ -136,10 +152,10 @@
     },
     {
       "file": "src/core/analysis/crispr.ts",
-      "score": 90.97,
-      "killed": 434,
+      "score": 90.87,
+      "killed": 419,
       "timeout": 9,
-      "survived": 41,
+      "survived": 40,
       "noCoverage": 3
     },
     {
@@ -176,8 +192,8 @@
     },
     {
       "file": "src/core/analysis/methylation.ts",
-      "score": 96.97,
-      "killed": 158,
+      "score": 96.88,
+      "killed": 153,
       "timeout": 2,
       "survived": 5,
       "noCoverage": 0
@@ -200,8 +216,8 @@
     },
     {
       "file": "src/core/analysis/restriction.ts",
-      "score": 95.81,
-      "killed": 342,
+      "score": 95.76,
+      "killed": 338,
       "timeout": 1,
       "survived": 15,
       "noCoverage": 0
@@ -248,11 +264,11 @@
     },
     {
       "file": "src/core/assembly/assemble.ts",
-      "score": 91.3,
-      "killed": 986,
+      "score": 91.12,
+      "killed": 984,
       "timeout": 22,
-      "survived": 90,
-      "noCoverage": 6
+      "survived": 91,
+      "noCoverage": 7
     },
     {
       "file": "src/core/assembly/consensus.ts",
@@ -272,11 +288,11 @@
     },
     {
       "file": "src/core/assembly/pairing.ts",
-      "score": 80.45,
-      "killed": 251,
+      "score": 95.58,
+      "killed": 389,
       "timeout": 0,
-      "survived": 54,
-      "noCoverage": 7
+      "survived": 14,
+      "noCoverage": 4
     },
     {
       "file": "src/core/checksum/seguid.ts",
@@ -296,8 +312,8 @@
     },
     {
       "file": "src/core/cloning/digest.ts",
-      "score": 90.83,
-      "killed": 197,
+      "score": 90.15,
+      "killed": 182,
       "timeout": 1,
       "survived": 20,
       "noCoverage": 0
@@ -312,8 +328,8 @@
     },
     {
       "file": "src/core/cloning/gateway.ts",
-      "score": 94.87,
-      "killed": 442,
+      "score": 94.71,
+      "killed": 428,
       "timeout": 2,
       "survived": 22,
       "noCoverage": 2
@@ -352,16 +368,16 @@
     },
     {
       "file": "src/core/cloning/mutagenesis.ts",
-      "score": 93.98,
-      "killed": 393,
-      "timeout": 13,
-      "survived": 24,
+      "score": 94.96,
+      "killed": 384,
+      "timeout": 12,
+      "survived": 19,
       "noCoverage": 2
     },
     {
       "file": "src/core/cloning/overlapAssembly.ts",
-      "score": 96.92,
-      "killed": 189,
+      "score": 96.67,
+      "killed": 174,
       "timeout": 0,
       "survived": 4,
       "noCoverage": 2
@@ -376,16 +392,16 @@
     },
     {
       "file": "src/core/cloning/overlapPrimers.ts",
-      "score": 98.59,
-      "killed": 140,
+      "score": 98.61,
+      "killed": 142,
       "timeout": 0,
       "survived": 1,
       "noCoverage": 1
     },
     {
       "file": "src/core/cloning/pcr.ts",
-      "score": 96.73,
-      "killed": 295,
+      "score": 96.66,
+      "killed": 288,
       "timeout": 1,
       "survived": 10,
       "noCoverage": 0
@@ -472,8 +488,8 @@
     },
     {
       "file": "src/core/lineage/describe.ts",
-      "score": 98.37,
-      "killed": 121,
+      "score": 98.23,
+      "killed": 111,
       "timeout": 0,
       "survived": 1,
       "noCoverage": 1
@@ -496,10 +512,10 @@
     },
     {
       "file": "src/core/primers/anneal.ts",
-      "score": 98.22,
-      "killed": 322,
+      "score": 98.39,
+      "killed": 296,
       "timeout": 10,
-      "survived": 5,
+      "survived": 4,
       "noCoverage": 1
     },
     {
@@ -520,8 +536,8 @@
     },
     {
       "file": "src/core/primers/primerDesign.ts",
-      "score": 95,
-      "killed": 690,
+      "score": 94.95,
+      "killed": 682,
       "timeout": 13,
       "survived": 33,
       "noCoverage": 4
@@ -536,10 +552,10 @@
     },
     {
       "file": "src/core/primers/thermo.ts",
-      "score": 90.91,
-      "killed": 234,
+      "score": 89.12,
+      "killed": 207,
       "timeout": 6,
-      "survived": 24,
+      "survived": 26,
       "noCoverage": 0
     },
     {
@@ -600,8 +616,8 @@
     },
     {
       "file": "src/io/genbank/madeFromComment.ts",
-      "score": 97.16,
-      "killed": 651,
+      "score": 97.13,
+      "killed": 643,
       "timeout": 0,
       "survived": 19,
       "noCoverage": 0
@@ -735,5 +751,5 @@
       "noCoverage": 0
     }
   ],
-  "unmeasured": ["src/core/alignment/pairwise.ts", "src/core/alignment/quality.ts"]
+  "unmeasured": []
 }
