@@ -19,6 +19,29 @@ one is opened, and a warning in the status bar says how many others there
 were. AB1 and FASTQ files are sequencing reads, with a quality for every
 base: see [Sequencing reads](15-reads.md).
 
+### When a file will not open
+
+The message in the status bar says what went wrong and, when the file is not
+in a format PlasmidPop reads, lists the formats in the table above. The
+usual causes:
+
+- **Not a sequence file**: a spreadsheet, Word or PDF file, an image, or text
+  saved as UTF-16 (it has null bytes in it). Export or save the sequence as
+  GenBank, FASTA or plain text first.
+- **The wrong extension or content**: a `.txt` or `.fasta` file that does not
+  begin with `>`, a `.gb` file with no `LOCUS` line. Open the file in a text
+  editor and check its first line. Prose, or a table with several columns, is
+  not a sequence.
+- **An empty file**, or one that is only blank lines.
+- **A damaged or cut-off file**: a truncated download, a `.gz` that will not
+  decompress, an AB1 or SnapGene file that ends early, a ZIP that is broken.
+- **A ZIP that is too large**: too many files, or too much data once
+  unpacked. Open the files you need on their own.
+- **Geneious files**: export from Geneious as GenBank first.
+
+A ZIP or a multi-file drop opens whatever it can and lists, in the import
+summary, each file it left out and why.
+
 A WGS, TSA or TLS **master record** (a `CONTIG` line, no `ORIGIN`, a LOCUS
 length counted in `rc`) holds no sequence of its own. It opens as an empty
 document, with a warning, and saving it writes a valid header only; the

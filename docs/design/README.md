@@ -359,3 +359,5 @@ the Bench, item 49). The rest stand.
 146. [A worker pool for batch runs](146-batch-worker-pool.md)
 
 147. [Paired reads: show, correct, switch off](147-paired-reads-controls.md)
+
+148. [Why an open fails: error classes, a clearer message, a reason on open-failed](148-open-failures.md)

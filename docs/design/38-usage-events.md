@@ -40,9 +40,14 @@ all — without snooping.
   — the list is exhaustive over `EditOp` by a `Record`, so a new kind of
   edit cannot be left out; `shortcut` use by binding (`alt+c`, `ctrl+f`,
   …), which says whether the key bindings of item 32 are found at all;
-  `help` page; `file` open-failed, with the format guessed from the
-  extension and reduced to the ones the app knows (`formatOfFileName`), so
-  neither the error message nor a made-up extension can carry a file name.
+  `help` page; `file` open-failed, named `<format>:<reason>` (#447): the
+  format guessed from the extension and reduced to the ones the app knows
+  (`formatOfFileName`), then one of the fixed reasons in
+  `OPEN_FAILURE_REASONS` (`unrecognised-format`, `empty`, `binary`,
+  `corrupt`, `parse-error`, `too-large`, `unsupported`, `unreadable`,
+  `other`; see item 148), e.g. `genbank:parse-error` or
+  `other:unrecognised-format`. Neither the error message, a made-up
+  extension nor a file name can carry through.
 - **Left out on purpose:** sequence length, feature and enzyme counts even
   as buckets, how long a computation took (it gives away the size), where
   an edit was or how long, heartbeat and time-on-page pings, heatmaps,
