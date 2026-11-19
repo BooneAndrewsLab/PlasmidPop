@@ -1,0 +1,39 @@
+# PlasmidPop
+
+> PlasmidPop is a free, browser-based DNA sequence editor and plasmid viewer, comparable in scope to SnapGene. It runs entirely in the browser: no account, no upload, no server round-trip, and it works offline once loaded. MIT licensed.
+
+There is no backend. Documents are stored in the browser (IndexedDB); a document leaves the app only as a download or as a share link that carries it in the URL fragment. The only third-party host is NCBI, contacted only for the accessions or gene names the user types (and a primer pair goes to Primer-BLAST only in a link the user opens). Optional self-hosted Matomo page-view statistics never include sequence content or file names and can be switched off in Help.
+
+## What it does
+
+- Formats: GenBank (.gb, .gbk, .ape), FASTA, SnapGene .dna/.rna/.prot (read and write), GenPept and protein FASTA, AB1 traces, FASTQ (gzipped or not), ZIP of sequence files, records from NCBI by accession.
+- Viewing: linear sequence view and zoomable circular map (Canvas), features, translations, GC content; export as SVG, PNG or PDF.
+- Editing: typing, copy and paste with features, reverse complement, set origin, circular/linear, undo/redo with a history that survives reload; feature editor with GenBank locations (join, complement, origin-spanning); detect common features.
+- Analysis: restriction sites (about 130 bundled enzymes, or REBASE imported by the user), gels, diagnostic digests, ORFs, six-frame translation, primer design and checking, pairwise and multiple sequence alignment, protein properties, CRISPR guide design (SpCas9, SaCas9, Cas12a, custom PAM; off-targets only within open documents).
+- Sequencing: Sanger reads aligned to an expected construct or assembled into a contig; clone verification.
+- Simulated cloning (the Bench): digest, ligation, Golden Gate, Gibson, In-Fusion/NEBuilder, Gateway, overlap-extension PCR, MoClo/Yeast Toolkit plans, PCR, site-directed mutagenesis.
+
+## What it does not do
+
+- No accounts, sync, team libraries or real-time collaboration; no server-side computation.
+- It never writes to the user's disk except as a download; the file you opened is not modified.
+- Not aimed at genomes: sequences above about 10 Mb are out of scope.
+- Primer thermodynamics are a compact nearest-neighbour model checked against Primer3, not a reimplementation of its thal; melting temperatures are good to about 2 C at 500 nM oligo and 50 mM monovalent salt.
+- Sanger repeat placement weighs the chosen place and at most eight alternatives; reads fitting only beyond that keep their best place with a warning. Sanger assembly has no real-world benchmark against another assembler yet.
+- Correctness is checked against independent oracles (e.g. Primer3, Biopython) and mutation testing, which is run by hand before each release, not in CI.
+
+## Links
+
+- [Live app](https://booneandrewslab.github.io/PlasmidPop/)
+- [Repository](https://github.com/BooneAndrewsLab/PlasmidPop)
+- [User guide](https://booneandrewslab.github.io/PlasmidPop/guide/)
+- [Getting started](https://booneandrewslab.github.io/PlasmidPop/guide/getting-started/)
+- [Files and storage](https://booneandrewslab.github.io/PlasmidPop/guide/files/)
+- [Features](https://booneandrewslab.github.io/PlasmidPop/guide/features/)
+- [Restriction enzymes](https://booneandrewslab.github.io/PlasmidPop/guide/enzymes/)
+- [Primers](https://booneandrewslab.github.io/PlasmidPop/guide/primers/)
+- [Alignment and assembly](https://booneandrewslab.github.io/PlasmidPop/guide/align/)
+- [Simulated cloning](https://booneandrewslab.github.io/PlasmidPop/guide/cloning/)
+- [CRISPR guides](https://booneandrewslab.github.io/PlasmidPop/guide/crispr/)
+- [Validation and known limits](https://booneandrewslab.github.io/PlasmidPop/guide/validation/)
+- [Tutorials](https://booneandrewslab.github.io/PlasmidPop/tutorials/)
