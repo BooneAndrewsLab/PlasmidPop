@@ -49,6 +49,35 @@ score is therefore a measure of the tests that ran, not a proof of correctness.
 
 <!-- validation-tables -->
 
+## Known limits and deliberate choices
+
+These are decisions, not oversights. Each has a design note with the
+measurement or the reasoning, and a review that lists one of them as a gap is
+repeating what is written here.
+
+- **Repeat placement looks at eight alternatives.** When a Sanger read fits
+  several copies of a repeat, the assembly weighs the chosen place and at most
+  eight alternatives (16 stretches per read per round). A read that only fits
+  beyond that stays at its best place with the `ambiguous-join` and
+  `pair-distance` warnings, so the failure is visible. The bound is not going
+  up: Sanger reads cannot tell that many copies apart (design note 130).
+- **Primer thermodynamics is a compact nearest-neighbour model.** It is
+  SantaLucia's stacking energies with loop, mismatch and dangling-end terms,
+  checked against Primer3 (see the primer guide for the agreement figures),
+  not a reimplementation of `thal`. Some loop terms were fitted to Primer3's
+  output, so that agreement is partly by construction. Melting temperatures
+  are good to about ±2 °C at 500 nM oligo and 50 mM monovalent salt; other
+  buffers need adjusting by hand. A Rust/WASM version is shelved until batch
+  design measures slow (issue 359).
+- **No real-world benchmark for Sanger assembly yet.** It is checked against
+  constructed read sets and a mutation run, not against an independent
+  assembler on real traces. Issue 450 tracks it.
+- **Mutation testing is run by hand before each release, not in CI.** It
+  takes hours and needs an idle machine, so it would be slow and noisy on a
+  shared runner. The result is committed as
+  `docs/validation/mutation-summary.json`, and the score floor is checked at
+  release time (design note 50).
+
 ## Where the data is
 
 The oracle answers are in `src/test/oracle/` of the
