@@ -26,3 +26,5 @@ Step-by-step exercises in cloning and sequence analysis, with sample files to do
 16. [Proteins](16-proteins.md): protein FASTA and GenPept, Open as protein, weight, pI and extinction coefficient, back-translation
 17. [CRISPR guides](17-crispr.md): the slim tab and the CRISPR workspace; guide sites for SpCas9, SaCas9, Cas12a or a custom PAM, off-targets in the open documents, flags, base-editing windows, pegRNAs, paired nickases, cloning oligos
 18. [Validation](18-validation.md): what is cross-checked against which independent oracle and with which version, the number of cases, the known differences, and the latest mutation score, all generated from the committed data when the app is built
+19. [Frequently asked questions](19-faq.md): is it a free alternative to SnapGene, editing GenBank in the browser, accounts, open source, what leaves your computer, offline use, moving over from Benchling
+20. [Comparison](20-comparison.md): PlasmidPop next to SnapGene, Benchling and Serial Cloner, what is and is not claimed, and where the others do more

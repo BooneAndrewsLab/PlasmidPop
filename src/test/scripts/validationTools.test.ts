@@ -279,7 +279,7 @@ describe('the repository against the Validation page', () => {
   it('is on the page the app shows, with every area and the counts the data gives', () => {
     const page = guidePage('18-validation');
     expect(page, 'the guide has the Validation page').toBeDefined();
-    expect(GUIDE.at(-1)?.id).toBe('18-validation');
+    expect(GUIDE.some((g) => g.id === '18-validation')).toBe(true);
     const md = page?.markdown ?? '';
     expect(md).not.toContain(VALIDATION_MARKER);
     expect(md).not.toContain('<!-- validation-tables -->');

@@ -1,8 +1,10 @@
 import align from '../../../docs/guide/11-align.md?raw';
 import cloning from '../../../docs/guide/12-cloning.md?raw';
+import comparison from '../../../docs/guide/20-comparison.md?raw';
 import crispr from '../../../docs/guide/17-crispr.md?raw';
 import editing from '../../../docs/guide/04-editing.md?raw';
 import enzymes from '../../../docs/guide/07-enzymes.md?raw';
+import faq from '../../../docs/guide/19-faq.md?raw';
 import features from '../../../docs/guide/05-features.md?raw';
 import files from '../../../docs/guide/02-files.md?raw';
 import find from '../../../docs/guide/06-find.md?raw';
@@ -54,6 +56,8 @@ export const GUIDE: readonly GuidePage[] = [
   page('17-crispr', crispr),
   // Its tables are generated from the committed oracle data at build time.
   page('18-validation', validation.replace('<!-- validation-tables -->', __VALIDATION_TABLES__)),
+  page('19-faq', faq),
+  page('20-comparison', comparison),
 ];
 
 export function guidePage(id: string): GuidePage | undefined {

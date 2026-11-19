@@ -3,9 +3,14 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22907552.svg)](https://doi.org/10.5281/zenodo.22907552)
 [![bio.tools](https://img.shields.io/badge/bio.tools-plasmidpop-blue)](https://bio.tools/plasmidpop)
 
-Browser-based DNA sequence editor and plasmid viewer. Everything runs in
-the browser: open a GenBank, FASTA or SnapGene file and start working with
-no account, no upload and no server round-trip. Works offline once loaded.
+A free, open source (MIT) alternative to desktop plasmid editors such as SnapGene that runs
+in the browser: view and edit GenBank files, annotate features, draw linear and
+circular plasmid maps, and run restriction, primer, alignment and cloning
+tools, with no account, no upload and no server round-trip. Open a GenBank,
+FASTA or SnapGene file and start working. Works offline once loaded. How it
+compares with SnapGene, Benchling and Serial Cloner:
+[docs/guide/20-comparison.md](docs/guide/20-comparison.md); common questions:
+[docs/guide/19-faq.md](docs/guide/19-faq.md).
 
 **Try it:** https://booneandrewslab.github.io/PlasmidPop/
 

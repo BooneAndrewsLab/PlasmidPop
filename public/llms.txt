@@ -35,5 +35,7 @@ There is no backend. Documents are stored in the browser (IndexedDB); a document
 - [Alignment and assembly](https://booneandrewslab.github.io/PlasmidPop/guide/align/)
 - [Simulated cloning](https://booneandrewslab.github.io/PlasmidPop/guide/cloning/)
 - [CRISPR guides](https://booneandrewslab.github.io/PlasmidPop/guide/crispr/)
+- [Frequently asked questions](https://booneandrewslab.github.io/PlasmidPop/guide/faq/)
+- [Comparison with SnapGene, Benchling and Serial Cloner](https://booneandrewslab.github.io/PlasmidPop/guide/comparison/)
 - [Validation and known limits](https://booneandrewslab.github.io/PlasmidPop/guide/validation/)
 - [Tutorials](https://booneandrewslab.github.io/PlasmidPop/tutorials/)

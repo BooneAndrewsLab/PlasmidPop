@@ -175,6 +175,31 @@ export function block(b: Block, ctx: LinkContext): string {
   }
 }
 
+/** The guide page whose headings are questions and whose paragraphs are the answers (#446). */
+export const FAQ_PAGE_ID = '19-faq';
+
+/**
+ * The FAQPage structured data of the FAQ page: each level-2 heading is a
+ * question, the paragraphs under it its answer, in the page's own words.
+ */
+export function faqJsonLd(blocks: readonly Block[]): object {
+  const items: { name: string; answers: string[] }[] = [];
+  for (const b of blocks) {
+    if (b.kind === 'heading' && b.level === 2)
+      items.push({ name: plainText(b.children), answers: [] });
+    else if (b.kind === 'paragraph') items.at(-1)?.answers.push(plainText(b.children));
+  }
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: items.map((i) => ({
+      '@type': 'Question',
+      name: i.name,
+      acceptedAnswer: { '@type': 'Answer', text: i.answers.join(' ') },
+    })),
+  };
+}
+
 const GOAL_LABEL = 'You will end with:';
 
 /** The first paragraph as plain text, cut at a word to fit a search snippet. */
@@ -277,6 +302,8 @@ function searchBox(): string {
 
 export function document(opts: {
   section?: SiteSection;
+  /** A schema.org object written into the page as JSON-LD (#446). */
+  jsonLd?: object;
   title: string;
   description: string;
   canonical: string;
@@ -303,7 +330,7 @@ export function document(opts: {
 <meta property="og:url" content="${escapeHtml(canonical)}">
 <meta property="og:image" content="${SITE_URL}og-image.png">
 <meta name="twitter:card" content="summary_large_image">
-<style>${STYLE}${section.search === true ? SEARCH_STYLE : ''}</style>
+${opts.jsonLd === undefined ? '' : `<script type="application/ld+json">${JSON.stringify(opts.jsonLd).replace(/</g, '\\u003c')}</script>\n`}<style>${STYLE}${section.search === true ? SEARCH_STYLE : ''}</style>
 </head>
 <body>
 <header>
@@ -353,6 +380,7 @@ export function generateGuideFiles(pages: readonly SourcePage[]): StaticFile[] {
         fromDir: dir,
         body,
         pager,
+        ...(p.id === FAQ_PAGE_ID ? { jsonLd: faqJsonLd(p.blocks) } : {}),
       }),
     };
   });

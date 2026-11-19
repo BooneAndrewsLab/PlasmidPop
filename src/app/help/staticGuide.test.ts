@@ -54,7 +54,11 @@ describe('static guide pages', () => {
 
   it('use no script but the search box’s own, and no third-party fetches', () => {
     for (const f of files) {
-      expect(f.content.match(/<script[^>]*>/gi), f.path).toHaveLength(1);
+      // The FAQ page also carries its FAQPage JSON-LD, which is data, not a script that runs (#446).
+      const scripts = (f.content.match(/<script[^>]*>/gi) ?? []).filter(
+        (t) => !t.includes('application/ld+json'),
+      );
+      expect(scripts, f.path).toHaveLength(1);
       expect(f.content, f.path).toMatch(
         /<script type="module" src="(?:\.\.?\/)search\.js"><\/script>/,
       );
