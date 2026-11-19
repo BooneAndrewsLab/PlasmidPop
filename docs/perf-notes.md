@@ -1744,13 +1744,33 @@ workstation, and a 60 s budget failed main on 2026-11-08): it runs 12 rows and
 asserts what they make, plus a loose budget on the pool check. `PLASMIDPOP_PERF=1
 npx vitest run src/app/batch.timing.test.ts` runs all 96 and prints the time.
 
-**The pool (#423, design note 146).** Built: batch runs use up to four
-workers (`hardwareConcurrency`, capped). The 96-row plate was **not** timed
-through the pool: vitest has no `Worker`, and a real-browser timed run was
-not possible in the environment this was written in, so there is no
-pooled number here and none is claimed. `PLASMIDPOP_PERF=1` cannot show it either, since it is the engine path.
-The browser run, to compare with the 19.6-21.9 s above, is still to be made
-and recorded.
+**The pool (#423, design note 146), timed in a browser (#449, 2026-11-19).**
+The same plate through the Batch page of a production build (`vite build`,
+`vite preview`), driven in Chrome 156 on `ridiculousbuild` (Xeon E5-2630 v3,
+8 cores / 16 threads, `hardwareConcurrency` 16), tab in the foreground. 96
+region rows of 600 bases on a 4.4 kb circular template (random, different
+seed from the vitest plate), default criteria. The timer ran from the click on
+"Design 96 rows" until the progress bar was gone. The page has no
+single-worker switch, so both arms ran a **temporary local build** that read
+`?pool=N` and passed it to `poolSize`; that edit was reverted and is not in
+the tree. `?pool=1` is one worker, the serial run; `?pool=4` is what a 16-thread
+machine gets from the shipped code. Six runs each, back to back in one page
+session (the first run after a load included). Load average was 9-10 at
+the first serial run and 2.5-4 for the rest.
+
+| Workers    | Runs (s)                           | Median | Spread      |
+| ---------- | ---------------------------------- | ------ | ----------- |
+| 1 (serial) | 18.1, 18.4, 18.4, 18.5, 18.6, 18.7 | 18.4 s | 18.1-18.7 s |
+| 4 (pool)   | 6.2, 6.2, 6.3, 6.3, 6.4, 6.8       | 6.3 s  | 6.2-6.8 s   |
+
+**The pool is 2.9 times faster** (medians; 18.4 s to 6.3 s), short of the
+ideal 4 times: each worker starts and loads the engine, each row is posted to
+its worker and back, and four busy workers share cores with the page and the
+rest of the machine. The serial browser figure (about 19 s) matches the
+engine-path 19.6-21.9 s above, so the worker round trip costs little. The
+claim in the 1.25.0 notes holds; no change to it is needed. One machine, one
+template, one plate: the spread is small, but the ratio on a laptop with
+fewer cores will be lower (`poolSize` gives 2 workers on 2 cores).
 
 ## A position fold through a helper (#432, design note 144, 2026-11-10)
 
