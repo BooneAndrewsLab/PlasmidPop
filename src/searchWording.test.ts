@@ -48,7 +48,9 @@ describe('index.html search wording (#446)', () => {
   it('opens the README with the same phrases', () => {
     const head = read('README.md').split('\n').slice(0, 20).join(' ').replace(/\s+/g, ' ');
     expect(head).toMatch(/free, open source/);
-    expect(head).toMatch(/alternative to desktop plasmid editors such as\s+SnapGene/);
+    expect(head).toMatch(
+      /alternative to desktop plasmid editors such as\s+SnapGene, ApE and Serial Cloner/,
+    );
     expect(head).toMatch(/view and edit GenBank files/);
     expect(head).toMatch(/no account/);
   });
@@ -103,8 +105,8 @@ describe('the FAQ page (#446)', () => {
 });
 
 describe('the comparison page (#446)', () => {
-  it('names the three programs and says where they do more', () => {
-    for (const name of ['SnapGene', 'Benchling', 'Serial Cloner'])
+  it('names the four programs and says where they do more', () => {
+    for (const name of ['SnapGene', 'ApE', 'Benchling', 'Serial Cloner'])
       expect(comparisonMd).toContain(name);
     expect(comparisonMd).toContain('Where the others do more');
   });

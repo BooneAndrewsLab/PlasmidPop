@@ -1,4 +1,4 @@
-# PlasmidPop compared with SnapGene, Benchling and Serial Cloner
+# PlasmidPop compared with SnapGene, ApE, Benchling and Serial Cloner
 
 People looking for a plasmid editor often ask how PlasmidPop differs from the
 programs they already know. This page states what is true of PlasmidPop and
@@ -21,6 +21,8 @@ documentation for what it offers today.
 ## What is widely known about the others
 
 - **SnapGene** is commercial software that you install on a computer.
+- **ApE** (A plasmid Editor) is a free desktop program; PlasmidPop reads and
+  writes the GenBank files it uses, including its `.ape` extension.
 - **Benchling** is an online platform; using it means having an account.
 - **Serial Cloner** is a desktop program for molecular biology work on a
   computer.
@@ -35,6 +37,9 @@ or file formats they have today: look that up in their own documentation.
   has no vendor support. If your lab already relies on SnapGene, PlasmidPop can
   open and write its `.dna` files, but it does not claim to do everything
   SnapGene does.
+- **ApE** is a long-established desktop editor. PlasmidPop
+  does not claim to cover everything it does, and it is not an installed
+  program.
 - **Benchling** is an online platform with accounts, shared projects and team
   workflows. PlasmidPop has no accounts, sync, team libraries or real-time
   collaboration, and will not: it has no server. Sharing is a link or a file.

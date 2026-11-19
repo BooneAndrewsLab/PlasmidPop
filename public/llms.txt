@@ -1,6 +1,6 @@
 # PlasmidPop
 
-> PlasmidPop is a free, browser-based DNA sequence editor and plasmid viewer, comparable in scope to SnapGene. It runs entirely in the browser: no account, no upload, no server round-trip, and it works offline once loaded. MIT licensed.
+> PlasmidPop is a free, browser-based DNA sequence editor and plasmid viewer, comparable in scope to desktop editors such as SnapGene and ApE. It runs entirely in the browser: no account, no upload, no server round-trip, and it works offline once loaded. MIT licensed.
 
 There is no backend. Documents are stored in the browser (IndexedDB); a document leaves the app only as a download or as a share link that carries it in the URL fragment. The only third-party host is NCBI, contacted only for the accessions or gene names the user types (and a primer pair goes to Primer-BLAST only in a link the user opens). Optional self-hosted Matomo page-view statistics never include sequence content or file names and can be switched off in Help.
 
@@ -36,6 +36,6 @@ There is no backend. Documents are stored in the browser (IndexedDB); a document
 - [Simulated cloning](https://booneandrewslab.github.io/PlasmidPop/guide/cloning/)
 - [CRISPR guides](https://booneandrewslab.github.io/PlasmidPop/guide/crispr/)
 - [Frequently asked questions](https://booneandrewslab.github.io/PlasmidPop/guide/faq/)
-- [Comparison with SnapGene, Benchling and Serial Cloner](https://booneandrewslab.github.io/PlasmidPop/guide/comparison/)
+- [Comparison with SnapGene, ApE, Benchling and Serial Cloner](https://booneandrewslab.github.io/PlasmidPop/guide/comparison/)
 - [Validation and known limits](https://booneandrewslab.github.io/PlasmidPop/guide/validation/)
 - [Tutorials](https://booneandrewslab.github.io/PlasmidPop/tutorials/)
