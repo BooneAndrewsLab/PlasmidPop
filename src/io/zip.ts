@@ -98,6 +98,8 @@ export function readZip(
         if (seen > limits.maxEntries) {
           throw new FormatError(
             `The archive holds more than ${limits.maxEntries.toLocaleString()} files`,
+            undefined,
+            'too-large',
           );
         }
         if (isUnsafe(path)) {
@@ -110,14 +112,22 @@ export function readZip(
         }
         total += info.originalSize;
         if (total > limits.maxTotalBytes) {
-          throw new FormatError('The archive is too large to open: it expands to too much data');
+          throw new FormatError(
+            'The archive is too large to open: it expands to too much data',
+            undefined,
+            'too-large',
+          );
         }
         return true;
       },
     });
   } catch (e) {
     if (e instanceof FormatError) throw e;
-    throw new FormatError('This ZIP archive is damaged or uses an unsupported method');
+    throw new FormatError(
+      'This ZIP archive is damaged or uses an unsupported method',
+      undefined,
+      'corrupt',
+    );
   }
   const entries = Object.entries(files).map(([name, content]) => ({
     path: name.replace(/\\/g, '/'),

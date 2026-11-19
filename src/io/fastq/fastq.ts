@@ -27,7 +27,11 @@ export function parseFastq(text: string): ParseResult {
     const headerLine = k + 1;
     const header = (lines[k] ?? '').trim();
     if (!header.startsWith('@')) {
-      throw new FormatError('FASTQ records must start with an "@" header line', headerLine);
+      throw new FormatError(
+        'FASTQ records must start with an "@" header line',
+        headerLine,
+        'unrecognised-format',
+      );
     }
     k++;
     let bases = '';

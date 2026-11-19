@@ -19,6 +19,8 @@ const FASTQ_EXTENSIONS = new Set(['fastq', 'fq']);
  */
 const SEQUENCE_RUN = 10;
 
+const EMPTY_MESSAGE = 'The file is empty.';
+
 export function extensionOf(filename: string): string {
   const dot = filename.lastIndexOf('.');
   return dot < 0 ? '' : filename.slice(dot + 1).toLowerCase();
@@ -77,14 +79,29 @@ export function parseSequenceData(
   if (isSnapGene(data)) return parseSnapGene(data, filename);
   if (isAbif(data)) return parseAbif(data, filename);
   const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  if (bytes.length === 0) throw new FormatError(EMPTY_MESSAGE, undefined, 'empty');
   if (isGzip(bytes)) {
-    throw new FormatError('This file is gzipped; it has to be decompressed before it is read');
+    throw new FormatError(
+      'This file is gzipped; it has to be decompressed before it is read',
+      undefined,
+      'corrupt',
+    );
+  }
+  // Text has no NUL bytes. Their presence says an image, a Word or PDF file,
+  // or UTF-16 text; none of it is read as a sequence.
+  if (bytes.subarray(0, 4000).includes(0)) {
+    throw new FormatError(
+      'This is not a text sequence file: it is binary (a spreadsheet, Word or PDF file, an image, or text saved as UTF-16)',
+      undefined,
+      'binary',
+    );
   }
   return parseSequenceFile(new TextDecoder('utf-8').decode(bytes), filename);
 }
 
 /** Parses a text file in any supported format, detecting which one it is. */
 export function parseSequenceFile(text: string, filename?: string): ParseResult {
+  if (text.trim() === '') throw new FormatError(EMPTY_MESSAGE, undefined, 'empty');
   const format = detectFormat(text, filename);
   switch (format) {
     case 'genbank':
@@ -117,6 +134,8 @@ export function parseSequenceFile(text: string, filename?: string): ParseResult 
         filename === undefined
           ? 'Unrecognised sequence format'
           : `Unrecognised sequence format for "${filename}"`,
+        undefined,
+        'unrecognised-format',
       );
   }
 }
@@ -158,7 +177,7 @@ export async function readSequenceData(data: ArrayBuffer, filename?: string): Pr
     const stream = source.pipeThrough(new DecompressionStream('gzip'));
     inflated = await new Response(stream).arrayBuffer();
   } catch {
-    throw new FormatError('This gzipped file could not be decompressed');
+    throw new FormatError('This gzipped file could not be decompressed', undefined, 'corrupt');
   }
   return parseSequenceData(inflated, filename?.replace(/\.gz$/i, ''));
 }

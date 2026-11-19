@@ -106,7 +106,11 @@ export function parseFasta(text: string): ParseResult {
     } else if (header !== null) {
       seq += line;
     } else if (line !== '') {
-      throw new FormatError('FASTA files must start with a ">" header line', idx + 1);
+      throw new FormatError(
+        'FASTA files must start with a ">" header line',
+        idx + 1,
+        'unrecognised-format',
+      );
     }
   });
   flush();

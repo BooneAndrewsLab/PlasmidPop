@@ -35,7 +35,7 @@ describe('readSequenceArchive (#213)', () => {
       zip({ 'notes.csv': 'a,b,c\n1,2,3\n', 'empty.gb': '' }),
     );
     expect(skipped).toEqual([
-      { path: 'empty.gb', reason: 'No LOCUS line found; not a GenBank file' },
+      { path: 'empty.gb', reason: 'The file is empty.' },
       { path: 'notes.csv', reason: 'Unrecognised sequence format' },
     ]);
   });

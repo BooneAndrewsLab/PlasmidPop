@@ -1,14 +1,16 @@
 import { type SeqDocument } from '@/core';
 import {
   type ArchiveRecord,
+  type OpenFailureReason,
   FormatError,
   isZip,
+  openFailureReason,
   parseSequenceFile,
   readSequenceArchive,
   readSequenceData,
 } from '@/io';
 
-import { analytics, formatOfFileName } from './analytics';
+import { analytics, openFailedName } from './analytics';
 import { type Example } from './examples';
 import { detectOnOpen } from './state/detection';
 import { type ImportSummary, type OpenStorage, editorStore } from './state/editorStore';
@@ -16,6 +18,29 @@ import { type ImportSummary, type OpenStorage, editorStore } from './state/edito
 /** What the file pickers offer: every format `readSequenceData` reads. */
 export const SEQUENCE_FILE_ACCEPT =
   '.gb,.gbk,.genbank,.gbff,.gp,.gpff,.ape,.fa,.fasta,.fna,.faa,.seq,.txt,.dna,.prot,.rna,.ab1,.abi,.fastq,.fq,.gz,.zip';
+
+/** What every refusal that is about the kind of file ends with: what would have worked. */
+export const ACCEPTED_FORMATS =
+  'PlasmidPop opens GenBank (.gb .gbk .gbff .ape), GenPept (.gp .gpff), FASTA (.fa .fasta .fna .faa .txt), SnapGene (.dna .rna .prot), AB1 (.ab1 .abi), FASTQ (.fastq .fq, gzipped or not), bare bases, and ZIPs of these.';
+
+/** The reasons whose message is better for naming the formats that are accepted. */
+const NAMES_FORMATS: ReadonlySet<OpenFailureReason> = new Set([
+  'unrecognised-format',
+  'binary',
+  'empty',
+]);
+
+/** The message for a failed open, and the reason to report with it. */
+export function describeOpenFailure(e: unknown): { message: string; reason: OpenFailureReason } {
+  const reason = openFailureReason(e);
+  const message = e instanceof Error ? e.message : String(e);
+  return {
+    message: NAMES_FORMATS.has(reason)
+      ? `${message.replace(/\.$/, '')}. ${ACCEPTED_FORMATS}`
+      : message,
+    reason,
+  };
+}
 
 const UNSUPPORTED: Readonly<Record<string, string>> = {
   geneious: 'Geneious files are not supported yet. Export as GenBank first.',
@@ -30,7 +55,7 @@ export async function openFile(file: File): Promise<string | null> {
   const ext = file.name.slice(file.name.lastIndexOf('.') + 1).toLowerCase();
   const unsupported = UNSUPPORTED[ext];
   if (unsupported !== undefined) {
-    analytics.track('file', 'open-failed', formatOfFileName(file.name));
+    analytics.track('file', 'open-failed', openFailedName(file.name, 'unsupported'));
     editorStore.fail(unsupported);
     return null;
   }
@@ -38,6 +63,7 @@ export async function openFile(file: File): Promise<string | null> {
   try {
     data = await file.arrayBuffer();
   } catch {
+    analytics.track('file', 'open-failed', openFailedName(file.name, 'unreadable'));
     editorStore.fail(`Could not read "${file.name}".`);
     return null;
   }
@@ -52,8 +78,9 @@ export async function openFile(file: File): Promise<string | null> {
     detectOnOpen(id);
     return id;
   } catch (e) {
-    analytics.track('file', 'open-failed', formatOfFileName(file.name));
-    editorStore.fail(e instanceof Error ? e.message : String(e));
+    const failure = describeOpenFailure(e);
+    analytics.track('file', 'open-failed', openFailedName(file.name, failure.reason));
+    editorStore.fail(failure.message);
     return null;
   }
 }
@@ -122,8 +149,9 @@ async function importFiles(files: readonly File[]): Promise<void> {
         });
       }
     } catch (e) {
-      analytics.track('file', 'open-failed', formatOfFileName(file.name));
-      skipped.push({ name: file.name, reason: e instanceof Error ? e.message : String(e) });
+      const failure = describeOpenFailure(e);
+      analytics.track('file', 'open-failed', openFailedName(file.name, failure.reason));
+      skipped.push({ name: file.name, reason: failure.message });
     }
   }
   const before = new Set(editorStore.getState().documents.map((d) => d.documentId));

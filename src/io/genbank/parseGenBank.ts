@@ -554,7 +554,11 @@ function parseSequence(
 function parseRecord(lines: readonly Line[], warnings: ParseWarning[]): SeqDocument {
   const first = lines[0];
   if (!first?.text.startsWith('LOCUS')) {
-    throw new FormatError('GenBank record must start with a LOCUS line', first?.number);
+    throw new FormatError(
+      'GenBank record must start with a LOCUS line',
+      first?.number,
+      'unrecognised-format',
+    );
   }
   const locus = parseLocus(first);
 
@@ -650,7 +654,12 @@ function parseRecord(lines: readonly Line[], warnings: ParseWarning[]): SeqDocum
  */
 export function parseGenBank(text: string): ParseResult {
   const records = splitRecords(text);
-  if (records.length === 0) throw new FormatError('No LOCUS line found; not a GenBank file');
+  if (records.length === 0)
+    throw new FormatError(
+      'No LOCUS line found; not a GenBank file',
+      undefined,
+      'unrecognised-format',
+    );
   const warnings: ParseWarning[] = [];
   const documents = records.map((record) => parseRecord(record, warnings));
   return { format: 'genbank', documents, warnings };

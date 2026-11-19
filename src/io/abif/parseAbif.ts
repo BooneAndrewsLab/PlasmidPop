@@ -53,13 +53,14 @@ export function isAbif(data: ArrayBuffer | Uint8Array): boolean {
 }
 
 function readDirectory(view: DataView): Map<string, Entry> {
-  if (view.byteLength < HEADER_SIZE) throw new FormatError('AB1 file is truncated');
+  if (view.byteLength < HEADER_SIZE)
+    throw new FormatError('AB1 file is truncated', undefined, 'corrupt');
   // The header's directory entry starts at byte 6; its count and offset say
   // where the directory is and how many entries it holds.
   const count = view.getInt32(6 + 12);
   const start = view.getInt32(6 + 20);
   if (count < 0 || start < 0 || start + count * ENTRY_SIZE > view.byteLength) {
-    throw new FormatError('AB1 directory lies outside the file');
+    throw new FormatError('AB1 directory lies outside the file', undefined, 'corrupt');
   }
   const entries = new Map<string, Entry>();
   for (let k = 0; k < count; k++) {

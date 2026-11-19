@@ -85,11 +85,13 @@ function readPackets(bytes: Uint8Array): RawPacket[] {
   const out: RawPacket[] = [];
   let i = 0;
   while (i < bytes.length) {
-    if (i + 5 > bytes.length) throw new FormatError('Truncated SnapGene packet header');
+    if (i + 5 > bytes.length)
+      throw new FormatError('Truncated SnapGene packet header', undefined, 'corrupt');
     const type = bytes[i] ?? 0;
     const view = new DataView(bytes.buffer, bytes.byteOffset + i + 1, 4);
     const length = view.getUint32(0, false);
-    if (i + 5 + length > bytes.length) throw new FormatError('Truncated SnapGene packet payload');
+    if (i + 5 + length > bytes.length)
+      throw new FormatError('Truncated SnapGene packet payload', undefined, 'corrupt');
     out.push({ type, payload: bytes.subarray(i + 5, i + 5 + length) });
     i += 5 + length;
   }

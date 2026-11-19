@@ -22,6 +22,7 @@
 
 import { type EditOp } from '@/core';
 import type { Enzyme } from '@/core/analysis/restriction';
+import type { OpenFailureReason } from '@/io';
 
 export interface AnalyticsConfig {
   /** Matomo instance URL, with trailing slash. */
@@ -127,7 +128,8 @@ export const EVENTS = {
    * `open-ncbi-failed` one that fetched none, named by why (`not-found`,
    * `offline`, `network`, `rate-limit`, `too-large`, `server`,
    * `not-genbank`): never the accession, the gene name or the organism,
-   * nor how many.
+   * nor how many. `open-failed` is named `<format>:<reason>` (#447): the
+   * format guessed from the extension and one of `OPEN_FAILURE_REASONS`.
    */
   file: [
     'open',
@@ -418,6 +420,16 @@ export function formatOfFileName(fileName: string): string {
   if (['fastq', 'fq', 'gz'].includes(ext)) return 'fastq';
   if (ext === 'geneious') return 'geneious';
   return 'other';
+}
+
+/**
+ * The name of a `file / open-failed` event: the format guessed from the
+ * extension, then why it failed (#447), as `genbank:parse-error`. Both halves
+ * come from fixed lists; neither the error message nor the extension itself
+ * can reach the tracker.
+ */
+export function openFailedName(fileName: string, reason: OpenFailureReason): string {
+  return `${formatOfFileName(fileName)}:${reason}`;
 }
 
 /** How the page is running: an installed PWA or a browser tab. */
