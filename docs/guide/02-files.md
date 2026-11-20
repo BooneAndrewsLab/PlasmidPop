@@ -709,6 +709,14 @@ From the **File** menu:
   says so.
 
 - **Export sequence as FASTA**.
+- **Download protein FASTA…**: the protein of every `CDS` feature as one
+  protein FASTA file (`.faa`), one record each, read with the feature's own
+  `/transl_table`, `/codon_start`, `join(...)`, strand and origin wrap. The
+  terminal stop is left off, and the genetic code is named in a description
+  line only when it is not the standard one. Greyed out for a protein, which
+  is already residues, and for a document with no `CDS` feature. One CDS, or
+  an ORF, can be downloaded from the [Features](05-features.md) and
+  [ORFs](08-orfs.md) tabs.
 - **Export read as FASTQ**, for a document opened from an AB1 or FASTQ
   file: the bases with their qualities. Offered only while the bases are
   the read's; see [Downloading a read](15-reads.md#downloading-a-read).

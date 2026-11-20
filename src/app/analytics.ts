@@ -121,7 +121,10 @@ export const EVENTS = {
    * `sequence-svg-zip` (A4 pages as one ZIP, #30, #242), `sequence-png`,
    * `sequence-png-zip` (#236), `sequence-pdf-vector`, `sequence-pdf-raster`
    * (a PDF of every page, #242; all from the one Export figure dialog, #240),
-   * `fasta`, `fastq`, `selection-genbank`, `selection-fasta`.
+   * `fasta`, `fastq`, `selection-genbank`, `selection-fasta`, and the
+   * protein FASTA (#451, item 149): `protein-fasta` (every CDS, from the File
+   * menu), `cds-protein-fasta` (one feature) and `orf-protein-fasta` (an ORF
+   * or the selection, from the ORFs tab).
    * `open-ncbi` is File ▸ Open from NCBI… fetching at least one record
    * (#65, item 58) — unnamed for an accession list, `region` for a range
    * of one record and `gene` for a gene looked up by name (#299) — and

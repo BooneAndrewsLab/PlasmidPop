@@ -857,6 +857,7 @@ describe('toolbar', () => {
       'Restore from backup…',
       'Export figure…', // the map or the sequence view as a picture (#240)
       'Export sequence as FASTA',
+      'Download protein FASTA…',
       'Export selection as GenBank',
       'Export selection as FASTA',
       'Show files',

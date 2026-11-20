@@ -7,6 +7,7 @@ import {
   firstQualifier,
   formatLocation,
   hasTool,
+  isCodingFeature,
   isStaleTranslation,
   translationFor,
 } from '@/core';
@@ -22,6 +23,9 @@ import {
 import { drawableFeatures, hiddenTypeCount, hiddenTypesNote } from '@/view/visibleFeatures';
 
 import { removeOtherTranscriptsOp, removeOtherMembersOp, removeTypeOp } from '../featureRemoval';
+import { analytics } from '../analytics';
+import { cdsProteinFasta, cdsProteinFileName } from '../proteinExport';
+import { downloadText } from '../saveFile';
 import { editorStore } from '../state/editorStore';
 import { useTranslationProblems } from '../state/translationProblems';
 import { useEditorState } from '../state/useEditorStore';
@@ -494,6 +498,21 @@ export function FeatureList({ doc, reader = false }: Props) {
                     plan={plan}
                     reader={reader}
                   />
+                )}
+                {selected && editingFeatureId !== f.id && !doc.isProtein && isCodingFeature(f) && (
+                  <div className="feature-item__actions feature-item__actions--wrap">
+                    <button
+                      type="button"
+                      className="button button--quiet button--small"
+                      data-tip="Download this CDS's protein as a protein FASTA file (.faa)"
+                      onClick={() => {
+                        analytics.track('file', 'export', 'cds-protein-fasta');
+                        downloadText(cdsProteinFileName(doc, f), cdsProteinFasta(doc, [f]));
+                      }}
+                    >
+                      Download protein
+                    </button>
+                  </div>
                 )}
                 {!reader && selected && renaming !== f.id && editingFeatureId !== f.id && (
                   <div className="feature-item__actions feature-item__actions--wrap">

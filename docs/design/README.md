@@ -361,3 +361,5 @@ the Bench, item 49). The rest stand.
 147. [Paired reads: show, correct, switch off](147-paired-reads-controls.md)
 
 148. [Why an open fails: error classes, a clearer message, a reason on open-failed](148-open-failures.md)
+
+149. [Protein FASTA export: every CDS, one CDS, an ORF or a selection as .faa](149-protein-fasta-export.md)

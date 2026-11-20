@@ -48,6 +48,10 @@ affected: those are always read with their own `/transl_table`.
 2. **ORF translation** below the list shows the protein, with the first
    codon as `M` and the stop as `*`.
 3. **Copy protein** puts the amino-acid sequence on the clipboard.
+   **Download FASTA** saves it as a protein FASTA file (`.faa`), without the
+   terminal stop; the header gives the coordinates, the strand and, when it
+   is not the standard one, the genetic code. It works the same for the
+   translation of a selection.
 4. **Add as CDS feature** annotates the ORF as a `CDS` with `/codon_start=1`
    and the `/translation`, opens the Features tab and lets you type the
    name straight away. When the code is not the standard one it writes

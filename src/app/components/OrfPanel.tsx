@@ -13,7 +13,10 @@ import {
 
 import { type OverlaySpan } from '@/view/overlay';
 
+import { analytics } from '../analytics';
 import { copyText } from '../clipboard';
+import { rangeProteinFasta, rangeProteinFileName } from '../proteinExport';
+import { downloadText } from '../saveFile';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { GeneticCodeSelect } from './GeneticCodeSelect';
@@ -192,6 +195,30 @@ export function OrfPanel({ doc }: Props) {
               }}
             >
               Copy protein
+            </button>
+            <button
+              type="button"
+              className="button button--small"
+              data-tip="Download this protein as a protein FASTA file (.faa)"
+              onClick={() => {
+                const range = selectedOrf?.range ?? selection;
+                if (range === null) return;
+                const strand = selectedOrf?.strand ?? 'forward';
+                analytics.track('file', 'export', 'orf-protein-fasta');
+                downloadText(
+                  rangeProteinFileName(doc, range, strand),
+                  rangeProteinFasta(
+                    doc,
+                    range,
+                    strand,
+                    protein,
+                    table,
+                    selectedOrf === undefined ? 'selection' : 'ORF',
+                  ),
+                );
+              }}
+            >
+              Download FASTA
             </button>
             {selectedOrf !== undefined && (
               <button

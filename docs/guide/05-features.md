@@ -24,6 +24,11 @@ of a circular sequence.
   type hidden in the views included. One **Undo** puts them all back in
   their places (see [Removing features in bulk](#removing-features-in-bulk)).
   **Double-click** a row to rename it in place.
+- A selected `CDS` also gets **Download protein**: its translation as a
+  protein FASTA file (`.faa`), read with the feature's own `/transl_table`
+  and `/codon_start`, across a `join(...)`, on the reverse strand or over
+  the origin. It is there in the read-only view too. For every `CDS` at once
+  see **File ▸ Download protein FASTA…** in [Files](02-files.md).
 - A ⚠ after a CDS's name means its bases no longer give the protein its
   `/translation` states — usually because of an edit inside it. Select it
   to see what differs and to update or remove the stored translation (see

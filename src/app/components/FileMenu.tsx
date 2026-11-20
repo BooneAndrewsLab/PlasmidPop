@@ -1,11 +1,12 @@
 import { analytics } from '../analytics';
-import { type ReactNode, useCallback, useState } from 'react';
+import { type ReactNode, useCallback, useMemo, useState } from 'react';
 
 import { type SeqDocument, extractRange, hasTool, isEmptyRange } from '@/core';
 
 import { backUpAll, pickBackupAndRestore } from '../backup';
 import { EXAMPLES } from '../examples';
 import { openExample } from '../openFile';
+import { cdsProteinFasta, cdsProteinFileName, exportableCds } from '../proteinExport';
 import { copyShareLink } from '../share';
 import { downloadText, fileNameFor, readSetAside, serialize } from '../saveFile';
 import { editDiffOf } from '../state/editDiff';
@@ -101,6 +102,8 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
     setExporting(false);
   }, []);
   const hasSelection = selection !== null && !isEmptyRange(selection);
+  // Translating every CDS is only worth doing while the menu is showing.
+  const cdsFeatures = useMemo(() => (open ? exportableCds(doc) : []), [open, doc]);
   const example = EXAMPLES[0];
 
   const report = (p: Promise<unknown>): void => {
@@ -295,6 +298,22 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
               </Item>
             )
           )}
+          <Item
+            disabled={cdsFeatures.length === 0}
+            tip={
+              doc.isProtein
+                ? 'A protein document is already residues: use Export sequence as FASTA'
+                : cdsFeatures.length === 0
+                  ? 'This document has no CDS feature to translate: annotate one, or use an ORF from the ORFs tab'
+                  : 'The protein of every CDS feature as one protein FASTA file (.faa)'
+            }
+            onClick={run(() => {
+              analytics.track('file', 'export', 'protein-fasta');
+              downloadText(cdsProteinFileName(doc), cdsProteinFasta(doc, cdsFeatures));
+            })}
+          >
+            Download protein FASTA…
+          </Item>
           <Item
             disabled={!hasSelection}
             onClick={run(() => {
