@@ -40,7 +40,8 @@ all — without snooping.
   — the list is exhaustive over `EditOp` by a `Record`, so a new kind of
   edit cannot be left out; `shortcut` use by binding (`alt+c`, `ctrl+f`,
   …), which says whether the key bindings of item 32 are found at all;
-  `help` page; `file` open-failed, named `<format>:<reason>` (#447): the
+  `help` page, and `tutorials` for a click on the empty screen's Tutorials
+  link (#433, no name); `file` open-failed, named `<format>:<reason>` (#447): the
   format guessed from the extension and reduced to the ones the app knows
   (`formatOfFileName`), then one of the fixed reasons in
   `OPEN_FAILURE_REASONS` (`unrecognised-format`, `empty`, `binary`,

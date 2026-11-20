@@ -902,7 +902,7 @@ The public build sends anonymous usage statistics to a self-hosted
 [Matomo](https://matomo.org) instance: page views and coarse events such as
 "opened a GenBank file", "ran a ligation" or "exported the map as SVG", and
 which parts of the app a visit used at all — which sidebar tabs, views,
-toggles and guide pages, which kinds of edit, which keyboard shortcuts —
+toggles and guide pages, whether the Tutorials link was followed, which kinds of edit, which keyboard shortcuts —
 each reported once per visit however often it is used. The version of the
 app, and whether it runs on a phone or as an installed app, are sent once.
 Never sent: sequences, feature names, file names, names you give your own

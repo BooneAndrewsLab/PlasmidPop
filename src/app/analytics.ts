@@ -349,8 +349,11 @@ export const EVENTS = {
   verify: ['run', 'csv', 'compare'],
   /** A key binding was used; the name is the binding, e.g. `alt+c`. */
   shortcut: ['use'],
-  /** Which page of the guide was read. */
-  help: ['page'],
+  /**
+   * `page` is which page of the guide was read; `tutorials` is the empty
+   * screen's Tutorials link followed (#433), no name.
+   */
+  help: ['page', 'tutorials'],
   /**
    * The phone reader and touch (#43): `long-press-copy` is the Copy button
    * a long-press selection offers, used; never how many bases.

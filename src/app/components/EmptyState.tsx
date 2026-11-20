@@ -8,6 +8,7 @@ import {
   groupByParent,
 } from '@/storage';
 
+import { analytics } from '../analytics';
 import { EXAMPLES } from '../examples';
 import { openGuide } from '../help/openGuide';
 import { openExample, openPastedText } from '../openFile';
@@ -243,6 +244,9 @@ export function EmptyState() {
               href={`${import.meta.env.BASE_URL}tutorials/`}
               target="_blank"
               rel="noopener"
+              onClick={() => {
+                analytics.trackOnce('help', 'tutorials');
+              }}
             >
               Tutorials
             </a>

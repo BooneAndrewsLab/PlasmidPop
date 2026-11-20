@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 
 import { type DocumentSummary, SCRATCH_LIFETIME_DAYS } from '@/storage';
 
+import { analytics } from '../analytics';
 import { onOpenGuide } from '../help/openGuide';
 import { editorStore } from '../state/editorStore';
 import { persistence } from '../state/persistence';
@@ -51,6 +52,22 @@ describe('EmptyState start buttons', () => {
     fireEvent.click(screen.getByRole('button', { name: 'User guide' }));
     off();
     expect(opened).toEqual(['01-getting-started']);
+  });
+
+  it('reports a click on Tutorials as a coarse help event and still opens the page (#433)', async () => {
+    const listed = Promise.resolve([]);
+    vi.spyOn(persistence, 'listStored').mockReturnValue(listed);
+    vi.spyOn(persistence, 'pruneScratch').mockResolvedValue(0);
+    const once = vi.spyOn(analytics, 'trackOnce').mockImplementation(() => undefined);
+    render(<EmptyState />);
+    await act(() => listed);
+    const tutorials = screen.getByRole('link', { name: 'Tutorials' });
+    fireEvent.click(tutorials);
+    expect(once).toHaveBeenCalledTimes(1);
+    expect(once).toHaveBeenCalledWith('help', 'tutorials');
+    expect(tutorials.getAttribute('href')).toBe(`${import.meta.env.BASE_URL}tutorials/`);
+    expect(tutorials.getAttribute('target')).toBe('_blank');
+    once.mockRestore();
   });
 
   it('offers the multiple alignment window, which needs no document (#369)', async () => {
