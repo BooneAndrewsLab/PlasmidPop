@@ -559,8 +559,7 @@ are under **Technical details**, closed until you open them.
 ### Without a document
 
 Several records can be aligned with each other without opening any of them:
-**File ▸ Multiple alignment…**, or on the start page, **align several
-sequences together**. A window opens with its own box: paste FASTA or
+**File ▸ Multiple alignment…**, or on the start page, **Align several**. A window opens with its own box: paste FASTA or
 GenBank records, or drop or choose files (several at once are fine). The
 records go under the box as a row of chips, counted (**3 sequences**), each
 with its name, its length and, when several files were dropped, its file;

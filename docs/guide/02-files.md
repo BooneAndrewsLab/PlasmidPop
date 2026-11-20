@@ -495,7 +495,7 @@ see [Verifying a plate of clones](11-align.md#verifying-a-plate-of-clones).
 
 **File ▸ Multiple alignment…** aligns three to fifty records with each other
 without opening any of them, from a box they are pasted or dropped into; the
-start page offers the same under **align several sequences together**. See
+start page offers the same as its **Align several** button. See
 [Without a document](11-align.md#without-a-document).
 
 ## Comparing with another document

@@ -146,3 +146,18 @@ README keep absolute URLs; they are not rendered by the guide.
    `/tutorials/` and a guide page's tutorial link, by hand.
 
 One Sonnet agent, one branch, one commit per step or two.
+
+## Follow-up: the start buttons (#433)
+
+The Matomo findings for #433 showed the empty screen's one wall of text,
+seen by every visitor, was the paragraph of inline links and privacy prose
+under the two start buttons. It is now four plain buttons in a 2x2 grid (one
+column on a phone): **Open example** (the primary one, so **Tutorials**
+becomes a plain button), **New sequence**, **From NCBI** and **Align
+several**, with the paste hint on one line. The "New here?" row follows, and
+the privacy wording, unchanged, is folded into a `details` ("Your data stays
+in your browser") with the licence line visible below it. The phone-only
+"Other ways in, and your data" `details` is gone, since the buttons already
+stack and the privacy text is already collapsed. The empty screen's Open
+example button carries an `aria-label` of "Open example: <label>" so it is
+distinct from the toolbar's button of the same name.

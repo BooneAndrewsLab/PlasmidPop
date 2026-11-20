@@ -13,9 +13,12 @@ the [source](https://github.com/BooneAndrewsLab/PlasmidPop) is on GitHub.
 
 ## Tutorials
 
-The start page, the first thing you see with nothing open, has a large
-**Tutorials** button and a **User guide** button, so you do not have to
-find the **?** button first.
+The start page, the first thing you see with nothing open, has four buttons
+for getting going (**Open example**, **New sequence**, **From NCBI** and
+**Align several**), then a **New here?** row with a **Tutorials** button and
+a **User guide** button, so you do not have to find the **?** button first.
+Below them, **Your data stays in your browser** opens a short note on where
+your documents are kept.
 
 New to PlasmidPop? The [tutorials](../tutorials/README.md) are step-by-step
 exercises with sample files you can download: ligation, Golden Gate, modular
@@ -72,8 +75,9 @@ Any of these gets you a sequence on screen:
   GenBank record by its accession number, such as `L09137`, or a protein's
   GenPept record, such as `NP_000509`; see
   [Opening a record from NCBI](02-files.md#opening-a-record-from-ncbi).
-- **Open example** loads pBR322 (4,361 bp, circular) to look around. On a
-  phone it is the **open pBR322** link on the start screen.
+- **Open example** loads pBR322 (4,361 bp, circular) to look around. It is
+  the filled button on the start screen, beside **New sequence**,
+  **From NCBI** and **Align several**.
 
 Each document opens in its own tab under the toolbar, so several can be open
 at once; the **Files** tab is the start screen. Files opened earlier appear
