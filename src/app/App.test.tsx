@@ -72,7 +72,7 @@ describe('App', () => {
 
   it('opens the bundled example and lists its features', () => {
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: /open pBR322/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Open example: pBR322/ }));
     expect(editorStore.document?.name).toBe('SYNPBR322');
     expect(screen.getByText('4,361 bp, circular')).toBeInTheDocument();
     expect(screen.getByRole('complementary', { name: 'Features' })).toBeInTheDocument();
@@ -121,7 +121,7 @@ describe('App', () => {
       editorStore.closeAllDocuments();
     });
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: /start a new sequence/i }));
+    fireEvent.click(screen.getByText('New sequence', { selector: '.empty__way' }));
     // Asked for a name and a topology first, Untitled and linear as they were.
     expect(screen.getByRole('dialog', { name: 'New sequence' })).toBeInTheDocument();
     expect(editorStore.document).toBeNull();
@@ -150,7 +150,7 @@ describe('App', () => {
 
   it('names a new sequence and makes it circular before it opens (#6)', () => {
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: /start a new sequence/i }));
+    fireEvent.click(screen.getByText('New sequence', { selector: '.empty__way' }));
     const name = screen.getByRole('textbox', { name: 'Name' });
     // Selected, so typing replaces it.
     expect(name).toHaveFocus();
@@ -1721,7 +1721,7 @@ describe('App on a phone', () => {
 
   it('reads one pane at a time, with the size and shape above and nothing to drag', () => {
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: /open pBR322/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Open example: pBR322/ }));
     expect(screen.getByText('4,361 bp, circular')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'File' })).toBeInTheDocument();
     expect(screen.queryByRole('group', { name: 'View' })).toBeNull();
@@ -1743,7 +1743,7 @@ describe('App on a phone', () => {
       editorStore.setShowCutSites(false, 'phone');
     });
     const view = render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: /open pBR322/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Open example: pBR322/ }));
     expect(editorStore.getState().showCutSites).toBe(false);
     fireEvent.click(screen.getByRole('tab', { name: 'Details' }));
     fireEvent.click(screen.getByRole('tab', { name: 'Enzymes' }));

@@ -2107,8 +2107,41 @@ button {
   font-weight: 600;
 }
 
-/* The way in for someone who has not found the ? button: two large buttons
-   under the lead, the tutorials first. */
+/* The ways in under the lead (#433): four plain buttons in a 2x2 grid, the
+   example the filled one. */
+.empty__ways {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0 0 12px;
+}
+
+.empty__way {
+  padding: 10px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.empty__paste {
+  margin: 0 0 16px;
+}
+
+.empty__privacy {
+  margin: 0 0 8px;
+  color: var(--ink-2);
+}
+
+.empty__privacy > summary {
+  cursor: pointer;
+}
+
+.empty__privacy[open] > summary {
+  margin-bottom: 8px;
+}
+
+/* The way in for someone who has not found the ? button: the tutorials and
+   the user guide, a row under the ways in. */
 .empty__start {
   margin: 0 0 16px;
   padding: 14px 16px;
@@ -7983,18 +8016,6 @@ button {
   }
 }
 
-/* Phone landing: the prose folds away behind a summary so Recent files and
-   Browse all files are on the first screen, and the two start buttons fit
-   side by side. */
-.empty__more > summary {
-  cursor: pointer;
-  color: var(--ink-2);
-}
-
-.empty__more[open] > summary {
-  margin-bottom: 8px;
-}
-
 @media (max-width: 600px) {
   .empty__card {
     padding: 16px;
@@ -8006,6 +8027,10 @@ button {
 
   .empty__start-buttons {
     gap: 8px;
+  }
+
+  .empty__ways {
+    grid-template-columns: 1fr;
   }
 
   .empty__start-button {

@@ -29,7 +29,7 @@ function newSequence(kind: 'Linear' | 'Circular' | 'Protein'): HTMLElement {
     editorStore.closeAllDocuments();
   });
   render(<App />);
-  fireEvent.click(screen.getByRole('button', { name: /start a new sequence/i }));
+  fireEvent.click(screen.getByText('New sequence', { selector: '.empty__way' }));
   fireEvent.click(screen.getByRole('button', { name: kind }));
   fireEvent.click(screen.getByRole('button', { name: 'Create' }));
   expect(editorStore.document?.length).toBe(0);

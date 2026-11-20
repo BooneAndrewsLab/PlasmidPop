@@ -25,7 +25,7 @@ function newSequence(): HTMLElement {
     editorStore.closeAllDocuments();
   });
   render(<App />);
-  fireEvent.click(screen.getByRole('button', { name: /start a new sequence/i }));
+  fireEvent.click(screen.getByText('New sequence', { selector: '.empty__way' }));
   fireEvent.click(screen.getByRole('button', { name: 'Linear' }));
   fireEvent.click(screen.getByRole('button', { name: 'Create' }));
   const box = screen.getByRole('textbox', { name: 'Sequence' });

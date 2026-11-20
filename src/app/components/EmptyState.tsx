@@ -13,7 +13,6 @@ import { EXAMPLES } from '../examples';
 import { openGuide } from '../help/openGuide';
 import { openExample, openPastedText } from '../openFile';
 import { editorStore } from '../state/editorStore';
-import { PHONE_QUERY } from '../state/layout';
 import { persistence } from '../state/persistence';
 import { useEditorState } from '../state/useEditorStore';
 import { BrowseFilesDialog } from './BrowseFilesDialog';
@@ -34,7 +33,6 @@ function isTextField(target: EventTarget | null): boolean {
 
 export function EmptyState() {
   const example = EXAMPLES[0];
-  const phone = useMediaQuery(PHONE_QUERY);
   // A touch screen has nothing to drag a file from, so the lead names no drop.
   const touch = useMediaQuery('(pointer: coarse)');
   const [recent, setRecent] = useState<DocumentSummary[] | null>(null);
@@ -150,64 +148,68 @@ export function EmptyState() {
   // Everything under Recent files is kept, so there is nothing to Keep.
   const { onKeep: _onKeep, ...recentActions } = actions;
 
-  const otherWaysIn = (
+  const ways = (
     <>
-      <p className="empty__hint">
-        Or paste a sequence, GenBank or FASTA record here (Ctrl+V), or{' '}
+      <div className="empty__ways">
+        {example !== undefined && (
+          <button
+            type="button"
+            className="button button--primary empty__way"
+            aria-label={`Open example: ${example.label}`}
+            data-tip={example.label}
+            onClick={() => {
+              openExample(example);
+            }}
+          >
+            Open example
+          </button>
+        )}
         <button
           type="button"
-          className="link"
+          className="button empty__way"
           onClick={() => {
             editorStore.requestNewDocument();
           }}
         >
-          start a new sequence
-        </button>{' '}
-        and type it in, or{' '}
+          New sequence
+        </button>
         <button
           type="button"
-          className="link"
+          className="button empty__way"
           onClick={() => {
             editorStore.requestNcbi();
           }}
         >
-          open a record from NCBI
-        </button>{' '}
-        by its accession number. Or{' '}
+          From NCBI
+        </button>
         <button
           type="button"
-          className="link"
+          className="button empty__way"
           onClick={() => {
             editorStore.requestMsa();
           }}
         >
-          align several sequences together
-        </button>{' '}
-        without opening any of them.
+          Align several
+        </button>
+      </div>
+      <p className="empty__hint empty__paste">
+        Or paste a sequence, GenBank or FASTA record here (Ctrl+V).
       </p>
-      <p className="empty__hint">
-        Everything stays in your browser: documents are kept here as you work and never uploaded,
-        and no file on your disk is written to. Opening from NCBI sends NCBI the accession numbers
-        you type, and nothing else. Download the ones you want as files. Your browser may ask
-        whether PlasmidPop can keep its data; saying yes protects your documents when disk space
-        runs low.
-        {example !== undefined && (
-          <>
-            {' '}
-            Or{' '}
-            <button
-              type="button"
-              className="link"
-              onClick={() => {
-                openExample(example);
-              }}
-            >
-              open {example.label}
-            </button>{' '}
-            to look around.
-          </>
-        )}
-      </p>
+    </>
+  );
+
+  const privacy = (
+    <>
+      <details className="empty__privacy">
+        <summary>Your data stays in your browser</summary>
+        <p className="empty__hint">
+          Everything stays in your browser: documents are kept here as you work and never uploaded,
+          and no file on your disk is written to. Opening from NCBI sends NCBI the accession numbers
+          you type, and nothing else. Download the ones you want as files. Your browser may ask
+          whether PlasmidPop can keep its data; saying yes protects your documents when disk space
+          runs low.
+        </p>
+      </details>
       <p className="empty__hint empty__licence">
         Free and open source under the{' '}
         <a
@@ -235,12 +237,13 @@ export function EmptyState() {
             ? 'Open a GenBank, FASTA or SnapGene file.'
             : 'Drop a GenBank, FASTA or SnapGene file anywhere on this page to open it.'}
         </p>
+        {ways}
         <div className="empty__start">
           <p className="empty__start-text">New here? Learn by doing, or read how it all works.</p>
           <div className="empty__start-buttons">
             {/* The standalone tutorials (#312): a page of the site, not of the app. */}
             <a
-              className="button button--primary empty__start-button"
+              className="button empty__start-button"
               href={`${import.meta.env.BASE_URL}tutorials/`}
               target="_blank"
               rel="noopener"
@@ -261,14 +264,7 @@ export function EmptyState() {
             </button>
           </div>
         </div>
-        {phone ? (
-          <details className="empty__more">
-            <summary>Other ways in, and your data</summary>
-            {otherWaysIn}
-          </details>
-        ) : (
-          otherWaysIn
-        )}
+        {privacy}
       </div>
       {expiring !== null && (
         <p className="recent__notice" role="status">

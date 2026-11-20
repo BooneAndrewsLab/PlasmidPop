@@ -76,7 +76,7 @@ describe('EmptyState start buttons', () => {
     vi.spyOn(persistence, 'pruneScratch').mockResolvedValue(0);
     render(<EmptyState />);
     await act(() => listed);
-    fireEvent.click(screen.getByRole('button', { name: 'align several sequences together' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Align several' }));
     expect(editorStore.getState().msaDialog).toBe(true);
     act(() => {
       editorStore.dismissMsa();
@@ -215,34 +215,15 @@ describe('EmptyState on a touch phone', () => {
     await act(() => listed);
   };
 
-  it('asks to open a file rather than to drop one, and folds the prose away', async () => {
+  it('asks to open a file rather than to drop one, with no folded other-ways-in details', async () => {
     answer(['(pointer: coarse)', '(max-width: 600px)']);
     await renderEmpty();
     expect(screen.getByText('Open a GenBank, FASTA or SnapGene file.')).toBeInTheDocument();
     expect(screen.queryByText(/^Drop a GenBank/)).toBeNull();
-    const more = screen.getByText('Other ways in, and your data').closest('details');
-    expect(more).not.toBeNull();
-    expect(more).toContainElement(screen.getByRole('link', { name: 'MIT licence' }));
-  });
-
-  it('keeps the other-ways-in paragraphs inside the folded details', async () => {
-    answer(['(pointer: coarse)', '(max-width: 600px)']);
-    await renderEmpty();
-    const more = screen.getByText('Other ways in, and your data').closest('details');
-    expect(more).not.toBeNull();
-    if (more === null) return;
-    const inside = within(more);
-    expect(
-      inside.getByText(/^Or paste a sequence, GenBank or FASTA record here \(Ctrl\+V\)/),
-    ).toBeInTheDocument();
-    expect(inside.getByText(/^Everything stays in your browser/)).toBeInTheDocument();
-  });
-
-  it('keeps the drop wording and the open prose on a mouse', async () => {
-    answer([]);
-    await renderEmpty();
-    expect(screen.getByText(/^Drop a GenBank/)).toBeInTheDocument();
-    expect(screen.queryByText('Other ways in, and your data')).toBeNull();
+    expect(screen.queryByText(/Other ways in/)).toBeNull();
+    const privacy = screen.getByText('Your data stays in your browser').closest('details');
+    expect(privacy).not.toBeNull();
+    expect(privacy).not.toHaveAttribute('open');
   });
 });
 
@@ -255,35 +236,64 @@ describe('EmptyState other ways in', () => {
     await act(() => listed);
   };
 
-  it('shows the paste and privacy paragraphs on desktop', async () => {
+  it('keeps the drop wording and has no other-ways-in details on a mouse', async () => {
     await renderEmpty();
-    expect(
-      screen.getByText(/^Or paste a sequence, GenBank or FASTA record here \(Ctrl\+V\)/),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/^Everything stays in your browser/)).toBeInTheDocument();
+    expect(screen.getByText(/^Drop a GenBank/)).toBeInTheDocument();
+    expect(screen.queryByText(/Other ways in/)).toBeNull();
   });
 
-  it('spaces the paste and privacy paragraphs between their buttons', async () => {
+  it('shows the paste line under the four buttons', async () => {
     await renderEmpty();
-    const paste = screen
-      .getByText(/^Or paste a sequence, GenBank or FASTA record here/)
-      .closest('p');
-    expect(paste?.textContent).toMatch(
-      /^Or paste a sequence, GenBank or FASTA record here \(Ctrl\+V\), or start a new sequence and type it in, or open a record from NCBI by its accession number\. Or align several sequences together without opening any of them\.$/,
-    );
-    const privacy = screen.getByText(/^Everything stays in your browser/).closest('p');
-    expect(privacy?.textContent).toMatch(
-      / runs low\. Or open pBR322 \(4,361 bp, circular\) to look around\.$/,
+    expect(
+      screen.getByText('Or paste a sequence, GenBank or FASTA record here (Ctrl+V).'),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the privacy wording unchanged in a details that starts collapsed', async () => {
+    await renderEmpty();
+    const privacy = screen.getByText('Your data stays in your browser').closest('details');
+    expect(privacy).not.toBeNull();
+    expect(privacy).not.toHaveAttribute('open');
+    expect(privacy?.textContent).toContain(
+      'Everything stays in your browser: documents are kept here as you work and never uploaded, and no file on your disk is written to. Opening from NCBI sends NCBI the accession numbers you type, and nothing else. Download the ones you want as files. Your browser may ask whether PlasmidPop can keep its data; saying yes protects your documents when disk space runs low.',
     );
     const licence = screen.getByRole('link', { name: 'MIT licence' }).closest('p');
     expect(licence?.textContent).toBe(
       'Free and open source under the MIT licence; the source is on GitHub.',
     );
+    expect(privacy).not.toContainElement(licence);
   });
 
-  it('opens the NCBI dialog from "open a record from NCBI"', async () => {
+  it('makes Open example the primary button and the others plain', async () => {
     await renderEmpty();
-    fireEvent.click(screen.getByRole('button', { name: 'open a record from NCBI' }));
+    const example = screen.getByRole('button', { name: /^Open example: pBR322/ });
+    expect(example).toHaveClass('button', 'button--primary');
+    expect(example.textContent).toBe('Open example');
+    for (const name of ['New sequence', 'From NCBI', 'Align several']) {
+      const b = screen.getByRole('button', { name });
+      expect(b).toHaveClass('button');
+      expect(b).not.toHaveClass('button--primary');
+    }
+    expect(screen.getByRole('link', { name: 'Tutorials' })).not.toHaveClass('button--primary');
+  });
+
+  it('opens the bundled example from its button', async () => {
+    await renderEmpty();
+    fireEvent.click(screen.getByRole('button', { name: /^Open example: pBR322/ }));
+    expect(openExample).toHaveBeenCalledWith(EXAMPLES[0]);
+  });
+
+  it('starts a new sequence from its button', async () => {
+    await renderEmpty();
+    const request = vi.spyOn(editorStore, 'requestNewDocument').mockImplementation(() => undefined);
+    fireEvent.click(screen.getByRole('button', { name: 'New sequence' }));
+    expect(request).toHaveBeenCalledTimes(1);
+    request.mockRestore();
+  });
+
+  it('opens the NCBI dialog from From NCBI', async () => {
+    await renderEmpty();
+    fireEvent.click(screen.getByRole('button', { name: 'From NCBI' }));
     expect(editorStore.getState().ncbiDialog).toBe(true);
     act(() => {
       editorStore.dismissNcbi();
@@ -291,9 +301,15 @@ describe('EmptyState other ways in', () => {
     expect(editorStore.getState().ncbiDialog).toBe(false);
   });
 
-  it('opens the bundled example from its link', async () => {
-    await renderEmpty();
-    fireEvent.click(screen.getByRole('button', { name: 'open pBR322 (4,361 bp, circular)' }));
-    expect(openExample).toHaveBeenCalledWith(EXAMPLES[0]);
+  it('leaves out Open example when there is no example', async () => {
+    const mutable = EXAMPLES as unknown as unknown[];
+    const saved = mutable.splice(0, mutable.length);
+    try {
+      await renderEmpty();
+      expect(screen.queryByRole('button', { name: /^Open example/ })).toBeNull();
+      expect(screen.getByRole('button', { name: 'New sequence' })).toBeInTheDocument();
+    } finally {
+      mutable.push(...saved);
+    }
   });
 });
