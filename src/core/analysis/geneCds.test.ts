@@ -274,6 +274,19 @@ describe('codingFeaturesOf', () => {
     expect(names(doc, mrna)).toEqual(['one exon', 'spliced']);
   });
 
+  it('leaves an mRNA the CDS inside its exons, not one running into its intron', () => {
+    const mrna = feature('mRNA', [
+      [0, 20],
+      [40, 90],
+    ]);
+    const doc = docOf(100, 'linear', [
+      mrna,
+      feature('CDS', [[3, 30]], { name: 'into the intron' }),
+      feature('CDS', [[3, 18]], { name: 'first exon' }),
+    ]);
+    expect(names(doc, mrna)).toEqual(['first exon']);
+  });
+
   it('falls back to every CDS in an mRNA when none is spliced as it is', () => {
     const mrna = feature('mRNA', [
       [0, 20],

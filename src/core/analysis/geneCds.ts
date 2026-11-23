@@ -44,16 +44,37 @@ function firstStart(feature: Feature): number | null {
   return null;
 }
 
-/** The stretches between consecutive pieces (the introns), as `from-to` keys. */
-function gapsOf(pieces: readonly Piece[]): string[] {
-  const sorted = [...pieces].sort((a, b) => a.from - b.from);
-  const gaps: string[] = [];
-  let reached = sorted[0]?.to ?? 0;
-  for (const piece of sorted.slice(1)) {
-    if (piece.from > reached) gaps.push(`${String(reached)}-${String(piece.from)}`);
-    reached = Math.max(reached, piece.to);
+/** Pieces in order, those that touch or overlap made one (an exon split at the origin). */
+function merged(pieces: readonly Piece[]): Piece[] {
+  const out: Piece[] = [];
+  for (const piece of [...pieces].sort((a, b) => a.from - b.from)) {
+    const last = out[out.length - 1];
+    if (last !== undefined && piece.from <= last.to) {
+      out[out.length - 1] = { from: last.from, to: Math.max(last.to, piece.to) };
+    } else {
+      out.push(piece);
+    }
   }
-  return gaps;
+  return out;
+}
+
+/** The stretches between consecutive merged pieces: the introns. */
+function gapsOf(exons: readonly Piece[]): Piece[] {
+  return exons.slice(1).map((exon, i) => ({ from: exons[i]?.to ?? exon.from, to: exon.from }));
+}
+
+/**
+ * Whether a CDS is spliced as an mRNA is: each of its exons lies in one of
+ * the mRNA's, and its introns are exactly the mRNA's introns within it.
+ */
+function splicedAs(cds: readonly Piece[], mrnaExons: readonly Piece[]): boolean {
+  const exons = merged(cds);
+  if (!exons.every((e) => mrnaExons.some((m) => m.from <= e.from && e.to <= m.to))) return false;
+  const from = exons[0]?.from ?? 0;
+  const to = exons[exons.length - 1]?.to ?? 0;
+  const key = (gaps: readonly Piece[]): string =>
+    gaps.map((g) => `${String(g.from)}-${String(g.to)}`).join();
+  return key(gapsOf(exons)) === key(gapsOf(mrnaExons).filter((g) => g.from >= from && g.to <= to));
 }
 
 type Kinship = 'same' | 'other' | 'unknown';
@@ -80,8 +101,8 @@ function kinship(a: Feature, b: Feature): Kinship {
  * - Where a CDS shares the feature's `/locus_tag` or `/gene`, only those
  *   count; a CDS that names another gene (one nested in an intron) never
  *   does. A CDS that says nothing either way counts when none is named.
- * - For an mRNA, a CDS spliced as the mRNA is (its introns are exactly the
- *   mRNA's introns within the CDS) is preferred over the other isoforms'.
+ * - For an mRNA, a CDS spliced as the mRNA is (its exons inside the mRNA's, its
+ *   introns exactly the mRNA's introns within it) is preferred over the other isoforms'.
  *
  * Empty for any other feature, and for a gene with no CDS in it.
  */
@@ -104,16 +125,8 @@ export function codingFeaturesOf(doc: SeqDocument, feature: Feature): readonly F
     named.length > 0 ? named : inside.filter((c) => kinship(feature, c.cds) === 'unknown');
 
   if (feature.type === 'mRNA') {
-    const introns = gapsOf(own);
-    const spliced = found.filter((c) => {
-      const from = Math.min(...c.pieces.map((p) => p.from));
-      const to = Math.max(...c.pieces.map((p) => p.to));
-      const within = introns.filter((gap) => {
-        const [start, end] = gap.split('-').map(Number);
-        return start !== undefined && end !== undefined && start >= from && end <= to;
-      });
-      return within.join() === gapsOf(c.pieces).join();
-    });
+    const exons = merged(own);
+    const spliced = found.filter((c) => splicedAs(c.pieces, exons));
     if (spliced.length > 0) found = spliced;
   }
   return found.map((c) => c.cds);
