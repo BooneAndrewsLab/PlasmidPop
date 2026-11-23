@@ -210,6 +210,11 @@ export const EVENTS = {
    */
   detect: ['run', 'add', 'setting'],
   /**
+   * The Features tab's filter by type (item 150): `filter` is a type chip
+   * switched, once per visit, never which type, how many or of what.
+   */
+  features: ['filter'],
+  /**
    * The CRISPR guide finder (item 74, #206): `scan` named by the nuclease
    * (`spcas9`, `sacas9`, `ascas12a`, `custom`), never the PAM typed in;
    * `region` when a scan was narrowed to the selection; `background` when

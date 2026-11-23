@@ -12,7 +12,7 @@ Step-by-step exercises in cloning and sequence analysis, with sample files to do
 2. [Files and storage](02-files.md): formats, opening several files or a ZIP, opening a record from NCBI, document tabs, saving, comparing with another file or tab, sharing a link, exporting, recent files, backing up and restoring everything, usage statistics, offline use, opening an attachment from another app
 3. [Viewing and selecting](03-viewing.md): sequence view, circular map, GC content, selection, previews, on a phone
 4. [Editing the sequence](04-editing.md): typing, copy and paste, colouring and enlarging bases, reverse complement, origin, edit marks, undo
-5. [Features](05-features.md): the feature list and editor, detecting common features by their bases and by what they code for, and My parts, your own parts for it to look for
+5. [Features](05-features.md): the feature list, filtering it by type, the feature editor, detecting common features by their bases and by what they code for, and My parts, your own parts for it to look for
 6. [Find](06-find.md): a sequence, an ambiguity code or a feature name, matches shown on the map and in the sequence view
 7. [Restriction enzymes](07-enzymes.md): the slim tab and the Enzyme workspace; the enzyme table and what to show, cut sites, a drawn gel and diagnostic digests, isoschizomers, importing REBASE, Dam/Dcm methylation, adding your own enzyme
 8. [Open reading frames](08-orfs.md): finding ORFs by minimum length and genetic code, copying the protein, adding one as a CDS feature

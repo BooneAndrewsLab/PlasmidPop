@@ -21,6 +21,16 @@ import {
   transcriptKey,
   transcriptPicksBanner,
 } from '@/view/transcriptPick';
+import {
+  type TypeChip,
+  countTypes,
+  emptyFilterText,
+  filterByType,
+  foldChips,
+  offersTypeFilter,
+  toggleType,
+  typeChips,
+} from '@/view/featureTypeFilter';
 import { drawableFeatures, hiddenTypeCount, hiddenTypesNote } from '@/view/visibleFeatures';
 
 import { removeOtherTranscriptsOp, removeOtherMembersOp, removeTypeOp } from '../featureRemoval';
@@ -33,6 +43,7 @@ import {
 } from '../proteinExport';
 import { downloadText } from '../saveFile';
 import { editorStore } from '../state/editorStore';
+import { useRemembered } from '../state/panelMemory';
 import { useTranslationProblems } from '../state/translationProblems';
 import { useEditorState } from '../state/useEditorStore';
 import { describeTranslationProblem } from '../translationWarnings';
@@ -349,6 +360,79 @@ function PickedNotice({
   );
 }
 
+/** No type chosen: the list shows every feature. */
+const NO_FILTER: readonly string[] = [];
+
+/**
+ * The filter by type above the list (item 150, #453): **All**, then a chip
+ * for each type the list has, with how many. Any number of types can be on;
+ * All, or switching the last one off, clears it. The chips are the app's
+ * ordinary toggle buttons, so each is a tab stop that Space and Enter work,
+ * and `aria-pressed` says which are on.
+ */
+function TypeFilter({
+  chips,
+  total,
+  onToggle,
+  onClear,
+}: {
+  readonly chips: readonly TypeChip[];
+  readonly total: number;
+  readonly onToggle: (type: string) => void;
+  readonly onClear: () => void;
+}) {
+  const all = chips.every((c) => !c.on);
+  // Past eight types the less common ones wait behind "+N more" (a chip that
+  // is on never does); opened, they stay until the list is left.
+  const [open, setOpen] = useState(false);
+  const { shown, folded } = foldChips(chips);
+  return (
+    <div className="features__filter" role="group" aria-label="Filter by type">
+      <button
+        type="button"
+        className="button button--small button--toggle features__chip"
+        aria-pressed={all}
+        aria-label={`All types, ${total.toLocaleString()} ${total === 1 ? 'feature' : 'features'}`}
+        onClick={onClear}
+      >
+        <span className="features__chip-type">All</span>
+        <span className="features__chip-count" aria-hidden="true">
+          {total.toLocaleString()}
+        </span>
+      </button>
+      {(open ? chips : shown).map((c) => (
+        <button
+          key={c.type}
+          type="button"
+          className="button button--small button--toggle features__chip"
+          aria-pressed={c.on}
+          aria-label={`${c.type}, ${c.count.toLocaleString()} ${c.count === 1 ? 'feature' : 'features'}`}
+          onClick={() => {
+            onToggle(c.type);
+          }}
+        >
+          <span className="features__chip-type">{c.type}</span>
+          <span className="features__chip-count" aria-hidden="true">
+            {c.count.toLocaleString()}
+          </span>
+        </button>
+      ))}
+      {folded > 0 && (
+        <button
+          type="button"
+          className="button button--quiet button--small features__chip"
+          aria-expanded={open}
+          onClick={() => {
+            setOpen((o) => !o);
+          }}
+        >
+          {open ? 'Fewer types' : `+${String(folded)} more`}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function FeatureList({ doc, reader = false }: Props) {
   const translation = useTranslationProblems(doc);
   const {
@@ -375,13 +459,12 @@ export function FeatureList({ doc, reader = false }: Props) {
   // How many features of each type the list shows, for Remove all (#316):
   // with a transcript picked, what the pick leaves out is neither counted
   // nor removed.
-  const typeCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const f of listed) counts.set(f.type, (counts.get(f.type) ?? 0) + 1);
-    return counts;
+  const typeCounts = useMemo(
+    () => countTypes(listed),
     // `listed` follows the document and the plan.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc, plan]);
+    [doc, plan],
+  );
   // Which features the views draw as one (item 115), for the notice under a selected member.
   const groupOf = useMemo(
     () =>
@@ -407,6 +490,23 @@ export function FeatureList({ doc, reader = false }: Props) {
       : null;
   const selectedId = precise ?? features.find((f) => isSelected(f, selection))?.id ?? null;
 
+  // The filter by type (item 150): which rows are shown, kept for the
+  // document while the page is loaded, and never part of the document.
+  const [chosen, setChosen] = useRemembered('features.typeFilter', documentId, NO_FILTER);
+  const filterOffered = offersTypeFilter(typeCounts, chosen);
+  // A feature being renamed or edited keeps its row whatever its type.
+  const rows = filterByType(
+    listed,
+    chosen,
+    new Set([renaming, editingFeatureId].filter((id) => id !== null)),
+  );
+  // The selection is the store's and the views still show it; when the
+  // filter leaves its row out, the list says so instead of looking empty-handed.
+  const filteredOut =
+    chosen.length === 0 || selectedId === null || rows.some((f) => f.id === selectedId)
+      ? null
+      : (listed.find((f) => f.id === selectedId) ?? null);
+
   // Selecting a feature somewhere else — a click on the map, a find — brings
   // its row into view, as does opening this tab with one already selected.
   // `nearest` leaves a row that is already on screen where it is.
@@ -416,7 +516,8 @@ export function FeatureList({ doc, reader = false }: Props) {
     const row = selectedRow.current;
     // Guarded because jsdom, where the app's tests run, has no scrollIntoView.
     if (typeof row?.scrollIntoView === 'function') row.scrollIntoView({ block: 'nearest' });
-  }, [selectedId]);
+    // Changing the filter moves the rows, so the selected one is found again.
+  }, [selectedId, chosen]);
 
   // The library of parts is DNA, so a protein has nothing to look for (#66).
   const detect = !reader && documentId !== null && hasTool(doc, 'detectFeatures');
@@ -424,7 +525,12 @@ export function FeatureList({ doc, reader = false }: Props) {
     <aside className="features" aria-label="Features">
       <div className="features__header">
         <h2 className="features__title">
-          Features <span className="features__count">{features.length}</span>
+          Features{' '}
+          <span className="features__count">
+            {chosen.length === 0
+              ? features.length
+              : `${rows.length.toLocaleString()} of ${features.length.toLocaleString()}`}
+          </span>
         </h2>
         {detect && <DetectFeaturesButton documentId={documentId} doc={doc} />}
       </div>
@@ -465,143 +571,192 @@ export function FeatureList({ doc, reader = false }: Props) {
             : 'No features yet. Select some bases and choose Add feature, or let Detect features find the common ones.'}
         </p>
       ) : (
-        <ul className="features__list">
-          {listed.map((f) => {
-            const selected = precise === null ? isSelected(f, selection) : f.id === precise;
-            const group = groupOf.get(f.id);
-            const pickedGene =
-              f.type === 'mRNA'
-                ? [...plan.picked].find(([, ms]) => ms.some((m) => m.id === f.id))?.[0]
-                : undefined;
-            return (
-              <li
-                key={f.id}
-                ref={f.id === selectedId ? selectedRow : undefined}
-                className={`feature-item${selected ? ' feature-item--selected' : ''}`}
+        <>
+          {filterOffered && (
+            <TypeFilter
+              chips={typeChips(typeCounts, chosen)}
+              total={listed.length}
+              onToggle={(type) => {
+                analytics.trackOnce('features', 'filter');
+                setChosen((c) => toggleType(c, type));
+              }}
+              onClear={() => {
+                setChosen(NO_FILTER);
+              }}
+            />
+          )}
+          {filteredOut !== null && (
+            <p className="panel__note features__note" role="status">
+              The selected feature, {filteredOut.name === '' ? filteredOut.type : filteredOut.name}
+              {filteredOut.name === '' ? '' : ` (${filteredOut.type})`}, is not of a type shown
+              here.{' '}
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  setChosen((c) => toggleType(c, filteredOut.type));
+                }}
               >
-                {!reader && renaming === f.id ? (
-                  <div className="feature-row">
-                    <span
-                      className="feature-row__swatch"
-                      style={{ background: featureColor(f) }}
-                      aria-hidden="true"
-                    />
-                    <RenameField key={renameRequest?.nonce} feature={f} />
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className="feature-row"
-                    onClick={() => {
-                      editorStore.selectFeature(f.id);
-                    }}
-                    onDoubleClick={
-                      reader
-                        ? undefined
-                        : () => {
-                            editorStore.requestRename(f.id);
-                          }
-                    }
-                  >
-                    <span
-                      className="feature-row__swatch"
-                      style={{ background: featureColor(f) }}
-                      aria-hidden="true"
-                    />
-                    <span className="feature-row__text">
-                      <span className="feature-row__name">
-                        {f.name === '' ? f.type : f.name}
-                        {translation.has(f.id) && (
-                          <span
-                            className="feature-row__warn"
-                            data-tip={(translation.get(f.id) ?? [])
-                              .map(describeTranslationProblem)
-                              .join('\n')}
-                          >
-                            {' '}
-                            ⚠
+                Show {filteredOut.type} too
+              </button>
+            </p>
+          )}
+          {rows.length === 0 && (
+            <p className="features__empty">
+              {emptyFilterText(chosen)}{' '}
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  setChosen(NO_FILTER);
+                }}
+              >
+                Show all
+              </button>
+            </p>
+          )}
+          <ul className="features__list">
+            {rows.map((f) => {
+              const selected = precise === null ? isSelected(f, selection) : f.id === precise;
+              const group = groupOf.get(f.id);
+              const pickedGene =
+                f.type === 'mRNA'
+                  ? [...plan.picked].find(([, ms]) => ms.some((m) => m.id === f.id))?.[0]
+                  : undefined;
+              return (
+                <li
+                  key={f.id}
+                  ref={f.id === selectedId ? selectedRow : undefined}
+                  className={`feature-item${selected ? ' feature-item--selected' : ''}`}
+                >
+                  {!reader && renaming === f.id ? (
+                    <div className="feature-row">
+                      <span
+                        className="feature-row__swatch"
+                        style={{ background: featureColor(f) }}
+                        aria-hidden="true"
+                      />
+                      <RenameField key={renameRequest?.nonce} feature={f} />
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="feature-row"
+                      onClick={() => {
+                        editorStore.selectFeature(f.id);
+                      }}
+                      onDoubleClick={
+                        reader
+                          ? undefined
+                          : () => {
+                              editorStore.requestRename(f.id);
+                            }
+                      }
+                    >
+                      <span
+                        className="feature-row__swatch"
+                        style={{ background: featureColor(f) }}
+                        aria-hidden="true"
+                      />
+                      <span className="feature-row__text">
+                        <span className="feature-row__name">
+                          {f.name === '' ? f.type : f.name}
+                          {translation.has(f.id) && (
+                            <span
+                              className="feature-row__warn"
+                              data-tip={(translation.get(f.id) ?? [])
+                                .map(describeTranslationProblem)
+                                .join('\n')}
+                            >
+                              {' '}
+                              ⚠
+                            </span>
+                          )}
+                        </span>
+                        <span className="feature-row__detail">
+                          {f.name === '' ? null : <span>{f.type} </span>}
+                          <span className="feature-row__location">
+                            {formatLocation(f, doc.length, doc.topology)}
                           </span>
-                        )}
-                      </span>
-                      <span className="feature-row__detail">
-                        {f.name === '' ? null : <span>{f.type} </span>}
-                        <span className="feature-row__location">
-                          {formatLocation(f, doc.length, doc.topology)}
                         </span>
                       </span>
-                    </span>
-                  </button>
-                )}
-                {!reader && editingFeatureId === f.id && (
-                  <FeatureEditor key={f.id} doc={doc} feature={f} />
-                )}
-                {!reader && selected && editingFeatureId !== f.id && translation.has(f.id) && (
-                  <TranslationNotice doc={doc} feature={f} problems={translation.get(f.id) ?? []} />
-                )}
-                {selected && editingFeatureId !== f.id && group !== undefined && (
-                  <GroupNotice doc={doc} feature={f} group={group} reader={reader} />
-                )}
-                {selected && editingFeatureId !== f.id && pickedGene !== undefined && (
-                  <PickedNotice
-                    doc={doc}
-                    feature={f}
-                    gene={pickedGene}
-                    plan={plan}
-                    reader={reader}
-                  />
-                )}
-                {selected && editingFeatureId !== f.id && !doc.isProtein && (
-                  <ProteinDownloadAction doc={doc} feature={f} />
-                )}
-                {!reader && selected && renaming !== f.id && editingFeatureId !== f.id && (
-                  <div className="feature-item__actions feature-item__actions--wrap">
-                    <button
-                      type="button"
-                      className="button button--quiet button--small"
-                      onClick={() => {
-                        editorStore.requestRename(f.id);
-                      }}
-                    >
-                      Rename
                     </button>
-                    <button
-                      type="button"
-                      className="button button--quiet button--small"
-                      onClick={() => {
-                        editorStore.editFeature(f.id);
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="button button--quiet button--small feature-item__remove"
-                      onClick={() => {
-                        editorStore.apply({ type: 'removeFeature', id: f.id });
-                      }}
-                    >
-                      Remove
-                    </button>
-                    {(typeCounts.get(f.type) ?? 0) > 1 && (
+                  )}
+                  {!reader && editingFeatureId === f.id && (
+                    <FeatureEditor key={f.id} doc={doc} feature={f} />
+                  )}
+                  {!reader && selected && editingFeatureId !== f.id && translation.has(f.id) && (
+                    <TranslationNotice
+                      doc={doc}
+                      feature={f}
+                      problems={translation.get(f.id) ?? []}
+                    />
+                  )}
+                  {selected && editingFeatureId !== f.id && group !== undefined && (
+                    <GroupNotice doc={doc} feature={f} group={group} reader={reader} />
+                  )}
+                  {selected && editingFeatureId !== f.id && pickedGene !== undefined && (
+                    <PickedNotice
+                      doc={doc}
+                      feature={f}
+                      gene={pickedGene}
+                      plan={plan}
+                      reader={reader}
+                    />
+                  )}
+                  {selected && editingFeatureId !== f.id && !doc.isProtein && (
+                    <ProteinDownloadAction doc={doc} feature={f} />
+                  )}
+                  {!reader && selected && renaming !== f.id && editingFeatureId !== f.id && (
+                    <div className="feature-item__actions feature-item__actions--wrap">
                       <button
                         type="button"
-                        className="button button--quiet button--small feature-item__bulk feature-item__remove"
-                        data-tip={`Remove every ${f.type} feature listed here, hidden types included; Undo puts them back`}
+                        className="button button--quiet button--small"
                         onClick={() => {
-                          const op = removeTypeOp(doc, f.type, listed);
-                          if (op !== null) editorStore.apply(op);
+                          editorStore.requestRename(f.id);
                         }}
                       >
-                        <span>Remove all {(typeCounts.get(f.type) ?? 0).toLocaleString()}</span>{' '}
-                        <span className="feature-item__bulk-type">{f.type}</span>
+                        Rename
                       </button>
-                    )}
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                      <button
+                        type="button"
+                        className="button button--quiet button--small"
+                        onClick={() => {
+                          editorStore.editFeature(f.id);
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="button button--quiet button--small feature-item__remove"
+                        onClick={() => {
+                          editorStore.apply({ type: 'removeFeature', id: f.id });
+                        }}
+                      >
+                        Remove
+                      </button>
+                      {(typeCounts.get(f.type) ?? 0) > 1 && (
+                        <button
+                          type="button"
+                          className="button button--quiet button--small feature-item__bulk feature-item__remove"
+                          data-tip={`Remove every ${f.type} feature listed here, hidden types included; Undo puts them back`}
+                          onClick={() => {
+                            const op = removeTypeOp(doc, f.type, listed);
+                            if (op !== null) editorStore.apply(op);
+                          }}
+                        >
+                          <span>Remove all {(typeCounts.get(f.type) ?? 0).toLocaleString()}</span>{' '}
+                          <span className="feature-item__bulk-type">{f.type}</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
     </aside>
   );

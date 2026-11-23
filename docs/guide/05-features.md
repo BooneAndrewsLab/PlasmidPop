@@ -53,6 +53,49 @@ The `source` feature that GenBank records use for organism metadata is
 listed but not drawn on the views. On the map, features that share a name
 share one label.
 
+### Filtering the list by type
+
+A record from NCBI lists a `gene`, an `mRNA` and a `CDS` for every gene, and
+a well-annotated plasmid runs to dozens of rows. When the list has eight or
+more features of at least two types, a row of buttons sits above it: **All**,
+then one for each type the list has, with the number of features of that
+type (`CDS 3`).
+
+1. Click a type to list only its features. The header then reads
+   `Features 3 of 10`.
+2. Click more types to add them (`gene` and `CDS` together); click one again
+   to take it out.
+3. Click **All**, or switch the last type off, to list every feature again.
+
+With more than nine types, the eight with the most features are shown and
+the rest wait behind **+N more**; **Fewer types** folds them again. A type
+that is switched on is never folded away. The buttons are ordinary ones:
+`Tab` reaches each, `Space` or `Enter` switches it. They are in the read-only view on a phone too, under **Details**.
+
+Only this list changes. The views draw every feature as before, nothing is
+removed, there is nothing to undo, and files, exports and share links carry
+the whole document. (To leave a type out of the _views_, see
+[Hiding a type of feature](#hiding-a-type-of-feature), next; the two are
+independent, and a hidden type can still be listed here.)
+
+- A feature selected somewhere else, say by a click on the map, stays
+  selected when the filter leaves its row out. The list says which feature
+  it is and that it is not of a type shown, and offers **Show gene too**
+  (for a gene), which adds its type to the filter.
+- A feature you are renaming or editing keeps its row whatever its type, so
+  a feature just added from a selection can be filled in while the list is
+  filtered. Once it is saved it follows the filter like any other.
+- If the last feature of a filtered type is removed, the list says that it
+  has no features of that type, with a **Show all** link, and the type's
+  button stays, at 0, until it is switched off.
+- **Remove all N _type_** removes every feature of the type, as always; the
+  filter does not narrow it.
+
+The filter belongs to the document and lasts while the page is open:
+switching to another sidebar tab or another document and back finds it as it
+was, a document you open starts with every feature listed, and reloading the
+page clears it.
+
 ### Hiding a type of feature
 
 An NCBI record carries an mRNA, a CDS and often a run of exons for each gene,

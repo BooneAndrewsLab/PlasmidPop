@@ -62,6 +62,9 @@ all — without snooping.
   DNT is deprecated and Chrome does not send it, GPC is the signal in
   use, and people who choose a local-first tool notice the beacon. Nothing needs configuring in Matomo:
   plain events, no custom dimensions.
+- **Later additions name their own item.** `features / filter` (item 150):
+  a type chip of the Features tab's filter switched, once per visit, with
+  no name, so neither the type nor any count is sent.
 - **Reading it.** Behaviour ▸ Events, by category then action/name, with
   _unique events_ for the `trackOnce` ones. `app / start` gives the number
   of visits a release has had, which the rest can be put against.

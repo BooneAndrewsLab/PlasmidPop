@@ -1727,12 +1727,61 @@ button {
   color: var(--ink-3);
   font-weight: 500;
   margin-left: 4px;
+  /* "166 of 1,241" (item 150) breaks before the count, never inside it. */
+  white-space: nowrap;
 }
 
 .features__empty {
   margin: 0;
   padding: 0 16px 16px;
   color: var(--ink-3);
+}
+
+/* The filter by type (item 150): the app's toggle buttons, wrapping onto as
+   many rows as the types need, so every choice is in sight at any width. */
+.features__filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 16px 8px;
+}
+
+.features__chip {
+  display: inline-flex;
+  /* Centred, not on the baseline: under a finger the button is 36px tall
+     (pointer: coarse, below) and the label has to stay in its middle. */
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 2px 8px;
+  font-size: 12.5px;
+}
+
+/* A type is a GenBank key, short as a rule; one made up at length is cut
+   rather than let push the panel wide. */
+.features__chip-type {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.features__chip-count {
+  flex: none;
+  color: var(--ink-3);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.features__note {
+  margin: 0;
+  padding: 0 16px 8px;
+}
+
+.features__empty .link,
+.features__note .link {
+  font: inherit;
 }
 
 .features__list {
@@ -4904,6 +4953,11 @@ button {
   .sidebar__tab {
     min-height: 40px;
   }
+
+  /* The type filter's chips are 36px tall here, so they stand further apart. */
+  .features__filter {
+    gap: 6px;
+  }
 }
 
 /* ------------------------------------------------- a digest drawn as a gel */
@@ -5002,6 +5056,12 @@ button {
   justify-content: space-between;
   gap: 8px;
   padding-right: 12px;
+}
+
+/* The header's gap already parts the title from the button; without the
+   title's own right padding "166 of 1,241" (item 150) stays on its line. */
+.features__header .features__title {
+  padding-right: 0;
 }
 
 .features__detect {
