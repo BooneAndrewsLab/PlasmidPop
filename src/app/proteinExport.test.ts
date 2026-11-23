@@ -36,6 +36,11 @@ function docWith(
   return SeqDocument.create({ name: 'my plasmid', sequence, topology, features: fs });
 }
 
+function translatedLength(doc: SeqDocument): number {
+  const out = cdsProteinFasta(doc, doc.features.all());
+  return (out.split('\n')[1] ?? '').length;
+}
+
 describe('cdsProteinFasta', () => {
   it('translates a forward CDS, drops the terminal stop and writes the header', () => {
     const doc = docWith(`CC${GENE}GG`, 'linear', cds('geneA', 'forward', [[2, 17]]));
@@ -67,6 +72,69 @@ describe('cdsProteinFasta', () => {
     );
     const out = cdsProteinFasta(doc, doc.features.all());
     expect(out).toBe('>my_plasmid_j my plasmid j CDS join(1..6,9..17), 4 aa\nMAKF\n');
+  });
+
+  describe('header location of a many-segment join (#454)', () => {
+    const exons = (n: number): [number, number][] =>
+      Array.from({ length: n }, (_, i) => [i * 10, i * 10 + 3] as [number, number]);
+    const seq = 'ATG' + 'A'.repeat(300);
+    const header = (doc: SeqDocument) => cdsProteinFasta(doc, doc.features.all()).split('\n')[0];
+
+    it('keeps a join of three segments literal', () => {
+      const doc = docWith(seq, 'linear', cds('j', 'forward', exons(3)));
+      expect(header(doc)).toContain('CDS join(1..3,11..13,21..23), ');
+    });
+
+    it('summarises a join of four or more as span, exon count and join', () => {
+      const doc = docWith(seq, 'linear', cds('j', 'forward', exons(5)));
+      expect(header(doc)).toBe(
+        '>my_plasmid_j my plasmid j CDS 1..43 (5 exons, join), 5 aa'.replace(
+          '5 aa',
+          `${String(translatedLength(doc))} aa`,
+        ),
+      );
+    });
+
+    it('keeps complement on the reverse strand', () => {
+      const doc = docWith(reverseComplement(seq), 'linear', cds('r', 'reverse', exons(4)));
+      expect(header(doc)).toContain('CDS complement(1..33) (4 exons, join), ');
+    });
+
+    it('keeps partial markers on the two ends', () => {
+      const f = createFeature({
+        type: 'CDS',
+        name: 'p',
+        strand: 'forward',
+        segments: [
+          rangeSegment(0, 3, { partialStart: true }),
+          rangeSegment(10, 13),
+          rangeSegment(20, 23),
+          rangeSegment(30, 33, { partialEnd: true }),
+        ],
+      });
+      const doc = docWith(seq, 'linear', f);
+      expect(header(doc)).toContain('CDS <1..>33 (4 exons, join), ');
+    });
+
+    it('leaves a single range alone, however long', () => {
+      const doc = docWith(seq, 'linear', cds('s', 'forward', [[0, 303]]));
+      expect(header(doc)).toContain('CDS 1..303, ');
+    });
+
+    it('reads a span that wraps the origin from the first start to the last end', () => {
+      const circ = 'A'.repeat(40) + 'ATG' + 'A'.repeat(7);
+      const doc = docWith(
+        circ,
+        'circular',
+        cds('w', 'forward', [
+          [40, 43],
+          [45, 48],
+          [48, 50],
+          [0, 3],
+        ]),
+      );
+      expect(header(doc)).toContain('CDS 41..3 (4 exons, join), ');
+    });
   });
 
   it('reads a CDS across the origin of a circular sequence', () => {

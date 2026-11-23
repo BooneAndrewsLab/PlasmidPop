@@ -713,7 +713,12 @@ From the **File** menu:
   protein FASTA file (`.faa`), one record each, read with the feature's own
   `/transl_table`, `/codon_start`, `join(...)`, strand and origin wrap. The
   terminal stop is left off, and the genetic code is named in a description
-  line only when it is not the standard one. Greyed out for a protein, which
+  line only when it is not the standard one. The description line gives the
+  CDS's location: literal for a single range or a join of up to three
+  segments, and for a longer join only its overall span and exon count,
+  such as `CDS 1538..320521 (57 exons, join)` (`complement(...)` on the
+  reverse strand, `<` and `>` for partial ends), so a many-exon gene does
+  not fill the line with coordinates. Greyed out for a protein, which
   is already residues, and for a document with no `CDS` feature. One CDS, or
   an ORF, can be downloaded from the [Features](05-features.md) and
   [ORFs](08-orfs.md) tabs.

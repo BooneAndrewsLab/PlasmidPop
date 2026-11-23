@@ -26,6 +26,17 @@ document.
   label, the location in GenBank syntax (`join(...)`, `complement(...)`,
   1-based inclusive), the residue count, and the genetic code only when it is
   not the standard one (the six-frame convention).
+- **Long joins are summarised (#454).** A CDS of up to three segments keeps
+  its literal location; a longer join (human ACACA has about 57 exons) is
+  written as `CDS 1538..320521 (57 exons, join)`, so the name line stays
+  short. The span is the first segment's start to the last segment's end in
+  the feature's stored order, 1-based inclusive, wrapped in `complement(...)`
+  on the reverse strand, with `<`/`>` kept from those two ends; `order(...)`
+  says `order` for `join`. On a circular sequence whose CDS wraps the origin
+  the ends are taken modulo the length, so the span can read start > end
+  (`41..3`), meaning across the origin. `headerLocation` in
+  `proteinExport.ts`; ORF and selection records are single ranges and
+  unchanged.
 - **Entry points.** File ▸ **Download protein FASTA…** (every CDS in one
   `<doc>_proteins.faa`; disabled with a tip for a protein document or one
   with no CDS; the CDS list is computed only while the menu is open);

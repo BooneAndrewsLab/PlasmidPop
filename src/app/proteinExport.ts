@@ -63,6 +63,41 @@ function featureLabel(f: Feature): string {
   return f.name.trim() === '' ? f.type : f.name.trim();
 }
 
+/** A join of more segments than this is summarised in the header (#454). */
+const LITERAL_SEGMENTS = 3;
+
+/**
+ * The location as a header writes it (#454): literal GenBank syntax for a
+ * single range or a short join (up to three segments), else the overall span
+ * with the exon count, `1538..320521 (57 exons, join)`, so a many-exon gene
+ * does not put kilobytes of coordinates in a name line. The span runs from
+ * the first segment's start to the last segment's end in the feature's stored
+ * order (forward coordinates, also for a reverse-strand CDS, which is
+ * wrapped in `complement(...)`); `<` and `>` are kept from those two ends. On
+ * a circular sequence that wraps the origin the ends are taken modulo the
+ * length, so the span may read start > end, meaning across the origin.
+ */
+function headerLocation(doc: SeqDocument, f: Feature): string {
+  const segs = f.segments;
+  const first = segs[0];
+  const last = segs[segs.length - 1];
+  if (
+    segs.length <= LITERAL_SEGMENTS ||
+    first === undefined ||
+    last === undefined ||
+    first.kind !== 'range' ||
+    last.kind !== 'range'
+  ) {
+    return formatLocation(f, doc.length, doc.topology);
+  }
+  const start = (first.start % doc.length) + 1;
+  const end = ((last.end - 1) % doc.length) + 1;
+  const span = `${first.partialStart ? '<' : ''}${String(start)}..${last.partialEnd ? '>' : ''}${String(end)}`;
+  const where = f.strand === 'reverse' ? `complement(${span})` : span;
+  const operator = f.joining === 'order' ? 'order' : 'join';
+  return `${where} (${String(segs.length)} exons, ${operator})`;
+}
+
 /** One record per CDS in `features`: `>doc_label_1-99 doc label CDS join(…), 33 aa`. */
 export function cdsProteinFasta(doc: SeqDocument, features: readonly Feature[]): string {
   const stem = stemOf(doc);
@@ -78,7 +113,7 @@ export function cdsProteinFasta(doc: SeqDocument, features: readonly Feature[]):
     const n = (used.get(base) ?? 0) + 1;
     used.set(base, n);
     const id = n === 1 ? base : `${base}_${String(n)}`;
-    const location = formatLocation(f, doc.length, doc.topology);
+    const location = headerLocation(doc, f);
     out += formatFastaRecord(
       `${id} ${doc.name} ${label} CDS ${location}, ${String(protein.length)} aa${codeNote(t.table)}`,
       protein,
