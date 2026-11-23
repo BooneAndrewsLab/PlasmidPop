@@ -5,6 +5,7 @@ import {
   type Strand,
   type TranslationTable,
   DEFAULT_TABLE,
+  codingFeaturesOf,
   formatLocation,
   geneticCode,
   isCodingFeature,
@@ -47,6 +48,17 @@ export function exportableCds(doc: SeqDocument): readonly Feature[] {
     .filter((f) => isCodingFeature(f) && withoutStop(translateCds(doc, f).protein) !== '');
 }
 
+/**
+ * The CDS features whose proteins a selected gene or mRNA downloads (#452):
+ * the ones inside it that translate to at least one residue. The gene's own
+ * span, introns and UTRs included, is never translated.
+ */
+export function geneCds(doc: SeqDocument, feature: Feature): readonly Feature[] {
+  return codingFeaturesOf(doc, feature).filter(
+    (f) => withoutStop(translateCds(doc, f).protein) !== '',
+  );
+}
+
 function featureLabel(f: Feature): string {
   return f.name.trim() === '' ? f.type : f.name.trim();
 }
@@ -81,6 +93,12 @@ export function cdsProteinFileName(doc: SeqDocument, feature: Feature | null = n
   return feature === null
     ? `${stem}_proteins.faa`
     : `${stem}_${token(featureLabel(feature)) || 'CDS'}.faa`;
+}
+
+/** File name for the protein(s) of a gene or mRNA with `count` CDS features: named for the gene. */
+export function geneProteinFileName(doc: SeqDocument, gene: Feature, count: number): string {
+  const name = `${stemOf(doc)}_${token(featureLabel(gene)) || gene.type}`;
+  return count > 1 ? `${name}_proteins.faa` : `${name}.faa`;
 }
 
 /**

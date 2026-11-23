@@ -4,6 +4,8 @@ import {
   cdsProteinFasta,
   cdsProteinFileName,
   exportableCds,
+  geneCds,
+  geneProteinFileName,
   rangeProteinFasta,
   rangeProteinFileName,
 } from './proteinExport';
@@ -145,6 +147,46 @@ describe('file names', () => {
   it('names the whole export and one feature', () => {
     expect(cdsProteinFileName(doc)).toBe('my_plasmid_proteins.faa');
     expect(cdsProteinFileName(doc, doc.features.all()[0] ?? null)).toBe('my_plasmid_my_gene.faa');
+  });
+});
+
+describe('a gene or mRNA (#452)', () => {
+  // ATG GC|gtaagt|C AAA TTT TAA: CDS join(3..7,14..23) inside the gene 1..25.
+  const SPLICED = 'CCATGGCGTAAGTCAAATTTTAAGG';
+  const gene = createFeature({ type: 'gene', name: 'ACT1', segments: [rangeSegment(0, 25)] });
+  const spliced = cds('actin', 'forward', [
+    [2, 7],
+    [13, 23],
+  ]);
+
+  it('gives the protein of the CDS inside, not of the gene span', () => {
+    const doc = docWith(SPLICED, 'linear', gene, spliced);
+    const found = geneCds(doc, gene);
+    expect(found).toEqual([spliced]);
+    expect(cdsProteinFasta(doc, found)).toBe(
+      '>my_plasmid_actin my plasmid actin CDS join(3..7,14..23), 4 aa\nMAKF\n',
+    );
+    expect(geneProteinFileName(doc, gene, found.length)).toBe('my_plasmid_ACT1.faa');
+  });
+
+  it('writes several isoforms as one file, a record each', () => {
+    const unspliced = cds('actin', 'forward', [[2, 11]]);
+    const doc = docWith(SPLICED, 'linear', gene, spliced, unspliced);
+    const found = geneCds(doc, gene);
+    expect(found).toHaveLength(2);
+    expect(cdsProteinFasta(doc, found)).toBe(
+      '>my_plasmid_actin my plasmid actin CDS join(3..7,14..23), 4 aa\nMAKF\n' +
+        '>my_plasmid_actin_2 my plasmid actin CDS 3..11, 2 aa\nMA\n',
+    );
+    expect(geneProteinFileName(doc, gene, found.length)).toBe('my_plasmid_ACT1_proteins.faa');
+  });
+
+  it('leaves out a CDS that translates to nothing, and names an unnamed gene by its type', () => {
+    const stop = cds('empty', 'forward', [[8, 11]]); // TAA
+    const unnamed = createFeature({ type: 'mRNA', segments: [rangeSegment(0, 25)] });
+    const doc = docWith(SPLICED, 'linear', unnamed, stop);
+    expect(geneCds(doc, unnamed)).toEqual([]);
+    expect(geneProteinFileName(doc, unnamed, 1)).toBe('my_plasmid_mRNA.faa');
   });
 });
 

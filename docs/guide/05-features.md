@@ -29,6 +29,17 @@ of a circular sequence.
   and `/codon_start`, across a `join(...)`, on the reverse strand or over
   the origin. It is there in the read-only view too. For every `CDS` at once
   see **File ▸ Download protein FASTA…** in [Files](02-files.md).
+- A selected `gene` or `mRNA` gets **Download protein** as well, when a `CDS`
+  is annotated inside it. What downloads is that CDS's protein, never a
+  translation of the gene's own span, which would read through its introns
+  and untranslated ends (a gene at `1..1437` whose CDS is
+  `join(1..10,320..1437)` gives the spliced protein). The CDS is one on the
+  same strand lying wholly inside the gene, over the origin of a circular
+  sequence too; where features carry `/locus_tag` or `/gene`, only a CDS
+  naming the same gene counts, and an mRNA takes the CDS spliced as it is.
+  With several (isoforms) the button reads **Download protein (2 CDS)** and
+  the file holds one record for each; the file is named for the gene. A gene
+  with no CDS inside it has no such button.
 - A ⚠ after a CDS's name means its bases no longer give the protein its
   `/translation` states — usually because of an edit inside it. Select it
   to see what differs and to update or remove the stored translation (see

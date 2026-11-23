@@ -123,7 +123,8 @@ export const EVENTS = {
    * (a PDF of every page, #242; all from the one Export figure dialog, #240),
    * `fasta`, `fastq`, `selection-genbank`, `selection-fasta`, and the
    * protein FASTA (#451, item 149): `protein-fasta` (every CDS, from the File
-   * menu), `cds-protein-fasta` (one feature) and `orf-protein-fasta` (an ORF
+   * menu), `cds-protein-fasta` (one feature), `gene-protein-fasta` (the CDS
+   * inside a selected gene or mRNA, #452) and `orf-protein-fasta` (an ORF
    * or the selection, from the ORFs tab).
    * `open-ncbi` is File ▸ Open from NCBI… fetching at least one record
    * (#65, item 58) — unnamed for an accession list, `region` for a range

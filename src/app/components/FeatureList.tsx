@@ -8,6 +8,7 @@ import {
   formatLocation,
   hasTool,
   isCodingFeature,
+  isGeneLikeFeature,
   isStaleTranslation,
   translationFor,
 } from '@/core';
@@ -24,7 +25,12 @@ import { drawableFeatures, hiddenTypeCount, hiddenTypesNote } from '@/view/visib
 
 import { removeOtherTranscriptsOp, removeOtherMembersOp, removeTypeOp } from '../featureRemoval';
 import { analytics } from '../analytics';
-import { cdsProteinFasta, cdsProteinFileName } from '../proteinExport';
+import {
+  cdsProteinFasta,
+  cdsProteinFileName,
+  geneCds,
+  geneProteinFileName,
+} from '../proteinExport';
 import { downloadText } from '../saveFile';
 import { editorStore } from '../state/editorStore';
 import { useTranslationProblems } from '../state/translationProblems';
@@ -146,6 +152,51 @@ function TranslationNotice({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * **Download protein** under a selected feature (items 149, #451, #452): a
+ * CDS downloads its own translation; a gene or an mRNA downloads that of the
+ * CDS inside it, never of its own span, and says how many when there are
+ * several. Nothing is shown for a gene with no CDS, or any other feature.
+ */
+function ProteinDownloadAction({
+  doc,
+  feature,
+}: {
+  readonly doc: SeqDocument;
+  readonly feature: Feature;
+}) {
+  const own = isCodingFeature(feature);
+  const cds = useMemo(
+    () => (own ? [feature] : isGeneLikeFeature(feature) ? geneCds(doc, feature) : []),
+    [doc, feature, own],
+  );
+  if (cds.length === 0) return null;
+  const count = cds.length;
+  const tip = own
+    ? "Download this CDS's protein as a protein FASTA file (.faa)"
+    : count === 1
+      ? `Download the protein of the CDS inside this ${feature.type} as a protein FASTA file (.faa)`
+      : `Download the proteins of the ${String(count)} CDS inside this ${feature.type} as one protein FASTA file (.faa), a record each`;
+  return (
+    <div className="feature-item__actions feature-item__actions--wrap">
+      <button
+        type="button"
+        className="button button--quiet button--small"
+        data-tip={tip}
+        onClick={() => {
+          analytics.track('file', 'export', own ? 'cds-protein-fasta' : 'gene-protein-fasta');
+          downloadText(
+            own ? cdsProteinFileName(doc, feature) : geneProteinFileName(doc, feature, count),
+            cdsProteinFasta(doc, cds),
+          );
+        }}
+      >
+        {count === 1 ? 'Download protein' : `Download protein (${String(count)} CDS)`}
+      </button>
     </div>
   );
 }
@@ -499,20 +550,8 @@ export function FeatureList({ doc, reader = false }: Props) {
                     reader={reader}
                   />
                 )}
-                {selected && editingFeatureId !== f.id && !doc.isProtein && isCodingFeature(f) && (
-                  <div className="feature-item__actions feature-item__actions--wrap">
-                    <button
-                      type="button"
-                      className="button button--quiet button--small"
-                      data-tip="Download this CDS's protein as a protein FASTA file (.faa)"
-                      onClick={() => {
-                        analytics.track('file', 'export', 'cds-protein-fasta');
-                        downloadText(cdsProteinFileName(doc, f), cdsProteinFasta(doc, [f]));
-                      }}
-                    >
-                      Download protein
-                    </button>
-                  </div>
+                {selected && editingFeatureId !== f.id && !doc.isProtein && (
+                  <ProteinDownloadAction doc={doc} feature={f} />
                 )}
                 {!reader && selected && renaming !== f.id && editingFeatureId !== f.id && (
                   <div className="feature-item__actions feature-item__actions--wrap">

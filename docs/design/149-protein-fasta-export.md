@@ -1,4 +1,4 @@
-# 149. Protein FASTA export (#451)
+# 149. Protein FASTA export (#451, #452)
 
 ## What was asked
 
@@ -35,6 +35,41 @@ document.
 - All downloads go through `downloadText`, never a file handle (item 24).
 - **Events** (item 38): `file / export` named `protein-fasta`,
   `cds-protein-fasta`, `orf-protein-fasta`. No names, sequences or counts.
+
+## A gene or an mRNA (#452)
+
+A selected `gene` or `mRNA` in the Features tab offers the same **Download
+protein**, resolved to the CDS inside it. Its own span is never translated:
+it holds the introns and the UTRs (ACT1 is `<1..>1437` as a gene,
+`join(1..10,320..1437)` as a CDS), so reading it through gives a wrong
+protein that looks right for the first few residues.
+
+- **The lookup is `codingFeaturesOf`** (`src/core/analysis/geneCds.ts`): CDS
+  features on the same strand, every range segment inside the gene's span.
+  Segments are measured as offsets from the gene's first base, modulo the
+  length on a circle, so a gene over the origin works whether it is one
+  wrapping range or a `join` split there; a linear sequence never wraps.
+- **Qualifiers decide between candidates.** `/locus_tag` when both features
+  carry one, else `/gene`: if any CDS names the same gene only those count,
+  and a CDS naming another gene (one nested in an intron) never counts. A
+  CDS with neither qualifier counts only when none matches, which is the
+  whole rule for files without qualifiers (SnapGene).
+- **An mRNA prefers the CDS spliced as it is**: each CDS exon lies in an
+  exon of the mRNA and the CDS's introns equal the mRNA's introns within the
+  CDS's extent. Without this every isoform's CDS
+  would lie inside every mRNA of the gene. If none fits, all candidates stay.
+- **One CDS, one record; several, one multi-record file**, through the same
+  `cdsProteinFasta`, so the records are the CDS's own (ids `_2`, `_3` when
+  isoforms share a name). The file is named for the gene (`<doc>_<gene>.faa`,
+  `<doc>_<gene>_proteins.faa`), since that is what was selected. A CDS that
+  translates to nothing is not counted (`geneCds` in `proteinExport.ts`).
+- **The button** is the CDS's own row, in the same place above
+  Rename/Edit/Remove, so it is in the read-only view too. With several CDS
+  it reads **Download protein (2 CDS)**; with none there is no button rather
+  than a disabled one, since a gene with no CDS (a tRNA or rRNA gene) is
+  ordinary and has nothing to explain.
+- **Event**: `file / export` named `gene-protein-fasta`, for gene and mRNA
+  alike; no names, sequences or counts.
 
 ## Not done
 
