@@ -2119,6 +2119,29 @@ Equivalents left as survivors (22):
 
 None was killed only by a skipped suite, and none is left in doubt.
 
+## At 1.26.0: the release pass on changed lines (2026-11-23)
+
+`npm run mutate:changed` scored 94.65 (floor 90) with 11 survivors on lines
+changed since v1.25.0 and no timeouts. Each was applied by hand and the nearest
+tests rerun.
+
+**Killed by new tests (10):** the `FormatError` reasons added for #447
+(`fastq.ts` L33 `'unrecognised-format'`, `zip.ts` L102 and L118 `'too-large'`,
+L129 `'corrupt'`, asserted by `fastq.test.ts` and `zip.test.ts`), and the FAQ
+JSON-LD of #446 in `staticGuide.ts` (`faqJsonLd`'s heading level and paragraph
+branches, its `@context` and `@type`, `document()`'s `jsonLd` conditional and
+exact script tag with `<` escaped, `generateGuideFiles` giving only the FAQ page
+a script; `staticGuide.test.ts`). The confirming run scored 94.68.
+
+Equivalent, left as a survivor (1):
+
+- **A kind check that only narrows the type (1):** `staticGuide.ts` L188
+  `b.kind === 'heading'` as `true` in `faqJsonLd`: only a `heading` block has a
+  `level`, so `b.level === 2` is already false for every other block. The check
+  is there for TypeScript's narrowing.
+
+None was killed only by a skipped suite, and none is left in doubt.
+
 ## Stale survivors, and `--remeasure`
 
 Stryker's incremental report keeps a mutant's verdict while its lines stand.

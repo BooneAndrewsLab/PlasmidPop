@@ -1,17 +1,17 @@
 {
   "score": 94.68,
   "floor": 90,
-  "date": "2026-11-16",
-  "appVersion": "1.25.0",
-  "run": "the pre-release run on the changes since v1.24.0",
+  "date": "2026-11-23",
+  "appVersion": "1.26.0",
+  "run": "release run",
   "stryker": "10.0.0",
   "counts": {
-    "Ignored": 2638,
-    "Killed": 24675,
+    "Ignored": 2639,
+    "Killed": 24701,
     "NoCoverage": 135,
     "RuntimeError": 10,
-    "Survived": 1277,
-    "Timeout": 468
+    "Survived": 1278,
+    "Timeout": 467
   },
   "files": [
     {
@@ -56,10 +56,10 @@
     },
     {
       "file": "src/app/help/staticGuide.ts",
-      "score": 99.72,
-      "killed": 352,
+      "score": 99.48,
+      "killed": 385,
       "timeout": 1,
-      "survived": 1,
+      "survived": 2,
       "noCoverage": 0
     },
     {
@@ -592,17 +592,17 @@
     },
     {
       "file": "src/io/fasta/fasta.ts",
-      "score": 98.38,
-      "killed": 181,
+      "score": 98.36,
+      "killed": 179,
       "timeout": 1,
       "survived": 3,
       "noCoverage": 0
     },
     {
       "file": "src/io/fastq/fastq.ts",
-      "score": 95.45,
-      "killed": 221,
-      "timeout": 10,
+      "score": 95.42,
+      "killed": 220,
+      "timeout": 9,
       "survived": 4,
       "noCoverage": 7
     },
@@ -697,7 +697,7 @@
     {
       "file": "src/io/zip.ts",
       "score": 100,
-      "killed": 127,
+      "killed": 123,
       "timeout": 0,
       "survived": 0,
       "noCoverage": 0
