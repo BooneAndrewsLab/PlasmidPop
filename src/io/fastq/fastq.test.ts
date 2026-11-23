@@ -26,6 +26,12 @@ describe('parseFastq', () => {
     expect(() => parseFastq('@x\nACGT\n+\nII\n')).toThrow(/2 quality values for 4 bases/);
     expect(() => parseFastq('@x\nACGT\n')).toThrow(FormatError);
     expect(() => parseFastq('x\nACGT\n+\nIIII\n')).toThrow(/"@" header/);
+    try {
+      parseFastq('x\nACGT\n+\nIIII\n');
+      expect.unreachable();
+    } catch (e) {
+      expect((e as FormatError).reason).toBe('unrecognised-format');
+    }
     expect(() => parseFastq('@x\nAXGT\n+\nIIII\n')).toThrow(/IUPAC/);
   });
 

@@ -7,6 +7,8 @@ import { parseMarkdown } from './markdown';
 import {
   block,
   describe as describeBlocks,
+  document,
+  faqJsonLd,
   generateGuideFiles,
   generateSitemap,
   guideSlug,
@@ -622,5 +624,71 @@ describe('static guide blocks and links, exactly (mutation triage, 1.19)', () =>
       .map((b) => block(b, own))
       .join('\n');
     expect(out).toBe('<p><a href="../../#top">a</a></p>');
+  });
+});
+
+describe('structured data (#446, mutation triage 1.26)', () => {
+  it('builds the FAQPage from level-2 headings and the paragraphs under them', () => {
+    const blocks = parseMarkdown(
+      '# Title\n\nIntro before any question.\n\n## Q one?\n\nA1.\n\n### Sub\n\nA2.\n\n## Q two?\n\nOnly.\n',
+    );
+    expect(faqJsonLd(blocks)).toEqual({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'Q one?',
+          acceptedAnswer: { '@type': 'Answer', text: 'A1. A2.' },
+        },
+        {
+          '@type': 'Question',
+          name: 'Q two?',
+          acceptedAnswer: { '@type': 'Answer', text: 'Only.' },
+        },
+      ],
+    });
+  });
+
+  it('ignores a paragraph before any question and a level-3 heading', () => {
+    const only = faqJsonLd(parseMarkdown('Lead.\n\n### Not a question\n\nText.\n'));
+    expect(only).toMatchObject({ mainEntity: [] });
+    const one = faqJsonLd(parseMarkdown('## Q\n\n### Sub\n\nA.\n')) as {
+      mainEntity: { name: string }[];
+    };
+    expect(one.mainEntity.map((q) => q.name)).toEqual(['Q']);
+  });
+
+  const base = {
+    title: 'T',
+    description: 'D',
+    canonical: 'https://x/y/',
+    fromDir: 'guide/',
+    body: '',
+    pager: '',
+  };
+
+  it('document() writes the JSON-LD script only when given, escaping "<"', () => {
+    expect(document(base)).not.toContain('ld+json');
+    const out = document({ ...base, jsonLd: { a: '</script><b>' } });
+    expect(out).toContain(
+      '<script type="application/ld+json">{"a":"\\u003c/script>\\u003cb>"}</script>\n<style>',
+    );
+    expect(out).not.toContain('</script><b>');
+    expect(document({ ...base, jsonLd: {} })).toContain(
+      '<meta name="twitter:card" content="summary_large_image">\n<script type="application/ld+json">{}</script>\n<style>',
+    );
+  });
+
+  it('puts the JSON-LD on the FAQ page only', () => {
+    const out = generateGuideFiles([
+      { id: '19-faq', markdown: '# FAQ\n\n## Why?\n\nBecause.\n' },
+      { id: '01-x', markdown: '# X\n\n## Why?\n\nBecause.\n' },
+    ]);
+    const faq = out.find((f) => f.path === 'guide/faq/index.html')?.content ?? '';
+    const other = out.find((f) => f.path === 'guide/x/index.html')?.content ?? '';
+    expect(faq).toContain('"@type":"FAQPage"');
+    expect(faq).toContain('"text":"Because."');
+    expect(other).not.toContain('ld+json');
   });
 });

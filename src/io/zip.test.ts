@@ -1,5 +1,6 @@
 import { strToU8, zipSync } from 'fflate';
 
+import { FormatError } from './types';
 import { DEFAULT_ZIP_LIMITS, isZip, readZip, writeZip } from './zip';
 
 function zip(files: Record<string, string>): Uint8Array {
@@ -117,6 +118,28 @@ describe('readZip (#213)', () => {
     expect(() => readZip(strToU8('LOCUS x'))).toThrow('not a ZIP');
     const data = zip({ 'a.gb': 'x'.repeat(500) });
     expect(() => readZip(data.slice(0, data.length - 30))).toThrow(/damaged/);
+  });
+});
+
+describe('readZip failure reasons (mutation triage 1.26)', () => {
+  const reasonOf = (f: () => unknown): unknown => {
+    try {
+      f();
+    } catch (e) {
+      return e instanceof FormatError ? e.reason : 'not a FormatError';
+    }
+    return 'did not throw';
+  };
+
+  it('says too-large for too many files and for too much data, corrupt for damage', () => {
+    const data = zip({ 'a.gb': 'x'.repeat(100), 'b.gb': 'x', 'c.gb': 'x' });
+    expect(reasonOf(() => readZip(data, { ...DEFAULT_ZIP_LIMITS, maxEntries: 2 }))).toBe(
+      'too-large',
+    );
+    expect(reasonOf(() => readZip(data, { ...DEFAULT_ZIP_LIMITS, maxTotalBytes: 50 }))).toBe(
+      'too-large',
+    );
+    expect(reasonOf(() => readZip(data.slice(0, data.length - 30)))).toBe('corrupt');
   });
 });
 
