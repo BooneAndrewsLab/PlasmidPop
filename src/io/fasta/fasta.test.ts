@@ -188,7 +188,7 @@ describe('FASTA, reading line by line', () => {
     expect(error).toBeInstanceOf(FormatError);
     expect((error as FormatError).line).toBe(3);
     expect((error as FormatError).message).toBe(
-      'Line 3: Sequence is not nucleotide IUPAC (found "L", "*")',
+      'Line 3: Sequence is not nucleotide IUPAC (found "L", "*") ("*" is a stop codon, so this may be a protein; a DNA sequence has no "*".)',
     );
     expect(() => parseFasta('\n\nACGT\n')).toThrow('Line 3: FASTA files must start with a ">"');
   });

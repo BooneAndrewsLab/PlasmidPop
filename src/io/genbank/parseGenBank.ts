@@ -23,6 +23,7 @@ import { parseMadeFromComment } from './madeFromComment';
 import { parseMethylationComment } from './methylationComment';
 import { parseBaseStylesComment } from './baseStylesComment';
 import { isOwnComment } from './ownComments';
+import { invalidBaseHint, jsonEscapeHint, noLocusHint } from '../failureHints';
 
 /**
  * Qualifiers whose value names the feature, in priority order, by feature type.
@@ -603,7 +604,7 @@ function parseSequence(
   if (!isValidSequence(text)) {
     const bad = [...new Set(text.replace(/[ACGTURYSWKMBDHVNacgturyswkmbdhvn]/g, ''))];
     throw new FormatError(
-      `Sequence contains characters outside the IUPAC nucleotide alphabet: ${bad.map((c) => JSON.stringify(c)).join(', ')}`,
+      `Sequence contains characters outside the IUPAC nucleotide alphabet: ${bad.map((c) => JSON.stringify(c)).join(', ')}${invalidBaseHint(bad, text)}`,
       startLine,
     );
   }
@@ -839,10 +840,12 @@ function parseRecord(recordLines: readonly Line[], warnings: ParseWarning[]): Se
  * `FormatError`.
  */
 export function parseGenBank(text: string): ParseResult {
+  const escaped = jsonEscapeHint(text);
+  if (escaped !== null) throw new FormatError(escaped);
   const records = splitRecords(text);
   if (records.length === 0)
     throw new FormatError(
-      'No LOCUS line found; not a GenBank file',
+      `No LOCUS line found; not a GenBank file. ${noLocusHint(text)}`,
       undefined,
       'unrecognised-format',
     );

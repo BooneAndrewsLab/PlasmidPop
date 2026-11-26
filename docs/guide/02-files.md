@@ -33,6 +33,16 @@ formats** link brings you to the table. The usual causes:
   begin with `>`, a `.gb` file with no `LOCUS` line. Open the file in a text
   editor and check its first line. Prose, or a table with several columns, is
   not a sequence.
+  The message quotes the first 20 characters of the file's first line and, when
+  the start gives it away, says why: an invisible character before `LOCUS`, a
+  FASTA, FASTQ, EMBL, JSON or XML file, or `FEATURES` and `ORIGIN` with the
+  `LOCUS` line missing.
+- **Text copied from a JSON string**: the whole record on one line, with the two
+  characters `\` and `n` where the line breaks should be. The message says the
+  file looks JSON-escaped; copy the record from its source as plain text.
+- **Characters that are not bases**: a `*` (a stop codon, so probably a protein)
+  or a `.` (a gap in some programs) in a DNA sequence is named in the message;
+  remove it, or write `N` for a missing base.
 - **An empty file**, or one that is only blank lines.
 - **A damaged or cut-off file**: a truncated download, a `.gz` that will not
   decompress, an AB1 or SnapGene file that ends early, a ZIP that is broken.

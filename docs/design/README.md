@@ -371,3 +371,5 @@ the Bench, item 49). The rest stand.
 152. [CON (contig) records are refused, not opened empty](152-con-records.md)
 
 153. [Malformed GenBank layouts are read or reported, never dropped](153-malformed-layouts.md)
+
+154. [Open-failure hints: JSON-escaped text, a missing LOCUS, stray bases](154-open-failure-hints.md)

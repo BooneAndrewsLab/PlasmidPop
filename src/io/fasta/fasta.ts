@@ -6,6 +6,7 @@ import {
   needsMethylationComment,
   parseMethylationComment,
 } from '../genbank/methylationComment';
+import { invalidBaseHint, jsonEscapeHint } from '../failureHints';
 import { type ParseResult, type ParseWarning, FormatError, warning } from '../types';
 
 const LINE_WIDTH = 70;
@@ -34,6 +35,8 @@ const METHYLATION_TAG = /\s*\[(PlasmidPop-methylation:[^\]]*)\]/;
  * ends. Gap characters are stripped with a warning.
  */
 export function parseFasta(text: string): ParseResult {
+  const escaped = jsonEscapeHint(text);
+  if (escaped !== null) throw new FormatError(escaped);
   const lines = text.replace(/\r\n?/g, '\n').split('\n');
   const warnings: ParseWarning[] = [];
   const documents: SeqDocument[] = [];
@@ -70,7 +73,7 @@ export function parseFasta(text: string): ParseResult {
     if (!isValidSequence(cleaned)) {
       const bad = [...new Set(cleaned.replace(/[ACGTURYSWKMBDHVNacgturyswkmbdhvn]/g, ''))];
       throw new FormatError(
-        `Sequence is not nucleotide IUPAC (found ${bad.map((c) => JSON.stringify(c)).join(', ')})`,
+        `Sequence is not nucleotide IUPAC (found ${bad.map((c) => JSON.stringify(c)).join(', ')})${invalidBaseHint(bad, cleaned)}`,
         header.line,
       );
     }
