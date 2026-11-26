@@ -551,6 +551,36 @@ function parseSequence(
   return text;
 }
 
+/** Drops BASE COUNT and CONTIG lines, with CONTIG's indented continuation lines, from the lines after ORIGIN. */
+function withoutContig(lines: readonly Line[]): Line[] {
+  const out: Line[] = [];
+  let inContig = false;
+  for (const l of lines) {
+    if (l.text.startsWith('CONTIG')) {
+      inContig = true;
+      continue;
+    }
+    if (inContig && /^\s/.test(l.text) && !/^\s*\d/.test(l.text)) continue;
+    inContig = false;
+    if (l.text.startsWith('BASE COUNT')) continue;
+    out.push(l);
+  }
+  return out;
+}
+
+/** A CON (contig) record: it lists the pieces of a sequence and holds none itself (#460). */
+class ContigRecordError extends FormatError {
+  constructor(line: number) {
+    super(
+      'This is a contig (CON) record: it lists the pieces a sequence is built from and has no sequence of its own. ' +
+        'Fetch the full record instead: type its accession in the NCBI box, which asks NCBI for the record with its sequence, ' +
+        'or download the full GenBank file from NCBI',
+      line,
+      'unsupported',
+    );
+  }
+}
+
 function parseRecord(lines: readonly Line[], warnings: ParseWarning[]): SeqDocument {
   const first = lines[0];
   if (!first?.text.startsWith('LOCUS')) {
@@ -564,13 +594,27 @@ function parseRecord(lines: readonly Line[], warnings: ParseWarning[]): SeqDocum
 
   let featuresStart = -1;
   let originStart = -1;
+  let contigStart = -1;
   lines.forEach((line, i) => {
     if (featuresStart < 0 && line.text.startsWith('FEATURES')) featuresStart = i;
     if (originStart < 0 && line.text.startsWith('ORIGIN')) originStart = i;
+    if (contigStart < 0 && featuresStart >= 0 && line.text.startsWith('CONTIG')) contigStart = i;
   });
+  const hasContig = lines.some((l) => l.text.startsWith('CONTIG'));
+  if (originStart < 0 && hasContig && locus.length !== null) {
+    // A CON record counts its length in bp/aa but lists pieces instead of
+    // bases; a master record (`rc`) is handled further down. Refused before
+    // its features are read, so none of them warns.
+    throw new ContigRecordError(first.number);
+  }
   const headerEnd =
     featuresStart >= 0 ? featuresStart : originStart >= 0 ? originStart : lines.length;
-  const featureEnd = originStart >= 0 ? originStart : lines.length;
+  // The feature table ends at ORIGIN or at a CONTIG line, whichever comes
+  // first; CONTIG's indented continuation lines are not qualifier text (#460).
+  const featureEnd = Math.min(
+    originStart >= 0 ? originStart : lines.length,
+    contigStart >= 0 ? contigStart : lines.length,
+  );
 
   const header = parseHeader(lines.slice(0, headerEnd));
   const rawFeatures =
@@ -580,14 +624,14 @@ function parseRecord(lines: readonly Line[], warnings: ParseWarning[]): SeqDocum
   const sequence =
     originStart >= 0
       ? parseSequence(
-          lines.slice(originStart + 1).filter((l) => !/^(BASE COUNT|CONTIG)/.test(l.text)),
+          withoutContig(lines.slice(originStart + 1)),
           warnings,
           (lines[originStart]?.number ?? 0) + 1,
           locus.alphabet,
         )
       : '';
 
-  if (originStart < 0 && lines.some((l) => l.text.startsWith('CONTIG'))) {
+  if (originStart < 0 && hasContig) {
     warnings.push(
       warning(
         'Master record (CONTIG, no ORIGIN) has no sequence; it opens empty and the CONTIG line is not kept',
@@ -661,6 +705,24 @@ export function parseGenBank(text: string): ParseResult {
       'unrecognised-format',
     );
   const warnings: ParseWarning[] = [];
-  const documents = records.map((record) => parseRecord(record, warnings));
+  const documents: SeqDocument[] = [];
+  let contigError: ContigRecordError | null = null;
+  for (const record of records) {
+    try {
+      documents.push(parseRecord(record, warnings));
+    } catch (e) {
+      if (!(e instanceof ContigRecordError)) throw e;
+      // A CON record among others is left out with a warning; if nothing
+      // else opens, its message is the failure.
+      contigError ??= e;
+      warnings.push(
+        warning(
+          `Record at line ${e.line ?? '?'} is a contig (CON) record with no sequence and was left out`,
+          e.line,
+        ),
+      );
+    }
+  }
+  if (documents.length === 0 && contigError !== null) throw contigError;
   return { format: 'genbank', documents, warnings };
 }

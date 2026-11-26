@@ -43,10 +43,21 @@ formats** link brings you to the table. The usual causes:
 A ZIP or a multi-file drop opens whatever it can and lists, in the import
 summary, each file it left out and why.
 
+A **CON (contig) record** is a GenBank record whose `CONTIG join(...)` line
+lists the pieces of a chromosome or genome instead of an `ORIGIN` sequence;
+its LOCUS line still gives a length in `bp`, but the file holds no bases.
+PlasmidPop refuses it with one message saying so, rather than opening an
+empty document with a warning for every feature. Type its accession in the
+**NCBI** box instead, which asks NCBI for the record with its sequence, or
+download the full GenBank file from NCBI. In a file with several records, a
+CON record is left out with a warning and the others open; only a file with
+nothing else in it fails. A record with both an `ORIGIN` sequence and a
+`CONTIG` line opens normally.
+
 A WGS, TSA or TLS **master record** (a `CONTIG` line, no `ORIGIN`, a LOCUS
-length counted in `rc`) holds no sequence of its own. It opens as an empty
-document, with a warning, and saving it writes a valid header only; the
-`CONTIG` line is not kept.
+length counted in `rc`) holds no sequence of its own either, but it is kept:
+it opens as an empty document, with a warning, and saving it writes a valid
+header only; the `CONTIG` line is not kept.
 
 **GenBank** is the native format: sequence, topology, definition, accession,
 references, and every feature with its full location (`complement(...)`,

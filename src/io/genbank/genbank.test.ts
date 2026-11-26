@@ -829,6 +829,103 @@ describe('WGS/TSA/TLS master record (#254)', () => {
   });
 });
 
+describe('CON (contig) records (#460)', () => {
+  const con = (name: string) =>
+    [
+      `LOCUS       ${name}                 40 bp    DNA     linear   CON 12-NOV-2026`,
+      'DEFINITION  Test contig record.',
+      `ACCESSION   ${name}`,
+      'FEATURES             Location/Qualifiers',
+      '     source          1..40',
+      '                     /organism="x"',
+      '                     /chromosome="21"',
+      '     gene            5..20',
+      '                     /gene="g1"',
+      'CONTIG      join(gap(10),NT_187300.1:1..20,gap(10),',
+      '            NT_187301.1:1..5)',
+      '//',
+      '',
+    ].join('\n');
+  const normal = [
+    'LOCUS       GOOD                      12 bp    DNA     linear   UNA 01-JAN-2000',
+    'FEATURES             Location/Qualifiers',
+    '     gene            2..8',
+    '                     /gene="ok"',
+    'ORIGIN',
+    '        1 acgtacgtac gt',
+    '//',
+    '',
+  ].join('\n');
+
+  it('refuses a lone CON record with one reason and one message, no warnings', () => {
+    let error: unknown;
+    try {
+      parseGenBank(con('CON1'));
+    } catch (e) {
+      error = e;
+    }
+    expect(error).toBeInstanceOf(FormatError);
+    const fe = error as FormatError;
+    expect(fe.reason).toBe('unsupported');
+    expect(fe.message).toContain('contig (CON) record');
+    expect(fe.message).toContain('NCBI box');
+  });
+
+  it('does not feed the CONTIG lines into the last qualifier of a master record', () => {
+    const master = [
+      'LOCUS       KBUV01000000            3714 rc    DNA     linear   ENV 26-FEB-2018',
+      'FEATURES             Location/Qualifiers',
+      '     source          1..3714',
+      '                     /chromosome="21"',
+      'CONTIG      join(AAAA01000001.1:1..3714,',
+      '            AAAA01000002.1:1..10)',
+      '//',
+      '',
+    ].join('\n');
+    const result = parseGenBank(master);
+    expect(result.warnings.some((w) => /unterminated/i.test(w.message))).toBe(false);
+  });
+
+  it('leaves a CON record out of a multi-record file, with a warning', () => {
+    const result = parseGenBank(con('CON1') + normal);
+    expect(result.documents).toHaveLength(1);
+    expect(result.documents[0]?.name).toBe('GOOD');
+    expect(result.documents[0]?.features.size).toBe(1);
+    expect(result.warnings.filter((w) => w.message.includes('contig (CON)'))).toHaveLength(1);
+    expect(result.warnings.some((w) => w.message.includes('outside the sequence'))).toBe(false);
+  });
+
+  it('refuses a file of only CON records', () => {
+    expect(() => parseGenBank(con('A') + con('B'))).toThrow(/contig \(CON\) record/);
+  });
+
+  it('keeps a record that has features, CONTIG and a real ORIGIN', () => {
+    const both = [
+      'LOCUS       BOTH                      12 bp    DNA     linear   CON 01-JAN-2000',
+      'FEATURES             Location/Qualifiers',
+      '     source          1..12',
+      '                     /chromosome="21"',
+      '     gene            2..8',
+      '                     /gene="ok"',
+      'CONTIG      join(AB000001.1:1..12)',
+      'ORIGIN',
+      '        1 acgtacgtac gt',
+      '//',
+      '',
+    ].join('\n');
+    const doc = only(parseGenBank(both));
+    expect(doc.length).toBe(12);
+    const feats = [...doc.features];
+    expect(feats).toHaveLength(2);
+    expect(feats[0]?.qualifiers.find((q) => q.name === 'chromosome')?.value).toBe('21');
+    const after = both
+      .replace('CONTIG      join(AB000001.1:1..12)\nORIGIN\n', 'ORIGIN\n')
+      .replace('//', 'CONTIG      join(AB000001.1:1..6,\n            AB000002.1:1..6)\n//');
+    const doc2 = only(parseGenBank(after));
+    expect(doc2.length).toBe(12);
+  });
+});
+
 describe('single fuzzy base locations (#255)', () => {
   const text = [
     'LOCUS       FUZZ                      40 bp    DNA     linear   UNA 01-JAN-2000',

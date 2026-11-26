@@ -55,6 +55,22 @@ describe('why an open fails (#447)', () => {
     expect((await failureOf(ab1, 'x.ab1')).reason).toBe('corrupt');
   });
 
+  it('calls a CON (contig) record unsupported, with its event name (#460)', async () => {
+    const con = [
+      'LOCUS       CON1                      40 bp    DNA     linear   CON 12-NOV-2026',
+      'FEATURES             Location/Qualifiers',
+      '     source          1..40',
+      '                     /chromosome="21"',
+      'CONTIG      join(gap(10),NT_187300.1:1..30)',
+      '//',
+      '',
+    ].join('\n');
+    const f = await failureOf(strToU8(con), 'con.gb');
+    expect(f.reason).toBe('unsupported');
+    expect(f.message).toContain('contig (CON) record');
+    expect(openFailedName('con.gb', f.reason)).toBe('genbank:unsupported');
+  });
+
   it('calls a parser complaint a parse error', async () => {
     const gb = await failureOf(strToU8('LOCUS x 4 bp\nORIGIN\n        1 ac?!\n//\n'), 'x.gb');
     expect(gb.reason).toBe('parse-error');

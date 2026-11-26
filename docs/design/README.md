@@ -367,3 +367,5 @@ the Bench, item 49). The rest stand.
 150. [Features tab: filter the list by type](150-feature-type-filter.md)
 
 151. [A failed open is a dismissible banner, not a status bar line](151-open-error-banner.md)
+
+152. [CON (contig) records are refused, not opened empty](152-con-records.md)
