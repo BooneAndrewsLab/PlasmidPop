@@ -134,10 +134,13 @@ export const EVENTS = {
    * `not-genbank`): never the accession, the gene name or the organism,
    * nor how many. `open-failed` is named `<format>:<reason>` (#447): the
    * format guessed from the extension and one of `OPEN_FAILURE_REASONS`.
+   * `open-topology` is the answer to "this file says linear, but features run
+   * across its end" (#462): `circular`, `linear` or `cancel`, never a count.
    */
   file: [
     'open',
     'open-failed',
+    'open-topology',
     'new',
     'download',
     'compare',

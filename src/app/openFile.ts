@@ -2,6 +2,7 @@ import { type SeqDocument } from '@/core';
 import {
   type ArchiveRecord,
   type OpenFailureReason,
+  type ParseResult,
   FormatError,
   isZip,
   openFailureReason,
@@ -47,12 +48,43 @@ const UNSUPPORTED: Readonly<Record<string, string>> = {
   geneious: 'Geneious files are not supported yet. Export as GenBank first.',
 };
 
+/** How an open may behave when something about the file needs the user's say (#462). */
+export interface OpenOptions {
+  /**
+   * Ask how to open a GenBank record that says linear but has features across
+   * the end of the sequence. Only a caller that has someone at the screen
+   * sets it (File ▸ Open, a drop, a paste); the share target, the launch
+   * queue, a restore and a scripted open leave it off and get the record
+   * as the file says, with those features dropped and a warning.
+   */
+  readonly askTopology?: boolean;
+}
+
+/**
+ * Asks the user how to open a result whose record says linear but has
+ * features across its end (#462), and says what to do with the answer: the
+ * result to open (read again as circular if that was the choice), or null for
+ * Cancel. A result without such features is returned as it is, unasked.
+ * Only the first record opens, so only its count is asked about.
+ */
+async function resolveTopology(
+  result: ParseResult,
+  reread: () => Promise<ParseResult> | ParseResult,
+): Promise<ParseResult | null> {
+  const features = result.originSpanning?.[0] ?? 0;
+  if (features === 0) return result;
+  const choice = await editorStore.askTopology(features);
+  analytics.track('file', 'open-topology', choice);
+  if (choice === 'cancel') return null;
+  return choice === 'circular' ? await reread() : result;
+}
+
 /**
  * Reads a file the user picked or dropped and opens it in a new tab,
  * returning the document's id, or shows why it could not be read and
  * returns null.
  */
-export async function openFile(file: File): Promise<string | null> {
+export async function openFile(file: File, options: OpenOptions = {}): Promise<string | null> {
   const ext = file.name.slice(file.name.lastIndexOf('.') + 1).toLowerCase();
   const unsupported = UNSUPPORTED[ext];
   if (unsupported !== undefined) {
@@ -77,7 +109,15 @@ export async function openFile(file: File): Promise<string | null> {
     return null;
   }
   try {
-    const id = editorStore.openParsed(await readSequenceData(data, file.name), file.name);
+    let result = await readSequenceData(data, file.name);
+    if (options.askTopology === true) {
+      const chosen = await resolveTopology(result, () =>
+        readSequenceData(data, file.name, { wrappingAsCircular: true }),
+      );
+      if (chosen === null) return null;
+      result = chosen;
+    }
+    const id = editorStore.openParsed(result, file.name);
     // A bare FASTA or an unannotated record: the common parts, if asked (item 59).
     detectOnOpen(id);
     return id;
@@ -101,7 +141,7 @@ export async function openFiles(files: readonly File[]): Promise<void> {
   const [only] = files;
   if (only === undefined) return;
   if (files.length === 1) {
-    await openFile(only);
+    await openFile(only, { askTopology: true });
     return;
   }
   await importFiles(files);
@@ -242,6 +282,16 @@ export function openPastedText(text: string): void {
       e instanceof Error ? e.message : String(e),
       openFailureFacts(openFailureReason(e), { fileName: null, text }, e),
     );
+    return;
+  }
+  // A pasted record that says linear but runs features across its end asks
+  // first (#462); anything else opens at once, as it always did.
+  if ((result.originSpanning?.[0] ?? 0) > 0) {
+    void resolveTopology(result, () =>
+      parseSequenceFile(text, undefined, { wrappingAsCircular: true }),
+    ).then((chosen) => {
+      if (chosen !== null) editorStore.openParsed(chosen, null);
+    });
     return;
   }
   editorStore.openParsed(result, null);

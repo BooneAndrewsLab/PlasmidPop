@@ -5,7 +5,7 @@ import { parseFasta } from './fasta';
 import { parseFastq } from './fastq';
 import { parseGenBank } from './genbank';
 import { isSnapGene, parseSnapGene, readSnapGeneHistory, snapGeneHistoryPacket } from './snapgene';
-import { type FormatId, type ParseResult, FormatError } from './types';
+import { type FormatId, type ParseOptions, type ParseResult, FormatError } from './types';
 
 const GENBANK_EXTENSIONS = new Set(['gb', 'gbk', 'genbank', 'gbff', 'ape', 'gp', 'gpff', 'gpept']);
 const FASTA_EXTENSIONS = new Set(['fa', 'fasta', 'fna', 'ffn', 'faa', 'fas', 'seq', 'txt']);
@@ -74,8 +74,9 @@ function nameFromFilename(filename: string | undefined): string {
 export function parseSequenceData(
   data: ArrayBuffer | Uint8Array | string,
   filename?: string,
+  options: ParseOptions = {},
 ): ParseResult {
-  if (typeof data === 'string') return parseSequenceFile(data, filename);
+  if (typeof data === 'string') return parseSequenceFile(data, filename, options);
   if (isSnapGene(data)) return parseSnapGene(data, filename);
   if (isAbif(data)) return parseAbif(data, filename);
   const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
@@ -96,16 +97,20 @@ export function parseSequenceData(
       'binary',
     );
   }
-  return parseSequenceFile(new TextDecoder('utf-8').decode(bytes), filename);
+  return parseSequenceFile(new TextDecoder('utf-8').decode(bytes), filename, options);
 }
 
 /** Parses a text file in any supported format, detecting which one it is. */
-export function parseSequenceFile(text: string, filename?: string): ParseResult {
+export function parseSequenceFile(
+  text: string,
+  filename?: string,
+  options: ParseOptions = {},
+): ParseResult {
   if (text.trim() === '') throw new FormatError(EMPTY_MESSAGE, undefined, 'empty');
   const format = detectFormat(text, filename);
   switch (format) {
     case 'genbank':
-      return parseGenBank(text);
+      return parseGenBank(text, options);
     case 'fasta':
       return parseFasta(text);
     case 'fastq':
@@ -149,7 +154,11 @@ function isGzip(bytes: Uint8Array): boolean {
  * nanopore run usually comes as `.fastq.gz`. Decompressed with the
  * platform's DecompressionStream, so nothing is bundled for it.
  */
-export async function readSequenceData(data: ArrayBuffer, filename?: string): Promise<ParseResult> {
+export async function readSequenceData(
+  data: ArrayBuffer,
+  filename?: string,
+  options: ParseOptions = {},
+): Promise<ParseResult> {
   const bytes = new Uint8Array(data);
   // A SnapGene file keeps how it was made in a packet of its own, which is
   // usually xz-compressed and so can only be read here, where waiting is
@@ -165,7 +174,7 @@ export async function readSequenceData(data: ArrayBuffer, filename?: string): Pr
       documents: result.documents.map((doc, i) => (i === 0 ? doc.setMetadata({ lineage }) : doc)),
     };
   }
-  if (!isGzip(bytes)) return parseSequenceData(bytes, filename);
+  if (!isGzip(bytes)) return parseSequenceData(bytes, filename, options);
   let inflated: ArrayBuffer;
   try {
     const source = new ReadableStream<BufferSource>({
@@ -179,5 +188,5 @@ export async function readSequenceData(data: ArrayBuffer, filename?: string): Pr
   } catch {
     throw new FormatError('This gzipped file could not be decompressed', undefined, 'corrupt');
   }
-  return parseSequenceData(inflated, filename?.replace(/\.gz$/i, ''));
+  return parseSequenceData(inflated, filename?.replace(/\.gz$/i, ''), options);
 }

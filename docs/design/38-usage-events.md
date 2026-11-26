@@ -48,7 +48,9 @@ all — without snooping.
   `corrupt`, `parse-error`, `too-large`, `unsupported`, `unreadable`,
   `other`; see item 148), e.g. `genbank:parse-error` or
   `other:unrecognised-format`. Neither the error message, a made-up
-  extension nor a file name can carry through.
+  extension nor a file name can carry through; `file` open-topology (#462,
+  item 157), the answer to "this file says linear, but features run across
+  its end": `circular`, `linear` or `cancel`, no count and no name.
 - **Left out on purpose:** sequence length, feature and enzyme counts even
   as buckets, how long a computation took (it gives away the size), where
   an edit was or how long, heartbeat and time-on-page pings, heatmaps,

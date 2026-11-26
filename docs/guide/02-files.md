@@ -82,6 +82,30 @@ or the message shown in the banner (which can quote the start of the file).
 It ends by asking you to attach the file if you are willing to share it;
 whether to is up to you.
 
+#### A linear record with features across its end
+
+Some programs (SnapGene and Addgene exports among them) write a plasmid with
+`linear` on its LOCUS line, or with no topology at all, and still give a
+feature a range such as `8569..276` that runs across the end of the
+sequence. On a linear sequence such a range means nothing, so PlasmidPop asks
+before it opens the file: "This file says linear, but N features run across
+the end of the sequence". It names the number and nothing else.
+
+- **Circular, keeping them** opens the sequence as circular, with those
+  features kept, and it is saved as circular.
+- **Linear, dropping them** opens it as the file says: the features are left
+  out, each with a warning ("location 8569..276 spans the origin of a linear
+  sequence").
+- **Cancel** (or Escape) opens nothing.
+
+The question is asked when you open one file with File ▸ Open or by dropping
+it, and when you paste a record. It is asked once per file, about the first
+record, the one that opens. A record that says circular, or whose features
+are out of range for another reason, never asks. Opening several files or a
+ZIP at once, a file shared to the installed app, a link, a restore, the
+bundled examples and a record fetched from NCBI do not ask: they open as the
+file says, with the warning.
+
 A **CON (contig) record** is a GenBank record whose `CONTIG join(...)` line
 lists the pieces of a chromosome or genome instead of an `ORIGIN` sequence;
 its LOCUS line still gives a length in `bp`, but the file holds no bases.
@@ -998,7 +1022,8 @@ in a sequence you worked, or anything else from your documents. The page address
 opening a [share link](#sharing-a-link) sends the tracker the app's address
 and nothing of the document it carries. A record opened from NCBI is
 counted as one (or, if it failed, why: not found, offline and so on), never
-by its accession. The tracker sets no cookies and the instance anonymises IP
+by its accession. The answer to the linear-or-circular question (circular,
+linear or cancel) is counted, never how many features or which. The tracker sets no cookies and the instance anonymises IP
 addresses. Nothing is sent at all if your browser sends a Do-Not-Track or
 Global Privacy Control signal, or if you switch statistics off: the **Send
 anonymous usage statistics** checkbox at the foot of this guide (Help) turns

@@ -11,13 +11,20 @@ import {
   createMetadata,
   createReference,
   LocationError,
+  OriginSpanError,
   isValidSequence,
   isValidProtein,
   UnsupportedLocationError,
   parseLocation,
 } from '@/core';
 
-import { type ParseResult, type ParseWarning, FormatError, warning } from '../types';
+import {
+  type ParseOptions,
+  type ParseResult,
+  type ParseWarning,
+  FormatError,
+  warning,
+} from '../types';
 import { parseDerivedComment } from './derivedComment';
 import { parseEndsComment } from './endsComment';
 import { parseMadeFromComment } from './madeFromComment';
@@ -710,7 +717,29 @@ function withoutRecordIndent(lines: readonly Line[]): Line[] {
   ];
 }
 
-function parseRecord(recordLines: readonly Line[], warnings: ParseWarning[]): SeqDocument {
+/**
+ * How many features of a record read as linear have a range that runs from a
+ * higher position to a lower one: the ones that are dropped for spanning the
+ * origin of a linear sequence (#462). Only those count; a feature outside the
+ * sequence for any other reason is not one.
+ */
+function countOriginSpanning(raw: readonly RawFeature[], seqLength: number): number {
+  let n = 0;
+  for (const rf of raw) {
+    try {
+      parseLocation(rf.location, seqLength, 'linear');
+    } catch (e) {
+      if (e instanceof OriginSpanError) n++;
+    }
+  }
+  return n;
+}
+
+function parseRecord(
+  recordLines: readonly Line[],
+  warnings: ParseWarning[],
+  options: ParseOptions,
+): { readonly doc: SeqDocument; readonly wrapping: number } {
   const first = recordLines[0];
   if (first === undefined || !/^\s*LOCUS(?=\s|$)/i.test(first.text)) {
     throw new FormatError(
@@ -858,18 +887,23 @@ function parseRecord(recordLines: readonly Line[], warnings: ParseWarning[]): Se
     lineage,
     comments: parsed.comments.filter((c) => !isOwnComment(c)),
   };
-  const features = buildFeatures(rawFeatures, sequence.length, locus.topology, warnings);
-  return SeqDocument.create({
+  const wrapping =
+    locus.topology === 'linear' ? countOriginSpanning(rawFeatures, sequence.length) : 0;
+  const topology =
+    wrapping > 0 && options.wrappingAsCircular === true ? 'circular' : locus.topology;
+  const features = buildFeatures(rawFeatures, sequence.length, topology, warnings);
+  const doc = SeqDocument.create({
     alphabet: locus.alphabet,
     name: locus.name === '' ? 'Untitled' : locus.name,
     sequence,
-    topology: locus.topology,
+    topology,
     features,
     metadata,
     ends,
     styles,
     ...(methylation === null ? {} : { methylation }),
   });
+  return { doc, wrapping };
 }
 
 /**
@@ -878,7 +912,7 @@ function parseRecord(recordLines: readonly Line[], warnings: ParseWarning[]): Se
  * Unparseable features become warnings; an unusable record throws
  * `FormatError`.
  */
-export function parseGenBank(text: string): ParseResult {
+export function parseGenBank(text: string, options: ParseOptions = {}): ParseResult {
   const escaped = jsonEscapeHint(text);
   if (escaped !== null)
     throw new FormatError(escaped, undefined, 'parse-error', { section: 'header' });
@@ -892,10 +926,13 @@ export function parseGenBank(text: string): ParseResult {
     );
   const warnings: ParseWarning[] = [];
   const documents: SeqDocument[] = [];
+  const wrapping: number[] = [];
   let contigError: ContigRecordError | null = null;
   for (const record of records) {
     try {
-      documents.push(parseRecord(record, warnings));
+      const parsed = parseRecord(record, warnings, options);
+      documents.push(parsed.doc);
+      wrapping.push(parsed.wrapping);
     } catch (e) {
       if (!(e instanceof ContigRecordError)) {
         if (e instanceof FormatError) e.recordsParsed ??= documents.length;
@@ -913,5 +950,12 @@ export function parseGenBank(text: string): ParseResult {
     }
   }
   if (documents.length === 0 && contigError !== null) throw contigError;
-  return { format: 'genbank', documents, warnings };
+  // Only said when there is something to say, so a result without such
+  // features is the one it always was.
+  return {
+    format: 'genbank',
+    documents,
+    warnings,
+    ...(wrapping.some((n) => n > 0) ? { originSpanning: wrapping } : {}),
+  };
 }

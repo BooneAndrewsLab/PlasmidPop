@@ -12,6 +12,24 @@ export interface ParseResult {
   readonly format: FormatId;
   readonly documents: readonly SeqDocument[];
   readonly warnings: readonly ParseWarning[];
+  /**
+   * Set only when a GenBank record that says linear has features that run
+   * across the end of the sequence (#462): for each document, how many. They
+   * are dropped with a warning unless the file is read again with
+   * `wrappingAsCircular`, which the app does when the user asks for it.
+   */
+  readonly originSpanning?: readonly number[];
+}
+
+/** What reading a sequence file can be asked to do differently (#462). */
+export interface ParseOptions {
+  /**
+   * Read a GenBank record whose LOCUS line says linear (or says nothing) as
+   * circular when it has features that run across the end of the sequence,
+   * and keep them, instead of dropping them with a warning. Records without
+   * such features are read as the file says; other formats ignore this.
+   */
+  readonly wrappingAsCircular?: boolean;
 }
 
 /**

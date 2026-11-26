@@ -22,6 +22,17 @@ export class LocationError extends Error {
   }
 }
 
+/**
+ * A range that runs from a higher position to a lower one on a linear
+ * sequence: it only makes sense across the origin of a circular one (#462).
+ */
+export class OriginSpanError extends LocationError {
+  constructor(a: number, b: number) {
+    super(`location ${a}..${b} spans the origin of a linear sequence`);
+    this.name = 'OriginSpanError';
+  }
+}
+
 /** The INSDC location syntaxes we recognise but do not model. */
 export type UnsupportedSyntax =
   'remote' | 'bond' | 'gap' | 'one-of' | 'uncertain' | 'marker' | 'negative';
@@ -295,9 +306,7 @@ function simpleToSegment(
       const opts = { partialStart: node.partialStart, partialEnd: node.partialEnd };
       if (node.b >= node.a) return rangeSegment(node.a - 1, node.b, opts);
       if (topology === 'linear') {
-        throw new LocationError(
-          `location ${node.a}..${node.b} spans the origin of a linear sequence`,
-        );
+        throw new OriginSpanError(node.a, node.b);
       }
       return rangeSegment(node.a - 1, node.b + seqLength, opts);
     }

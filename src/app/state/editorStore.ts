@@ -104,6 +104,9 @@ export type Comparison =
       readonly source: ComparisonSource;
     };
 
+/** The answer to the question of how to open a linear record with features across its end (#462). */
+export type TopologyChoice = 'circular' | 'linear' | 'cancel';
+
 /** The four base colours a user may set, as `#rrggbb`. */
 export interface CustomBaseColors {
   readonly a: string;
@@ -865,6 +868,11 @@ export interface SharedState {
   /** What opening several files, or an archive, came to (#213); the dialog that reports it. */
   readonly importSummary: ImportSummary | null;
   /**
+   * The question a linear GenBank record with features across its end puts to
+   * the user before it opens (#462): how many such features, and nothing else.
+   */
+  readonly topologyPrompt: { readonly features: number } | null;
+  /**
    * That the browser would ask the user before keeping this origin's
    * storage, and has not been asked yet. The banner explains what the
    * question means and puts it from a click, so the browser's own dialog
@@ -1141,6 +1149,7 @@ const SHARED_INITIAL: SharedState = {
   shareNotice: null,
   readNotice: null,
   importSummary: null,
+  topologyPrompt: null,
   storageNotice: false,
   backupNotice: null,
   removalNotices: [],
@@ -1780,6 +1789,28 @@ export class EditorStore {
   /** Puts up the report of a multi-file or archive import (#213). */
   noteImport(summary: ImportSummary): void {
     this.setShared({ importSummary: summary });
+  }
+
+  private topologyResolver: ((choice: TopologyChoice) => void) | null = null;
+
+  /**
+   * Asks how to open a record that says linear but has `features` features
+   * running across its end (#462). Resolves with the user's answer; a
+   * question still open when another comes is answered `cancel`.
+   */
+  askTopology(features: number): Promise<TopologyChoice> {
+    this.topologyResolver?.('cancel');
+    return new Promise((resolve) => {
+      this.topologyResolver = resolve;
+      this.setShared({ topologyPrompt: { features } });
+    });
+  }
+
+  answerTopology(choice: TopologyChoice): void {
+    const resolve = this.topologyResolver;
+    this.topologyResolver = null;
+    if (this.state.topologyPrompt !== null) this.setShared({ topologyPrompt: null });
+    resolve?.(choice);
   }
 
   dismissImportSummary(): void {
