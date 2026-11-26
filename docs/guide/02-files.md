@@ -76,6 +76,15 @@ qualifiers. An `order(...)` stays one, through edits and back out to a file;
 the one location PlasmidPop cannot keep is one operator nested inside the
 other, such as a `join(...)` inside an `order(...)`, which is read as the
 outer one with a warning.
+A feature whose location uses syntax PlasmidPop cannot represent is
+skipped, with a warning that names the syntax and the line: `bond(...)` and
+`site(...)` (the Bond, Het and Site features of a protein record), `gap(...)`,
+`one-of(...)`, an uncertain end such as `(10.20)..30` or `1..?`, a `<` or `>`
+in the wrong place (`5..<12`), negative coordinates, and remote
+(`ACCESSION:1..10`) locations. When more than five features of one kind are
+skipped, the first five get a warning each and one more says how many were
+left out. A location is never read as something else: the feature is dropped
+rather than moved.
 A download writes a standard GenBank flat file that other programs can read.
 Anything PlasmidPop does not understand in a record is reported as a warning
 in the status bar rather than silently dropped. So is a record that

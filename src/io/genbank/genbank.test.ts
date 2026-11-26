@@ -527,6 +527,39 @@ describe('GenBank parser edge cases', () => {
     expect(result.warnings[0]?.line).toBe(3);
   });
 
+  it('names the unsupported syntax of a skipped feature, line numbered', () => {
+    const text = record(
+      'LOCUS       X 20 bp DNA linear',
+      [
+        '     Bond            bond(3,5)',
+        '     Het             join(bond(2),bond(4))',
+        '     misc_feature    1..3',
+        '',
+      ].join('\n'),
+    );
+    const result = parseGenBank(text);
+    expect(result.documents[0]?.features.size).toBe(1);
+    expect(result.warnings.map((w) => w.message)).toEqual([
+      expect.stringMatching(/^Skipped Bond feature: bond\(\.\.\.\) and site\(\.\.\.\) locations/),
+      expect.stringMatching(/^Skipped Het feature: bond\(\.\.\.\) and site/),
+    ]);
+    expect(result.warnings.map((w) => w.line)).toEqual([3, 4]);
+  });
+
+  it('summarises many features skipped for the same syntax', () => {
+    const bonds = Array.from({ length: 8 }, (_, i) => `     Bond            bond(${i + 1})`);
+    const text = record(
+      'LOCUS       X 20 bp DNA linear',
+      [...bonds, '     misc_feature    1..3', ''].join('\n'),
+    );
+    const result = parseGenBank(text);
+    expect(result.documents[0]?.features.size).toBe(1);
+    const messages = result.warnings.map((w) => w.message);
+    expect(messages).toHaveLength(6);
+    expect(messages[5]).toMatch(/^3 more features skipped \(8 in all\): bond\(\.\.\.\)/);
+    expect(result.warnings[5]?.line).toBe(8);
+  });
+
   it('wraps long locations and long notes, and re-reads them', () => {
     const parts = Array.from({ length: 12 }, (_, i) => `${i * 10 + 1}..${i * 10 + 5}`).join(',');
     const note = Array.from({ length: 30 }, (_, i) => `word${i}`).join(' ');

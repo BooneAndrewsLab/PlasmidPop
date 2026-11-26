@@ -1,5 +1,5 @@
 import { createFeature } from './feature';
-import { LocationError, formatLocation, parseLocation } from './location';
+import { LocationError, UnsupportedLocationError, formatLocation, parseLocation } from './location';
 import { rangeSegment, siteSegment } from './segment';
 
 const L = 100;
@@ -199,5 +199,43 @@ describe('formatLocation', () => {
     expect(formatLocation(f([siteSegment(0)]), L, 'linear')).toBe('1^2');
     expect(formatLocation(f([siteSegment(100)]), L, 'linear')).toBe('99^100');
     expect(formatLocation(f([siteSegment(0)]), L, 'circular')).toBe('100^1');
+  });
+
+  it.each([
+    ['bond(24)', 'bond', /bond\(\.\.\.\)/],
+    ['bond(268,272)', 'bond', /bond\(\.\.\.\)/],
+    ['join(bond(84),bond(115))', 'bond', /bond\(\.\.\.\)/],
+    ['site(5)', 'bond', /site\(\.\.\.\)/],
+    ['gap(10)', 'gap', /gap\(\.\.\.\)/],
+    ['gap()', 'gap', /gap\(\.\.\.\)/],
+    ['join(1..5,gap(10),20..30)', 'gap', /gap\(\.\.\.\)/],
+    ['(10.20)..30', 'uncertain', /uncertain end/],
+    ['10..(20.30)', 'uncertain', /uncertain end/],
+    ['(5.10)', 'uncertain', /uncertain end/],
+    ['1..?', 'uncertain', /uncertain end/],
+    ['?..5', 'uncertain', /uncertain end/],
+    ['one-of(1,5)..20', 'one-of', /one-of\(\.\.\.\)/],
+    ['complement(join(79..<80,81..90))', 'marker', /"<" or ">"/],
+    ['5>..12', 'marker', /"<" or ">"/],
+    ['complement(-41..73)', 'negative', /negative coordinates/],
+    ['complement(join(-27..-26,-5..8))', 'negative', /negative coordinates/],
+    ['AB1.1:3..9', 'remote', /remote/],
+  ] as const)('names the unsupported syntax of %s', (text, syntax, message) => {
+    let thrown: unknown;
+    try {
+      parseLocation(text, L, 'linear');
+    } catch (e) {
+      thrown = e;
+    }
+    expect(thrown).toBeInstanceOf(UnsupportedLocationError);
+    expect((thrown as UnsupportedLocationError).syntax).toBe(syntax);
+    expect((thrown as UnsupportedLocationError).message).toMatch(message);
+    expect((thrown as UnsupportedLocationError).message).not.toMatch(/offset/);
+  });
+
+  it('still reads the forms that parse, without naming them unsupported', () => {
+    for (const text of ['<1..>5', '1^2', '5', '<5', '>5', 'order(1..3,7..9)', '5.9']) {
+      expect(() => parseLocation(text, L, 'linear')).not.toThrow();
+    }
   });
 });

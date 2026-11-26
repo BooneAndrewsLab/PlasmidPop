@@ -13,6 +13,7 @@ import {
   LocationError,
   isValidSequence,
   isValidProtein,
+  UnsupportedLocationError,
   parseLocation,
 } from '@/core';
 
@@ -544,6 +545,9 @@ export function deriveFeatureName(type: string, qualifiers: readonly Qualifier[]
   return '';
 }
 
+/** Skipped features with the same unsupported syntax that get a warning each. */
+const MAX_LISTED_SKIPS = 5;
+
 function buildFeatures(
   raw: readonly RawFeature[],
   seqLength: number,
@@ -551,11 +555,30 @@ function buildFeatures(
   warnings: ParseWarning[],
 ): Feature[] {
   const out: Feature[] = [];
+  // Features skipped for the same unsupported syntax: the first few are
+  // reported one by one, the rest in one summary so a protein record with
+  // hundreds of bonds does not bury every other warning (item 155).
+  const unsupported = new Map<string, { count: number; first: number; description: string }>();
   for (const rf of raw) {
     let parsed;
     try {
       parsed = parseLocation(rf.location, seqLength, topology);
     } catch (e) {
+      if (e instanceof UnsupportedLocationError) {
+        const seen = unsupported.get(e.syntax) ?? {
+          count: 0,
+          first: rf.line,
+          description: e.description,
+        };
+        seen.count++;
+        unsupported.set(e.syntax, seen);
+        if (seen.count <= MAX_LISTED_SKIPS) {
+          warnings.push(warning(`Skipped ${rf.key} feature: ${e.message}`, rf.line));
+        } else if (seen.count === MAX_LISTED_SKIPS + 1) {
+          seen.first = rf.line;
+        }
+        continue;
+      }
       if (e instanceof LocationError) {
         warnings.push(warning(`Skipped ${rf.key} feature: ${e.message}`, rf.line));
         continue;
@@ -575,6 +598,17 @@ function buildFeatures(
         qualifiers,
       }),
     );
+  }
+  for (const seen of unsupported.values()) {
+    const more = seen.count - MAX_LISTED_SKIPS;
+    if (more > 0) {
+      warnings.push(
+        warning(
+          `${more} more feature${more === 1 ? '' : 's'} skipped (${seen.count} in all): ${seen.description}`,
+          seen.first,
+        ),
+      );
+    }
   }
   return out;
 }

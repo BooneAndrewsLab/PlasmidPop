@@ -9,7 +9,10 @@ import { type Segment, rangeSegment, siteSegment } from './segment';
  *   simple     := [<]a..[>]b | a | a^b | a.b
  *
  * Coordinates in the text are 1-based inclusive; our segments are 0-based
- * half-open. Remote locations (`ACCESSION:1..10`) are rejected.
+ * half-open. Remote locations (`ACCESSION:1..10`) are rejected, as is the
+ * rest of the INSDC syntax we do not model (`bond(...)`, `gap(...)`,
+ * uncertain ends, negative coordinates, ...); those are rejected with an
+ * `UnsupportedLocationError` that names the syntax (item 155).
  */
 
 export class LocationError extends Error {
@@ -17,6 +20,82 @@ export class LocationError extends Error {
     super(message);
     this.name = 'LocationError';
   }
+}
+
+/** The INSDC location syntaxes we recognise but do not model. */
+export type UnsupportedSyntax =
+  'remote' | 'bond' | 'gap' | 'one-of' | 'uncertain' | 'marker' | 'negative';
+
+const UNSUPPORTED: readonly {
+  readonly syntax: UnsupportedSyntax;
+  readonly test: RegExp;
+  readonly description: string;
+}[] = [
+  {
+    syntax: 'remote',
+    test: /(?:^|[(,\s])[A-Za-z][\w.]*:\s*[<>]?\d/,
+    description: 'remote (cross-entry) locations are not supported',
+  },
+  {
+    syntax: 'bond',
+    test: /\b(?:bond|site)\s*\(/,
+    description: 'bond(...) and site(...) locations (protein bonds and sites) are not supported',
+  },
+  {
+    syntax: 'gap',
+    test: /\bgap\s*\(/,
+    description: 'gap(...) locations (a stretch of unknown sequence) are not supported',
+  },
+  {
+    syntax: 'one-of',
+    test: /\bone-of\s*\(/,
+    description:
+      'one-of(...) locations (an end that is one of several positions) are not supported',
+  },
+  {
+    syntax: 'uncertain',
+    test: /\?|\(\s*\d+\s*\.\s*\d+\s*\)/,
+    description: 'locations with an uncertain end, such as (10.20)..30 or 1..?, are not supported',
+  },
+  {
+    syntax: 'marker',
+    test: /\.\.\s*<|\d\s*>/,
+    description:
+      'locations that put "<" or ">" anywhere but before the start and before the end, such as 5..<12, are not supported',
+  },
+  {
+    syntax: 'negative',
+    test: /(?:^|[(,.])\s*-\d/,
+    description: 'locations with negative coordinates are not supported',
+  },
+];
+
+/** A location in INSDC syntax that the editor recognises but cannot represent. */
+export class UnsupportedLocationError extends LocationError {
+  constructor(
+    readonly syntax: UnsupportedSyntax,
+    /** What is unsupported, in plain words, without the location itself. */
+    readonly description: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'UnsupportedLocationError';
+  }
+}
+
+function classifyFailure(text: string, original: LocationError): LocationError {
+  for (const u of UNSUPPORTED) {
+    if (!u.test.test(text)) continue;
+    const shown = text.length > 60 ? `${text.slice(0, 57)}...` : text;
+    return new UnsupportedLocationError(
+      u.syntax,
+      u.description,
+      u.syntax === 'remote'
+        ? `Cannot parse location "${text}": ${u.description}`
+        : `${u.description} (location "${shown}")`,
+    );
+  }
+  return original;
 }
 
 type LocNode =
@@ -253,7 +332,12 @@ function mergeOriginSpanning(segments: readonly Segment[], seqLength: number): S
 }
 
 export function parseLocation(text: string, seqLength: number, topology: Topology): ParsedLocation {
-  const root = new LocationParser(text).parse();
+  let root: LocNode;
+  try {
+    root = new LocationParser(text).parse();
+  } catch (e) {
+    throw e instanceof LocationError ? classifyFailure(text, e) : e;
+  }
   const warnings: string[] = [];
   const parts: FlatPart[] = [];
   let strand: Strand = 'forward';
