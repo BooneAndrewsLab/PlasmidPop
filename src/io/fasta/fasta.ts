@@ -36,7 +36,8 @@ const METHYLATION_TAG = /\s*\[(PlasmidPop-methylation:[^\]]*)\]/;
  */
 export function parseFasta(text: string): ParseResult {
   const escaped = jsonEscapeHint(text);
-  if (escaped !== null) throw new FormatError(escaped);
+  if (escaped !== null)
+    throw new FormatError(escaped, undefined, 'parse-error', { section: 'header' });
   const lines = text.replace(/\r\n?/g, '\n').split('\n');
   const warnings: ParseWarning[] = [];
   const documents: SeqDocument[] = [];
@@ -75,6 +76,8 @@ export function parseFasta(text: string): ParseResult {
       throw new FormatError(
         `Sequence is not nucleotide IUPAC (found ${bad.map((c) => JSON.stringify(c)).join(', ')})${invalidBaseHint(bad, cleaned)}`,
         header.line,
+        'parse-error',
+        { section: 'sequence', recordsParsed: documents.length },
       );
     }
     const tag = ENDS_TAG.exec(description);
@@ -113,6 +116,7 @@ export function parseFasta(text: string): ParseResult {
         'FASTA files must start with a ">" header line',
         idx + 1,
         'unrecognised-format',
+        { section: 'header', recordsParsed: documents.length },
       );
     }
   });

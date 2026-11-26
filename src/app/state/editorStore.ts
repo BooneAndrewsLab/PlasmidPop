@@ -66,6 +66,7 @@ import { type BenchPanel, type BenchSettings, DEFAULT_BENCH } from './benchSetti
 import { type CloningReaction, type SidebarReaction, isSidebarReaction } from './cloningReaction';
 import { type CutCountFilter } from './cutFilter';
 import { type EnzymeSort } from './enzymeSort';
+import { type OpenFailureFacts, bareFacts } from '../reportProblem';
 import { DEFAULT_LAYOUT, type LayoutSizes, clampLayout, sameLayout } from './layout';
 
 export type ViewMode = 'sequence' | 'map' | 'both';
@@ -627,6 +628,8 @@ export interface SharedState {
    * `error`, which is the status bar's line for minor problems.
    */
   readonly openError: string | null;
+  /** The structured facts behind `openError`, for its problem report (#459); never the message. */
+  readonly openFailure: OpenFailureFacts | null;
   /**
    * Set while `error` will dismiss itself: how long it is shown in full, how
    * long it then takes to fade, and a nonce that changes every time the clock
@@ -1092,6 +1095,7 @@ const SHELF_UNDO_LIMIT = 100;
 const SHARED_INITIAL: SharedState = {
   error: null,
   openError: null,
+  openFailure: null,
   errorCountdown: null,
   showComplement: true,
   showTranslations: true,
@@ -1361,7 +1365,7 @@ export class EditorStore {
   ): string | null {
     const doc = result.documents[0];
     if (doc === undefined) {
-      this.failOpen('The file contains no sequences.');
+      this.failOpen('The file contains no sequences.', bareFacts('empty'));
       this.setActive({ warnings: result.warnings });
       return null;
     }
@@ -1402,7 +1406,8 @@ export class EditorStore {
     storage: OpenStorage = {},
   ): string {
     // A successful open ends the last failed one's banner (#457).
-    if (this.shared.openError !== null) this.shared = { ...this.shared, openError: null };
+    if (this.shared.openError !== null)
+      this.shared = { ...this.shared, openError: null, openFailure: null };
     const open =
       storage.id === undefined ? this.findOpenCopy(doc, fileName) : this.documentState(storage.id);
     if (open !== null) {
@@ -1733,13 +1738,18 @@ export class EditorStore {
    * (#457). It stays until dismissed or until the next open succeeds; the
    * status bar's line is cleared so the same words are not said twice.
    */
-  failOpen(message: string): void {
+  failOpen(message: string, facts: OpenFailureFacts | null = null): void {
     this.clearErrorTimer();
-    this.setShared({ openError: message, error: null, errorCountdown: null });
+    this.setShared({
+      openError: message,
+      openFailure: facts,
+      error: null,
+      errorCountdown: null,
+    });
   }
 
   dismissOpenError(): void {
-    if (this.state.openError !== null) this.setShared({ openError: null });
+    if (this.state.openError !== null) this.setShared({ openError: null, openFailure: null });
   }
 
   private clearErrorTimer(): void {

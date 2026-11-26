@@ -12,6 +12,7 @@ import {
 
 import { analytics, openFailedName } from './analytics';
 import { type Example } from './examples';
+import { openFailureFacts } from './reportProblem';
 import { detectOnOpen } from './state/detection';
 import { type ImportSummary, type OpenStorage, editorStore } from './state/editorStore';
 
@@ -56,7 +57,7 @@ export async function openFile(file: File): Promise<string | null> {
   const unsupported = UNSUPPORTED[ext];
   if (unsupported !== undefined) {
     analytics.track('file', 'open-failed', openFailedName(file.name, 'unsupported'));
-    editorStore.failOpen(unsupported);
+    editorStore.failOpen(unsupported, openFailureFacts('unsupported', { fileName: file.name }));
     return null;
   }
   let data: ArrayBuffer;
@@ -64,7 +65,10 @@ export async function openFile(file: File): Promise<string | null> {
     data = await file.arrayBuffer();
   } catch {
     analytics.track('file', 'open-failed', openFailedName(file.name, 'unreadable'));
-    editorStore.failOpen(`Could not read "${file.name}".`);
+    editorStore.failOpen(
+      `Could not read "${file.name}".`,
+      openFailureFacts('unreadable', { fileName: file.name }),
+    );
     return null;
   }
   // An archive is a batch of its own, reported as one (#213).
@@ -80,7 +84,10 @@ export async function openFile(file: File): Promise<string | null> {
   } catch (e) {
     const failure = describeOpenFailure(e);
     analytics.track('file', 'open-failed', openFailedName(file.name, failure.reason));
-    editorStore.failOpen(failure.message);
+    editorStore.failOpen(
+      failure.message,
+      openFailureFacts(failure.reason, { fileName: file.name, bytes: new Uint8Array(data) }, e),
+    );
     return null;
   }
 }
@@ -205,7 +212,10 @@ export function openText(
       storage,
     );
   } catch (e) {
-    editorStore.failOpen(e instanceof Error ? e.message : String(e));
+    editorStore.failOpen(
+      e instanceof Error ? e.message : String(e),
+      openFailureFacts(openFailureReason(e), { fileName, text }, e),
+    );
     return null;
   }
 }
@@ -224,10 +234,14 @@ export function openPastedText(text: string): void {
     if (e instanceof FormatError) {
       editorStore.failOpen(
         'Pasted text is not a GenBank or FASTA record and contains characters outside the IUPAC nucleotide alphabet.',
+        openFailureFacts(e.reason, { fileName: null, text }, e),
       );
       return;
     }
-    editorStore.failOpen(e instanceof Error ? e.message : String(e));
+    editorStore.failOpen(
+      e instanceof Error ? e.message : String(e),
+      openFailureFacts(openFailureReason(e), { fileName: null, text }, e),
+    );
     return;
   }
   editorStore.openParsed(result, null);

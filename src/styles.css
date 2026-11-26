@@ -2124,6 +2124,13 @@ button {
   border-bottom: 1px solid var(--line);
 }
 
+.statusbar__report {
+  margin: 0;
+  padding: 6px 16px 6px 32px;
+  color: var(--ink-2);
+  border-bottom: 1px solid var(--line);
+}
+
 /* Empty state */
 
 .empty {

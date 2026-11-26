@@ -3,6 +3,9 @@
 /** The release this build is, from package.json (`define` in vite.config.ts). */
 declare const __APP_VERSION__: string;
 
+/** The day this build was made, YYYY-MM-DD (`define` in vite.config.ts, #459). */
+declare const __BUILD_DATE__: string;
+
 /** The Validation page's generated tables, as guide Markdown (`define` in vite.config.ts, item 142). */
 declare const __VALIDATION_TABLES__: string;
 

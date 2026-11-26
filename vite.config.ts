@@ -190,6 +190,8 @@ export default defineConfig({
     // Shown in the guide's header, so a user or a bug report can say which
     // release they are on. package.json is the one place it is written.
     __APP_VERSION__: JSON.stringify(pkg.version),
+    // The day this build was made, for the problem report's first line (#459).
+    __BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)),
     // The generated tables of the guide's Validation page (item 142), counted
     // from the committed oracle data when the build starts. guide.ts puts them
     // where the page's marker line is.

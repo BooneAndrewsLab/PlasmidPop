@@ -118,3 +118,32 @@ describe("the selection's GC in the status bar (item 75)", () => {
     expect(container.textContent).not.toContain('GC');
   });
 });
+
+describe('the status bar warnings report (#459)', () => {
+  it('copies counts and categories, never the warning text or the file name', () => {
+    const clip = stubClipboard();
+    act(() => {
+      editorStore.closeAllDocuments();
+      editorStore.openDocument(
+        PLASMID,
+        'SECRETMARKER-xyz.gb',
+        [
+          { message: 'Feature table: 2 lines were not read: "SECRETMARKER-xyz"', line: 14 },
+          { message: 'Sequence: SECRETMARKER-xyz', line: 40 },
+        ],
+        {},
+      );
+    });
+    render(<StatusBar doc={editorStore.getState().history?.present ?? null} />);
+    fireEvent.click(screen.getByRole('button', { name: /2 warnings/ }));
+    // The placeholder address keeps the mail link off.
+    expect(screen.queryByRole('link', { name: 'Report this problem' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Copy report' }));
+    const text = clip.written[0] ?? '';
+    expect(text).toContain('Warnings: 2');
+    expect(text).toContain('- Feature table: 1, at line 14');
+    expect(text).toContain('- Sequence: 1, at line 40');
+    expect(text).not.toContain('SECRETMARKER');
+    clip.restore();
+  });
+});

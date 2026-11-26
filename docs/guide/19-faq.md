@@ -22,7 +22,7 @@ Yes. It is released under the MIT licence, and the source code is on [GitHub](ht
 
 ## Are my sequences uploaded anywhere?
 
-No. Files you open stay on your computer and all analysis runs in your browser. The one outside service is NCBI, contacted only when you ask for a record by accession or search for a gene by name, and it receives only what you typed. See [Getting started](01-getting-started.md).
+No. Files you open stay on your computer and all analysis runs in your browser. The one outside service is NCBI, contacted only when you ask for a record by accession or search for a gene by name, and it receives only what you typed. See [Getting started](01-getting-started.md). A failed open can also be reported by email, but only if you choose to send it: see [Reporting a problem](02-files.md#reporting-a-problem).
 
 ## Does it work offline?
 

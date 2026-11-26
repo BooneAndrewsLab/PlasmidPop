@@ -86,3 +86,65 @@ describe('OpenErrorBanner', () => {
     expect(opened).toEqual(['02-files#formats']);
   });
 });
+
+describe('OpenErrorBanner problem report', () => {
+  const MARKER = 'SECRETMARKER-xyz';
+  const real = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+
+  beforeEach(() => {
+    act(() => {
+      editorStore.dismissOpenError();
+    });
+  });
+  afterEach(() => {
+    if (real === undefined) delete (navigator as { clipboard?: Clipboard }).clipboard;
+    else Object.defineProperty(navigator, 'clipboard', real);
+  });
+
+  function failWithMarker(): void {
+    act(() => {
+      openText(`${MARKER}\nACGT\n`, `${MARKER}.gb`);
+    });
+  }
+
+  it('does not render the mail link while the address is the placeholder', () => {
+    render(<OpenErrorBanner />);
+    failWithMarker();
+    expect(screen.queryByRole('link', { name: 'Report this problem' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Copy report' })).toBeTruthy();
+  });
+
+  it('renders a mailto link for a real address, carrying no file content', () => {
+    render(<OpenErrorBanner address="reports@example.org" />);
+    failWithMarker();
+    // The message itself, shown to the user, does quote the file.
+    expect(screen.getByRole('alert').textContent).toContain(MARKER);
+    const link = screen.getByRole('link', { name: 'Report this problem' });
+    const href = link.getAttribute('href') ?? '';
+    expect(href.startsWith('mailto:reports@example.org?subject=')).toBe(true);
+    expect(href.length).toBeLessThan(1500);
+    expect(href).not.toContain(MARKER);
+    expect(decodeURIComponent(href)).not.toContain(MARKER);
+    expect(decodeURIComponent(href)).toContain('Failure: unrecognised-format');
+  });
+
+  it('copies the same text as the mail body, and nothing from the file', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    render(<OpenErrorBanner address="reports@example.org" />);
+    failWithMarker();
+    const href =
+      screen.getByRole('link', { name: 'Report this problem' }).getAttribute('href') ?? '';
+    fireEvent.click(screen.getByRole('button', { name: 'Copy report' }));
+    expect(writeText).toHaveBeenCalledTimes(1);
+    const copied = (writeText.mock.calls[0] as unknown as [string])[0];
+    expect(copied).not.toContain(MARKER);
+    expect(copied).not.toContain('ACGT');
+    const body = decodeURIComponent(href.slice(href.indexOf('&body=') + 6)).replace(/\r\n/g, '\n');
+    expect(body).toBe(copied);
+    expect(screen.getByRole('button', { name: 'Copied' })).toBeTruthy();
+    await act(async () => {
+      await Promise.resolve();
+    });
+  });
+});

@@ -631,6 +631,8 @@ function parseSequence(
       throw new FormatError(
         `Sequence contains characters outside the amino-acid alphabet: ${bad.map((c) => JSON.stringify(c)).join(', ')}`,
         startLine,
+        'parse-error',
+        { section: 'sequence' },
       );
     }
     return text;
@@ -640,6 +642,8 @@ function parseSequence(
     throw new FormatError(
       `Sequence contains characters outside the IUPAC nucleotide alphabet: ${bad.map((c) => JSON.stringify(c)).join(', ')}${invalidBaseHint(bad, text)}`,
       startLine,
+      'parse-error',
+      { section: 'sequence' },
     );
   }
   return text;
@@ -713,6 +717,7 @@ function parseRecord(recordLines: readonly Line[], warnings: ParseWarning[]): Se
       'GenBank record must start with a LOCUS line',
       first?.number,
       'unrecognised-format',
+      { section: 'header' },
     );
   }
   const lines = withoutRecordIndent(recordLines);
@@ -875,13 +880,15 @@ function parseRecord(recordLines: readonly Line[], warnings: ParseWarning[]): Se
  */
 export function parseGenBank(text: string): ParseResult {
   const escaped = jsonEscapeHint(text);
-  if (escaped !== null) throw new FormatError(escaped);
+  if (escaped !== null)
+    throw new FormatError(escaped, undefined, 'parse-error', { section: 'header' });
   const records = splitRecords(text);
   if (records.length === 0)
     throw new FormatError(
       `No LOCUS line found; not a GenBank file. ${noLocusHint(text)}`,
       undefined,
       'unrecognised-format',
+      { section: 'header' },
     );
   const warnings: ParseWarning[] = [];
   const documents: SeqDocument[] = [];
@@ -890,7 +897,10 @@ export function parseGenBank(text: string): ParseResult {
     try {
       documents.push(parseRecord(record, warnings));
     } catch (e) {
-      if (!(e instanceof ContigRecordError)) throw e;
+      if (!(e instanceof ContigRecordError)) {
+        if (e instanceof FormatError) e.recordsParsed ??= documents.length;
+        throw e;
+      }
       // A CON record among others is left out with a warning; if nothing
       // else opens, its message is the failure.
       contigError ??= e;

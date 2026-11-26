@@ -53,6 +53,35 @@ formats** link brings you to the table. The usual causes:
 A ZIP or a multi-file drop opens whatever it can and lists, in the import
 summary, each file it left out and why.
 
+### Reporting a problem
+
+The banner also has **Copy report**, and **Report this problem** where the
+build has a mailbox to send to. Report this problem opens your own mail client
+with a message already written; Copy report puts the same text on the
+clipboard, to paste into any mail. PlasmidPop sends nothing itself: you read
+the message and send it, or not. The same two choices appear under the
+**warnings while opening** list in the status bar, for a file that opened but
+may have lost something.
+
+The report holds only these, and nothing else:
+
+- the PlasmidPop version and build date, and your browser and operating
+  system by name (no version numbers);
+- why the open failed (one of a fixed list of reasons, with one fixed sentence
+  explaining it) and the format guessed from the extension;
+- the line number and the part of the file where reading stopped (header,
+  feature table or sequence), and how many records were read before it;
+- the file's size in bytes, its extension only if it is a common sequence
+  extension (otherwise "other"), and whether it looks like text, binary,
+  UTF-16 or gzipped;
+- for warnings: how many, in which kinds (such as "Feature table" or
+  "Sequence") and at which lines.
+
+It never holds the file's name, any sequence, feature or text from the file,
+or the message shown in the banner (which can quote the start of the file).
+It ends by asking you to attach the file if you are willing to share it;
+whether to is up to you.
+
 A **CON (contig) record** is a GenBank record whose `CONTIG join(...)` line
 lists the pieces of a chromosome or genome instead of an `ORIGIN` sequence;
 its LOCUS line still gives a length in `bp`, but the file holds no bases.
@@ -977,6 +1006,10 @@ them off at once and back on without a reload, and your choice is remembered
 in this browser. When the browser's signal is on, the checkbox shows off and
 cannot be turned on. Builds without a configured instance never send anything
 and show no checkbox.
+
+A [problem report](#reporting-a-problem) is not part of the statistics and
+is not sent by PlasmidPop at all: it is an email you write from a prefilled
+draft, or text you copy, and it goes only if you send it.
 
 If Chrome asks whether the page may **access other devices on your local
 network**, that is this tracker: the statistics server is on the lab's

@@ -12,6 +12,14 @@ import {
 } from '@/core';
 
 import { copyText } from '../clipboard';
+import {
+  REPORT_ADDRESS,
+  canMailReport,
+  currentEnvironment,
+  mailtoUrl,
+  warningFacts,
+  warningReport,
+} from '../reportProblem';
 import { useDocumentChecksum } from '../state/documentChecksum';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
@@ -45,6 +53,39 @@ function describeSelection(doc: SeqDocument, selection: { start: number; end: nu
   return `${formatLength(length, doc.alphabet)} selected, ${from.toLocaleString()} to ${to.toLocaleString()}`;
 }
 
+/**
+ * The report offer under the opening warnings (#459): content may have been
+ * left out. The report lists the warnings' counts, categories and line
+ * numbers, never their text (which can quote the file).
+ */
+function WarningReport({
+  warnings,
+  fileName,
+}: {
+  readonly warnings: readonly { readonly message: string; readonly line?: number }[];
+  readonly fileName: string | null;
+}) {
+  const [copied, setCopied] = useState(false);
+  const report = warningReport(warningFacts(warnings, fileName), currentEnvironment());
+  return (
+    <p className="statusbar__report">
+      Content may have been left out.{' '}
+      {canMailReport() && <a href={mailtoUrl(REPORT_ADDRESS, report)}>Report this problem</a>}{' '}
+      <button
+        type="button"
+        className="button button--quiet"
+        data-tip="Copies a short report with no file name or file content, to paste into an email"
+        onClick={() => {
+          copyText(report.body);
+          setCopied(true);
+        }}
+      >
+        {copied ? 'Copied' : 'Copy report'}
+      </button>
+    </p>
+  );
+}
+
 export function StatusBar({ doc }: Props) {
   const { selection, warnings, error, errorCountdown, fileName, front, readConfidentQuality } =
     useEditorState();
@@ -75,6 +116,9 @@ export function StatusBar({ doc }: Props) {
             </li>
           ))}
         </ul>
+      )}
+      {showWarnings && warnings.length > 0 && (
+        <WarningReport warnings={warnings} fileName={fileName} />
       )}
       <div className="statusbar__row">
         <span className="statusbar__selection">
