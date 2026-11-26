@@ -201,7 +201,7 @@ positions and pydna's cut-and-loop products
 
 Stage two (#303, 2026-10-27): `src/app/components/cloningDesign.ts` (the
 state, as panel memory per vector document, and the pure helpers),
-`CloningDesign.tsx` (the Design page's four steps), `CloningCandidates.tsx`
+`CloningDesignPanel.tsx` (the Design page's four steps), `CloningCandidates.tsx`
 (Results), with the mode switch in `PrimerDesignPage.tsx` and the wiring
 in `PrimerWorkspace.tsx`; the mode is in `primers.workspace`, and
 `primers.resultsKind` says which table Results shows. The insert is an
@@ -235,7 +235,7 @@ warnings, the design, the product thumbnail and Simulate opening
 `SYNPBR322-Axl2p` as a tab; that look found the detail pane's tables
 running under the thumbnail and the site lines growing to dozens of
 enzymes on a 1.2 kb region, both fixed. Tests: `cloningDesign.test.ts`
-(the helpers) and `CloningDesign.test.tsx` (the workspace driven as a user
+(the helpers) and `CloningDesignPanel.test.tsx` (the workspace driven as a user
 would: mode memory, the disabled reasons step by step, decision 8, the
 override, the oligos' parts on Results, Save both's names, Simulate's
 product, the phone list, the NCBI insert with the fetch mocked).

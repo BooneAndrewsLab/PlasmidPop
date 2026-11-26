@@ -110,7 +110,7 @@ Enzymes R11). No `'cloning'` kind (Cloning plan (c)).
 alone under `align.workspace`. Decision: the shared controller remembers
 the page alone under `<kind>.workspace` for all four; Primers' mode moves
 to its own slot `primers.mode`, and `recallWorkspace()` stays as a facade
-over both (CloningDesign.test.tsx:172 and PrimerPanel.test.tsx read it).
+over both (CloningDesignPanel.test.tsx:172 and PrimerPanel.test.tsx read it).
 The Cloning door's `openPrimerWorkspace(id, 'design', 'cloning')` then
 writes `primers.mode` and calls the controller's `open`.
 
@@ -1337,7 +1337,7 @@ amendments below are marked _[consolidated]_.
   `primers.workspace` memory (:41, `{page, mode}`), the mode switch on the
   Design page (PrimerDesignPage.tsx:151-166, labels "Primers on this
   sequence" / "Clone an insert into this plasmid"), `CloningDesign` (:174)
-  with `GoldenGateEnds` inside it (CloningDesign.tsx:648), `CloningCandidates`
+  with `GoldenGateEnds` inside it (CloningDesignPanel.tsx:648), `CloningCandidates`
   on Results (PrimerWorkspace.tsx:241) with **Simulate**, **Check
   primers…**, **Save**, **Use in PCR** (CloningCandidates.tsx:211-274).
   `openPrimerWorkspace(documentId, page?)` (primerWorkspace.ts:54-58) sets
@@ -1556,7 +1556,7 @@ argument.
 
 Unchanged: `src/core` entirely; `Bench.tsx`, `BenchProduct.tsx`, `ShelfPanel`,
 every Bench reaction panel, `benchSettings.ts`, `cloningReaction.ts`;
-`CloningDesign.tsx`, `CloningCandidates.tsx`, `GoldenGateEnds.tsx`,
+`CloningDesignPanel.tsx`, `CloningCandidates.tsx`, `GoldenGateEnds.tsx`,
 `GoldenGatePartResult.tsx`, `CloneCheckPage.tsx`, `cloneCheck.ts`,
 `PrimerDesignPage.tsx` (plus one note), `PrimerWorkspace.tsx`;
 `primerToPcr.ts`; `MutagenesisPanel.tsx`; `WorkspaceShell.tsx`; the store
@@ -1640,7 +1640,7 @@ Must survive, and where:
   empty." kept; gel assertion none today (no change).
 - `hostMethylation.test.tsx:250-266`: the **Grown in** button and the "left
   out" sentence kept.
-- `CloningDesign.test.tsx` (9), `PrimerWorkspace.test.tsx` (25),
+- `CloningDesignPanel.test.tsx` (9), `PrimerWorkspace.test.tsx` (25),
   `PrimerPanel.test.tsx` (5), `CloneCheckPage.test.tsx` (4),
   `BenchProduct.test.tsx` (6), `assembly.test.tsx` (19), the Gibson,
   Gateway, OverlapPcr, Modular tutorial tests, `ligationCheck.test.tsx`:

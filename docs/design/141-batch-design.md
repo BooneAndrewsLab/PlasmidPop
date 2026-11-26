@@ -496,7 +496,7 @@ product (the vector's backbone and the insert's digested amplicon), and
 `recordOverlapDesign`, the Bench's own function, on a homology circle, both in
 the batch runner and in the Cloning page's **Simulate** (`HomologyEndsResult`).
 So a batch construct and what the Cloning page opens for the same insert are the
-same GenBank text, lineage and all: a test in `CloningDesign.test.tsx` opens
+same GenBank text, lineage and all: a test in `CloningDesignPanel.test.tsx` opens
 Simulate and compares it with a batch row's product, and `cloningBatch.test.ts`
 compares a homology row with `recordOverlapDesign` on the designers' output. A
 visible side effect: those products now have a **Made from** tree and a

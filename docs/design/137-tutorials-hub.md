@@ -109,7 +109,7 @@ showed with #375–#378: a link to a tutorial that ships in the same release
   `../tutorials/README.md`), which GitHub resolves as well.
 - `markdown.ts` gains `tutorialLinkTarget(href): string | null` (the id, or
   `'README'`), beside `guideLinkTarget`.
-- `Markdown.tsx` renders such a link as `<a href={BASE_URL + 'tutorials/' +
+- `MarkdownView.tsx` renders such a link as `<a href={BASE_URL + 'tutorials/' +
 (id === 'README' ? '' : id + '/')} target="_blank" rel="noreferrer">`: a new
   tab, as now, but at the site the app is running on.
 - The guide's `LinkContext` in `staticGuide.ts` resolves it to
@@ -133,7 +133,7 @@ README keep absolute URLs; they are not rendered by the guide.
    `src/app/help/HelpDialog.tsx`, `HelpButton.test.tsx`, `help.css` comment:
    the **Tutorials** label.
 4. `src/app/help/markdown.ts` (`tutorialLinkTarget`), `markdown.test.ts`,
-   `Markdown.tsx`, `staticGuide.ts` (guide `LinkContext`), `staticGuide.test.ts`,
+   `MarkdownView.tsx`, `staticGuide.ts` (guide `LinkContext`), `staticGuide.test.ts`,
    `guide.test.ts`: the repo-relative tutorial links.
 5. `docs/guide/README.md`, `01-getting-started.md` (the button name at the
    top, "cloning tutorials" twice, "ligation, Golden Gate, modular cloning,

@@ -5,7 +5,7 @@ import { isTextTarget } from '../keys';
 import { GUIDE, guidePage } from './guide';
 import { buildGuideIndex } from './guideIndex';
 import { type GuideIndex, SEARCH_PLACEHOLDER, type Snippet, search } from './guideSearch';
-import { Markdown } from './Markdown';
+import { Markdown } from './MarkdownView';
 import { StatsSwitch } from './StatsSwitch';
 
 interface Props {

@@ -14,7 +14,7 @@ import { type WorkspaceLayout } from '../workspaceController';
 import { editorStore } from '../state/editorStore';
 import { useRemembered } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';
-import { CloningDesign } from './CloningDesign';
+import { CloningDesign } from './CloningDesignPanel';
 import { type CloningDesignState } from './cloningDesign';
 import { type PrimerDesign } from './primerDesign';
 import { PrimerSettings } from './PrimerSettings';

@@ -127,7 +127,7 @@ the stop and start options; the out-of-frame warning; the internal site for
 either enzyme in the tube; palindromic, duplicate and one-base-apart
 overhangs; ambiguity codes; a region that wraps the origin; a reverse-strand
 feature; a region too short; and the three "only the PCR" paths.
-`cloningDesign.test.ts` for the page's helpers and `CloningDesign.test.tsx`
+`cloningDesign.test.ts` for the page's helpers and `CloningDesignPanel.test.tsx`
 for the workspace driven as a user would, including Simulate opening the
 circle. `tutorialFiles.test.ts` holds the NCBI exercise to the numbers the
 tutorial prints (PCR 361 bp, part 335 bp, product 2,848 bp) and skips
