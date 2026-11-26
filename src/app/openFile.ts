@@ -56,7 +56,7 @@ export async function openFile(file: File): Promise<string | null> {
   const unsupported = UNSUPPORTED[ext];
   if (unsupported !== undefined) {
     analytics.track('file', 'open-failed', openFailedName(file.name, 'unsupported'));
-    editorStore.fail(unsupported);
+    editorStore.failOpen(unsupported);
     return null;
   }
   let data: ArrayBuffer;
@@ -64,7 +64,7 @@ export async function openFile(file: File): Promise<string | null> {
     data = await file.arrayBuffer();
   } catch {
     analytics.track('file', 'open-failed', openFailedName(file.name, 'unreadable'));
-    editorStore.fail(`Could not read "${file.name}".`);
+    editorStore.failOpen(`Could not read "${file.name}".`);
     return null;
   }
   // An archive is a batch of its own, reported as one (#213).
@@ -80,7 +80,7 @@ export async function openFile(file: File): Promise<string | null> {
   } catch (e) {
     const failure = describeOpenFailure(e);
     analytics.track('file', 'open-failed', openFailedName(file.name, failure.reason));
-    editorStore.fail(failure.message);
+    editorStore.failOpen(failure.message);
     return null;
   }
 }
@@ -205,7 +205,7 @@ export function openText(
       storage,
     );
   } catch (e) {
-    editorStore.fail(e instanceof Error ? e.message : String(e));
+    editorStore.failOpen(e instanceof Error ? e.message : String(e));
     return null;
   }
 }
@@ -222,12 +222,12 @@ export function openPastedText(text: string): void {
     result = parseSequenceFile(text);
   } catch (e) {
     if (e instanceof FormatError) {
-      editorStore.fail(
+      editorStore.failOpen(
         'Pasted text is not a GenBank or FASTA record and contains characters outside the IUPAC nucleotide alphabet.',
       );
       return;
     }
-    editorStore.fail(e instanceof Error ? e.message : String(e));
+    editorStore.failOpen(e instanceof Error ? e.message : String(e));
     return;
   }
   editorStore.openParsed(result, null);

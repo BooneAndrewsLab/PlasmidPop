@@ -21,6 +21,7 @@ import { EnzymeWorkspace } from './components/EnzymeWorkspace';
 import { PrimerWorkspace } from './components/PrimerWorkspace';
 import { CopyBanner } from './components/CopyBanner';
 import { CompareDialog } from './components/CompareDialog';
+import { OpenErrorBanner } from './components/OpenErrorBanner';
 import { DownloadNotice } from './components/DownloadNotice';
 import { ImportSummaryDialog } from './components/ImportSummaryDialog';
 import { SaveReviewDialog } from './components/SaveReviewDialog';
@@ -167,6 +168,7 @@ export function App() {
     >
       <Toolbar doc={doc} />
       <DocumentTabs />
+      <OpenErrorBanner />
       {front === 'bench' && !phone ? (
         <main className="app__main app__main--bench">
           <Bench />

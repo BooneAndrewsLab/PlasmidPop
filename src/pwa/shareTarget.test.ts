@@ -159,13 +159,13 @@ describe('the share target (#43)', () => {
 
   it('reports a share that failed or brought nothing', async () => {
     expect(await openSharedFiles('failed', caches as unknown as CacheStorage)).toBe(0);
-    expect(editorStore.getState().error).toMatch(/could not be received/);
-    editorStore.dismissError();
+    expect(editorStore.getState().openError).toMatch(/could not be received/);
+    editorStore.dismissOpenError();
     expect(await openSharedFiles('files', caches as unknown as CacheStorage)).toBe(0);
-    expect(editorStore.getState().error).toMatch(/Nothing arrived/);
-    editorStore.dismissError();
+    expect(editorStore.getState().openError).toMatch(/Nothing arrived/);
+    editorStore.dismissOpenError();
     expect(await openSharedFiles('files', null)).toBe(0);
-    expect(editorStore.getState().error).toMatch(/could not be received/);
+    expect(editorStore.getState().openError).toMatch(/could not be received/);
   });
 
   it('reports a shared file it cannot read, and still opens the others', async () => {

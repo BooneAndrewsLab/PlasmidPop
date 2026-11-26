@@ -137,9 +137,9 @@ describe('EditorStore', () => {
     );
     expect(store.document?.length).toBe(4);
     store.openParsed({ format: 'fasta', documents: [], warnings: [] }, 'e.fa');
-    expect(store.getState().error).toMatch(/no sequences/);
-    store.dismissError();
-    expect(store.getState().error).toBeNull();
+    expect(store.getState().openError).toMatch(/no sequences/);
+    store.dismissOpenError();
+    expect(store.getState().openError).toBeNull();
   });
 
   it('applies ops with undo/redo and keeps a caret in place', () => {

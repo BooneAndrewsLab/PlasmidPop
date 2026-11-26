@@ -365,3 +365,5 @@ the Bench, item 49). The rest stand.
 149. [Protein FASTA export: every CDS, one CDS, a gene's CDS, an ORF or a selection as .faa](149-protein-fasta-export.md)
 
 150. [Features tab: filter the list by type](150-feature-type-filter.md)
+
+151. [A failed open is a dismissible banner, not a status bar line](151-open-error-banner.md)

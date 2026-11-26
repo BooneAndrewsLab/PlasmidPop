@@ -41,7 +41,7 @@ launchQueue?.setConsumer((params) => {
     .getFile()
     .then((file) => openFile(file))
     .catch(() => {
-      editorStore.fail(`Could not open "${handle.name}".`);
+      editorStore.failOpen(`Could not open "${handle.name}".`);
     });
 });
 

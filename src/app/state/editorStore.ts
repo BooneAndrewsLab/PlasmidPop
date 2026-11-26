@@ -622,6 +622,12 @@ export function foldRemovalNotices(notices: readonly RemovalNoticeEntry[]): {
 export interface SharedState {
   readonly error: string | null;
   /**
+   * Why a file could not be opened (#457): shown as a banner over the
+   * workspace that stays until it is dismissed or something opens, unlike
+   * `error`, which is the status bar's line for minor problems.
+   */
+  readonly openError: string | null;
+  /**
    * Set while `error` will dismiss itself: how long it is shown in full, how
    * long it then takes to fade, and a nonce that changes every time the clock
    * is restarted so a countdown indicator can start over.
@@ -1085,6 +1091,7 @@ const SHELF_UNDO_LIMIT = 100;
 
 const SHARED_INITIAL: SharedState = {
   error: null,
+  openError: null,
   errorCountdown: null,
   showComplement: true,
   showTranslations: true,
@@ -1354,7 +1361,7 @@ export class EditorStore {
   ): string | null {
     const doc = result.documents[0];
     if (doc === undefined) {
-      this.setShared({ error: 'The file contains no sequences.' });
+      this.failOpen('The file contains no sequences.');
       this.setActive({ warnings: result.warnings });
       return null;
     }
@@ -1394,6 +1401,8 @@ export class EditorStore {
     warnings: readonly ParseWarning[] = [],
     storage: OpenStorage = {},
   ): string {
+    // A successful open ends the last failed one's banner (#457).
+    if (this.shared.openError !== null) this.shared = { ...this.shared, openError: null };
     const open =
       storage.id === undefined ? this.findOpenCopy(doc, fileName) : this.documentState(storage.id);
     if (open !== null) {
@@ -1717,6 +1726,20 @@ export class EditorStore {
       if (this.state.errorCountdown?.nonce === nonce)
         this.setShared({ error: null, errorCountdown: null });
     }, ms + ERROR_FADE_MS);
+  }
+
+  /**
+   * Shows why a file could not be opened, as the banner over the workspace
+   * (#457). It stays until dismissed or until the next open succeeds; the
+   * status bar's line is cleared so the same words are not said twice.
+   */
+  failOpen(message: string): void {
+    this.clearErrorTimer();
+    this.setShared({ openError: message, error: null, errorCountdown: null });
+  }
+
+  dismissOpenError(): void {
+    if (this.state.openError !== null) this.setShared({ openError: null });
   }
 
   private clearErrorTimer(): void {

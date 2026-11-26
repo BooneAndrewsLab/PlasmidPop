@@ -21,9 +21,10 @@ base: see [Sequencing reads](15-reads.md).
 
 ### When a file will not open
 
-The message in the status bar says what went wrong and, when the file is not
-in a format PlasmidPop reads, lists the formats in the table above. The
-usual causes:
+A banner across the top of the window says what went wrong and, when the file
+is not in a format PlasmidPop reads, lists the formats in the table above. It
+stays until you close it with **×** or something opens, and its **Supported
+formats** link brings you to the table. The usual causes:
 
 - **Not a sequence file**: a spreadsheet, Word or PDF file, an image, or text
   saved as UTF-16 (it has null bytes in it). Export or save the sequence as

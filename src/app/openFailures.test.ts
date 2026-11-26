@@ -114,7 +114,7 @@ describe('the open-failed event name (#447)', () => {
     expect(opened).toBeNull();
     expect(track).toHaveBeenCalledWith('file', 'open-failed', 'other:unrecognised-format');
     expect(JSON.stringify(track.mock.calls)).not.toContain('secret');
-    expect(editorStore.getState().error).toContain(ACCEPTED_FORMATS);
+    expect(editorStore.getState().openError).toContain(ACCEPTED_FORMATS);
   });
 
   it('reports an empty file with its format guess', async () => {

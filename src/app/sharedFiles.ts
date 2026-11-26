@@ -75,7 +75,7 @@ export async function openSharedFiles(
 ): Promise<number> {
   const failed = 'The shared file could not be received. Try opening it with File ▸ Open instead.';
   if (marker === 'failed' || storage === null) {
-    editorStore.fail(failed);
+    editorStore.failOpen(failed);
     return 0;
   }
   let files: File[];
@@ -91,7 +91,7 @@ export async function openSharedFiles(
       files.push(new File([await response.blob()], nameOf(response, i)));
     }
   } catch {
-    editorStore.fail(failed);
+    editorStore.failOpen(failed);
     return 0;
   } finally {
     // Opened or not, the stash has had its one chance: a file left in it
@@ -99,7 +99,7 @@ export async function openSharedFiles(
     await storage.delete(SHARE_TARGET_CACHE).catch(() => false);
   }
   if (files.length === 0) {
-    editorStore.fail('Nothing arrived with the share. Try opening the file with File ▸ Open.');
+    editorStore.failOpen('Nothing arrived with the share. Try opening the file with File ▸ Open.');
     return 0;
   }
   analytics.track('phone', 'share-target-open');

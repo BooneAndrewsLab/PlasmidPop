@@ -140,9 +140,10 @@ button {
      toolbar's minimum content width on narrow windows and push the sidebar
      past the viewport. */
   grid-template-columns: minmax(0, 1fr);
-  /* Toolbar, document tabs (absent until something is open), main, status bar.
+  /* Toolbar, document tabs (absent until something is open), the open-error
+     banner (absent unless a file failed to open), main, status bar.
      The last two are placed by hand so the missing tab row does not pull them up. */
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   outline: 2px solid transparent;
   outline-offset: -2px;
   transition: outline-color 120ms;
@@ -341,7 +342,7 @@ button {
 /* Main area */
 
 .app__main {
-  grid-row: 3;
+  grid-row: 4;
   display: grid;
   /* The splitter sets these inline: editor, handle, sidebar. The fallback
      here is the width the sidebar starts at — 330px, so the panel keeps its
@@ -1944,7 +1945,7 @@ button {
 /* Status bar */
 
 .statusbar {
-  grid-row: 4;
+  grid-row: 5;
   border-top: 1px solid var(--line);
   background: var(--surface-2);
   font-size: 13px;
@@ -3634,6 +3635,50 @@ button {
 
 .copy-banner__link:hover {
   text-decoration: none;
+}
+
+.open-error {
+  grid-row: 3;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--danger);
+  background: var(--danger-surface);
+  font-size: 13px;
+  color: var(--danger);
+}
+
+.open-error__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.open-error__link,
+.open-error__dismiss {
+  flex: none;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.open-error__link {
+  padding: 0;
+  text-decoration: underline;
+}
+
+.open-error__link:hover {
+  text-decoration: none;
+}
+
+.open-error__dismiss {
+  padding: 0 4px;
+  font-size: 18px;
+  line-height: 1;
 }
 
 .save-review {
