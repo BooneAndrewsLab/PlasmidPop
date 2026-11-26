@@ -858,13 +858,14 @@ export interface SharedState {
    * they are about to paste somewhere.
    */
   readonly shareNotice: ShareNoticeInfo | null;
+  /** What a GenBank save could not write as read (#464): the sentence, and a nonce that restarts the notice. */
+  readonly inexactNotice: { readonly message: string; readonly nonce: number } | null;
   /**
    * That a document's read (the qualities and trace of the AB1 or FASTQ it
    * was opened from) was just left behind: by an edit that changed the
    * bases, or by a download in a format that cannot hold it (#49). The
    * nonce restarts the notice when it happens again.
    */
-  readonly inexactNotice: { readonly message: string; readonly nonce: number } | null;
   readonly readNotice: { readonly kind: 'edited' | 'downloaded'; readonly nonce: number } | null;
   /** What opening several files, or an archive, came to (#213); the dialog that reports it. */
   readonly importSummary: ImportSummary | null;
