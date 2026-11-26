@@ -221,6 +221,13 @@ export interface FeatureLocation {
   readonly joining?: SegmentJoining | undefined;
 }
 
+/**
+ * The warning for a location whose parts are on different strands. Said in
+ * one place so a reader of the warnings can tell it from the others (#464).
+ */
+export const MIXED_STRAND_WARNING =
+  'mixed-strand location (trans-splicing) is not supported; treated as forward strand';
+
 export interface ParsedLocation extends FeatureLocation {
   readonly warnings: readonly string[];
 }
@@ -369,9 +376,7 @@ export function parseLocation(text: string, seqLength: number, topology: Topolog
       strand = 'reverse';
       reverseOrder = true;
     } else if (complemented > 0) {
-      warnings.push(
-        'mixed-strand location (trans-splicing) is not supported; treated as forward strand',
-      );
+      warnings.push(MIXED_STRAND_WARNING);
     }
   }
 

@@ -864,6 +864,7 @@ export interface SharedState {
    * bases, or by a download in a format that cannot hold it (#49). The
    * nonce restarts the notice when it happens again.
    */
+  readonly inexactNotice: { readonly message: string; readonly nonce: number } | null;
   readonly readNotice: { readonly kind: 'edited' | 'downloaded'; readonly nonce: number } | null;
   /** What opening several files, or an archive, came to (#213); the dialog that reports it. */
   readonly importSummary: ImportSummary | null;
@@ -1147,6 +1148,7 @@ const SHARED_INITIAL: SharedState = {
   shelf: [],
   downloadNotice: null,
   shareNotice: null,
+  inexactNotice: null,
   readNotice: null,
   importSummary: null,
   topologyPrompt: null,
@@ -1815,6 +1817,17 @@ export class EditorStore {
 
   dismissImportSummary(): void {
     if (this.state.importSummary !== null) this.setShared({ importSummary: null });
+  }
+
+  /** Says after a GenBank save which features were not written as read (#464). */
+  noteInexactSave(message: string): void {
+    this.setShared({
+      inexactNotice: { message, nonce: (this.state.inexactNotice?.nonce ?? 0) + 1 },
+    });
+  }
+
+  dismissInexactNotice(): void {
+    if (this.state.inexactNotice !== null) this.setShared({ inexactNotice: null });
   }
 
   /** Records that a read was left behind, for the notice under the toolbar. */

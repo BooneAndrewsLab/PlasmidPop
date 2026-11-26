@@ -26,6 +26,7 @@ import { DownloadNotice } from './components/DownloadNotice';
 import { ImportSummaryDialog } from './components/ImportSummaryDialog';
 import { TopologyDialog } from './components/TopologyDialog';
 import { SaveReviewDialog } from './components/SaveReviewDialog';
+import { InexactNotice } from './components/InexactNotice';
 import { ReadNotice } from './components/ReadNotice';
 import { ShareNotice } from './components/ShareNotice';
 import { BackupNotice } from './components/BackupNotice';
@@ -195,6 +196,7 @@ export function App() {
               <DownloadNotice />
               <ShareNotice />
               <ReadNotice />
+              <InexactNotice />
               <StorageNotice />
               <BackupNotice />
               <PhoneShell doc={doc} />
@@ -251,6 +253,7 @@ export function App() {
             <DownloadNotice />
             <ShareNotice />
             <ReadNotice />
+            <InexactNotice />
             <StorageNotice />
             <BackupNotice />
             <EditBar doc={doc} />

@@ -14,6 +14,7 @@ import {
   parseFidelityWorkbook,
 } from '@/core';
 import {
+  type ParseWarning,
   type RebaseSkipped,
   parseRebaseWithRefM,
   readTableFile,
@@ -40,6 +41,7 @@ import { batchPool } from '@/workers/analysisPool';
 import { saveClient } from '@/workers/saveClient';
 
 import { analytics } from '../analytics';
+import { inexactFeatures, inexactSaveMessage } from '../inexactFeatures';
 import { recallCloneCheck, restoreStoredCloneCheck, storedCloneCheck } from '../cloneCheck';
 import { downloadBlob, downloadText, fileNameFor, snapGeneFileName } from '../saveFile';
 import { documentChecksumLater } from './documentChecksum';
@@ -1134,6 +1136,7 @@ export class PersistenceService {
       // The browser owns the file from here: it decides where it lands and
       // numbers the next one rather than replacing this one. Say so.
       editorStore.noteDownload(suggested);
+      this.noteInexact(target.warnings);
       return;
     }
     const handle = await pickSaveFile(suggested);
@@ -1143,6 +1146,13 @@ export class PersistenceService {
     if (current === undefined) return; // the tab was closed while the dialog was up
     await writeTextToHandle(handle, writeGenBank(current));
     editorStore.markDownloaded(documentId, handle.name);
+    this.noteInexact(target.warnings);
+  }
+
+  /** After a GenBank write: names the features it could not write as read (#464). */
+  private noteInexact(warnings: readonly ParseWarning[]): void {
+    const message = inexactSaveMessage(inexactFeatures(warnings));
+    if (message !== null) editorStore.noteInexactSave(message);
   }
 
   /** `write`'s other half: the same download, as the bytes of a SnapGene file. */

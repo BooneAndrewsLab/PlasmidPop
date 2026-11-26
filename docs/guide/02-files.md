@@ -516,6 +516,24 @@ Downloads are GenBank, or SnapGene on request.
 
 The dot after the document name means it has changed since the last download.
 
+#### Features that are not written as they were read
+
+Two kinds of location cannot be kept as the file wrote them. A trans-spliced
+one, `join(complement(69611..69724),139856..140650)`, is read with a warning
+and kept on the forward strand, so the download writes
+`join(69611..69724,139856..140650)`; a remote one, `join(136..202,AF032048.1:67..345)`,
+points into another record and the whole feature is left out at open. When you
+download a GenBank file from a document that was opened with either, a notice
+says so after the save: `Saved. 2 features can't be written exactly as read:
+CDS rps12 (trans-spliced, written on the forward strand); gene x (not read, so
+not written).` It names up to five features and then how many more, stays for
+a few seconds and has **Dismiss**. A document without such features, and any
+download that is not GenBank (FASTA, FASTQ, the protein FASTA), gets no
+notice. The notice comes from what was read when the file was opened, so it
+stays after you edit or delete that feature, and a document opened again from
+this browser's storage does not have it. Keeping these locations exactly is a
+separate piece of work (#466).
+
 ### Downloading in Firefox and Safari
 
 Chrome and Edge can ask a page where to put a file; Firefox and Safari

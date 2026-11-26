@@ -6,6 +6,25 @@ export interface ParseWarning {
   readonly message: string;
   /** 1-based line in the input, when known. */
   readonly line?: number;
+  /**
+   * Set when this warning is about features that GenBank output cannot write
+   * as they were read (#464); the save says so from these.
+   */
+  readonly inexact?: InexactFeature;
+}
+
+/**
+ * A feature, or a run of them, that cannot be written back as it was read:
+ * `mixed-strand` is kept with its parts on the forward strand, `skipped-location`
+ * (a remote or other unsupported location) was left out at open. Names and
+ * types only, never sequence. `count` is more than 1 for a summary of the
+ * skipped features that were not listed one by one, which have no name.
+ */
+export interface InexactFeature {
+  readonly kind: 'mixed-strand' | 'skipped-location';
+  readonly featureType: string;
+  readonly name: string;
+  readonly count: number;
 }
 
 export interface ParseResult {
@@ -93,6 +112,10 @@ export function openFailureReason(e: unknown): OpenFailureReason {
   return e instanceof FormatError ? e.reason : 'other';
 }
 
-export function warning(message: string, line?: number): ParseWarning {
-  return line === undefined ? { message } : { message, line };
+export function warning(message: string, line?: number, inexact?: InexactFeature): ParseWarning {
+  return {
+    message,
+    ...(line === undefined ? {} : { line }),
+    ...(inexact === undefined ? {} : { inexact }),
+  };
 }

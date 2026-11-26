@@ -14,6 +14,7 @@ import {
   OriginSpanError,
   isValidSequence,
   isValidProtein,
+  MIXED_STRAND_WARNING,
   UnsupportedLocationError,
   parseLocation,
 } from '@/core';
@@ -580,7 +581,14 @@ function buildFeatures(
         seen.count++;
         unsupported.set(e.syntax, seen);
         if (seen.count <= MAX_LISTED_SKIPS) {
-          warnings.push(warning(`Skipped ${rf.key} feature: ${e.message}`, rf.line));
+          warnings.push(
+            warning(`Skipped ${rf.key} feature: ${e.message}`, rf.line, {
+              kind: 'skipped-location',
+              featureType: rf.key,
+              name: deriveFeatureName(rf.key, rf.qualifiers),
+              count: 1,
+            }),
+          );
         } else if (seen.count === MAX_LISTED_SKIPS + 1) {
           seen.first = rf.line;
         }
@@ -592,9 +600,22 @@ function buildFeatures(
       }
       throw e;
     }
-    for (const w of parsed.warnings)
-      warnings.push(warning(`${rf.key} at ${rf.location}: ${w}`, rf.line));
     const qualifiers: Qualifier[] = rf.qualifiers.map((q) => ({ name: q.name, value: q.value }));
+    for (const w of parsed.warnings)
+      warnings.push(
+        warning(
+          `${rf.key} at ${rf.location}: ${w}`,
+          rf.line,
+          w === MIXED_STRAND_WARNING
+            ? {
+                kind: 'mixed-strand',
+                featureType: rf.key,
+                name: deriveFeatureName(rf.key, qualifiers),
+                count: 1,
+              }
+            : undefined,
+        ),
+      );
     out.push(
       createFeature({
         type: rf.key,
@@ -613,6 +634,7 @@ function buildFeatures(
         warning(
           `${more} more feature${more === 1 ? '' : 's'} skipped (${seen.count} in all): ${seen.description}`,
           seen.first,
+          { kind: 'skipped-location', featureType: '', name: '', count: more },
         ),
       );
     }
