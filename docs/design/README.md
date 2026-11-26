@@ -369,3 +369,5 @@ the Bench, item 49). The rest stand.
 151. [A failed open is a dismissible banner, not a status bar line](151-open-error-banner.md)
 
 152. [CON (contig) records are refused, not opened empty](152-con-records.md)
+
+153. [Malformed GenBank layouts are read or reported, never dropped](153-malformed-layouts.md)

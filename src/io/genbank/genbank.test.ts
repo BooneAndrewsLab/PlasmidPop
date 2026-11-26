@@ -975,3 +975,234 @@ describe('a qualifier with a run of spaces (#256)', () => {
     }
   });
 });
+
+describe('malformed layouts lose nothing silently (#461)', () => {
+  const SEQ = '        1 atgaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa';
+  const record = (lines: string[]) => lines.join('\n') + '\n';
+  const full = (decorate: (line: string) => string = (l) => l) =>
+    record(
+      [
+        'LOCUS       TST                       40 bp    DNA     circular SYN 01-JAN-2020',
+        'DEFINITION  Test.',
+        'ACCESSION   TST',
+        'FEATURES             Location/Qualifiers',
+        '     source          1..40',
+        '                     /organism="x"',
+        '     CDS             1..30',
+        '                     /gene="g1"',
+        'ORIGIN',
+        SEQ,
+        '//',
+      ].map((l, i) => (i === 0 ? l : decorate(l))),
+    );
+  const featureTypes = (r: ParseResult) => [...only(r).features].map((f) => f.type);
+
+  describe('tab-indented feature keys', () => {
+    const tabbed = record([
+      'LOCUS       TST                       40 bp    DNA     circular SYN 01-JAN-2020',
+      'FEATURES             Location/Qualifiers',
+      '     source          1..40',
+      '                     /organism="x"',
+      '\tCDS             1..30',
+      '                     /gene="g1"',
+      '\tgene\tcomplement(2..9)',
+      '\t\t\t/gene="g2"',
+      'ORIGIN',
+      SEQ,
+      '//',
+    ]);
+
+    it('reads a tab-indented key as its own feature', () => {
+      const result = parseGenBank(tabbed);
+      expect(featureTypes(result)).toEqual(['source', 'CDS', 'gene']);
+      const source = [...only(result).features][0];
+      expect(source?.qualifiers.map((q) => q.name)).toEqual(['organism']);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('keeps the CDS as its own feature through open and save', () => {
+      const saved = writeGenBank(only(parseGenBank(tabbed)));
+      const again = parseGenBank(saved);
+      expect(featureTypes(again)).toEqual(['source', 'CDS', 'gene']);
+      expect(again.warnings).toEqual([]);
+    });
+
+    it('reads tab-indented qualifiers', () => {
+      const gene = [...only(parseGenBank(tabbed)).features][2];
+      expect(gene?.qualifiers.map((q) => q.name)).toEqual(['gene']);
+    });
+
+    it('does not take a tab-indented value line for a key', () => {
+      const text = record([
+        'LOCUS       TST                       40 bp    DNA     circular SYN 01-JAN-2020',
+        'FEATURES             Location/Qualifiers',
+        '     CDS             1..30',
+        '                     /note="first',
+        '\tword and more"',
+        'ORIGIN',
+        SEQ,
+        '//',
+      ]);
+      const result = parseGenBank(text);
+      expect(featureTypes(result)).toEqual(['CDS']);
+      expect(result.warnings).toEqual([]);
+    });
+  });
+
+  describe('indented records', () => {
+    it('reads a fully indented record', () => {
+      const result = parseGenBank(full((l) => '    ' + l).replace('TST ', '    TST '));
+      expect(only(result).length).toBe(40);
+      expect(featureTypes(result)).toEqual(['source', 'CDS']);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('reads a record with only LOCUS at column 0', () => {
+      const indented = full((l) => '      ' + l);
+      const result = parseGenBank(
+        indented +
+          record([
+            'LOCUS       TWO                       8 bp    DNA     linear   SYN 01-JAN-2020',
+            'ORIGIN',
+            '        1 acgtacgt',
+            '//',
+          ]),
+      );
+      expect(result.documents.map((d) => d.length)).toEqual([40, 8]);
+      expect(featureTypes(result)).toEqual(['source', 'CDS']);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('leaves a normal record alone when a comment line says ORIGIN', () => {
+      const text = record([
+        'LOCUS       TST                       40 bp    DNA     circular SYN 01-JAN-2020',
+        'COMMENT     Notes.',
+        '            ORIGIN of this plasmid is unknown.',
+        'FEATURES             Location/Qualifiers',
+        '     CDS             1..30',
+        'ORIGIN',
+        SEQ,
+        '//',
+      ]);
+      const result = parseGenBank(text);
+      expect(only(result).length).toBe(40);
+      expect(only(result).metadata.comments).toEqual([
+        'Notes.\nORIGIN of this plasmid is unknown.',
+      ]);
+    });
+
+    it('does not end a record at a wrapped value that is a bare //', () => {
+      const text = record([
+        'LOCUS       TST                       40 bp    DNA     circular SYN 01-JAN-2020',
+        'FEATURES             Location/Qualifiers',
+        '     CDS             1..30',
+        '                     /note="see http:',
+        '                     //',
+        '                     example"',
+        'ORIGIN',
+        SEQ,
+        '//',
+      ]);
+      expect(only(parseGenBank(text)).length).toBe(40);
+    });
+  });
+
+  describe('FEATURES and the other keywords', () => {
+    it('reads a lowercase features line, origin line and locus line', () => {
+      const text = full()
+        .replace('FEATURES', 'features')
+        .replace('ORIGIN', 'origin')
+        .replace('LOCUS', 'locus');
+      const result = parseGenBank(text);
+      expect(featureTypes(result)).toEqual(['source', 'CDS']);
+      expect(only(result).length).toBe(40);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('warns, naming the feature table, when features have no FEATURES line', () => {
+      const text = full().replace('FEATURES             Location/Qualifiers\n', '');
+      const result = parseGenBank(text);
+      expect(featureTypes(result)).toEqual([]);
+      const warning = result.warnings.find((w) => w.message.startsWith('Feature table'));
+      expect(warning?.message).toContain('no FEATURES line');
+      expect(warning?.line).toBe(4);
+      // The lines are not swallowed into the header either.
+      expect(only(result).metadata.accession).toBe('TST');
+    });
+
+    it('warns once for lines in the table that are not laid out as features', () => {
+      const text = record([
+        'LOCUS       TST                       40 bp    DNA     circular SYN 01-JAN-2020',
+        'FEATURES             Location/Qualifiers',
+        '     restriction_site3..8',
+        '                     /label="x"',
+        '     restriction_site9..12',
+        'ORIGIN',
+        SEQ,
+        '//',
+      ]);
+      const warnings = parseGenBank(text).warnings.filter((w) =>
+        w.message.startsWith('Feature table'),
+      );
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]?.message).toContain('3 lines');
+      expect(warnings[0]?.line).toBe(3);
+    });
+
+    it('does not warn about BASE COUNT or a WGS line after the table', () => {
+      const text = record([
+        'LOCUS       TST                       40 bp    DNA     circular SYN 01-JAN-2020',
+        'FEATURES             Location/Qualifiers',
+        '     CDS             1..30',
+        'BASE COUNT       30 a      0 c      0 g      0 t',
+        'WGS         AAAA01000001-AAAA01000009',
+        'ORIGIN',
+        SEQ,
+        '//',
+      ]);
+      expect(parseGenBank(text).warnings).toEqual([]);
+    });
+  });
+
+  describe('truncated records', () => {
+    it('warns that a LOCUS-only record has no feature table and no sequence', () => {
+      const result = parseGenBank('LOCUS       foo\n');
+      expect(only(result).length).toBe(0);
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]?.message).toContain('Feature table and sequence');
+      expect(result.warnings[0]?.message).toContain('ORIGIN');
+      expect(result.warnings[0]?.line).toBe(1);
+    });
+
+    it('warns that the sequence is missing when ORIGIN is, naming the section', () => {
+      const text = full().split('ORIGIN')[0] ?? '';
+      const result = parseGenBank(text);
+      expect(result.warnings[0]?.message).toMatch(/^Sequence: no ORIGIN line/);
+    });
+
+    it('says a master record has no sequence rather than that the file is cut short', () => {
+      const result = parseGenBank(
+        record([
+          'LOCUS       KBUV01000000            3714 rc    DNA     linear   ENV 26-FEB-2018',
+          'FEATURES             Location/Qualifiers',
+          '//',
+        ]),
+      );
+      expect(result.warnings.map((w) => w.message)).toEqual([
+        'Sequence: a master record (counted in rc) has no sequence; it opens empty',
+      ]);
+    });
+
+    it('does not warn about a record with a sequence and no features', () => {
+      const result = parseGenBank(
+        record([
+          'LOCUS       TST                       8 bp    DNA     linear   SYN 01-JAN-2020',
+          'ORIGIN',
+          '        1 acgtacgt',
+          '//',
+        ]),
+      );
+      expect(result.warnings).toEqual([]);
+    });
+  });
+});

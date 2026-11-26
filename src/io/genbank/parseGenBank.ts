@@ -111,6 +111,21 @@ const HEADER_KEYWORD = /^([A-Z]+)(?:\s+(.*))?$/;
 const SUB_KEYWORD = /^ {2,3}([A-Z]+)\s+(.*)$/;
 const FEATURE_KEY = /^ {5}(\S+)\s+(\S.*)$/;
 const QUALIFIER = /^\/([^=\s]+)(?:=(.*))?$/;
+/**
+ * A feature key indented with tabs (`<TAB>CDS  1..30`), as some editors write
+ * it. Read as a key only when what follows the key starts like a location, so
+ * an indented qualifier or a wrapped value is never taken for one (#461).
+ */
+const TAB_FEATURE_KEY = /^\t+([^\s/]\S*)[ \t]+(\S.*)$/;
+const LOCATION_START = /^(?:[<>]?\d|[<>(]|(?:complement|join|order|bond|gap)\(|[A-Za-z][\w.]*:)/;
+/** Section keywords at column 0; case-insensitive, as some tools write `features` or `origin` (#461). */
+const FEATURES_LINE = /^features(?=\s|$)/i;
+const ORIGIN_LINE = /^origin(?=\s|$)/i;
+const CONTIG_LINE = /^contig(?=\s|$)/i;
+const BASE_COUNT_LINE = /^base count(?=\s|$)/i;
+/** Header keywords (upper case, so a feature key `source` is not one), used to find how far an indented record is indented. */
+const HEADER_KEYWORD_LINE =
+  /^(?:DEFINITION|ACCESSION|VERSION|KEYWORDS|SOURCE|REFERENCE|COMMENT|DBLINK|PRIMARY|SEGMENT|BASE COUNT)(?=\s|$)/;
 /** The 0-based column where a feature's location and qualifiers start. */
 const QUALIFIER_COLUMN = 21;
 
@@ -162,24 +177,42 @@ function dotToEmpty(s: string): string {
   return s === '.' ? '' : s;
 }
 
-/** Splits input into records (`LOCUS` … `//`). Text before the first LOCUS is ignored. */
+function indentOf(text: string): number {
+  let i = 0;
+  while (i < text.length && (text.charAt(i) === ' ' || text.charAt(i) === '\t')) i++;
+  return i;
+}
+
+/**
+ * Splits input into records (`LOCUS` … `//`). Text before the first LOCUS is
+ * ignored. A LOCUS line may be indented when it opens a record, and a record
+ * whose lines are all indented ends at an indented `//` (#461).
+ */
 function splitRecords(text: string): Line[][] {
   const records: Line[][] = [];
   let current: Line[] | null = null;
+  let hasBody = false;
   const lines = text.replace(/\r\n?/g, '\n').split('\n');
   for (let idx = 0; idx < lines.length; idx++) {
     const line = { text: (lines[idx] ?? '').replace(/\s+$/, ''), number: idx + 1 };
-    if (line.text.startsWith('LOCUS')) {
+    if (
+      /^LOCUS(?=\s|$)/i.test(line.text) ||
+      (current === null && /^\s+LOCUS\s+\S/.test(line.text))
+    ) {
       if (current !== null) records.push(current);
       current = [line];
+      hasBody = false;
       continue;
     }
     if (current === null) continue;
-    if (line.text === '//') {
+    // An indented `//` ends only a record that has no column-0 lines of its
+    // own, so a wrapped value that happens to be `//` does not end one.
+    if (line.text === '//' || (!hasBody && line.text.trim() === '//')) {
       records.push(current);
       current = null;
       continue;
     }
+    if (line.text.length > 0 && !/^\s/.test(line.text)) hasBody = true;
     current.push(line);
   }
   if (current !== null) records.push(current);
@@ -187,7 +220,7 @@ function splitRecords(text: string): Line[][] {
 }
 
 function parseLocus(line: Line): LocusInfo {
-  const rest = line.text.slice(5).trim();
+  const rest = line.text.trim().slice(5).trim();
   const tokens = rest.split(/\s+/);
   const info: LocusInfo = {
     name: '',
@@ -378,6 +411,7 @@ function parseFeatureTable(lines: readonly Line[], warnings: ParseWarning[]): Ra
   const features: RawFeature[] = [];
   let feature: RawFeature | null = null;
   let qualifier: RawQualifier | null = null;
+  const ignored: Line[] = [];
 
   // A quoted value with an odd count of quotes stays open over the lines
   // after it. Left open, it once swallowed every later feature (#139): a line
@@ -408,8 +442,12 @@ function parseFeatureTable(lines: readonly Line[], warnings: ParseWarning[]): Ra
   for (const line of lines) {
     const text = line.text;
     if (text.length === 0) continue;
-    const keyMatch = FEATURE_KEY.exec(text);
     const openQuote = qualifier?.quoted === true && !qualifier.closed;
+    let keyMatch = FEATURE_KEY.exec(text);
+    if (keyMatch === null && !openQuote) {
+      const tabbed = TAB_FEATURE_KEY.exec(text);
+      if (tabbed !== null && LOCATION_START.test(tabbed[2] ?? '')) keyMatch = tabbed;
+    }
     if (
       keyMatch !== null &&
       (!openQuote || isFeatureKeyLayout(keyMatch[1] ?? '', text, keyMatch[2] ?? ''))
@@ -426,7 +464,19 @@ function parseFeatureTable(lines: readonly Line[], warnings: ParseWarning[]): Ra
       features.push(feature);
       continue;
     }
-    if (feature === null || !text.startsWith(' ')) continue;
+    if (feature === null) {
+      ignored.push(line);
+      continue;
+    }
+    if (!/^[ \t]/.test(text)) {
+      // Only a line laid out like a feature (key, then a location) is a loss;
+      // BASE COUNT, WGS, TLS and the like sit at column 0 after a table.
+      const m = /^(\S+)\s+(\S.*)$/.exec(text);
+      if (m !== null && !BASE_COUNT_LINE.test(text) && LOCATION_START.test(m[2] ?? '')) {
+        ignored.push(line);
+      }
+      continue;
+    }
     const body = text.trim();
     const forceClose =
       openQuote &&
@@ -468,6 +518,15 @@ function parseFeatureTable(lines: readonly Line[], warnings: ParseWarning[]): Ra
     if (qualifier.quoted) qualifier.closed = isClosedQuote(qualifier.value);
   }
   finishQualifier();
+  const firstIgnored = ignored[0];
+  if (firstIgnored !== undefined) {
+    warnings.push(
+      warning(
+        `Feature table: ${ignored.length} line${ignored.length === 1 ? ' was' : 's were'} not read: ${ignored.length === 1 ? 'it is' : 'they are'} not laid out as a feature key or a qualifier (a feature key is five spaces, the key, a space and the location; a qualifier is indented): "${firstIgnored.text.trim().slice(0, 40)}"`,
+        firstIgnored.number,
+      ),
+    );
+  }
   return features;
 }
 
@@ -556,13 +615,13 @@ function withoutContig(lines: readonly Line[]): Line[] {
   const out: Line[] = [];
   let inContig = false;
   for (const l of lines) {
-    if (l.text.startsWith('CONTIG')) {
+    if (CONTIG_LINE.test(l.text)) {
       inContig = true;
       continue;
     }
     if (inContig && /^\s/.test(l.text) && !/^\s*\d/.test(l.text)) continue;
     inContig = false;
-    if (l.text.startsWith('BASE COUNT')) continue;
+    if (BASE_COUNT_LINE.test(l.text)) continue;
     out.push(l);
   }
   return out;
@@ -581,34 +640,89 @@ class ContigRecordError extends FormatError {
   }
 }
 
-function parseRecord(lines: readonly Line[], warnings: ParseWarning[]): SeqDocument {
-  const first = lines[0];
-  if (!first?.text.startsWith('LOCUS')) {
+/**
+ * A record whose lines are all indented but for none at column 0 (only LOCUS
+ * sits there, or not even that) is read with that indent taken off, so its
+ * `FEATURES`, `ORIGIN` and header keywords are found (#461). The indent is
+ * that of the least-indented keyword line; a record with any other line at
+ * column 0 is left as it is, since its indentation then means something.
+ */
+function withoutRecordIndent(lines: readonly Line[]): Line[] {
+  const [first, ...rest] = lines;
+  if (first === undefined) return [];
+  const locus = { ...first, text: first.text.trim() };
+  if (rest.some((l) => l.text.length > 0 && !/^\s/.test(l.text))) return [locus, ...rest];
+  let indent = Infinity;
+  for (const l of rest) {
+    const t = l.text.trim();
+    if (
+      FEATURES_LINE.test(t) ||
+      ORIGIN_LINE.test(t) ||
+      CONTIG_LINE.test(t) ||
+      HEADER_KEYWORD_LINE.test(t)
+    ) {
+      indent = Math.min(indent, indentOf(l.text));
+    }
+  }
+  if (!Number.isFinite(indent) || indent === 0) return [locus, ...rest];
+  return [
+    locus,
+    ...rest.map((l) => ({ ...l, text: l.text.slice(Math.min(indent, indentOf(l.text))) })),
+  ];
+}
+
+function parseRecord(recordLines: readonly Line[], warnings: ParseWarning[]): SeqDocument {
+  const first = recordLines[0];
+  if (first === undefined || !/^\s*LOCUS(?=\s|$)/i.test(first.text)) {
     throw new FormatError(
       'GenBank record must start with a LOCUS line',
       first?.number,
       'unrecognised-format',
     );
   }
+  const lines = withoutRecordIndent(recordLines);
   const locus = parseLocus(first);
 
   let featuresStart = -1;
   let originStart = -1;
   let contigStart = -1;
   lines.forEach((line, i) => {
-    if (featuresStart < 0 && line.text.startsWith('FEATURES')) featuresStart = i;
-    if (originStart < 0 && line.text.startsWith('ORIGIN')) originStart = i;
-    if (contigStart < 0 && featuresStart >= 0 && line.text.startsWith('CONTIG')) contigStart = i;
+    if (i === 0) return;
+    if (featuresStart < 0 && FEATURES_LINE.test(line.text)) featuresStart = i;
+    if (originStart < 0 && ORIGIN_LINE.test(line.text)) originStart = i;
+    if (contigStart < 0 && featuresStart >= 0 && CONTIG_LINE.test(line.text)) contigStart = i;
   });
-  const hasContig = lines.some((l) => l.text.startsWith('CONTIG'));
+  const hasContig = lines.some((l, i) => i > 0 && CONTIG_LINE.test(l.text));
   if (originStart < 0 && hasContig && locus.length !== null) {
     // A CON record counts its length in bp/aa but lists pieces instead of
     // bases; a master record (`rc`) is handled further down. Refused before
     // its features are read, so none of them warns.
     throw new ContigRecordError(first.number);
   }
+  // Lines laid out as features (key and location at column 22) with no
+  // FEATURES line above them: the table is not read, and the header must not
+  // swallow them as continuation lines.
+  let strayFeatures = 0;
+  let strayStart = -1;
+  if (featuresStart < 0) {
+    const stop = originStart >= 0 ? originStart : lines.length;
+    for (let i = 1; i < stop; i++) {
+      const text = lines[i]?.text ?? '';
+      const m = FEATURE_KEY.exec(text);
+      if (m !== null && isFeatureKeyLayout(m[1] ?? '', text, m[2] ?? '')) {
+        strayFeatures++;
+        if (strayStart < 0) strayStart = i;
+      }
+    }
+  }
   const headerEnd =
-    featuresStart >= 0 ? featuresStart : originStart >= 0 ? originStart : lines.length;
+    featuresStart >= 0
+      ? featuresStart
+      : strayStart >= 0
+        ? strayStart
+        : originStart >= 0
+          ? originStart
+          : lines.length;
   // The feature table ends at ORIGIN or at a CONTIG line, whichever comes
   // first; CONTIG's indented continuation lines are not qualifier text (#460).
   const featureEnd = Math.min(
@@ -617,6 +731,14 @@ function parseRecord(lines: readonly Line[], warnings: ParseWarning[]): SeqDocum
   );
 
   const header = parseHeader(lines.slice(0, headerEnd));
+  if (strayFeatures > 0) {
+    warnings.push(
+      warning(
+        `Feature table: no FEATURES line found, so ${strayFeatures} line${strayFeatures === 1 ? '' : 's'} laid out as features (the first at line ${lines[strayStart]?.number ?? '?'}) were not read; a feature table starts with a line "FEATURES             Location/Qualifiers"`,
+        lines[strayStart]?.number,
+      ),
+    );
+  }
   const rawFeatures =
     featuresStart >= 0
       ? parseFeatureTable(lines.slice(featuresStart + 1, featureEnd), warnings)
@@ -638,8 +760,28 @@ function parseRecord(lines: readonly Line[], warnings: ParseWarning[]): SeqDocum
         first.number,
       ),
     );
+  } else if (originStart < 0 && /\brc\b/.test(first.text)) {
+    // A WGS/TSA/TLS master record counts `rc` and holds no sequence (#254).
+    warnings.push(
+      warning(
+        'Sequence: a master record (counted in rc) has no sequence; it opens empty',
+        first.number,
+      ),
+    );
+  } else if (originStart < 0) {
+    // A record cut short, or a file that is not a full GenBank record: say so
+    // rather than open it empty without a word (#461).
+    const bare = featuresStart < 0 && strayFeatures === 0;
+    warnings.push(
+      warning(
+        bare
+          ? 'Feature table and sequence: no FEATURES line and no ORIGIN line were found after the LOCUS line, so the record opens empty (is the file truncated?)'
+          : 'Sequence: no ORIGIN line was found, so the record opens with no sequence (is the file truncated?)',
+        first.number,
+      ),
+    );
   }
-  if (locus.length !== null && locus.length !== sequence.length) {
+  if (locus.length !== null && locus.length !== sequence.length && originStart >= 0) {
     warnings.push(
       warning(
         `LOCUS says ${locus.length} ${locus.alphabet === 'protein' ? 'aa' : 'bp'} but the sequence has ${sequence.length}; using ${sequence.length}`,

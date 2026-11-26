@@ -76,6 +76,28 @@ A qualifier whose quotes do not pair up — `/note="One missing ""quotation
 mark" here"`, written by hand or by another program — is closed at the next
 feature, or at the next qualifier when its line ends in a quote, with a
 warning naming where; the features after it are read as usual.
+A GenBank file written with sloppy layout is read where the intent is clear,
+and anything else is reported rather than dropped:
+
+- A feature key indented with a tab (`<TAB>CDS  1..30`) is read as a feature
+  key, and tab-indented qualifiers as qualifiers.
+- A record whose lines are all indented, or with only `LOCUS` at the left
+  margin (some tools write it that way), is read with that indent taken off.
+  This applies only when nothing else in the record sits at the left margin.
+- `FEATURES`, `ORIGIN` and `LOCUS` are found in lower case too.
+- Feature lines with no `FEATURES` line above them are not read, with a
+  warning that names the feature table and the line where they start.
+- Lines in the feature table that are not laid out as a feature key (five
+  spaces, the key, then the location after a space; `restriction_site3..8`
+  with no space is one) or an indented qualifier are not read, and one
+  warning gives how many and where the first is.
+- A record with no `ORIGIN` line, or none after `LOCUS` at all (a truncated
+  file, a header only), opens empty with a warning that names the missing
+  section (the sequence, or the feature table and the sequence).
+
+Nothing else is guessed: a record that mixes left-margin and indented
+keywords, or a feature key at a different indent than five spaces in an
+otherwise normal record, is reported rather than repaired.
 A REFERENCE line that gives no number or no location in parentheses
 (`REFERENCE   .`) is written back as a plain numbered reference, and loose
 text on it goes to the reference's REMARK with a warning, so the file
