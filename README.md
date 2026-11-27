@@ -105,7 +105,9 @@ update it, instead of a blank one (#291).
 
 ## Contributing
 
-Issues and pull requests are welcome. PlasmidPop is MIT licensed
+Issues and pull requests are welcome: see [CONTRIBUTING.md](./CONTRIBUTING.md)
+and the [Code of Conduct](./CODE_OF_CONDUCT.md); report security problems as
+described in [SECURITY.md](./SECURITY.md). PlasmidPop is MIT licensed
 ([LICENSE](./LICENSE)); see [CITATION.cff](./CITATION.cff) to cite it.
 [CLAUDE.md](./CLAUDE.md) holds the architecture handoff and domain rules,
 [docs/design/](./docs/design/README.md) the reasoning behind each piece of

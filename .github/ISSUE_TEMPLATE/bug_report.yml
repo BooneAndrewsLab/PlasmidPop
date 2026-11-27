@@ -1,0 +1,26 @@
+name: Bug report
+description: Something is wrong, crashes, or gives a wrong result
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: A small sequence file helps most. Only attach sequences you are free to share.
+  - type: input
+    id: version
+    attributes:
+      label: PlasmidPop version
+      description: Shown in the header of the Help guide.
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and OS
+      placeholder: Firefox 130 on Linux
