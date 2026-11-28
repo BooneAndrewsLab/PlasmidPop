@@ -193,6 +193,32 @@ describe('FASTA, reading line by line', () => {
     expect(() => parseFasta('\n\nACGT\n')).toThrow('Line 3: FASTA files must start with a ">"');
   });
 
+  it('tags each failure with its reason, the section it stopped in and the records read before it', () => {
+    const failure = (text: string): FormatError => {
+      try {
+        parseFasta(text);
+      } catch (e) {
+        if (e instanceof FormatError) return e;
+      }
+      throw new Error('expected a FormatError');
+    };
+    const escaped = failure('>p\\nACGT\\n');
+    expect(escaped.message).toMatch(/JSON-escaped/);
+    expect(escaped.reason).toBe('parse-error');
+    expect(escaped.section).toBe('header');
+    expect(escaped.recordsParsed).toBeUndefined();
+
+    const badBase = failure('>a\nACGT\n>b\nACGT#\n');
+    expect(badBase.reason).toBe('parse-error');
+    expect(badBase.section).toBe('sequence');
+    expect(badBase.recordsParsed).toBe(1);
+
+    const headless = failure('ACGT\n');
+    expect(headless.reason).toBe('unrecognised-format');
+    expect(headless.section).toBe('header');
+    expect(headless.recordsParsed).toBe(0);
+  });
+
   it('takes a tag of ours out of the description wherever it stands in it', () => {
     const ends = parseFasta(">x [PlasmidPop-ends: left=blunt; right=5' AATT/EcoRI] insert\nACGT\n")
       .documents[0];

@@ -2142,6 +2142,16 @@ Equivalent, left as a survivor (1):
 
 None was killed only by a skipped suite, and none is left in doubt.
 
+## At 1.27.0: the release pass on changed lines (2026-11-27)
+
+`npm run mutate:changed` scored 94.66 (floor 90) with 6 survivors on lines
+changed since v1.26.0 and no timeouts, all in `src/io/fasta/fasta.ts`: the
+reason (`'parse-error'`) and detail (`section`, `recordsParsed`) of the three
+`FormatError`s added for #465 and #461. One test in `fasta.test.ts` now asserts
+them (the JSON-escaped header, a bad base after one good record, a file with no
+`>` header). The confirming run scored 94.69 with no survivors on changed
+lines, and nothing is left as equivalent.
+
 ## Stale survivors, and `--remeasure`
 
 Stryker's incremental report keeps a mutant's verdict while its lines stand.
