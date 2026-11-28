@@ -11,8 +11,8 @@ documentation fixes and pull requests are all welcome. Please follow the
 - For a bug, say what you did, what you expected, what happened, the version,
   and the browser. A small sequence file that reproduces it helps most; do not
   attach sequences you are not free to share.
-- In the app, **Report this problem** prepares an email with the diagnostic
-  details already filled in.
+- In the app, the open-failure banner's **Copy report** button copies the
+  diagnostic details (never file content) so you can paste them into the issue.
 - Security problems: do not open an issue, see [SECURITY.md](./SECURITY.md).
 
 ## Before a large change
